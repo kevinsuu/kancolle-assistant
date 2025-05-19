@@ -641,6 +641,7 @@ class Browser {
         const manifest = extension.manifest
         if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
           kccp.logger.error(
+            logSource,
             `Extension ${extension.name} is a Manifest V3 extension that uses service workers, which are not yet supported. Some functionality may be missing.`,
           )
           /*
