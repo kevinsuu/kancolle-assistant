@@ -640,9 +640,14 @@ class Browser {
       this.session.getAllExtensions().map(async (extension) => {
         const manifest = extension.manifest
         if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
+          kccp.logger.error(
+            `Extension ${extension.name} is a Manifest V3 extension that uses service workers, which are not yet supported. Some functionality may be missing.`,
+          )
+          /*
           await this.session.serviceWorkers.startWorkerForScope(extension.url).catch((error) => {
             kccp.logger.error(logSource, error)
           })
+          //*/
         }
       }),
     )
