@@ -1114,7 +1114,10 @@ class Browser {
   devtoolsPolyfillJs = `
     (function() {
       window.open = function (url, name, features) {
-        (new RMsg("service", "windowOpen", {url})).execute();
+        if (RMsg) {
+          (new RMsg("service", "windowOpen", {url})).execute();
+        }
+        else console.error("Attempted to execute window.open, but the API is broken")
       }
     }());`
 
