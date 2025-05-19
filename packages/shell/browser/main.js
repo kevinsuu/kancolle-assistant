@@ -1111,8 +1111,17 @@ class Browser {
     return numeric
   }
 
+  devtoolsPolyfillJs = `
+    (function() {
+      window.open = function (url, name, features) {
+        (new RMsg("service", "windowOpen", {url})).execute();
+      }
+    }());`
+
   alwaysActiveUpdateJs = `
     (function() {
+      console.log("Running always-active injection.", document?.URL)
+
       Object.defineProperty(document, 'hidden', {
         value: false,
         configurable: false
@@ -1227,11 +1236,13 @@ class Browser {
         frameRoutingId,
       ) => {
         const frame = webFrameMain.fromId(frameProcessId, frameRoutingId)
+        const isCustomDevtoolsPanel =
+          url.startsWith('chrome-extension:') && frame.parent?.url.startsWith('devtools:')
         frame.executeJavaScript(this.alwaysActiveUpdateJs)
         // {preserveDrawingBuffer: true} for canvas getContext
         const skip = ['devtools:', 'about:']
-        if (skip.some((s) => url.startsWith(s))) return
-        frame.executeJavaScript(this.canvasUpdateJs)
+        if (!skip.some((s) => url.startsWith(s))) frame.executeJavaScript(this.canvasUpdateJs)
+        if (isCustomDevtoolsPanel) frame.executeJavaScript(this.devtoolsPolyfillJs)
       },
     )
   }
