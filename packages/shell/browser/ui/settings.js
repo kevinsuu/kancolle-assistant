@@ -356,8 +356,8 @@ class Settings {
     const path = result.filePaths[0]
     console.log('Selected kc3 path', path)
 
-    if (channel === 'custom1') this.config.kc3kai.update.custom1Location(path)
-    else if (channel === 'custom2') this.config.kc3kai.update.custom2Location(path)
+    if (channel === 'custom1') this.config.kc3kai.custom1Location(path)
+    else if (channel === 'custom2') this.config.kc3kai.custom2Location(path)
     else console.error('Unknown custom kc3 channel', channel)
   }
 
