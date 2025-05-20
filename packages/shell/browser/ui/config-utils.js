@@ -33,7 +33,7 @@ const configSchema = {
           'yasen',
           'zuiun',
           'chuuha',
-          'salmon',
+          'cirrus',
           'seafoam',
         ],
         default: 'damecon',
