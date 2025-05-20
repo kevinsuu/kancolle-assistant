@@ -111,6 +111,16 @@
   --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
 }
 
+#root.theme-sagiri {
+  --chrome-fg-color: #dddfe2;
+  --chrome-mid-color: #bcc7d0;
+  --chrome-bg-color: #aab0b6;
+  --chrome-text-color: #171717;
+  --control-text-color: #171717c0;
+  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
+  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     --content-bg-color: #f7f7f7;

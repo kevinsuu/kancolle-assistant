@@ -34,6 +34,7 @@ const configSchema = {
           'zuiun',
           'chuuha',
           'cirrus',
+          'sagiri',
           'seafoam',
         ],
         default: 'damecon',
