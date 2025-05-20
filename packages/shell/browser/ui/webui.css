@@ -11,6 +11,28 @@
   --chrome-text-color: #ececec;
 }
 
+#root.theme-electron-shell {
+  --chrome-fg-color: #745c97;
+  --chrome-mid-color: #544a79;
+  --chrome-bg-color: #39375b;
+}
+
+#root.theme-noir {
+  --chrome-fg-color: #404040;
+  --chrome-mid-color: #303030;
+  --chrome-bg-color: #202020;
+}
+
+#root.theme-haku {
+  --chrome-fg-color: #f0f0f0;
+  --chrome-mid-color: #d7d7d7;
+  --chrome-bg-color: #d0d0d0;
+  --chrome-text-color: #171717;
+  --control-text-color: #171717c0;
+  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
+  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+}
+
 #root.theme-andra {
   --chrome-fg-color: #0c4c7c;
   --chrome-mid-color: #083a60;
@@ -29,10 +51,22 @@
   --chrome-bg-color: #612931;
 }
 
+#root.theme-souya {
+  --chrome-fg-color: #db5e26;
+  --chrome-mid-color: #b64d1e;
+  --chrome-bg-color: #501514;
+}
+
 #root.theme-taiha {
   --chrome-fg-color: #aa1d17;
   --chrome-mid-color: #84141c;
   --chrome-bg-color: #410b13;
+}
+
+#root.theme-yasen {
+  --chrome-fg-color: #1b2a41;
+  --chrome-mid-color: #0c1821;
+  --chrome-bg-color: #051017;
 }
 
 #root.theme-zuiun {
@@ -41,10 +75,40 @@
   --chrome-bg-color: #142a1c;
 }
 
-#root.theme-electron-shell {
-  --chrome-fg-color: #745c97;
-  --chrome-mid-color: #544a79;
-  --chrome-bg-color: #39375b;
+#root.theme-damecon {
+  --chrome-fg-color: #6e35ae;
+  --chrome-mid-color: #552887;
+  --chrome-bg-color: #3d1d61;
+}
+
+#root.theme-seafoam {
+  --chrome-fg-color: #e1f4e8;
+  --chrome-mid-color: #a8d2d1;
+  --chrome-bg-color: #85cbbf;
+  --chrome-text-color: #171717;
+  --control-text-color: #171717c0;
+  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
+  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+}
+
+#root.theme-salmon {
+  --chrome-fg-color: #f1e3e1;
+  --chrome-mid-color: #dfcac7;
+  --chrome-bg-color: #d5b2ac;
+  --chrome-text-color: #171717;
+  --control-text-color: #171717c0;
+  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
+  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+}
+
+#root.theme-chuuha {
+  --chrome-fg-color: #f1cba0;
+  --chrome-mid-color: #efa755;
+  --chrome-bg-color: #e48e30;
+  --chrome-text-color: #171717;
+  --control-text-color: #171717c0;
+  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
+  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
 }
 
 @media (prefers-color-scheme: light) {
@@ -312,7 +376,8 @@ ul {
 .tab-container.tab-separator-right::after {
   top: 8px;
   bottom: 5px;
-  border-right: 1px solid #ffffff3f;
+  border-right: 1px solid var(--control-text-color);
+  opacity: 0.75;
 }
 
 .tab .favicon[src] {
@@ -352,7 +417,7 @@ ul {
 }
 
 .tab .controls .control.close {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--control-text-color);
 }
 
 .tab .controls .control.close:hover {
