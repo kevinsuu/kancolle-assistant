@@ -296,6 +296,7 @@ function setupChromeWebStoreApi() {
   webFrame.executeJavaScript(`
     (function () {
       chrome.webstorePrivate = globalThis.electronWebstore;
+      if (!chrome.runtime) chrome.runtime = {};
       Object.assign(chrome.runtime, electronRuntime);
       Object.assign(chrome.management, electronManagement);
       void 0;
