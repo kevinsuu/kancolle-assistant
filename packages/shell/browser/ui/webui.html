@@ -81,6 +81,7 @@
               <button id="reload" type="button" class="control" title="reload" data-bind="click: browserActionReload"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
             <div class="address-bar">
+              <div class="input-backdrop"></div>
               <input id="addressurl" type="text" spellcheck="false" title="address bar" data-bind="textInput: activeTab().urlInput, event: { keydown: browserActionAddressKeyDown }"/>
             </div>
             <browser-action-list id="actions"></browser-action-list>
