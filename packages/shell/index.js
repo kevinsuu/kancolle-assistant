@@ -1,2 +1,2 @@
 import Browser from './browser/main'
-const browser = new Browser()
+global.browser = new Browser()

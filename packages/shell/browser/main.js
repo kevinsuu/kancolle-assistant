@@ -12,6 +12,7 @@ import {
   autoUpdater,
   webFrameMain,
 } from 'electron'
+import { EventEmitter } from 'events'
 
 if (require('electron-squirrel-startup')) app.quit()
 app.setAppUserModelId('net.tsunkit.damecon')
@@ -264,46 +265,32 @@ class TabbedBrowserWindow {
     this.window = new BrowserWindow(options.window)
     this.id = this.window.id
     this.webContents = this.window.webContents
-    //this.webContents.setBackgroundThrottling(configStore.get('window.behavior.occlusion'))
-    kccp.logger.log(
-      logSource,
-      'Background throttling allowed:',
-      this.webContents.getBackgroundThrottling(),
-    )
 
     // load window chrome
-    if (process.env.SHELL_DEBUG) {
-      this.webContents.openDevTools({ mode: 'detach' })
-    }
     this.webContents.on('did-finish-load', () => {
       //console.log('>> main: webui finished loading.')
       this.webContents.send('webui-message', {
         type: 'webui-init',
         data: { windowId: this.window.id },
       })
+
+      queueMicrotask(async () => {
+        for (const url of options.initialUrls) {
+          const tab = this.tabs.create({ initialUrl: url })
+          this.tabs.select(tab.id)
+        }
+      })
     })
     self.initTabs(options)
     this.webContents.loadURL(webuiUrl)
-
-    queueMicrotask(async () => {
-      await startStopKccp(configStore)
-      await this.applyProxy()
-
-      for (const url in options.initialUrls) {
-        const settingsTab = this.tabs.create({ initialUrl: url })
-        this.tabs.select(settingsTab.id)
-      }
-    })
   }
 
   initTabs(options) {
     const self = this
     const tabsOpts = { newTabPageUrl: newTabUrl }
-    //console.log('>> main: loading tabs', tabsOpts)
     this.tabs = new Tabs(this.window, tabsOpts)
 
     this.tabs.on('tab-created', function onTabCreated(tab) {
-      //console.log(">> main.tabs.on('tab-created', tabsOpts)")
       //tab.loadURL(options.urls.newtab)
 
       // Track tab that may have been created outside of the extensions API.
@@ -338,6 +325,84 @@ class TabbedBrowserWindow {
 
   getFocusedTab() {
     return this.tabs.selected
+  }
+}
+
+function logBytes(x, showAll = false) {
+  if (!showAll && x[0] != 'rss') return
+  console.log(x[0], x[1] / (1000.0 * 1000), 'MB')
+}
+
+function getMemory() {
+  Object.entries(process.memoryUsage()).map((e) => logBytes(e))
+}
+
+class Browser extends EventEmitter {
+  windows = []
+  kccpMainWindow = null
+  currentWindowId = null
+  currentKc3ExtensionId = null
+
+  urls = {
+    newtab: 'about:blank',
+  }
+
+  constructor() {
+    super()
+    //setInterval(getMemory, 1000)
+
+    this.ready = new Promise((resolve) => {
+      this.resolveReady = resolve
+    })
+
+    app.whenReady().then(this.init.bind(this))
+
+    app.on('window-all-closed', () => {
+      if (process.platform !== 'darwin') {
+        this.destroy()
+      }
+    })
+    app.on('second-instance', () => {
+      const mainWindow = this.windows[0].window
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+    })
+
+    app.on('activate', () => {
+      // On macOS it's common to re-create a window in the app when the
+      // dock icon is clicked and there are no other windows open.
+      if (BrowserWindow.getAllWindows().length === 0) this.createInitialWindow()
+    })
+
+    app.on('web-contents-created', this.onWebContentsCreated.bind(this))
+  }
+
+  destroy() {
+    app.quit()
+  }
+
+  async applyProxy() {
+    const enable = configStore.get('proxy.enable')
+    if (enable) {
+      const mode = configStore.get('proxy.mode')
+      let host, port
+      if (mode.endsWith('-external')) {
+        host = configStore.get('proxy.client.host')
+        port = configStore.get('proxy.client.port')
+      } else {
+        const kccpConfig = await getKccpConfig(configStore)
+        host = kccpConfig.config.hostname
+        port = kccpConfig.config.port
+      }
+      const data = this.generatePac(host, port, mode)
+      const pacData =
+        'data:application/x-ns-proxy-autoconfig;base64,' +
+        Buffer.from(data, 'utf8').toString('base64')
+      const proxyConfig = { mode: 'pac_script', pacScript: pacData }
+      await this.session.setProxy(proxyConfig)
+    } else {
+      await this.session.setProxy({ mode: 'system' })
+    }
   }
 
   generatePac(host, port, mode) {
@@ -382,87 +447,12 @@ class TabbedBrowserWindow {
     return pac
   }
 
-  async applyProxy() {
-    const enable = configStore.get('proxy.enable')
-    if (enable) {
-      const mode = configStore.get('proxy.mode')
-      let host, port
-      if (mode.endsWith('-external')) {
-        host = configStore.get('proxy.client.host')
-        port = configStore.get('proxy.client.port')
-      } else {
-        const kccpConfig = await getKccpConfig(configStore)
-        host = kccpConfig.config.hostname
-        port = kccpConfig.config.port
-      }
-      const data = this.generatePac(host, port, mode)
-      const pacData =
-        'data:application/x-ns-proxy-autoconfig;base64,' +
-        Buffer.from(data, 'utf8').toString('base64')
-      const proxyConfig = { mode: 'pac_script', pacScript: pacData }
-      await this.window.webContents.session.setProxy(proxyConfig)
-    } else {
-      await this.window.webContents.session.setProxy({ mode: 'system' })
-    }
-  }
-}
-
-function logBytes(x, showAll = false) {
-  if (!showAll && x[0] != 'rss') return
-  console.log(x[0], x[1] / (1000.0 * 1000), 'MB')
-}
-
-function getMemory() {
-  Object.entries(process.memoryUsage()).map((e) => logBytes(e))
-}
-
-class Browser {
-  windows = []
-  currentKc3ExtensionId = null
-
-  urls = {
-    newtab: 'about:blank',
-  }
-
-  constructor() {
-    //setInterval(getMemory, 1000)
-
-    this.ready = new Promise((resolve) => {
-      this.resolveReady = resolve
-    })
-
-    app.whenReady().then(this.init.bind(this))
-
-    app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin') {
-        this.destroy()
-      }
-    })
-    app.on('second-instance', () => {
-      const mainWindow = this.windows[0].window
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-    })
-
-    app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (BrowserWindow.getAllWindows().length === 0) this.createInitialWindow()
-    })
-
-    app.on('web-contents-created', this.onWebContentsCreated.bind(this))
-  }
-
-  destroy() {
-    app.quit()
-  }
-
   getFocusedWindow() {
     return this.windows.find((w) => w.window.isFocused()) || this.windows[0]
   }
 
   getWindowFromBrowserWindow(window) {
-    return !window.isDestroyed() ? this.windows.find((win) => win.id === window.id) : null
+    return !window.isDestroyed() ? this.windows.find((w) => w.id === window.id) : null
   }
 
   getWindowFromWebContents(webContents) {
@@ -485,6 +475,8 @@ class Browser {
       const fWin = () => this.getFocusedWindow()
       const fTab = () => fWin().getFocusedTab()
       const fWc = () => fTab().webContents
+
+      this.currentWindowId = fWin().window.id
 
       globalShortcut.registerAll(['CmdOrCtrl+T'], () => fWin().tabs.create())
       globalShortcut.registerAll(['CmdOrCtrl+R', 'F5'], () => fWc().reload())
@@ -520,46 +512,57 @@ class Browser {
         //console.log('>> main.extensions.createTab()')
         await this.ready
 
-        const win =
+        const parentWin =
           typeof details.windowId === 'number' &&
           this.windows.find((w) => w.id === details.windowId)
 
-        if (!win) {
+        if (!parentWin) {
           throw new Error(`Unable to find windowId=${details.windowId}`)
         }
 
-        const tab = win.tabs.create()
+        const tab = parentWin.tabs.create()
 
         if (details.url) tab.loadURL(details.url)
-        if (typeof details.active === 'boolean' ? details.active : true) win.tabs.select(tab.id)
+        if (typeof details.active === 'boolean' ? details.active : true)
+          parentWin.tabs.select(tab.id)
 
         return [tab.webContents, tab.window]
       },
       selectTab: (tab, browserWindow) => {
         //console.log('>> main.extensions.selectTab()')
-        const win = this.getWindowFromBrowserWindow(browserWindow)
-        win?.tabs.select(tab.id)
+        const parentWin = this.getWindowFromBrowserWindow(browserWindow)
+        parentWin?.tabs.select(tab.id)
       },
       removeTab: (tab, browserWindow) => {
         //console.log('>> main.extensions.removeTab()')
-        const win = this.getWindowFromBrowserWindow(browserWindow)
-        win?.tabs.remove(tab.id)
+        const parentWin = this.getWindowFromBrowserWindow(browserWindow)
+        parentWin?.tabs.remove(tab.id)
       },
 
       createWindow: async (details) => {
         //console.log('>> main.extensions.createWindow()')
         await this.ready
 
-        const win = this.createTabbedWindow({
-          initialUrl: details.url,
+        const newWin = this.createTabbedWindow({
+          initialUrls: [settingsUrl, details.url],
         })
         // if (details.active) tabs.select(tab.id)
-        return win.window
+        return newWin.window
       },
       removeWindow: (browserWindow) => {
         //console.log('>> main.extensions.removeWindow()')
-        const win = this.getWindowFromBrowserWindow(browserWindow)
-        win?.destroy()
+        const removingWin = this.getWindowFromBrowserWindow(browserWindow)
+
+        const idx = this.windows.indexOf(removingWin)
+        if (idx >= 0) this.windows.splice(idx, 1)
+
+        if (this.windows.length == 1 || this.kccpMainWindowId == removingWin.window.id) {
+          const newMainWindow = this.windows[0].window
+          this.kccpMainWindowId = newMainWindow.id
+          kccp.logger.setMainWindow(newMainWindow)
+        }
+
+        removingWin?.destroy()
       },
     })
 
@@ -664,19 +667,23 @@ class Browser {
     const webuiBase = 'chrome-extension://' + webuiExtensionId
     newTabUrl = webuiBase + '/new-tab.html'
     settingsUrl = webuiBase + '/settings.html'
-    //kccp.logger.log(logSource, '>> main: now creating window.')
-    const win = this.createTabbedWindow({
-      initialUrls: [],
+
+    this.createTabbedWindow({
+      initialUrls: [settingsUrl],
       hideAddressBarFor: [settingsUrl],
     })
 
+    // Init proxy
+    await startStopKccp(configStore)
+    await this.applyProxy()
+
     // Messages from webui/settings
-    ipcMain.handle('webui-message', async (ev, type, data) => {
+    ipcMain.handle('webui-message', async (ev, meta, data) => {
       //kccp.logger.log(logSource, 'main.js received message from webui.js', type, data)
 
       let result
       let kccpConfig, cachePath, source, target // reusables
-      switch (type) {
+      switch (meta.type) {
         case 'get-damecon-info':
           result = {
             version: `${app.getName()} v${app.getVersion()}`,
@@ -701,15 +708,15 @@ class Browser {
           result = configStore.set(data.key, data.value)
           if (data.key.startsWith('proxy.')) {
             await startStopKccp(configStore)
-            await win.applyProxy()
+            await this.applyProxy()
           } else if (data.key == 'kc3kai.update.channel') {
             if (kc3ExtensionId) this.session.removeExtension(kc3ExtensionId)
-            await this.updateKc3IfScheduled(win)
+            await this.updateKc3IfScheduled()
           } else if (data.key === 'window.style.brightness') {
             nativeTheme.themeSource = data.value
           } else if (data.key.startsWith('kc3kai.custom')) {
             const kc3Path = this.getKc3Path()
-            await this.checkStartKc3(win, kc3Path)
+            await this.checkStartKc3(kc3Path)
           }
           break
         case 'get-should-hide-addressbar':
@@ -725,7 +732,7 @@ class Browser {
           }
           break
         case 'clear-cache':
-          await win.window.webContents.session.clearCache()
+          await this.session.clearCache()
           if (
             configStore.get('proxy.enable') &&
             configStore.get('proxy.mode') === 'kccp-internal'
@@ -761,10 +768,12 @@ class Browser {
           break
         case 'webui-zoom-changed':
           //kccp.logger.log(logSource, 'zoom changed', data)
-          win.tabs.updateLayout(data.height)
+          let zoomWin = this.windows.find((w) => w.window.id === meta.windowId)
+          zoomWin?.tabs.updateLayout(data.height)
           break
         case 'webui-display-mode-changed':
-          win.tabs.updateLayout(data.height)
+          let modeWin = this.windows.find((w) => w.window.id === meta.windowId)
+          modeWin?.tabs.updateLayout(data.height)
           break
         case 'webui-close-tab':
           //kccp.logger.log(logSource, 'clicked tab X', data)
@@ -779,7 +788,7 @@ class Browser {
         case 'kccp-save-config':
           await setKccpConfig(data)
           await startStopKccp(configStore)
-          await win.applyProxy() // reapply to react to updated ip/port
+          await this.applyProxy() // reapply to react to updated ip/port
           break
         case 'kccp-import-cache':
           let location = 'unknown'
@@ -915,7 +924,7 @@ class Browser {
           await setKccpConfig(kccpConfig.config)
           //await startStopKccp(configStore)
           // will automatically start when fetching the config and checking for updates
-          await win.applyProxy()
+          await this.applyProxy()
           break
         case 'kccp-log-get-recent':
           kccp.logger.sendRecent()
@@ -933,9 +942,6 @@ class Browser {
       return result
     })
 
-    const settingsTab = win.tabs.create({ initialUrl: settingsUrl })
-    win.tabs.select(settingsTab.id)
-
     this.resolveReady()
 
     // set up kc3 update worker thread
@@ -951,18 +957,15 @@ class Browser {
         case 'status-kc3-is-updating':
           this.kc3IsUpdating = msg.data.isUpdating
           this.kc3UpdatingChannel = msg.data.channel
-          //console.log('>> main: sending webui-message', msg.type)
-          win.webContents.send('webui-message', { type: msg.type, data: msg.data })
+          this.sendToAllWindows(msg.type, msg.data)
           break
         case 'error-do-update':
         case 'update-process-started':
         case 'update-process-progress':
-          //console.log('>> main: sending webui-message', msg.type)
-          win.webContents.send('webui-message', { type: msg.type, data: msg.data })
+          this.sendToAllWindows(msg.type, msg.data)
           break
         case 'update-process-completed':
-          //console.log('Received completion report from KC3 updater.')
-          win.webContents.send('webui-message', { type: msg.type, data: msg.data })
+          this.sendToAllWindows(msg.type, msg.data)
 
           if (msg.data.name === 'KC3 Update') {
             const kc3Path = this.getKc3Path()
@@ -973,14 +976,18 @@ class Browser {
             const channel = this.kc3UpdatingChannel
             if (!channel.startsWith('custom'))
               configStore.set('kc3kai.update.time.' + channel, Date.now())
-            await this.checkStartKc3(win, kc3Path)
+            await this.checkStartKc3(kc3Path)
           }
           break
         default:
           throw new Error(`Unknown message type ${msg.type}`)
       }
     })
-    await this.updateKc3IfScheduled(win)
+    await this.updateKc3IfScheduled()
+  }
+
+  sendToAllWindows(type, data) {
+    this.windows.forEach((w) => w.webContents.send('webui-message', { type, data }))
   }
 
   initSession() {
@@ -1005,9 +1012,9 @@ class Browser {
     //console.log('>> main.createWindow()')
     const windowConfig = configStore.get('window')
 
-    const win = new TabbedBrowserWindow({
+    const newTabbedWindow = new TabbedBrowserWindow({
       ...options,
-      urls: this.urls,
+      //urls: this.urls,
       extensions: this.extensions,
       window: {
         width: windowConfig.state?.width || configSchema.window.state.width.default,
@@ -1032,13 +1039,13 @@ class Browser {
         icon: path.join(__dirname, 'icon.ico'),
       },
     })
-    win.window.on('resize', () => {
-      win.window.webContents.send('webui-message', {
+    newTabbedWindow.window.on('resize', () => {
+      newTabbedWindow.window.webContents.send('webui-message', {
         type: 'webui-display-mode',
-        data: { mode: win.window.isMaximized() ? 'maximized' : 'normal' },
+        data: { mode: newTabbedWindow.window.isMaximized() ? 'maximized' : 'normal' },
       })
-      if (win.window.isMaximized()) return
-      const size = win.window.getSize()
+      if (newTabbedWindow.window.isMaximized()) return
+      const size = newTabbedWindow.window.getSize()
       try {
         configStore.set('window.state.width', size[0])
         configStore.set('window.state.height', size[1])
@@ -1046,17 +1053,20 @@ class Browser {
         kccp.logger.error(logSource, 'Failed to set window.state values during resize.')
       }
     })
-    this.windows.push(win)
+    this.windows.push(newTabbedWindow)
     if (this.windows.length == 1) {
-      kccp.logger.setMainWindow(win.window)
+      const newMainWindow = this.windows[0].window
+      this.kccpMainWindowId = newMainWindow.id
+      kccp.logger.setMainWindow(newMainWindow)
       initKccp()
     }
 
+    /*
     if (process.env.SHELL_DEBUG) {
       win.webContents.openDevTools({ mode: 'detach' })
-    }
+    }*/
 
-    return win
+    return newTabbedWindow
   }
 
   createInitialWindow() {
@@ -1070,10 +1080,10 @@ class Browser {
       case 'background-tab':
       case 'new-window': {
         queueMicrotask(() => {
-          const win = this.getWindowFromWebContents(webContents)
-          if (!win) return
+          const sourceWin = this.getWindowFromWebContents(webContents)
+          if (!sourceWin) return
           const opts = {}
-          const tab = win.tabs.create(opts)
+          const tab = sourceWin.tabs.create(opts)
           if (
             process.env.SHELL_DEBUG ||
             ((details.url == kc3StartPageUrl || details.url == DMMPageUrl) &&
@@ -1182,9 +1192,9 @@ class Browser {
       })
     })
 
-    if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
+    /*if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
-    }
+    }*/
 
     webContents.setWindowOpenHandler((details) =>
       this.windowOpenHandler.bind(this)(webContents, details),
@@ -1196,14 +1206,14 @@ class Browser {
         webContents,
         extensionMenuItems: this.extensions.getContextMenuItems(webContents, params),
         openLink: (url, disposition) => {
-          const win = this.getFocusedWindow()
+          const activeWin = this.getFocusedWindow()
 
           switch (disposition) {
             case 'new-window':
-              this.createTabbedWindow({ initialUrl: url })
+              this.createTabbedWindow({ initialUrls: [settingsUrl, url] })
               break
             default:
-              const tab = win.tabs.create()
+              const tab = activeWin.tabs.create()
               tab.loadURL(url)
           }
         },
@@ -1269,8 +1279,8 @@ class Browser {
   }
 
   confirmCloseTab(tabId) {
-    const win = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    const tab = win.tabs.tabList.find((t) => t.id == tabId)
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
     let leave = true
     // add other URLs requiring confirmation here
     if ([DMMPageUrl].includes(tab.webContents.mainFrame.url)) {
@@ -1280,37 +1290,37 @@ class Browser {
   }
 
   toggleAddressBar(tabId) {
-    const win = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    win.webContents.send('webui-message', {
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    parentWin.webContents.send('webui-message', {
       type: 'webui-toggle-addressbar',
       data: {},
     })
   }
 
   focusAddressBar(tabId) {
-    const win = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    const tab = win.tabs.tabList.find((t) => t.id == tabId)
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
     const url = tab?.url || tab?.webContents.mainFrame.url
     if (url == settingsUrl) return
 
-    win.webContents.focus()
-    win.webContents.send('webui-message', {
+    parentWin.webContents.focus()
+    parentWin.webContents.send('webui-message', {
       type: 'webui-focus-addressbar',
       data: {},
     })
   }
 
   prevTab(tabId) {
-    const win = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    let tabIdx = win.tabs.tabList.findIndex((t) => t.id == tabId) - 1
-    if (tabIdx < 0) tabIdx = win.tabs.tabList.length - 1
-    win.tabs.select(win.tabs.tabList[tabIdx].id)
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    let tabIdx = parentWin.tabs.tabList.findIndex((t) => t.id == tabId) - 1
+    if (tabIdx < 0) tabIdx = parentWin.tabs.tabList.length - 1
+    parentWin.tabs.select(parentWin.tabs.tabList[tabIdx].id)
   }
   nextTab(tabId) {
-    const win = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    let tabIdx = win.tabs.tabList.findIndex((t) => t.id == tabId) + 1
-    if (tabIdx >= win.tabs.tabList.length) tabIdx = 0
-    win.tabs.select(win.tabs.tabList[tabIdx].id)
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    let tabIdx = parentWin.tabs.tabList.findIndex((t) => t.id == tabId) + 1
+    if (tabIdx >= parentWin.tabs.tabList.length) tabIdx = 0
+    parentWin.tabs.select(parentWin.tabs.tabList[tabIdx].id)
   }
 
   getKc3Path() {
@@ -1322,7 +1332,7 @@ class Browser {
     return kc3Path
   }
 
-  async updateKc3IfScheduled(win) {
+  async updateKc3IfScheduled() {
     // update if configured schedule warrants it
     const currentChannel = configStore.get('kc3kai.update.channel')
     const canUpdate = !currentChannel.startsWith('custom')
@@ -1351,7 +1361,7 @@ class Browser {
       await this.updateKc3(currentChannel)
     } else {
       const kc3Path = this.getKc3Path()
-      await this.checkStartKc3(win, kc3Path)
+      await this.checkStartKc3(kc3Path)
     }
   }
 
@@ -1362,9 +1372,9 @@ class Browser {
     })
   }
 
-  async checkStartKc3(win, kc3Path) {
+  async checkStartKc3(kc3Path) {
     if (!!this.currentKc3ExtensionId) {
-      win.tabs.removeExtensionTabs(this.currentKc3ExtensionId)
+      this.windows.forEach((w) => w.tabs.removeExtensionTabs(this.currentKc3ExtensionId))
     }
 
     if (!kc3Path) {
@@ -1419,22 +1429,24 @@ class Browser {
       configStore.set('kc3kai.startup.gamePage', 'dmm')
     }
 
+    const currentWin = this.getFocusedWindow()
+
     switch (configStore.get('kc3kai.startup.gamePage')) {
       case 'kc3':
-        startTab = win.tabs.create({ initialUrl: kc3StartPageUrl })
+        startTab = currentWin.tabs.create({ initialUrl: kc3StartPageUrl })
         break
       case 'dmm':
-        startTab = win.tabs.create({ initialUrl: DMMPageUrl })
+        startTab = currentWin.tabs.create({ initialUrl: DMMPageUrl })
         break
     }
 
     const kc3StratRoomUrl = 'chrome-extension://' + kc3ExtensionId + '/pages/strategy/strategy.html'
     if (configStore.get('kc3kai.startup.openStratRoom')) {
-      const stratRoomTab = win.tabs.create({ initialUrl: kc3StratRoomUrl })
+      const stratRoomTab = currentWin.tabs.create({ initialUrl: kc3StratRoomUrl })
       startTab = startTab || stratRoomTab
     }
 
-    if (startTab) win.tabs.select(startTab.id)
+    if (startTab) currentWin.tabs.select(startTab.id)
   }
 }
 

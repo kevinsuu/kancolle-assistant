@@ -25,5 +25,6 @@ export const injectIpc = () => {
     // If that's the case, we're in the main world so we can just execute our
     // function.
     //mainWorldScript()
+    console.error('preload-ipc', 'caught an exception trying to expose ipc')
   }
 }

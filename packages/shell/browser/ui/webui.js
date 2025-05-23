@@ -57,7 +57,7 @@ class WebUI {
 
   constructor() {
     ipc.on('webui-message', async (ev, msg) => {
-      //console.log('>> from main: ', msg)
+      console.log('Received message from main.', msg)
       if (msg?.type) await this.receiveFromMain(msg)
       else alert('webui.js received invalid webui-message from main:\n' + JSON.stringify(msg))
     })
@@ -69,21 +69,32 @@ class WebUI {
     })
     chrome.runtime.onMessage.addListener(
       function (msg, sender, sendresponse) {
-        ;(async () => {
-          //console.log('>> from renderer: ', msg)
-          if (msg?.type) {
-            try {
-              const result = await this.receiveFromRenderer(msg)
-              sendresponse({ result, complete: true })
-            } catch (error) {
-              alert(
-                `webui.js encountered an error handling message from renderer\nError: ${error}\nMessage:${JSON.stringify(msg)}\n`,
-              )
-              sendresponse({ error, complete: false })
-            }
-          } else alert('webui.js received invalid message from renderer\n' + JSON.stringify(msg))
-        })()
-        return true
+        console.log(
+          'message for tab',
+          sender.tab.id,
+          this.tabs().map((t) => t.id),
+        )
+        const sourceTab = this.tabs().find((t) => t.id === sender.tab.id)
+        if (!!sourceTab) {
+          ;(async () => {
+            //console.log('>> from renderer: ', msg)
+            if (msg?.type) {
+              try {
+                console.log('Received message from main.', msg)
+                const result = await this.receiveFromRenderer(msg)
+                sendresponse({ result, complete: true })
+              } catch (error) {
+                alert(
+                  `webui.js encountered an error handling message from renderer\nError: ${error}\nMessage:${JSON.stringify(msg)}\n`,
+                )
+                sendresponse({ error, complete: false })
+              }
+            } else alert('webui.js received invalid message from renderer\n' + JSON.stringify(msg))
+          })()
+          return true
+        } else {
+          console.log('Received message for other window.', msg, sender)
+        }
       }.bind(this),
     )
   }
@@ -309,6 +320,13 @@ class WebUI {
 
   async receiveFromRenderer(msg) {
     switch (msg.type) {
+      // Ignore (multiwindow)
+      case 'kccp-log-update':
+      case 'kccp-status':
+      case 'kccp-log-recent':
+        console.log('Ignoring message from other webUI.', msg)
+        return
+      // Passthrough to main
       case 'get-damecon-version':
       case 'get-damecon-info':
       case 'get-config':
@@ -344,7 +362,7 @@ class WebUI {
   }
 
   async sendToMain(type, data) {
-    return await ipc.send('webui-message', type, data)
+    return await ipc.send('webui-message', { windowId: this.windowId(), type }, data)
   }
 
   tabMouseDown(tab, ev) {
@@ -442,20 +460,20 @@ class WebUI {
     this.windowState(state)
   }
   windowActionClose() {
-    chrome.windows.remove()
+    chrome.windows.remove(this.windowId())
   }
 
   async getCurrentWindow() {
-    return this.getWindow(chrome.windows.WINDOW_ID_CURRENT)
+    return this.getWindow(this.windowId())
   }
   async getWindow(windowId) {
     return new Promise((resolve) => chrome.windows.get(windowId, resolve))
   }
   async getCurrentTabs() {
-    return this.getTabs(chrome.windows.WINDOW_ID_CURRENT)
+    return this.getTabs(this.windowId())
   }
   async getTabs(windowId) {
-    return new Promise((resolve) => chrome.tabs.query(windowId, resolve))
+    return new Promise((resolve) => chrome.tabs.query({ windowId }, resolve))
   }
 }
 window.vm = new WebUI()

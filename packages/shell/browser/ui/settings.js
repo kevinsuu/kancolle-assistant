@@ -522,7 +522,7 @@ class Settings {
   }
   async init() {
     const appInfo = await this.tryInvoke(
-      async () => await sendMessage('get-damecon-info'),
+      async () => await sendMessage('get-damecon-info', {}),
       'get-damecon-info',
     )
     this.paths = appInfo.paths

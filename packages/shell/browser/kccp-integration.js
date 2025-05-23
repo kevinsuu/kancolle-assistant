@@ -34,7 +34,7 @@ const kccpSendStatusUpdate = function () {
     const windows = BrowserWindow.getAllWindows()
     windows[0].webContents.send('webui-message', { type: 'kccp-status', data: kccpStatus })
   } catch (error) {
-    kccp.logger.error("Couldn't send KCCacheProxy status update to window.")
+    kccp.logger.error(logSource, "Couldn't send KCCacheProxy status update to window.")
   }
 }
 
@@ -148,9 +148,13 @@ const setKccpConfig = async function (kccpConfig) {
   })
 }
 
+var kccpInitialized = false
 const initKccp = function () {
-  kccp.logger.registerElectron(ipcMain, app)
-  kccp.config.loadConfig(app)
+  if (!kccpInitialized) {
+    kccpInitialized = true
+    kccp.logger.registerElectron(ipcMain, app)
+    kccp.config.loadConfig(app)
+  }
 }
 
 const startStopKccp = async function (configStore, expectedBusyActions = 0) {
