@@ -24,7 +24,7 @@ Alternatively, use the zip file: `damecon-browser-*.zip`
 
 ```bash
 # Get the code
-git clone git@github.com:planetarian/damecon-browser.git
+git clone --recurse-submodules https://github.com/planetarian/damecon-browser
 cd damecon-browser
 
 # Install and launch the browser
