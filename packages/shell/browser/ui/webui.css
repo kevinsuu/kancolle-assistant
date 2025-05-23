@@ -17,6 +17,7 @@
   --chrome-bg-color: #39375b;
 }
 
+/* monochrome themes */
 #root.theme-noir {
   --chrome-fg-color: #404040;
   --chrome-mid-color: #303030;
@@ -27,10 +28,13 @@
   --chrome-fg-color: #f0f0f0;
   --chrome-mid-color: #d7d7d7;
   --chrome-bg-color: #d0d0d0;
-  --chrome-text-color: #171717;
-  --control-text-color: #171717c0;
-  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
-  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+}
+
+/* dark themes */
+#root.theme-damecon {
+  --chrome-fg-color: #6e35ae;
+  --chrome-mid-color: #552887;
+  --chrome-bg-color: #3d1d61;
 }
 
 #root.theme-andra {
@@ -75,46 +79,65 @@
   --chrome-bg-color: #142a1c;
 }
 
-#root.theme-damecon {
-  --chrome-fg-color: #6e35ae;
-  --chrome-mid-color: #552887;
-  --chrome-bg-color: #3d1d61;
-}
-
-#root.theme-seafoam {
-  --chrome-fg-color: #e1f4e8;
-  --chrome-mid-color: #a8d2d1;
-  --chrome-bg-color: #85cbbf;
-  --chrome-text-color: #171717;
-  --control-text-color: #171717c0;
-  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
-  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+/* light themes */
+#root.theme-chuuha {
+  --chrome-fg-color: #f1cba0;
+  --chrome-mid-color: #efa755;
+  --chrome-bg-color: #e48e30;
 }
 
 #root.theme-cirrus {
   --chrome-fg-color: #f1e3e1;
   --chrome-mid-color: #dfcac7;
   --chrome-bg-color: #d5b2ac;
-  --chrome-text-color: #171717;
-  --control-text-color: #171717c0;
-  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
-  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
 }
 
-#root.theme-chuuha {
-  --chrome-fg-color: #f1cba0;
-  --chrome-mid-color: #efa755;
-  --chrome-bg-color: #e48e30;
-  --chrome-text-color: #171717;
-  --control-text-color: #171717c0;
-  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
-  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
+#root.theme-kazagumo {
+  --chrome-fg-color: #e7f2ff;
+  --chrome-mid-color: #c0eafe;
+  --chrome-bg-color: #a0e2fe;
+}
+
+#root.theme-langley {
+  --chrome-fg-color: #f5efff;
+  --chrome-mid-color: #e5d9f2;
+  --chrome-bg-color: #cdc1ff;
 }
 
 #root.theme-sagiri {
   --chrome-fg-color: #dddfe2;
   --chrome-mid-color: #bcc7d0;
   --chrome-bg-color: #aab0b6;
+}
+
+#root.theme-sakura {
+  --chrome-fg-color: #ffe4e9;
+  --chrome-mid-color: #f6c7d0;
+  --chrome-bg-color: #eebac7;
+}
+
+#root.theme-sammy {
+  --chrome-fg-color: #eef1ff;
+  --chrome-mid-color: #dae7ff;
+  --chrome-bg-color: #d2daff;
+}
+
+#root.theme-seafoam {
+  --chrome-fg-color: #effce7;
+  --chrome-mid-color: #d7f0ca;
+  --chrome-bg-color: #cae8bd;
+}
+
+/* light themes */
+#root.theme-haku,
+#root.theme-chuuha,
+#root.theme-cirrus,
+#root.theme-kazagumo,
+#root.theme-langley,
+#root.theme-sagiri,
+#root.theme-sakura,
+#root.theme-sammy,
+#root.theme-seafoam {
   --chrome-text-color: #171717;
   --control-text-color: #171717c0;
   --control-hover-light-bg-filter: saturate(110%) brightness(105%);
