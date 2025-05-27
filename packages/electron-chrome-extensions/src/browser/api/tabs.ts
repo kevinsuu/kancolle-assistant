@@ -169,7 +169,8 @@ export class TabsAPI {
   }
 
   private async captureVisibleTab(event: ExtensionEvent, windowId: number, options: ImageDetails) {
-    if (windowId === TabsAPI.WINDOW_ID_CURRENT) windowId = this.ctx.store.lastFocusedWindowId!
+    if (windowId === TabsAPI.WINDOW_ID_CURRENT)
+      windowId = this.ctx.store.getWindowFromWebContents(event.sender).id
     const win = this.ctx.store.getWindowById(windowId)
     if (!win) throw new Error(`Couldn't find a window with ID ${windowId}`)
     const tab = this.ctx.store.getActiveTabFromWindow(win)
@@ -186,7 +187,8 @@ export class TabsAPI {
   }
 
   private getAllInWindow(event: ExtensionEvent, windowId: number = TabsAPI.WINDOW_ID_CURRENT) {
-    if (windowId === TabsAPI.WINDOW_ID_CURRENT) windowId = this.ctx.store.lastFocusedWindowId!
+    if (windowId === TabsAPI.WINDOW_ID_CURRENT)
+      windowId = this.ctx.store.getWindowFromWebContents(event.sender).id
 
     const tabs = Array.from(this.ctx.store.tabs).filter((tab) => {
       if (tab.isDestroyed()) return false
@@ -201,8 +203,7 @@ export class TabsAPI {
   }
 
   private getCurrent(event: ExtensionEvent) {
-    const tab = this.ctx.store.getActiveTabOfCurrentWindow()
-    //TODO: CHECK//const tab = this.ctx.store.getActiveTabFromWebContents(event.sender)
+    const tab = this.ctx.store.getActiveTabFromWebContents(event.sender)
     return tab ? this.getTabDetails(tab) : undefined
   }
 
@@ -291,7 +292,8 @@ export class TabsAPI {
         }
         if (isSet(info.windowId)) {
           if (info.windowId === TabsAPI.WINDOW_ID_CURRENT) {
-            if (this.ctx.store.lastFocusedWindowId !== tab.windowId) return false
+            const actualId = this.ctx.store.getWindowFromWebContents(event.sender).id
+            if (actualId !== tab.windowId) return false
           } else if (info.windowId !== tab.windowId) {
             return false
           }
@@ -316,7 +318,7 @@ export class TabsAPI {
 
     const tab = tabId
       ? this.ctx.store.getTabById(tabId)
-      : this.ctx.store.getActiveTabOfCurrentWindow()
+      : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) return
 
     if (reloadProperties?.bypassCache) {
@@ -333,7 +335,7 @@ export class TabsAPI {
 
     const tab = tabId
       ? this.ctx.store.getTabById(tabId)
-      : this.ctx.store.getActiveTabOfCurrentWindow()
+      : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) return
 
     tabId = tab.id
@@ -366,7 +368,7 @@ export class TabsAPI {
     const tabId = typeof arg1 === 'number' ? arg1 : undefined
     const tab = tabId
       ? this.ctx.store.getTabById(tabId)
-      : this.ctx.store.getActiveTabOfCurrentWindow()
+      : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) return
     tab
       //.navigationHistory // Electron 35
@@ -377,7 +379,7 @@ export class TabsAPI {
     const tabId = typeof arg1 === 'number' ? arg1 : undefined
     const tab = tabId
       ? this.ctx.store.getTabById(tabId)
-      : this.ctx.store.getActiveTabOfCurrentWindow()
+      : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) return
     tab
       //.navigationHistory // Electron 35

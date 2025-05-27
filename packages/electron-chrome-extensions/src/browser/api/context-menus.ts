@@ -248,12 +248,13 @@ export class ContextMenusAPI {
   }
 
   private buildMenuItemsForExtension(
+    event: ExtensionEvent,
     extensionId: string,
     menuType: ContextMenuType,
   ): Electron.MenuItem[] {
     const extensionItems = this.menus.get(extensionId)
     const extension = this.ctx.session.getExtension(extensionId)
-    const activeTab = this.ctx.store.getActiveTabOfCurrentWindow()
+    const activeTab = this.ctx.store.getActiveTabFromWebContents(event.sender)
 
     const menuItemOptions = []
 

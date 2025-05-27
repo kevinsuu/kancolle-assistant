@@ -385,7 +385,8 @@ export class ExtensionRouter {
       }
     }
 
-    const extEvent = {
+    // simplified as .type and event.serviceWorker don't exist yet
+    const extEvent: ExtensionEvent = {
       sender: event.sender,
       extension: extension!,
     }

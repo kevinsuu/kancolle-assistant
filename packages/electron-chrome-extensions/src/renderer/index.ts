@@ -36,7 +36,7 @@ export const injectExtensionAPIs = () => {
       result = await ipcRenderer.invoke('crx-msg', extensionId, fnName, ...args)
     } catch (e) {
       // TODO: Set chrome.runtime.lastError?
-      console.error(e)
+      console.error(e, extensionId, fnName, args)
       result = undefined
     }
 

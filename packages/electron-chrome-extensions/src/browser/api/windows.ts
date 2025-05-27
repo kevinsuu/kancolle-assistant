@@ -21,8 +21,7 @@ export class WindowsAPI {
   constructor(private ctx: ExtensionContext) {
     const handle = this.ctx.router.apiHandler()
     handle('windows.get', this.get.bind(this))
-    // TODO: how does getCurrent differ from getLastFocused?
-    handle('windows.getCurrent', this.getLastFocused.bind(this))
+    handle('windows.getCurrent', this.getCurrent.bind(this))
     handle('windows.getLastFocused', this.getLastFocused.bind(this))
     handle('windows.getAll', this.getAll.bind(this))
     handle('windows.create', this.create.bind(this))
@@ -94,18 +93,23 @@ export class WindowsAPI {
     return details
   }
 
-  private getWindowFromId(id: number) {
+  private getWindowFromId(event: ExtensionEvent, id: number) {
     if (id === WindowsAPI.WINDOW_ID_CURRENT) {
-      return this.ctx.store.getCurrentWindow()
+      return this.ctx.store.getWindowFromWebContents(event.sender)
     } else {
       return this.ctx.store.getWindowById(id)
     }
   }
 
   private get(event: ExtensionEvent, windowId: number) {
-    const win = this.getWindowFromId(windowId)
+    const win = this.getWindowFromId(event, windowId)
     if (!win) return { id: WindowsAPI.WINDOW_ID_NONE }
     return this.getWindowDetails(win)
+  }
+
+  private getCurrent(event: ExtensionEvent) {
+    const win = this.ctx.store.getWindowFromWebContents(event.sender)
+    return win ? this.getWindowDetails(win) : null
   }
 
   private getLastFocused(event: ExtensionEvent) {
@@ -127,7 +131,7 @@ export class WindowsAPI {
     windowId: number,
     updateProperties: chrome.windows.UpdateInfo = {},
   ) {
-    const win = this.getWindowFromId(windowId)
+    const win = this.getWindowFromId(event, windowId)
     if (!win) return
 
     const props = updateProperties
@@ -153,7 +157,7 @@ export class WindowsAPI {
   }
 
   private async remove(event: ExtensionEvent, windowId: number = WindowsAPI.WINDOW_ID_CURRENT) {
-    const win = this.getWindowFromId(windowId)
+    const win = this.getWindowFromId(event, windowId)
     if (!win) return
     const removedWindowId = win.id
     await this.ctx.store.removeWindow(win)

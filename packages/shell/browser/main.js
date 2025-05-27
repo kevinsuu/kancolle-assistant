@@ -560,6 +560,9 @@ class Browser extends EventEmitter {
         //console.log('>> main.extensions.removeTab()')
         const parentWin = this.getWindowFromBrowserWindow(browserWindow)
         parentWin?.tabs.remove(tab.id)
+        if (parentWin?.tabs.tabList.length === 0) {
+          this.removeWindow(parentWin)
+        }
       },
 
       createWindow: async (details) => {
@@ -573,22 +576,7 @@ class Browser extends EventEmitter {
         return newWin.window
       },
       removeWindow: (browserWindow) => {
-        //console.log('>> main.extensions.removeWindow()')
-        const removingWin = this.getWindowFromBrowserWindow(browserWindow)
-
-        const idx = this.windows.indexOf(removingWin)
-        if (idx >= 0) this.windows.splice(idx, 1)
-
-        if (
-          this.windows.length == 1 ||
-          (this.windows.length > 0 && this.kccpMainWindowId == removingWin.window.id)
-        ) {
-          const newMainWindow = this.windows[0].window
-          this.kccpMainWindowId = newMainWindow.id
-          kccp.logger.setMainWindow(newMainWindow)
-        }
-
-        removingWin?.destroy()
+        this.removeWindow(browserWindow)
       },
     })
 
@@ -597,9 +585,9 @@ class Browser extends EventEmitter {
 
     this.extensions.on('browser-action-popup-created', (popup) => {
       // parent isn't set correctly, let's patch it
-      const focused = this.extensions.api.windows.getLastFocused()
-      const tabbedWin = this.windows.find((w) => w.window.id === focused.id)
-      popup.parent = tabbedWin.window
+      //const focused = this.extensions.api.windows.getLastFocused()
+      //const tabbedWin = this.windows.find((w) => w.window.id === focused.id)
+      //popup.parent = tabbedWin.window
       this.popup = popup
     })
 
@@ -1021,6 +1009,24 @@ class Browser extends EventEmitter {
     await this.updateKc3IfScheduled()
   }
 
+  removeWindow(browserWindow) {
+    const removingWin = this.windows.find((w) => w.id == browserWindow.id)
+
+    const idx = this.windows.indexOf(removingWin)
+    if (idx >= 0) this.windows.splice(idx, 1)
+
+    if (
+      this.windows.length == 1 ||
+      (this.windows.length > 0 && this.kccpMainWindowId == removingWin.window.id)
+    ) {
+      const newMainWindow = this.windows[0].window
+      this.kccpMainWindowId = newMainWindow.id
+      kccp.logger.setMainWindow(newMainWindow)
+    }
+
+    if (removingWin?.window.isDestroyed() === false) removingWin.destroy()
+  }
+
   sendToAllWindows(type, data) {
     if (!(this.windows?.length > 0)) return
 
@@ -1254,7 +1260,7 @@ class Browser extends EventEmitter {
       })
     })
 
-    if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
+    /*if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
     } //*/
 
@@ -1348,7 +1354,9 @@ class Browser extends EventEmitter {
     if ([DMMPageUrl].includes(tab.webContents.mainFrame.url)) {
       leave = this.checkConfirmClose()
     }
-    if (leave) tab.destroy()
+    if (leave) parentWin.tabs.remove(tab.id)
+    //if (!parentWin.tabs.tabList.length)
+    //this.removeWindow(parentWin.window)
   }
 
   toggleAddressBar(tabId) {

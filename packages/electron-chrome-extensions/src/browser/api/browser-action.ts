@@ -340,7 +340,7 @@ export class BrowserActionAPI {
     }
   }
 
-  private getState() {
+  private getState(event: ExtensionEvent) {
     // Get state without icon data.
     const actions = Array.from(this.actionMap.entries()).map(([id, details]) => {
       const { icon, tabs, ...rest } = details
@@ -359,31 +359,31 @@ export class BrowserActionAPI {
       }
     })
 
-    const activeTab = this.ctx.store.getActiveTabOfCurrentWindow()
+    const activeTab = this.ctx.store.getActiveTabFromWebContents(event.sender)
     return { activeTabId: activeTab?.id, actions }
   }
 
-  private activate({ sender }: ExtensionEvent, details: ActivateDetails) {
+  private activate(event: ExtensionEvent, details: ActivateDetails) {
     //if (type != 'frame') return
     const { eventType, extensionId, tabId } = details
 
     d(
-      `activate [eventType: ${eventType}, extensionId: '${extensionId}', tabId: ${tabId}, senderId: ${sender?.id}]`,
+      `activate [eventType: ${eventType}, extensionId: '${extensionId}', tabId: ${tabId}, senderId: ${event.sender?.id}]`,
     )
 
     switch (eventType) {
       case 'click':
-        this.activateClick(details)
+        this.activateClick(event, details)
         break
       case 'contextmenu':
-        this.activateContextMenu(details)
+        this.activateContextMenu(event, details)
         break
       default:
         console.debug(`Ignoring unknown browserAction.activate event '${eventType}'`)
     }
   }
 
-  private activateClick(details: ActivateDetails) {
+  private activateClick(event: ExtensionEvent, details: ActivateDetails) {
     const { extensionId, tabId, anchorRect, alignment } = details
 
     if (this.popup) {
@@ -397,7 +397,9 @@ export class BrowserActionAPI {
     }
 
     const tab =
-      tabId >= 0 ? this.ctx.store.getTabById(tabId) : this.ctx.store.getActiveTabOfCurrentWindow()
+      tabId >= 0
+        ? this.ctx.store.getTabById(tabId)
+        : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) {
       throw new Error(`Unable to get active tab`)
     }
@@ -430,7 +432,7 @@ export class BrowserActionAPI {
     }
   }
 
-  private activateContextMenu(details: ActivateDetails) {
+  private activateContextMenu(event: ExtensionEvent, details: ActivateDetails) {
     const { extensionId, anchorRect } = details
 
     const extension = this.ctx.session.getExtension(extensionId)
@@ -456,6 +458,7 @@ export class BrowserActionAPI {
 
     // TODO(mv3): need to build 'action' menu items?
     const contextMenuItems: MenuItem[] = this.ctx.store.buildMenuItems(
+      event,
       extensionId,
       'browser_action',
     )
@@ -495,7 +498,7 @@ export class BrowserActionAPI {
     const window =
       typeof options?.windowId === 'number'
         ? this.ctx.store.getWindowById(options.windowId)
-        : this.ctx.store.getCurrentWindow()
+        : this.ctx.store.getWindowFromWebContents(event.sender)
     if (!window || window.isDestroyed()) {
       d('openPopup: window %d destroyed', window?.id)
       return
@@ -507,7 +510,7 @@ export class BrowserActionAPI {
     const [width] = window.getSize()
     const anchorSize = 64
 
-    this.activateClick({
+    this.activateClick(event, {
       eventType: 'click',
       extensionId: event.extension.id,
       tabId: activeTab?.id,

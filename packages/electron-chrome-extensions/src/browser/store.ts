@@ -1,4 +1,4 @@
-import { BrowserWindow, webContents } from 'electron'
+import { BrowserWindow, WebContents, webContents } from 'electron'
 import { EventEmitter } from 'node:events'
 import { ContextMenuType } from './api/common'
 import { ChromeExtensionImpl } from './impl'
@@ -52,8 +52,15 @@ export class ExtensionStore extends EventEmitter {
     return this.lastFocusedWindowId ? this.getWindowById(this.lastFocusedWindowId) : null
   }
 
-  getCurrentWindow() {
-    return this.getLastFocusedWindow()
+  getWindowFromWebContents(wc: WebContents) {
+    // https://developer.chrome.com/docs/extensions/reference/api/windows#the_current_window
+    // The current window is the window that contains the code that is currently executing.
+    // It's important to realize that this can be different from the topmost or focused window.
+    const window = BrowserWindow.fromWebContents(wc)
+    if (!window) throw new Error("event spawned from a window that doesn't exist?")
+    const result = this.getWindowById(window.id)
+    if (!result) throw new Error(`Couldn't retrieve stored window data for windowId ${window.id}`)
+    return result
   }
 
   addWindow(
@@ -196,11 +203,6 @@ export class ExtensionStore extends EventEmitter {
     return activeTab
   }
 
-  getActiveTabOfCurrentWindow() {
-    const win = this.getCurrentWindow()
-    return win ? this.getActiveTabFromWindow(win) : undefined
-  }
-
   setActiveTab(tab: Electron.WebContents) {
     const win = this.tabToWindow.get(tab)
     if (!win) {
@@ -220,7 +222,11 @@ export class ExtensionStore extends EventEmitter {
     }
   }
 
-  buildMenuItems(extensionId: string, menuType: ContextMenuType): Electron.MenuItem[] {
+  buildMenuItems(
+    event: ExtensionEvent,
+    extensionId: string,
+    menuType: ContextMenuType,
+  ): Electron.MenuItem[] {
     // This function is overwritten by ContextMenusAPI
     return []
   }

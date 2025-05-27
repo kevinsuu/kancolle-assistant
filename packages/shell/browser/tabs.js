@@ -53,10 +53,10 @@ class Tabs extends EventEmitter {
   }
 
   remove(tabId) {
-    //console.log('>> tabs.remove()', tabId)
     const tabIndex = this.tabList.findIndex((tab) => tab.id === tabId)
     if (tabIndex < 0) {
-      throw new Error(`Tabs.remove: unable to find tab.id = ${tabId}`)
+      console.warn('Tab not present in window; ignore if shortcut used to close', tabId)
+      return
     }
     const tab = this.tabList[tabIndex]
     this.tabList.splice(tabIndex, 1)
