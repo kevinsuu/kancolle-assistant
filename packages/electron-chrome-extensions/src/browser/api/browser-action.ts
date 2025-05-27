@@ -450,7 +450,7 @@ export class BrowserActionAPI {
       click: () => {
         const homePageUrl =
           manifest.homepage_url || `https://chrome.google.com/webstore/detail/${extension.id}`
-        this.ctx.store.createTab({ url: homePageUrl })
+        this.ctx.store.createTab(event, { url: homePageUrl })
       },
     })
 
@@ -474,7 +474,7 @@ export class BrowserActionAPI {
       label: 'Options',
       enabled: typeof optionsPageUrl === 'string',
       click: () => {
-        this.ctx.store.createTab({ url: optionsPageUrl })
+        this.ctx.store.createTab(event, { url: optionsPageUrl })
       },
     })
 

@@ -160,14 +160,14 @@ export class ExtensionStore extends EventEmitter {
     this.emit('tab-removed', tabId)
   }
 
-  async createTab(details: chrome.tabs.CreateProperties) {
+  async createTab(event: ExtensionEvent, details: chrome.tabs.CreateProperties) {
     if (typeof this.impl.createTab !== 'function') {
       throw new Error('createTab is not implemented')
     }
 
     // Fallback to current window
     if (!details.windowId) {
-      details.windowId = this.lastFocusedWindowId
+      details.windowId = this.getWindowFromWebContents(event.sender).id
     }
 
     const result = await this.impl.createTab(details)

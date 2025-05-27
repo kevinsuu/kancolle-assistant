@@ -50,19 +50,19 @@ export class RuntimeAPI extends EventEmitter {
     return await host.sendAndReceive(message)
   }
 
-  private openOptionsPage = async ({ extension }: ExtensionEvent) => {
+  private openOptionsPage = async (event: ExtensionEvent) => {
     // TODO: options page shouldn't appear in Tabs API
     // https://developer.chrome.com/extensions/options#tabs-api
 
-    const manifest = getExtensionManifest(extension)
+    const manifest = getExtensionManifest(event.extension)
 
     if (manifest.options_ui) {
       // Embedded option not support (!options_ui.open_in_new_tab)
-      const url = `chrome-extension://${extension.id}/${manifest.options_ui.page}`
-      await this.ctx.store.createTab({ url, active: true })
+      const url = `chrome-extension://${event.extension.id}/${manifest.options_ui.page}`
+      await this.ctx.store.createTab(event, { url, active: true })
     } else if (manifest.options_page) {
-      const url = `chrome-extension://${extension.id}/${manifest.options_page}`
-      await this.ctx.store.createTab({ url, active: true })
+      const url = `chrome-extension://${event.extension.id}/${manifest.options_page}`
+      await this.ctx.store.createTab(event, { url, active: true })
     }
   }
 }
