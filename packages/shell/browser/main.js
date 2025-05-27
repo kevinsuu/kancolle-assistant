@@ -333,8 +333,8 @@ class TabbedBrowserWindow {
   }
 
   destroy() {
-    this.tabs.destroy()
-    this.window.destroy()
+    this.tabs?.destroy()
+    this.window?.destroy()
   }
 
   getFocusedTab() {
@@ -1349,6 +1349,9 @@ class Browser extends EventEmitter {
   confirmCloseTab(tabId) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
     const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
+    if (parentWin.tabs.tabList.length > 1 && tab.webContents.mainFrame.url === settingsUrl) {
+      return
+    }
     let leave = true
     // add other URLs requiring confirmation here
     if ([DMMPageUrl].includes(tab.webContents.mainFrame.url)) {
