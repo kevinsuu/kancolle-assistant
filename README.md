@@ -118,12 +118,14 @@ New Tab launch page:
 - [x] New Tab page with links to common third-party KanColle resources
 - [x] Configuration options for new tab behavior
   - Can select KC3 launch page, DMM game page, strategy room
+- [x] Multiple window support
 - [ ] Option to ask before installing KC3 updates
 - [x] 'Custom' channel for managing your own KC3 folder location
 - [x] Common keyboard shortcuts (F12, Ctrl+T, Ctrl+F4, Ctrl+Tab, Ctrl+D, etc)
 - [x] Per-site address bar hiding with wildcard support
 - [x] Common mouse gestures (Tab middle-click, draggable tabs, Ctrl+scroll, etc)
 - [ ] Link hover URL tooltips
+- [ ] Find in page (Ctrl+F)
 
 ### 🤞 Eventually
 
@@ -135,7 +137,7 @@ New Tab launch page:
 
 ### ❌ Not planned
 
-- Multi-window / detachable tabs
+- Detachable tabs
 - Advanced general-use browser features from Chrome/Edge/etc
   - Including password manager and other security features
 - AI integration of any kind (you're welcome)
