@@ -125,7 +125,7 @@
           <div class="form-items-scroller">
             <!-- ko foreach: config.window.view.hideAddressBarSites -->
             <div class="form-array-string-item input-group">
-              <input type="text" class="form-control" data-bind="value: $rawData, valueUpdate: 'afterkeydown'" placeholder="e.g. https://tsunkit.net/*">
+              <input type="text" class="form-control" data-bind="value: $rawData" placeholder="e.g. https://tsunkit.net/*">
               <div class="input-group-append">
                 <button type="button" class="btn btn-secondary" data-bind="click: () => $parent.removeHideAddressBarSite($data)" title="remove this entry"><i class="fa-sharp fa-solid fa-xmark"></i></button>
               </div>

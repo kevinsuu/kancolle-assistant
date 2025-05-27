@@ -57,51 +57,33 @@ class WebUI {
 
   constructor() {
     ipc.on('webui-message', async (ev, msg) => {
-      console.log('Received message from main.', msg)
+      console.log('Received message from main.', msg.type, msg.data)
       if (msg?.type) await this.receiveFromMain(msg)
       else alert('webui.js received invalid webui-message from main:\n' + JSON.stringify(msg))
     })
     ipc.on('update', (e, message) => {
-      chrome.runtime.sendMessage({ type: 'kccp-log-update', data: message })
+      chrome.runtime.sendMessage({
+        type: 'kccp-log-update',
+        meta: { windowId: this.windowId(), allTabs: true },
+        data: message,
+      })
     })
     ipc.on('recent', (e, message) => {
-      chrome.runtime.sendMessage({ type: 'kccp-log-recent', data: message })
+      chrome.runtime.sendMessage({
+        type: 'kccp-log-recent',
+        meta: { windowId: this.windowId(), allTabs: true },
+        data: message,
+      })
     })
-    chrome.runtime.onMessage.addListener(
-      function (msg, sender, sendresponse) {
-        console.log(
-          'message for tab',
-          sender.tab.id,
-          this.tabs().map((t) => t.id),
-        )
-        const sourceTab = this.tabs().find((t) => t.id === sender.tab.id)
-        if (!!sourceTab) {
-          ;(async () => {
-            //console.log('>> from renderer: ', msg)
-            if (msg?.type) {
-              try {
-                console.log('Received message from main.', msg)
-                const result = await this.receiveFromRenderer(msg)
-                sendresponse({ result, complete: true })
-              } catch (error) {
-                alert(
-                  `webui.js encountered an error handling message from renderer\nError: ${error}\nMessage:${JSON.stringify(msg)}\n`,
-                )
-                sendresponse({ error, complete: false })
-              }
-            } else alert('webui.js received invalid message from renderer\n' + JSON.stringify(msg))
-          })()
-          return true
-        } else {
-          console.log('Received message for other window.', msg, sender)
-        }
-      }.bind(this),
-    )
+    // received a message from a tab
+    // webui.js is no longer handling message passing
+    //chrome.runtime.onMessage.addListener(this.handleMessage.bind(this))
   }
 
   async init(windowId) {
     if (this.windowId() >= 0) return
     this.windowId(windowId)
+    console.log('init: window ID: ', windowId)
 
     //console.log('>> init()', windowId)
     await this.getConfig()
@@ -109,12 +91,16 @@ class WebUI {
     await sleep(100)
     await this.initTabs()
 
+    console.log('init: tabs initialized: ', JSON.stringify(this.tabs().map((t) => t.id)))
+
     var downloads = await chrome.downloads.search({})
     if (downloads.some((d) => d.state == 'in_progress')) {
       downloads = downloads.filter((d) => ['in_progress', 'complete'].includes(d.state))
       this.downloads(downloads)
     }
     this.updateDownloadStats()
+
+    return this.sendToMain('webui-init-complete')
   }
 
   async getConfig() {
@@ -139,6 +125,11 @@ class WebUI {
       )
     this.updateTabSeparators(tabs)
     this.tabs(tabs)
+
+    if (!tabs.length) {
+      this.activeTabId(-1)
+      return
+    }
 
     // set a new active tab if previous one is invalid
     const activeTab = tabs.find((tab) => tab.active())
@@ -178,6 +169,7 @@ class WebUI {
       url: tab.url,
     })
     tab.showAddressBar(!shouldHideAddressBar)
+    await this.sendTopbarSize()
   }
 
   async setTopbarObserver() {
@@ -239,6 +231,7 @@ class WebUI {
     chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
       if (!this.tabs().some((t) => t.id == tabId)) return
       await this.renderTabs()
+      await this.sendTopbarSize()
     })
 
     chrome.downloads.onCreated.addListener((dl) => {
@@ -278,11 +271,12 @@ class WebUI {
 
   async sendTopbarSize() {
     const height = document.getElementById('topbar-container').clientHeight
-    //console.log(">> sending new topbar height", height)
+    console.trace('>> sending new topbar height', height)
     await this.sendToMain('webui-display-mode-changed', { height })
   }
 
   async receiveFromMain(msg) {
+    if (msg.type.startsWith('webui-log')) return
     switch (msg.type) {
       case 'status-kc3-is-updating':
       case 'error-do-update':
@@ -292,6 +286,10 @@ class WebUI {
       case 'kccp-status':
       case 'kccp-config-saved':
         // (worker ->) main -> webui -> settings
+        chrome.runtime.sendMessage(msg)
+        break
+      case 'config-saved':
+        this.config(msg.data)
         chrome.runtime.sendMessage(msg)
         break
       case 'webui-init':
@@ -315,49 +313,6 @@ class WebUI {
       default:
         alert('webui.js received unknown webui-message type from main:\n' + JSON.stringify(msg))
         break
-    }
-  }
-
-  async receiveFromRenderer(msg) {
-    switch (msg.type) {
-      // Ignore (multiwindow)
-      case 'kccp-log-update':
-      case 'kccp-status':
-      case 'kccp-log-recent':
-        console.log('Ignoring message from other webUI.', msg)
-        return
-      // Passthrough to main
-      case 'get-damecon-version':
-      case 'get-damecon-info':
-      case 'get-config':
-      case 'get-config-item':
-      case 'clear-cache':
-      case 'kccp-get-status':
-      case 'kccp-get-config':
-      case 'kccp-save-config':
-      case 'kccp-import-cache':
-      case 'kccp-reload-cache':
-      case 'kccp-verify-cache':
-      case 'kccp-add-mod':
-      case 'kccp-reload-mods':
-      case 'kccp-prepatch':
-      case 'kccp-extract-spritesheet':
-      case 'kccp-make-outlines':
-      case 'kccp-convert-poi':
-      case 'kccp-log-get-recent':
-      case 'kc3-doupdate':
-      case 'kc3-get-isupdating':
-      case 'kc3-select-custom-location':
-      case 'select-custom-data-location':
-        return this.sendToMain(msg.type, msg.data)
-      case 'set-config-item':
-        const result = await this.sendToMain(msg.type, msg.data)
-        await this.getConfig()
-        return result
-      default:
-        throw new Error(
-          `webui.js received unknown message type from renderer:\n${JSON.stringify(msg)}`,
-        )
     }
   }
 

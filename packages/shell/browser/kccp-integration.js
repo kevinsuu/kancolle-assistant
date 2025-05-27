@@ -32,7 +32,13 @@ const kccpSendStatusUpdate = function () {
   kccpStatus.busy = kccpStatus.busyActions > 0
   try {
     const windows = BrowserWindow.getAllWindows()
-    windows[0].webContents.send('webui-message', { type: 'kccp-status', data: kccpStatus })
+    windows.forEach((w) =>
+      w.webContents.send('webui-message', {
+        type: 'kccp-status',
+        meta: { windowId: w.id },
+        data: kccpStatus,
+      }),
+    )
   } catch (error) {
     kccp.logger.error(logSource, "Couldn't send KCCacheProxy status update to window.")
   }
@@ -142,10 +148,13 @@ const setKccpConfig = async function (kccpConfig) {
     kccp.logger.log(logSource, 'No windows to report to.')
     return
   }
-  windows[0].webContents.send('webui-message', {
-    type: 'kccp-config-saved',
-    data: { config: kccpConfig },
-  })
+  windows.forEach((w) =>
+    w.webContents.send('webui-message', {
+      type: 'kccp-config-saved',
+      meta: { windowId: w.id },
+      data: { config: kccpConfig },
+    }),
+  )
 }
 
 var kccpInitialized = false

@@ -3,39 +3,58 @@
 // ... I mean you can, but you probably shouldn't
 //
 
-const sendMessage = function (type, data) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ type, data }, (response) => {
-      console.log(`received response to ${type}: `, response)
-      if (response?.complete) {
-        resolve(response.result)
-      } else {
-        reject(
-          `Failed to send message to UI (${JSON.stringify(response?.error)}): ${type ?? 'unknown-type'} ${JSON.stringify(data)}`,
-        )
-      }
-    })
-  })
+let tabId = 0
+let windowId = 0
+let messageSource
+
+const setMessageSource = function (source) {
+  console.log('Message source set to', JSON.stringify(source))
+  messageSource = source
+}
+
+const checkMessageSource = function () {
+  if (!messageSource) throw new Error('Must set messageSource before using sendMessage.')
+}
+
+const sendToMain = function (type, data) {
+  return sendMessage('main', type, data)
+}
+
+const sendMessage = async function (target, type, data) {
+  try {
+    checkMessageSource()
+    if (!tabId) tabId = (await chrome.tabs.getCurrent())?.id || -1
+    if (!windowId) windowId = (await chrome.windows.getCurrent())?.id || -1
+
+    return await ipc.send(
+      'webui-message',
+      { type, windowId, tabId, source: messageSource, target },
+      data,
+    )
+  } catch (error) {
+    console.error('Caught error while sending message', target, type, data, error)
+    throw error
+  }
 }
 
 const configStore = {
   set: async function (key, value) {
-    return await sendMessage('set-config-item', { key, value })
+    return await sendMessage('main', 'set-config-item', { key, value })
   },
   get: async function (key) {
-    return await sendMessage('get-config-item', { key })
+    return await sendMessage('main', 'get-config-item', { key })
   },
   all: async function () {
-    return await sendMessage('get-config')
+    return await sendMessage('main', 'get-config')
   },
 }
 
 const kccpConfigStore = {
   save: async function (config) {
-    return await sendMessage('kccp-save-config', config)
+    return await sendMessage('main', 'kccp-save-config', config)
   },
   all: async function () {
-    return await sendMessage('kccp-get-config')
+    return await sendMessage('main', 'kccp-get-config')
   },
 }
 

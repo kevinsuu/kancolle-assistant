@@ -95,8 +95,12 @@ class Settings {
 
   downloads = ko.observableArray([])
 
-  async prepKccpConfig() {
-    const current = await kccpConfigStore.all()
+  /*async sendMessage(type, data) {
+    return await ipc.send('webui-message', { type, data })
+  }*/
+
+  async prepKccpConfig(config) {
+    const current = config || (await kccpConfigStore.all())
     this.kccpConfig.current(current.config)
     this.kccpConfig.modInfo(current.modInfo)
     this.prepKccpConfigItems()
@@ -135,7 +139,7 @@ class Settings {
   }
 
   async clearSessionCache() {
-    await sendMessage('clear-cache')
+    await sendToMain('clear-cache')
   }
 
   kccpOpenLog() {
@@ -143,39 +147,39 @@ class Settings {
   }
   async kccpImportBasicCacheDump() {
     this.kccpOpenLog()
-    await sendMessage('kccp-import-cache', { builtIn: true })
+    await sendToMain('kccp-import-cache', { builtIn: true })
   }
   async kccpImportCacheDump() {
     this.kccpOpenLog()
-    await sendMessage('kccp-import-cache', { builtIn: false })
+    await sendToMain('kccp-import-cache', { builtIn: false })
   }
   async kccpReloadCache() {
     this.kccpOpenLog()
-    await sendMessage('kccp-reload-cache')
+    await sendToMain('kccp-reload-cache')
   }
   async kccpVerifyCache() {
     this.kccpOpenLog()
-    await sendMessage('kccp-verify-cache')
+    await sendToMain('kccp-verify-cache')
   }
   async kccpPrepatchAssets() {
     this.kccpOpenLog()
-    await sendMessage('kccp-prepatch')
+    await sendToMain('kccp-prepatch')
   }
   async kccpExtractSpritesheet() {
-    await sendMessage('kccp-extract-spritesheet')
+    await sendToMain('kccp-extract-spritesheet')
   }
   async kccpMakeOutlines() {
-    await sendMessage('kccp-make-outlines')
+    await sendToMain('kccp-make-outlines')
   }
   async kccpConvertFromPoi() {
-    await sendMessage('kccp-convert-poi')
+    await sendToMain('kccp-convert-poi')
   }
 
   async kccpAddMod() {
-    await sendMessage('kccp-add-mod')
+    await sendToMain('kccp-add-mod')
   }
   async kccpReloadMods() {
-    await sendMessage('kccp-reload-mods')
+    await sendToMain('kccp-reload-mods')
   }
   async kccpRemoveMod(path) {
     const cfg = this.kccpConfig.current()
@@ -228,7 +232,7 @@ class Settings {
       try {
         console.log(`>> invoking ${name ?? 'action'}...`)
         result = await asyncCallback()
-        console.log(`>> received ${result}...`)
+        console.log(`>> received`, result)
         return result
       } catch (err) {
         error = err
@@ -243,88 +247,120 @@ class Settings {
   }
 
   // loads values from the current config into ko properties
-  async prepConfigProperties() {
-    const config = await configStore.all()
-    if (!config) throw error ?? 'Unknown error occurred fetching config.'
-    configApplySync(config, this.prepConfigProperty.bind(this))
+  async prepConfigProperties(newConfig) {
+    if (!newConfig) newConfig = await configStore.all()
+    if (!newConfig) throw new Error('Error occurred fetching config.')
+    configApplySync(this.config, {
+      propertyCallback: this.prepConfigProperty.bind(this),
+      source: newConfig,
+    })
 
-    this.theme(config.window.style.theme())
-    config.window.style.theme.subscribe((newValue) => this.theme(newValue))
-    this.brightness(config.window.style.brightness())
-    config.window.style.brightness.subscribe((newValue) => this.brightness(newValue))
-    return config
+    this.theme(this.config.window.style.theme())
+    this.config.window.style.theme.subscribe((newValue) => this.theme(newValue))
+    this.brightness(this.config.window.style.brightness())
+    this.config.window.style.brightness.subscribe((newValue) => this.brightness(newValue))
+    return this.config
   }
 
-  prepConfigProperty(path, config, key, keySchema) {
+  setArrayItemSubscriber(observable, path) {
+    observable.subscribe(async (changes) => {
+      let newValue = access(this.config, path)().map(getMaybeObsValue)
+      await configStore.set(path, newValue)
+    })
+  }
+
+  prepConfigProperty(path, key, keySchema, target, source) {
+    // do we operate on the current object or pull from the new source
+    const currentSource = source || target
+
     // convert to observable
-    let value = config[key]
-    if (typeof config[key] !== 'function') {
-      config[key] =
-        keySchema.type == 'array' ? ko.observableArray(config[key]) : ko.observable(config[key])
-    } else {
-      value = config[key]()
-    }
-    if (config[key].getSubscriptionsCount() === 0) {
-      config[key].subscribe((newValue) => {
-        if (!this.settingsInitialized()) return
-        console.log('>> setting changed', path, newValue)
-        if (Array.isArray(newValue))
-          newValue = newValue.map((v) => (typeof v === 'function' ? v() : v))
-        configStore.set(path, newValue)
-        if (path == 'kc3kai.update.channel') this.setCanUpdateKc3()
-      })
-    }
+    //const itemsKey = `${key}_items`
+    let schema = keySchema
 
-    // if it's an array, prepare observables for its members
-    if (Array.isArray(value)) {
+    // capture the raw value
+    let value = currentSource[key]
+    if (typeof value === 'function') value = value()
+
+    // set up array contents as observables
+    if (schema.type === 'array') {
+      if (!Array.isArray(value)) value = []
       for (let i = 0; i < value.length; i++) {
-        if (typeof value[i] !== 'function') value[i] = ko.observable(value[i])
-
-        if (value[i].getSubscriptionsCount() === 0) {
-          value[i].subscribe((newValue) => {
-            if (!this.settingsInitialized()) return
-            console.log('setting changed', `${path}[${i}]`, newValue)
-            configStore.set(
-              path,
-              value.map((v) => v()),
-            )
-          })
+        if (typeof value[i] !== 'function') {
+          value[i] = ko.observable(value[i])
+          this.setArrayItemSubscriber(value[i], path)
         }
       }
     }
-    let prop = config[key]
-    prop(value)
+
+    // set up observable if it's not already set
+    if (typeof target[key] !== 'function') {
+      target[key] = schema.type === 'array' ? ko.observableArray(value) : ko.observable(value)
+    }
+
+    if (target[key].getSubscriptionsCount() === 0) {
+      const subscriptionType = schema.type === 'array' ? 'arrayChange' : undefined
+      target[key].subscribe(
+        async (changes) => {
+          if (!this.settingsInitialized()) return
+          let newValue = access(this.config, path)()
+          if (schema.type === 'array') newValue = newValue.map(getMaybeObsValue)
+          const oldValue = await configStore.get(path)
+          let changed = false
+
+          console.log('>> checking: ', key)
+
+          if (Array.isArray(newValue)) changed = !arrayObsEquals(oldValue, newValue)
+          else changed = newValue != oldValue
+
+          if (!changed) return
+
+          console.log('>> setting changed: ', key, oldValue, newValue)
+
+          await configStore.set(path, newValue)
+          if (path == 'kc3kai.update.channel') this.setCanUpdateKc3()
+        },
+        this,
+        subscriptionType,
+      )
+    }
+
+    // update the value if needed
+    if (
+      (schema.type === 'array' && !arrayObsEquals(target[key](), value)) ||
+      (schema.type !== 'array' && target[key]() !== value)
+    )
+      target[key](value)
   }
 
   // updates the config from ko properties
   async saveConfig() {
-    await configApply(this.config, async (path, config, key, keySchema) => {
-      let value = config[key]
-      if (Array.isArray(value)) value = value.map((v) => v())
-      await configStore.set(path, value)
+    await configApply(this.config, {
+      propertyCallback: async (path, config, key, keySchema) => {
+        let value = config[key]
+        if (Array.isArray(value)) value = value.map(getMaybeObsValue)
+        await configStore.set(path, value)
+      },
     })
   }
 
   async kc3CheckForUpdates() {
-    await sendMessage('kc3-doupdate')
+    await sendToMain('kc3-doupdate')
   }
 
   addNewHideAddressBarSite() {
     const site = this.newHideAddressBarSite()
     if (!this.canAddNewHideAddressBarSite()) return
     this.newHideAddressBarSite('')
-    if (!Array.isArray(this.config.window.view.hideAddressBarSites()))
-      this.config.window.view.hideAddressBarSites([])
-    const newItem = ko.observable(site)
-    this.config.window.view.hideAddressBarSites.push(newItem)
-    this.prepConfigProperty(
-      'window.view.hideAddressBarSites',
-      this.config.window.view,
-      'hideAddressBarSites',
-    )
+
+    const path = 'window.view.hideAddressBarSites'
+    const item = ko.observable(site)
+    this.setArrayItemSubscriber(item, path)
+
+    this.config.window.view.hideAddressBarSites.push(item)
   }
   removeHideAddressBarSite(value) {
-    this.config.window.view.hideAddressBarSites.remove((v) => v() === value)
+    const actualValue = this.config.window.view.hideAddressBarSites().find((v) => v() === value)
+    this.config.window.view.hideAddressBarSites.remove(actualValue)
   }
 
   addNewProcess(data) {
@@ -351,7 +387,7 @@ class Settings {
       console.error('Custom kc3 channel not selected.')
       return
     }
-    const result = await sendMessage('kc3-select-custom-location')
+    const result = await sendToMain('kc3-select-custom-location')
     if (result.canceled || !result.filePaths.length) return
     const path = result.filePaths[0]
     console.log('Selected kc3 path', path)
@@ -367,7 +403,7 @@ class Settings {
       console.error('Custom data location not selected.')
       return
     }
-    const result = await sendMessage('select-custom-data-location')
+    const result = await sendToMain('select-custom-data-location')
     if (result.canceled || !result.filePaths.length) return
     const path = result.filePaths[0]
     console.log('Selected data path', path)
@@ -412,68 +448,86 @@ class Settings {
     return dl
   }
 
+  async receiveFromMain(msg) {
+    switch (msg.type) {
+      case 'status-kc3-is-updating':
+        this.kc3IsUpdating(msg.data.isUpdating)
+        this.kc3UpdatingChannel(msg.data.channel)
+        break
+      case 'error-do-update':
+        // TODO: report the error
+        break
+      case 'update-process-started':
+        console.log('process started', msg.data.name)
+        this.addNewProcess(msg.data)
+        break
+      case 'update-process-progress':
+        const processToUpdate = this.processes().find((p) => p.name == msg.data.name)
+        if (!processToUpdate) {
+          this.addNewProcess(msg.data)
+        }
+        processToUpdate.phase(msg.data.phase)
+        processToUpdate.current(msg.data.current)
+        processToUpdate.total(msg.data.total)
+        break
+      case 'update-process-completed':
+        console.log('process completed', msg.data.name)
+        const processToRemove = this.processes().find((p) => p.name == msg.data.name)
+        this.processes.remove(processToRemove)
+        break
+      case 'config-saved':
+        await this.prepConfigProperties(msg.data)
+        break
+      case 'kccp-config-saved':
+        await this.prepKccpConfig()
+        break
+      case 'kccp-status':
+        this.kccpStatus(msg.data)
+        break
+      case 'kccp-log-update':
+        if (!this.logTypes.includes(msg.data[2])) return
+        if (msg.data[1].startsWith('kccp-')) this.kccpLogRecent.push(msg.data)
+        else this.appLogRecent.push(msg.data)
+        break
+      case 'kccp-log-recent':
+        msg.data.reverse()
+        const kccpLog = msg.data.filter(
+          (l) => l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
+        )
+        const appLog = msg.data.filter(
+          (l) => !l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
+        )
+        this.kccpLogRecent(kccpLog)
+        this.appLogRecent(appLog)
+        break
+      default:
+        throw new Error(`Unknown message type ${msg.type || '(none)'}`)
+    }
+  }
+
   addBrowserListeners() {
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       ;(async () => {
+        // windows/tabs getCurrent methods are super unreliable
+
+        const myWindowId = (await chrome.windows.getCurrent()).id
+        if (!msg.meta.allWindows && msg.meta.windowId !== myWindowId) {
+          console.log('Ignoring message for other window', msg.meta.windowId)
+          return
+        }
+        if (!msg.meta.allWindows && !msg.meta.allTabs && msg.meta.tabId !== this.tabId) {
+          console.log('Ignoring message for other tab', msg.meta.tabId)
+          return
+        } //*/
         let result
         try {
-          switch (msg.type) {
-            case 'status-kc3-is-updating':
-              this.kc3IsUpdating(msg.data.isUpdating)
-              this.kc3UpdatingChannel(msg.data.channel)
-              break
-            case 'error-do-update':
-              // TODO: report the error
-              break
-            case 'update-process-started':
-              console.log('process started', msg.data.name)
-              this.addNewProcess(msg.data)
-              break
-            case 'update-process-progress':
-              const processToUpdate = this.processes().find((p) => p.name == msg.data.name)
-              if (!processToUpdate) {
-                this.addNewProcess(msg.data)
-              }
-              processToUpdate.phase(msg.data.phase)
-              processToUpdate.current(msg.data.current)
-              processToUpdate.total(msg.data.total)
-              break
-            case 'update-process-completed':
-              console.log('process completed', msg.data.name)
-              const processToRemove = this.processes().find((p) => p.name == msg.data.name)
-              this.processes.remove(processToRemove)
-              break
-            case 'kccp-config-saved':
-              await this.prepKccpConfig()
-              break
-            case 'kccp-status':
-              this.kccpStatus(msg.data)
-              break
-            case 'kccp-log-update':
-              if (!this.logTypes.includes(msg.data[2])) return
-              if (msg.data[1].startsWith('kccp-')) this.kccpLogRecent.push(msg.data)
-              else this.appLogRecent.push(msg.data)
-              break
-            case 'kccp-log-recent':
-              msg.data.reverse()
-              const kccpLog = msg.data.filter(
-                (l) => l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
-              )
-              const appLog = msg.data.filter(
-                (l) => !l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
-              )
-              this.kccpLogRecent(kccpLog)
-              this.appLogRecent(appLog)
-              break
-            default:
-              throw new Error(`Unknown message type ${msg.type || '(none)'}`)
-          }
-          sendResponse({ result, complete: true })
+          await this.receiveFromMain(msg)
+          //sendResponse({ result, complete: true })
         } catch (error) {
-          sendResponse({ error, complete: false })
+          //sendResponse({ error, complete: false })
         }
       })()
-      return true
+      //return true
     })
 
     chrome.downloads.onCreated.addListener((item) => this.downloads.push(this.prepDownload(item)))
@@ -521,8 +575,9 @@ class Settings {
     this.init()
   }
   async init() {
+    setMessageSource('settings')
     const appInfo = await this.tryInvoke(
-      async () => await sendMessage('get-damecon-info', {}),
+      async () => await sendToMain('get-damecon-info', {}),
       'get-damecon-info',
     )
     this.paths = appInfo.paths
@@ -531,21 +586,24 @@ class Settings {
 
     await this.prepKccpConfig()
 
-    this.config = await this.prepConfigProperties()
+    await this.prepConfigProperties()
     console.log('done prepping config', this.config)
     this.settingsInitialized(true)
 
     const downloads = await chrome.downloads.search({})
     downloads.forEach((d) => this.downloads.push(this.prepDownload(d)))
 
+    //this doesn't work lol
+    //this.tabId = await chrome.tabs.getCurrent()
+
     this.addBrowserListeners()
 
-    const updateStatus = await sendMessage('kc3-get-isupdating')
+    const updateStatus = await sendToMain('kc3-get-isupdating')
     this.kc3IsUpdating.subscribe((newValue) => this.setCanUpdateKc3())
     this.kc3IsUpdating(updateStatus.isUpdating)
     this.kc3UpdatingChannel(updateStatus.channel)
 
-    await sendMessage('kccp-log-get-recent')
+    await sendToMain('kccp-log-get-recent')
   }
 }
 window.vm = new Settings()

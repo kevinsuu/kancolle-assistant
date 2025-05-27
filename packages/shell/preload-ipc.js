@@ -20,11 +20,16 @@ export const injectIpc = () => {
 
     // Must execute script in main world to modify custom component registry.
     //webFrame.executeJavaScript(`(${mainWorldScript}());`)
-  } catch {
+  } catch (error) {
     // When contextIsolation is disabled, contextBridge will throw an error.
     // If that's the case, we're in the main world so we can just execute our
     // function.
     //mainWorldScript()
-    console.error('preload-ipc', 'caught an exception trying to expose ipc')
+    console.warn(
+      'preload-ipc',
+      'Error injecting ipc via contextBridge; probably running in main world. applying window.ipc instead.',
+      error,
+    )
+    window.ipc = ipc
   }
 }

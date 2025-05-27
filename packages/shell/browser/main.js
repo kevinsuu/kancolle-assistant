@@ -32,7 +32,7 @@ import setupMenu from './menu'
 import Tabs from './tabs'
 
 import { setTimeout } from 'timers/promises'
-import { debug } from 'console'
+import { debug, error } from 'console'
 
 // for wildcard matching URLs to hide address bar for
 import { isMatch } from 'matcher'
@@ -257,6 +257,10 @@ class TabbedBrowserWindow {
   constructor(options) {
     const self = this
 
+    this.ready = new Promise((resolve) => {
+      this.resolveReady = resolve
+    })
+
     this.session = options.session || session.defaultSession
     this.extensions = options.extensions
 
@@ -264,24 +268,29 @@ class TabbedBrowserWindow {
     // https://github.com/electron/electron/issues/23#issuecomment-19613241
     this.window = new BrowserWindow(options.window)
     this.id = this.window.id
-    this.webContents = this.window.webContents
+
+    self.initTabs(options)
 
     // load window chrome
-    this.webContents.on('did-finish-load', () => {
-      //console.log('>> main: webui finished loading.')
+    this.webContents = this.window.webContents
+    this.webContents.on('did-finish-load', async () => {
       this.webContents.send('webui-message', {
         type: 'webui-init',
+        meta: { windowId: this.id, allTabs: true },
         data: { windowId: this.window.id },
       })
 
-      queueMicrotask(async () => {
-        for (const url of options.initialUrls) {
-          const tab = this.tabs.create({ initialUrl: url })
-          this.tabs.select(tab.id)
-        }
-      })
+      await this.ready
+
+      if (!this.tabs.tabList.length) {
+        queueMicrotask(async () => {
+          for (const url of options.initialUrls) {
+            const tab = this.tabs.create({ initialUrl: url })
+            this.tabs.select(tab.id)
+          }
+        })
+      }
     })
-    self.initTabs(options)
     this.webContents.loadURL(webuiUrl)
   }
 
@@ -314,7 +323,12 @@ class TabbedBrowserWindow {
 
     this.tabs.on('tabs-hidden', function onTabsHidden(hidden) {
       //console.log(">> main.tabs.on('tabs-hidden', tabsOpts)")
-      self.webContents.send('webui-message', { message: 'tabs-hidden', value: hidden })
+      self.webContents.send('webui-message', {
+        windowId: this.id,
+        allTabs: true,
+        message: 'tabs-hidden',
+        value: hidden,
+      })
     })
   }
 
@@ -363,9 +377,15 @@ class Browser extends EventEmitter {
       }
     })
     app.on('second-instance', () => {
+      console.log(
+        'Tried to open a second instance. Opening a new window in existing instance instead.',
+      )
+      this.createTabbedWindow({ initialUrls: [settingsUrl, newTabUrl] })
+      /*
       const mainWindow = this.windows[0].window
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.show()
+      */
     })
 
     app.on('activate', () => {
@@ -479,6 +499,9 @@ class Browser extends EventEmitter {
       this.currentWindowId = fWin().window.id
 
       globalShortcut.registerAll(['CmdOrCtrl+T'], () => fWin().tabs.create())
+      globalShortcut.registerAll(['CmdOrCtrl+N'], () =>
+        this.createTabbedWindow({ initialUrls: [settingsUrl, newTabUrl] }),
+      )
       globalShortcut.registerAll(['CmdOrCtrl+R', 'F5'], () => fWc().reload())
       globalShortcut.registerAll(['CmdOrCtrl+Shift+R', 'CmdOrCtrl+F5'], () =>
         fWc().reloadIgnoringCache(),
@@ -556,7 +579,10 @@ class Browser extends EventEmitter {
         const idx = this.windows.indexOf(removingWin)
         if (idx >= 0) this.windows.splice(idx, 1)
 
-        if (this.windows.length == 1 || this.kccpMainWindowId == removingWin.window.id) {
+        if (
+          this.windows.length == 1 ||
+          (this.windows.length > 0 && this.kccpMainWindowId == removingWin.window.id)
+        ) {
           const newMainWindow = this.windows[0].window
           this.kccpMainWindowId = newMainWindow.id
           kccp.logger.setMainWindow(newMainWindow)
@@ -570,6 +596,10 @@ class Browser extends EventEmitter {
     ElectronChromeExtensions.handleCRXProtocol(this.session)
 
     this.extensions.on('browser-action-popup-created', (popup) => {
+      // parent isn't set correctly, let's patch it
+      const focused = this.extensions.api.windows.getLastFocused()
+      const tabbedWin = this.windows.find((w) => w.window.id === focused.id)
+      popup.parent = tabbedWin.window
       this.popup = popup
     })
 
@@ -668,19 +698,13 @@ class Browser extends EventEmitter {
     newTabUrl = webuiBase + '/new-tab.html'
     settingsUrl = webuiBase + '/settings.html'
 
-    this.createTabbedWindow({
+    const initialWindow = this.createTabbedWindow({
       initialUrls: [settingsUrl],
       hideAddressBarFor: [settingsUrl],
     })
 
-    // Init proxy
-    await startStopKccp(configStore)
-    await this.applyProxy()
-
     // Messages from webui/settings
     ipcMain.handle('webui-message', async (ev, meta, data) => {
-      //kccp.logger.log(logSource, 'main.js received message from webui.js', type, data)
-
       let result
       let kccpConfig, cachePath, source, target // reusables
       switch (meta.type) {
@@ -718,6 +742,7 @@ class Browser extends EventEmitter {
             const kc3Path = this.getKc3Path()
             await this.checkStartKc3(kc3Path)
           }
+          this.sendToAllWindows('config-saved', configStore.all)
           break
         case 'get-should-hide-addressbar':
           if (data.url === settingsUrl) {
@@ -765,6 +790,10 @@ class Browser extends EventEmitter {
             properties: ['openDirectory'],
           })
           result = { canceled, filePaths }
+          break
+        case 'webui-init-complete':
+          let initWin = this.windows.find((w) => w.window.id === meta.windowId)
+          initWin.resolveReady()
           break
         case 'webui-zoom-changed':
           //kccp.logger.log(logSource, 'zoom changed', data)
@@ -942,7 +971,12 @@ class Browser extends EventEmitter {
       return result
     })
 
+    await initialWindow.ready
     this.resolveReady()
+
+    // Init proxy
+    await startStopKccp(configStore)
+    await this.applyProxy()
 
     // set up kc3 update worker thread
     kccp.logger.log(logSource, 'Starting KC3 update service')
@@ -983,11 +1017,40 @@ class Browser extends EventEmitter {
           throw new Error(`Unknown message type ${msg.type}`)
       }
     })
+
     await this.updateKc3IfScheduled()
   }
 
   sendToAllWindows(type, data) {
-    this.windows.forEach((w) => w.webContents.send('webui-message', { type, data }))
+    if (!(this.windows?.length > 0)) return
+
+    // windows seem to have trouble keeping themselves separated logically...
+    this.windows.forEach((w) =>
+      w.window.webContents.send('webui-message', {
+        type,
+        meta: { windowId: w.id, allTabs: true },
+        data,
+      }),
+    )
+  }
+
+  sendToWindow(windowId, type, data) {
+    if (!(this.windows?.length > 0)) return
+    const window = this.windows.find((w) => w.id === windowId)
+    if (!window) throw new Error(`No window present with ID ${windowId}`)
+    window.window.webContents.send('webui-message', {
+      type,
+      meta: { windowId, allTabs: true },
+      data,
+    })
+  }
+
+  sendToTab(tabId, type, data) {
+    if (!(this.windows?.length > 0)) return
+    const window = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    if (!window) throw new Error(`No window present containing tab ID ${tabId}`)
+    const tab = window.tabs.tabList.find((t) => t.id == tabId)
+    tab.webContents.send('webui-message', { type, meta: { windowId: window.id, tabId }, data })
   }
 
   initSession() {
@@ -1040,9 +1103,8 @@ class Browser extends EventEmitter {
       },
     })
     newTabbedWindow.window.on('resize', () => {
-      newTabbedWindow.window.webContents.send('webui-message', {
-        type: 'webui-display-mode',
-        data: { mode: newTabbedWindow.window.isMaximized() ? 'maximized' : 'normal' },
+      this.sendToWindow(newTabbedWindow.id, 'webui-display-mode', {
+        mode: newTabbedWindow.window.isMaximized() ? 'maximized' : 'normal',
       })
       if (newTabbedWindow.window.isMaximized()) return
       const size = newTabbedWindow.window.getSize()
@@ -1192,9 +1254,9 @@ class Browser extends EventEmitter {
       })
     })
 
-    /*if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
+    if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
-    }*/
+    } //*/
 
     webContents.setWindowOpenHandler((details) =>
       this.windowOpenHandler.bind(this)(webContents, details),
@@ -1291,10 +1353,7 @@ class Browser extends EventEmitter {
 
   toggleAddressBar(tabId) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    parentWin.webContents.send('webui-message', {
-      type: 'webui-toggle-addressbar',
-      data: {},
-    })
+    this.sendToWindow(parentWin.id, 'webui-toggle-addressbar')
   }
 
   focusAddressBar(tabId) {
@@ -1304,10 +1363,7 @@ class Browser extends EventEmitter {
     if (url == settingsUrl) return
 
     parentWin.webContents.focus()
-    parentWin.webContents.send('webui-message', {
-      type: 'webui-focus-addressbar',
-      data: {},
-    })
+    this.sendToWindow(parentWin.id, 'webui-focus-addressbar')
   }
 
   prevTab(tabId) {

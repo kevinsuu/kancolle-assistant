@@ -110,54 +110,82 @@ const updateConfigDefaults = function (options) {
   if (options.preexisting) configSchema.app.data.location.default = 'appdir'
 }
 
-const configApply = async function (config, propertyCallback, schema = configSchema, path = '') {
-  for (const key in schema) {
-    const keyPath = path ? `${path}.${key}` : key
-    const source = schema[key]
-    if (source.type && typeof source.type == 'string') {
-      //console.log(`> executing ${keyPath}`)
-      // config property
-      await propertyCallback(keyPath, config, key, source)
-    } else {
-      // sub-key
-      if (!config.hasOwnProperty(key) || typeof config[key] != 'object') config[key] = {}
-      //console.log(` \\ entering ${key} (${keyPath})`)
-      await configApply(config[key], propertyCallback, source, keyPath)
-    }
-  }
-  return config
+const createKey = function (obj, key) {
+  if (!obj.hasOwnProperty(key) || typeof obj[key] != 'object') obj[key] = {}
 }
-const configApplySync = function (config, propertyCallback, schema = configSchema, path = '') {
+
+const configApply = async function (target, options) {
+  let { source, propertyCallback, schema, path } = options
+  schema = schema || configSchema
+  path = path || ''
   for (const key in schema) {
     const keyPath = path ? `${path}.${key}` : key
-    const source = schema[key]
-    if (source.type && typeof source.type == 'string') {
-      //console.log(`> executing ${keyPath}`)
+    const keySchema = schema[key]
+    if (keySchema.type && typeof keySchema.type == 'string') {
       // config property
-      propertyCallback(keyPath, config, key, source)
+      await propertyCallback(keyPath, key, keySchema, target, source)
     } else {
       // sub-key
-      if (!config.hasOwnProperty(key) || typeof config[key] != 'object') config[key] = {}
-      //console.log(` \\ entering ${key} (${keyPath})`)
-      configApplySync(config[key], propertyCallback, source, keyPath)
+      createKey(target, key)
+      if (!!source) createKey(source, key)
+      await configApply(target[key], {
+        propertyCallback,
+        schema: keySchema,
+        path: keyPath,
+        source: source[key],
+      })
     }
   }
-  return config
+  return target
+}
+const configApplySync = function (target, options) {
+  let { source, propertyCallback, schema, path } = options
+  schema = schema || configSchema
+  path = path || ''
+  source = source || target
+  for (const key in schema) {
+    const keyPath = path ? `${path}.${key}` : key
+    const keySchema = schema[key]
+    if (keySchema.type && typeof keySchema.type == 'string') {
+      // config property
+      propertyCallback(keyPath, key, keySchema, target, source)
+    } else {
+      // sub-key
+      createKey(target, key)
+      if (!!source) createKey(source, key)
+      configApplySync(target[key], {
+        propertyCallback,
+        schema: keySchema,
+        path: keyPath,
+        source: source[key],
+      })
+    }
+  }
+  return target
 }
 
 const populateConfigDefaults = function (config, schema = configSchema) {
-  configApplySync(
-    config,
-    (path, config, key, keySchema) => {
+  configApplySync(config, {
+    propertyCallback: (path, key, keySchema, config) => {
       if (
         typeof keySchema.default == 'undefined' ||
         (config.hasOwnProperty(key) && typeof config[key] != 'undefined')
       )
         return
-      //console.log(keySchema)
       config[key] = keySchema.default
     },
     schema,
+  })
+}
+
+// gets a value that may be an observable or a plain value
+const getMaybeObsValue = (obj) => (typeof obj === 'function' ? obj() : obj)
+// does a shallow array comparison, comparing raw values of observables if present
+const arrayObsEquals = function (arr1, arr2) {
+  return (
+    [arr1, arr2].every(Array.isArray) &&
+    arr1.length == arr2.length &&
+    arr1.every((val, idx) => getMaybeObsValue(arr2[idx]) === getMaybeObsValue(val))
   )
 }
 
