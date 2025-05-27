@@ -203,6 +203,10 @@ export class TabsAPI {
   }
 
   private getCurrent(event: ExtensionEvent) {
+    const tabContents = event.sender as TabContents
+    if (tabContents.favicon !== undefined) {
+      return this.getTabDetails(tabContents)
+    }
     const tab = this.ctx.store.getActiveTabFromWebContents(event.sender)
     return tab ? this.getTabDetails(tab) : undefined
   }
