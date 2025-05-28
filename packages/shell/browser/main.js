@@ -1386,14 +1386,16 @@ class Browser extends EventEmitter {
 
   prevTab(tabId) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    if (parentWin.tabs.tabList.length <= 1) return
     let tabIdx = parentWin.tabs.tabList.findIndex((t) => t.id == tabId) - 1
-    if (tabIdx < 0) tabIdx = parentWin.tabs.tabList.length - 1
+    if (tabIdx < 1) tabIdx = parentWin.tabs.tabList.length - 1
     parentWin.tabs.select(parentWin.tabs.tabList[tabIdx].id)
   }
   nextTab(tabId) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    if (parentWin.tabs.tabList.length <= 1) return
     let tabIdx = parentWin.tabs.tabList.findIndex((t) => t.id == tabId) + 1
-    if (tabIdx >= parentWin.tabs.tabList.length) tabIdx = 0
+    if (tabIdx >= parentWin.tabs.tabList.length) tabIdx = 1
     parentWin.tabs.select(parentWin.tabs.tabList[tabIdx].id)
   }
 
