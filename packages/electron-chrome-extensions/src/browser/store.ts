@@ -128,12 +128,21 @@ export class ExtensionStore extends EventEmitter {
     this.emit('tab-added', tab)
   }
 
-  moveTabs(tabs: Electron.WebContents[] | Electron.WebContents, index: number) {
+  moveTabs(tabs: Electron.WebContents[] | Electron.WebContents, index: number, windowId: number) {
+    // detach tabs to be moved
     tabs = (tabs instanceof Array ? tabs : [tabs]).filter((t) => this.tabs.has(t))
     tabs.forEach(this.tabs.delete, this.tabs)
-    const end = Array.from(this.tabs).slice(index == -1 ? this.tabs.size : index)
-    end.forEach(this.tabs.delete, this.tabs)
-    this.tabs = new Set([...this.tabs, ...tabs, ...end])
+
+    // detach tabs after the desired index
+    const windowTabsEnd = Array.from(this.tabs)
+      .filter((t) => this.tabToWindow.get(t)!.id === windowId)
+      .slice(index)
+    windowTabsEnd.forEach(this.tabs.delete, this.tabs)
+
+    // detach tabs after the target position
+    //const end = Array.from(this.tabs).slice(index == -1 ? this.tabs.size : index)
+    //end.forEach(this.tabs.delete, this.tabs)
+    this.tabs = new Set([...this.tabs, ...tabs, ...windowTabsEnd])
   }
 
   removeTab(tab: Electron.WebContents) {

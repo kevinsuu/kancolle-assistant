@@ -242,10 +242,14 @@ export class TabsAPI {
 
     const index = typeof details.index === 'undefined' ? -1 : details.index
 
-    const windowId =
-      (details?.windowId || TabsAPI.WINDOW_ID_CURRENT) > 0
-        ? details.windowId
-        : TabsAPI.WINDOW_ID_CURRENT
+    let windowId: number | undefined = details?.windowId || TabsAPI.WINDOW_ID_CURRENT
+    if (!(windowId >= 0)) {
+      const window = this.ctx.store.getWindowFromWebContents(event.sender)
+      windowId = window?.id
+    }
+    if (!windowId)
+      throw new Error(`Attempted to move a tab to window ID ${windowId} which does not exist.`)
+
     const windowTabs = this.getAllInWindow(event, windowId)
 
     const tabWcs = []
@@ -258,7 +262,7 @@ export class TabsAPI {
     }
     if (!tabWcs.length) return
 
-    this.ctx.store.moveTabs(tabWcs, index)
+    this.ctx.store.moveTabs(tabWcs, index, windowId)
   }
 
   private query(event: ExtensionEvent, info: chrome.tabs.QueryInfo = {}) {
