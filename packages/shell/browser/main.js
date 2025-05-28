@@ -1108,6 +1108,13 @@ class Browser extends EventEmitter {
         icon: path.join(__dirname, 'icon.ico'),
       },
     })
+
+    newTabbedWindow.window.on('close', (ev) => {
+      ev.preventDefault()
+      const idx = this.windows.indexOf(newTabbedWindow)
+      this.windows.splice(idx, 1)
+      newTabbedWindow.destroy()
+    })
     newTabbedWindow.window.on('resize', () => {
       this.sendToWindow(newTabbedWindow.id, 'webui-display-mode', {
         mode: newTabbedWindow.window.isMaximized() ? 'maximized' : 'normal',
