@@ -415,7 +415,7 @@ class WebUI {
   tabPointerUp(data, ev) {
     if (this.dragTarget) {
       if (this.isCloseButton(this.dragTargetActual) && ev.target == this.dragTargetActual) {
-        chrome.tabs.remove(data.id)
+        // ignore it and the close button click event will handle it
       } else {
         this.dragTarget.releasePointerCapture(ev.originalEvent.pointerId)
         if (this.tabMoveNewIndex > 0) chrome.tabs.move(data.id, { index: this.tabMoveNewIndex })

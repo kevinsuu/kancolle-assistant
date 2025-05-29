@@ -193,6 +193,7 @@ let kc3StartPageUrl
 let DMMPageUrl
 let newTabUrl
 let settingsUrl
+let confirmCloseUrls = []
 const manifestExists = async (dirPath) => {
   if (!dirPath) return false
   const manifestPath = path.join(dirPath, 'manifest.json')
@@ -556,6 +557,10 @@ class Browser extends EventEmitter {
         const parentWin = this.getWindowFromBrowserWindow(browserWindow)
         parentWin?.tabs.select(tab.id)
       },
+      beforeRemoveTab: (tab) => {
+        if (!confirmCloseUrls.includes(tab.mainFrame.url)) return true
+        return this.checkConfirmClose()
+      },
       removeTab: (tab, browserWindow) => {
         //console.log('>> main.extensions.removeTab()')
         const parentWin = this.getWindowFromBrowserWindow(browserWindow)
@@ -574,6 +579,14 @@ class Browser extends EventEmitter {
         })
         // if (details.active) tabs.select(tab.id)
         return newWin.window
+      },
+      beforeRemoveWindow: (browserWindow) => {
+        const tabWin = this.getWindowFromBrowserWindow(browserWindow)
+        const confirmTab = tabWin.tabs.tabList.find((t) =>
+          confirmCloseUrls.includes(t.webContents.mainFrame.url),
+        )
+        if (!confirmTab) return true
+        return this.checkConfirmClose()
       },
       removeWindow: (browserWindow) => {
         this.removeWindow(browserWindow)
@@ -1112,6 +1125,15 @@ class Browser extends EventEmitter {
     newTabbedWindow.window.on('close', (ev) => {
       ev.preventDefault()
       const idx = this.windows.indexOf(newTabbedWindow)
+
+      const confirmTab = newTabbedWindow.tabs.tabList.find((t) =>
+        confirmCloseUrls.includes(t.webContents.mainFrame.url),
+      )
+      if (confirmTab) {
+        const leave = this.checkConfirmClose()
+        if (!leave) return
+      }
+
       this.windows.splice(idx, 1)
       newTabbedWindow.destroy()
     })
@@ -1361,7 +1383,7 @@ class Browser extends EventEmitter {
     }
     let leave = true
     // add other URLs requiring confirmation here
-    if ([DMMPageUrl].includes(tab.webContents.mainFrame.url)) {
+    if (confirmCloseUrls.includes(tab.webContents.mainFrame.url)) {
       leave = this.checkConfirmClose()
     }
     if (leave) parentWin.tabs.remove(tab.id)
@@ -1493,6 +1515,7 @@ class Browser extends EventEmitter {
 
     kc3StartPageUrl = 'chrome-extension://' + kc3ExtensionId + '/pages/game/direct.html'
     DMMPageUrl = 'http://www.dmm.com/netgame/social/-/gadgets/=/app_id=854854/'
+    confirmCloseUrls = [DMMPageUrl]
     let startTab
 
     // TODO: remove cases for old config keys
