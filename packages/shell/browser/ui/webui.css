@@ -473,6 +473,10 @@ ul {
   background-color: var(--control-hover-layered-bg-color);
 }
 
+.tab .tab-close > * {
+  pointer-events: none;
+}
+
 .tab .controls .control:disabled {
   display: none;
 }

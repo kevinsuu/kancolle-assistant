@@ -271,7 +271,7 @@ class WebUI {
 
   async sendTopbarSize() {
     const height = document.getElementById('topbar-container').clientHeight
-    console.trace('>> sending new topbar height', height)
+    //console.trace('>> sending new topbar height', height)
     await this.sendToMain('webui-display-mode-changed', { height })
   }
 
@@ -320,49 +320,242 @@ class WebUI {
     return await ipc.send('webui-message', { windowId: this.windowId(), type }, data)
   }
 
-  tabMouseDown(tab, ev) {
+  getTabContext(data, ev) {
+    let tab = data
+    if (data.favicon === undefined) {
+      // triggered on bar
+      tab = ko.contextFor(ev.target).$data
+    }
+    return tab
+  }
+
+  dragTargetActual = null
+  dragTarget = null
+  dragButton = null
+  clickingCloseButton = false
+  tabMoveOldIndex = -1
+  tabMoveNewIndex = -1
+  dragXDiff = 0
+  startDragElPos = 0
+  startDragMousePos = 0
+  tabListEls = null
+
+  isCloseButton(el) {
+    return el.classList.contains('tab-close')
+  }
+
+  buildTabEls(ev) {
+    this.tabListEls = Array.from(ev.currentTarget.parentElement.children).map((c) => ({
+      el: c,
+      tab: ko.contextFor(c).$data,
+    }))
+  }
+
+  tabPointerDown(data, ev) {
+    // middle click to close
+    if (ev.button == 1 && data.url !== this.settingsUrl) {
+      chrome.tabs.remove(data.id)
+      return
+    }
+    if (ev.button != 0) return
+
+    if (data.url === this.settingsUrl) {
+      chrome.tabs.update(data.id, { active: true })
+      return
+    }
+
+    // prepare for dragging
+    this.dragTargetActual = ev.target
+    this.dragTarget = ev.currentTarget
+    this.dragButton = ev.button
+
+    this.tabs().forEach((t) => t.active(false))
+    data.active(true)
+
+    // if we're interacting with the close button, don't initiate a drag
+    if (this.isCloseButton(ev.target)) return
+
+    // capture the pointer to ensure we catch all mouse events until we let go
+    ev.currentTarget.setPointerCapture(ev.originalEvent.pointerId)
+
+    console.log('Holding tab', data.id, ev.currentTarget)
+    this.tabMoveOldIndex = -1
+    this.tabMoveNewIndex = -1
+    this.heldTabId = data.id
+    this.startDragElPos = this.dragTarget.offsetLeft
+    this.startDragMousePos = ev.pageX
+    this.dragXDiff = ev.pageX - this.startDragElPos
+    this.buildTabEls(ev)
+  }
+  tabPointerMove(data, ev) {
+    if (!this.dragTarget) return
+
+    const elPos = ev.pageX - this.dragXDiff
+    this.tabMoveOldIndex = this.tabListEls.findIndex((t) => t.el == ev.currentTarget)
+    const newIndex = this.tabListEls.findIndex(
+      (t, i) =>
+        t.el != ev.currentTarget &&
+        Math.abs(elPos - t.el.offsetLeft) < this.dragTarget.offsetWidth / 3,
+    )
+    if (newIndex > 0) {
+      this.tabMoveNewIndex = newIndex
+      this.startDragElPos = this.tabListEls[this.tabMoveNewIndex].el.offsetLeft
+      this.startDragMousePos = ev.pageX
+
+      const swapTab = this.tabs.splice(this.tabMoveNewIndex, 1)[0]
+      this.tabs.splice(this.tabMoveOldIndex, 0, swapTab)
+
+      this.buildTabEls(ev)
+    }
+    const offsetX = ev.pageX - this.dragXDiff - this.startDragElPos
+
+    this.dragTarget.style.left = `${offsetX}px`
+    this.dragTarget.style.zIndex = '99'
+  }
+  tabPointerUp(data, ev) {
+    if (this.dragTarget) {
+      if (this.isCloseButton(this.dragTargetActual) && ev.target == this.dragTargetActual) {
+        chrome.tabs.remove(data.id)
+      } else {
+        this.dragTarget.releasePointerCapture(ev.originalEvent.pointerId)
+        if (this.tabMoveNewIndex > 0) chrome.tabs.move(data.id, { index: this.tabMoveNewIndex })
+        // select the tab if it's not open
+        chrome.tabs.update(data.id, { active: true })
+        this.dragTarget.style.left = '0'
+        delete this.dragTarget.style.zIndex
+        console.log('dragged tab to new position', this.tabMoveNewIndex)
+      }
+      this.dragTarget = null
+      this.dragTargetActual = null
+    }
+  }
+
+  /*
+  tabDragStart(data, ev) {
+    this.dragId = data.id
+    this.dragEl = ev.currentTarget
+    this.startDragXPos = ev.pageX
+
+    this.tabListEls = Array.from(ev.currentTarget.parentElement.children).map(c => ({el: c, tab: ko.contextFor(c).$data}))
+    
+
+    chrome.tabs.update(this.dragId, { active: true })
+
+    var img = new Image()
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+    ev.originalEvent.dataTransfer.setDragImage(img, 0, 0)
+    console.log('dragstart', data.id, this.startDragXPos)
+
+
+
+    return true
+  }
+  async tabDragEnter(data, ev) {
+    console.log('dragenter')
+    if (this.dragId == data.id) return
+
+    ev.originalEvent.dataTransfer.effectAllowed = 'copyMove'
+    ev.originalEvent.dataTransfer.dropEffect = 'move'
+
+    // target index
+    const index = this.tabs().indexOf(data)
+
+    // remove original
+    const original = this.tabs().find(t => t.id == this.dragId)
+    const originalIdx = this.tabs().indexOf(original)
+    this.tabs.splice(originalIdx, 1)
+
+    // place it in the new position
+    //const newIndex = this.tabs().indexOf(data)
+    this.tabs.splice(index, 0, original)
+
+    await chrome.tabs.move(this.dragId, { index })
+
+    console.log('dragenter', data.id, ev)
+  }
+  tabDragOver(data, ev) {
+    console.log('dragover')
+    const xOffset = ev.pageX - this.startDragXPos
+    this.dragEl.style.left = `${xOffset}px`
+    ev.preventDefault()
+  }
+  async tabDrop(data, ev) {
+    this.dragId = -1
+    
+    delete this.dragEl.style.pointerEvents
+    delete this.dragEl.style.left
+
+    console.log('drop', data.id, ev)
+  }
+
+  tabPointerDown(data, ev) {
+    const tab = this.getTabContext(data, ev)
     if (ev.button === 1 && tab.url != this.settingsUrl) this.closingTabId = tab.id
     else this.closingTabId = -1
 
     if (ev.button === 0) {
+      console.log("Holding tab", tab.id)
       this.heldTabId = tab.id
+      this.dragTarget = ev.currentTarget
+      this.dragTarget.setPointerCapture(ev.originalEvent.pointerId)
     }
   }
-  async tabMouseMove(tab, ev) {
+  async tabPointerMove(data, ev) {
+    const tab = this.getTabContext(data, ev)
+    // update hover state
     if (this.hoveringTabId != tab.id) {
       this.hoveringTabId = tab.id
       this.updateTabSeparators(this.tabs())
     }
     if (this.heldTabId == -1) return
+    
+
+    // set up for click/drag
     const heldTab = this.tabs().find((t) => t.id === this.heldTabId)
     if (heldTab.url == this.settingsUrl || tab.url == this.settingsUrl || tab.id == this.heldTabId)
       return
 
-    const thisIndex = this.tabs().findIndex((t) => t.id == tab.id)
+    // tab dragging
+    const heldIndex = this.tabs().indexOf(heldTab)
+    const thisIndex = this.tabs().indexOf(tab)
 
-    if (!heldTab.active()) await chrome.tabs.update(heldTab.id, { active: true })
+    if (!heldTab.active())
+      await chrome.tabs.update(heldTab.id, { active: true })
+    
+    if (heldIndex == thisIndex) return
+
+    console.log("Moving tab", tab.id)
     await chrome.tabs.move(this.heldTabId, { index: thisIndex })
     await this.renderTabs()
   }
-  tabMouseOut(tab, ev) {
+  tabPointerOut(data, ev) {
+    const tab = this.getTabContext(data, ev)
     this.hoveringTabId = -1
     this.updateTabSeparators(this.tabs())
   }
-  tabMouseUp(tab, ev) {
-    if (ev.button === 1 && this.closingTabId == tab.id) chrome.tabs.remove(tab.id)
+  tabPointerUp(data, ev) {
+    const tab = this.getTabContext(data, ev)
+    if (ev.button === 1 && this.closingTabId == tab.id)
+      chrome.tabs.remove(tab.id)
     else if (ev.button === 0) {
       if (this.heldTabId == tab.id) {
+        // select tab
         chrome.tabs.update(tab.id, { active: true })
+        // clear the downloads progress bar from the settings tab if downloads are finished
         if (
           !this.downloads().some((d) => d.state == 'in_progress') &&
           [tab.url, this.activeTab().url].includes(this.settingsUrl)
         )
-          this.downloads([])
+        this.downloads([])
       }
+      console.log("Releasing tab", tab.id)
       this.heldTabId = -1
+      if (this.dragTarget)
+        this.dragTarget.releasePointerCapture(ev.originalEvent.pointerId)
     }
     return true
   }
+    */
 
   browserActionNewTab() {
     chrome.tabs.create()

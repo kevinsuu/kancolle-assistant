@@ -16,17 +16,18 @@
         <div id="topbar">
           <div id="tabstrip">
             <ul class="tab-list">
+              <!-- data-bind="event: { pointerdown: tabPointerDown, pointermove: tabPointerMove, pointerout: tabPointerOut, pointerup: tabPointerUp }" -->
               <!-- ko foreach: tabs() -->
-              <li data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$parent.settingsUrl ? ' tab-compact' : ''}`},
-                event: { mousedown: $parent.tabMouseDown.bind($parent), mousemove: $parent.tabMouseMove.bind($parent), mouseout: $parent.tabMouseOut.bind($parent), mouseup: $parent.tabMouseUp.bind($parent) }">
+              <li draggable="true" dropzone="true" data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$root.settingsUrl ? ' tab-compact' : ''}`},
+                event: { pointerdown: $root.tabPointerDown.bind($root), pointermove: $root.tabPointerMove.bind($root), pointerup: $root.tabPointerUp.bind($root) }">
                 <div class="tab">
-                  <!-- ko if: !$index() && $parent.downloads().length -->
+                  <!-- ko if: !$index() && $root.downloads().length -->
                   <img class="favicon" src="assets/icons/download_icon_48.png" alt="active downloads" />
                   <div class="progress-circle">
-                    <div class="progress-content" data-bind="style: { '--pct': $parent.downloadPct() }"></div>
+                    <div class="progress-content" data-bind="style: { '--pct': $root.downloadPct() }"></div>
                   </div>
                   <!-- /ko -->
-                  <!-- ko if: ($index() || !$parent.downloads().length) && favIconUrl --> 
+                  <!-- ko if: ($index() || !$root.downloads().length) && favIconUrl --> 
                   <img class="favicon" data-bind="attr: { src: favIconUrl }" alt="page icon" />
                   <!-- /ko -->
                   <span class="title" data-bind="text: title"></span>
@@ -36,8 +37,8 @@
                       <i class="fa-sharp fa-solid fa-volume-up"></i>
                     </button>
                     <!-- /ko -->
-                    <!-- ko if: url != $parent.settingsUrl -->
-                    <button type="button" class="control close" title="close tab" data-bind="click: $parent.browserActionCloseTab.bind($parent)">
+                    <!-- ko if: url != $root.settingsUrl -->
+                    <button type="button" class="control close tab-close" title="close tab" data-bind="click: $root.browserActionCloseTab.bind($root)">
                       <i class="fa-sharp fa-solid fa-xmark"></i>
                     </button>
                     <!-- /ko -->
@@ -55,7 +56,7 @@
             <div class="app-drag app-drag-right"></div>
             <div class="window-controls">
               <!-- ko if: !activeTab()?.showAddressBar() -->
-              <!-- ko if: config().window.view.alwaysShowExtensions --> 
+              <!-- ko if: config().window.view.alwaysShowExtensions -->
               <browser-action-list id="actions"></browser-action-list>
               <!-- /ko -->
               <!-- ko if: config().window.view.alwaysShowBack -->
