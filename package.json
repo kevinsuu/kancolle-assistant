@@ -39,7 +39,7 @@
   },
   "repository": "git@github.com:samuelmaddock/electron-browser-shell.git",
   "engines": {
-    "node": ">= 16.0.0",
+    "node": "20 || >=22",
     "yarn": ">= 1.10.0 < 2.0.0"
   },
   "lint-staged": {
