@@ -4,6 +4,7 @@ export interface ChromeExtensionImpl {
     details: chrome.tabs.CreateProperties,
   ): Promise<[Electron.WebContents, Electron.BrowserWindow]> // Electron 35
   selectTab?(tab: Electron.WebContents, window: Electron.BrowserWindow): void
+  beforeRemoveTab?(tab: Electron.WebContents): boolean
   removeTab?(tab: Electron.WebContents, window: Electron.BrowserWindow): void
 
   /**
@@ -13,6 +14,7 @@ export interface ChromeExtensionImpl {
   assignTabDetails?(details: chrome.tabs.Tab, tab: Electron.WebContents): void
 
   createWindow?(details: chrome.windows.CreateData): Promise<Electron.BrowserWindow>
+  beforeRemoveWindow?(window: Electron.BrowserWindow): boolean
   removeWindow?(window: Electron.BrowserWindow): void
 
   requestPermissions?(

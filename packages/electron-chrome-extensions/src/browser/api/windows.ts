@@ -159,6 +159,8 @@ export class WindowsAPI {
   private async remove(event: ExtensionEvent, windowId: number = WindowsAPI.WINDOW_ID_CURRENT) {
     const win = this.getWindowFromId(event, windowId)
     if (!win) return
+    const doRemove = this.ctx.store.beforeRemoveWindow(win)
+    if (!doRemove) return
     const removedWindowId = win.id
     await this.ctx.store.removeWindow(win)
     this.onRemoved(removedWindowId)

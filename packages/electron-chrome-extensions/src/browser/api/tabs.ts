@@ -367,7 +367,10 @@ export class TabsAPI {
 
     ids.forEach((tabId) => {
       const tab = this.ctx.store.getTabById(tabId)
-      if (tab) this.ctx.store.removeTab(tab)
+      if (!tab) return
+      const doRemove = this.ctx.store.beforeRemoveTab(tab)
+      if (!doRemove) return
+      this.ctx.store.removeTab(tab)
       this.onRemoved(tabId)
     })
   }

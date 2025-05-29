@@ -90,6 +90,13 @@ export class ExtensionStore extends EventEmitter {
     return win
   }
 
+  beforeRemoveWindow(window: Electron.BrowserWindow) {
+    if (typeof this.impl.beforeRemoveWindow === 'function') {
+      return this.impl.beforeRemoveWindow(window)
+    }
+    return true
+  }
+
   async removeWindow(
     window: Electron.BrowserWindow,
     // Electron.BaseWindow // Electron 35
@@ -143,6 +150,13 @@ export class ExtensionStore extends EventEmitter {
     //const end = Array.from(this.tabs).slice(index == -1 ? this.tabs.size : index)
     //end.forEach(this.tabs.delete, this.tabs)
     this.tabs = new Set([...this.tabs, ...tabs, ...windowTabsEnd])
+  }
+
+  beforeRemoveTab(tab: Electron.WebContents) {
+    if (typeof this.impl.beforeRemoveTab === 'function') {
+      return this.impl.beforeRemoveTab(tab)
+    }
+    return true
   }
 
   removeTab(tab: Electron.WebContents) {
