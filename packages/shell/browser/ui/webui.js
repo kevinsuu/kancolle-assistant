@@ -358,6 +358,8 @@ class WebUI {
       return
     }
     if (ev.button != 0) return
+    // if we're interacting with the close button, don't initiate a drag
+    if (this.isCloseButton(ev.target)) return
 
     if (data.url === this.settingsUrl) {
       chrome.tabs.update(data.id, { active: true })
@@ -371,9 +373,6 @@ class WebUI {
 
     this.tabs().forEach((t) => t.active(false))
     data.active(true)
-
-    // if we're interacting with the close button, don't initiate a drag
-    if (this.isCloseButton(ev.target)) return
 
     // capture the pointer to ensure we catch all mouse events until we let go
     ev.currentTarget.setPointerCapture(ev.originalEvent.pointerId)
