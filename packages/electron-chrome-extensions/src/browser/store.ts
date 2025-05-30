@@ -56,7 +56,10 @@ export class ExtensionStore extends EventEmitter {
     // https://developer.chrome.com/docs/extensions/reference/api/windows#the_current_window
     // The current window is the window that contains the code that is currently executing.
     // It's important to realize that this can be different from the topmost or focused window.
-    const window = BrowserWindow.fromWebContents(wc)
+    const fallback = wc.mainFrame.url.endsWith('_generated_background_page.html')
+      ? this.getLastFocusedWindow()
+      : undefined
+    const window = BrowserWindow.fromWebContents(wc) || fallback
     if (!window) throw new Error("event spawned from a window that doesn't exist?")
     const result = this.getWindowById(window.id)
     if (!result) throw new Error(`Couldn't retrieve stored window data for windowId ${window.id}`)
