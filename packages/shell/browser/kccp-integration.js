@@ -234,9 +234,15 @@ function getKccpCachePath(kccpConfig) {
   return cachePath
 }
 
-function getKccpImgCachePath(kccpConfig) {
+function getKccpKcs2CachePath(kccpConfig) {
   let cachePath = getKccpCachePath(kccpConfig)
-  cachePath = path.join(cachePath, 'kcs2', 'img')
+  cachePath = path.join(cachePath, 'kcs2')
+  return cachePath
+}
+
+function getKccpImgCachePath(kccpConfig) {
+  let cachePath = getKccpKcs2CachePath(kccpConfig)
+  cachePath = path.join(cachePath, 'img')
   return cachePath
 }
 
@@ -259,6 +265,7 @@ export {
   startStopKccp,
   stopKccp,
   getKccpCachePath,
+  getKccpKcs2CachePath,
   getKccpImgCachePath,
   getKccpModPath,
 }

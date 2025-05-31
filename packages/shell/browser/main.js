@@ -55,7 +55,7 @@ import {
   startStopKccp,
   getKccpCachePath,
   getKccpModPath,
-  getKccpImgCachePath,
+  getKccpKcs2CachePath,
 } from './kccp-integration.js'
 
 const logSource = 'damecon-browser'
@@ -862,7 +862,7 @@ class Browser extends EventEmitter {
           break
         case 'kccp-extract-spritesheet':
           kccpConfig = await getKccpConfig(configStore)
-          cachePath = getKccpImgCachePath(kccpConfig.config)
+          cachePath = getKccpKcs2CachePath(kccpConfig.config)
           source = await dialog.showOpenDialog({
             title: 'Select a spritesheet',
             defaultPath: cachePath,
@@ -886,7 +886,7 @@ class Browser extends EventEmitter {
           break
         case 'kccp-make-outlines':
           kccpConfig = await getKccpConfig(configStore)
-          cachePath = getKccpImgCachePath(kccpConfig.config)
+          cachePath = getKccpKcs2CachePath(kccpConfig.config)
           source = await dialog.showOpenDialog({
             title: 'Select a spritesheet',
             defaultPath: cachePath,
