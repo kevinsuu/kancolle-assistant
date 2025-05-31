@@ -59,6 +59,7 @@ const configSchema = {
       alwaysShowForward: { type: 'bool', default: false },
     },
     behavior: {
+      confirmCloseGamePage: { type: 'bool', default: true },
       occlusion: { type: 'bool', default: false },
     },
     gpu: {

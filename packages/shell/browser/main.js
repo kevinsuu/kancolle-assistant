@@ -1364,6 +1364,7 @@ class Browser extends EventEmitter {
   }
 
   checkConfirmClose() {
+    if (!configStore.get('window.behavior.confirmCloseGamePage')) return true
     const choice = dialog.showMessageBoxSync({
       type: 'question',
       buttons: ['Leave', 'Stay'],

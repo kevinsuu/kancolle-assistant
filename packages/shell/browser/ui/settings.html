@@ -241,6 +241,10 @@
       <h5>Behavior</h5>
       <div class="settings-group">
         <div class="form-group form-check">
+          <input class="form-check-input" id="confirmclose" type="checkbox" data-bind="checked: config.window.behavior.confirmCloseGamePage">
+          <label class="form-check-label" for="confirmclose">Confirm before closing game page tabs</label>
+        </div>
+        <div class="form-group form-check">
           <input class="form-check-input" id="backgroundocclusion" type="checkbox" data-bind="checked: config.window.behavior.occlusion">
           <label class="form-check-label" for="backgroundocclusion">Throttle activity when running in background</label>
         </div>
