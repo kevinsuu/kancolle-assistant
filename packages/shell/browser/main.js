@@ -126,12 +126,6 @@ if (gpuConfig.compositorResources)
   app.commandLine.appendSwitch('enable-gpu-memory-buffer-compositor-resources')
 app.commandLine.appendSwitch('enable-experimental-web-platform-features')
 
-// only allow one instance to run for now
-if (!app.requestSingleInstanceLock()) {
-  app.quit()
-  console.log("!! shouldn't see me !!")
-}
-
 //app.userAgentFallback = app.userAgentFallback.replace(' Electron/' + process.versions.electron, '');
 // Shorten 'Electron' so we can bypass Google's "Unsecure" browser block without losing version information
 app.userAgentFallback = app.userAgentFallback.replace(' Electron/', ' Elec/')
@@ -184,6 +178,12 @@ kccp.logger.log(logSource, `Is packaged: ${app.isPackaged}`)
 console.log(`SHELL_ROOT_DIR: ${SHELL_ROOT_DIR}`)
 console.log(`ROOT_DIR: ${ROOT_DIR}`)
 console.log(`PATHS:`, PATHS)
+
+// only allow one instance to run for now
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+  console.log("!! shouldn't see me !!")
+}
 
 let webuiExtensionId
 let webuiUrl
