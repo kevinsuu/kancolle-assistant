@@ -85,17 +85,23 @@ const appDataDir = app.getPath('userData')
 
 // store config.json in the app folder when running packaged.
 const cfgOpts = {}
-if (app.isPackaged) {
+if (app.commandLine.hasSwitch('config-path')) {
+  let cfgPath = app.commandLine.getSwitchValue('config-path')
+  console.log('User-provided config path:', cfgPath)
+  if (!path.isAbsolute(cfgPath)) cfgPath = path.join(appDir, cfgPath)
+  if (!path.extname(cfgPath)) cfgPath = path.join(cfgPath, 'config.json')
+  cfgOpts.configPath = cfgPath
+} else if (app.isPackaged) {
   cfgOpts.configPath = path.join(appDir, 'config.json')
-  kccp.logger.log(logSource, 'Config path: ', hideHome(cfgOpts.configPath))
+  console.log('Config path: ', hideHome(cfgOpts.configPath))
 } else {
   cfgOpts.globalConfigPath = true
-  kccp.logger.log(logSource, 'Using global config path.')
+  console.log('Using global config path.')
 }
+console.log('Using config path:', cfgOpts.configPath)
 
 const preexisting = fsSync.existsSync(path.join(appDir, 'userdata'))
-if (preexisting)
-  kccp.logger.log(logSource, 'Detected preexisting userdata at current app location.')
+if (preexisting) console.log('Detected preexisting userdata at current app location.')
 
 updateConfigDefaults({ isSquirrel, preexisting })
 
@@ -145,7 +151,8 @@ switch (dataLocation) {
   case 'custom':
     if (fsSync.existsSync(cfg.app.data.customPath)) dataPath = cfg.app.data.customPath
 }
-app.setPath('userData', path.join(dataPath, 'userdata'))
+const userDataPath = path.join(dataPath, 'userdata')
+app.setPath('userData', userDataPath)
 
 if (process.execPath.match(/(damecon(-browser)?|chrome)/)) {
   const currentPath = path.dirname(process.execPath)
@@ -159,6 +166,7 @@ if (process.execPath.match(/(damecon(-browser)?|chrome)/)) {
 const SHELL_ROOT_DIR = path.join(__dirname, '../../')
 const ROOT_DIR = path.join(__dirname, '../../../../')
 const PATHS = {
+  USERDATA: userDataPath,
   APPDATA: appDataDir,
   APPDIR: appDir,
   HOME: app.getPath('home'),
