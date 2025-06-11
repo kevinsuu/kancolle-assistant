@@ -200,6 +200,7 @@ let kc3ExtensionId
 let kc3StartPageUrl
 let DMMPageUrl
 let newTabUrl
+let searchUrl
 let settingsUrl
 let confirmCloseUrls = []
 const manifestExists = async (dirPath) => {
@@ -305,7 +306,7 @@ class TabbedBrowserWindow {
 
   initTabs(options) {
     const self = this
-    const tabsOpts = { newTabPageUrl: newTabUrl }
+    const tabsOpts = { newTabPageUrl: newTabUrl, searchPageUrl: searchUrl }
     this.tabs = new Tabs(this.window, tabsOpts)
 
     this.tabs.on('tab-created', function onTabCreated(tab) {
@@ -518,6 +519,7 @@ class Browser extends EventEmitter {
       globalShortcut.registerAll(['CmdOrCtrl+W', 'CmdOrCtrl+F4'], () =>
         this.confirmCloseTab(fTab().id),
       )
+      globalShortcut.registerAll(['F3', 'CmdOrCtrl+F'], () => this.openFindInPage(fTab().id))
       globalShortcut.registerAll(['Alt+A'], () => this.toggleAddressBar(fTab().id))
       globalShortcut.registerAll(['Alt+D'], () => this.focusAddressBar(fTab().id))
       globalShortcut.registerAll(['CmdOrCtrl+Tab'], () => this.nextTab(fTab().id))
@@ -706,6 +708,7 @@ class Browser extends EventEmitter {
     const webuiBase = 'chrome-extension://' + webuiExtensionId
     newTabUrl = webuiBase + '/new-tab.html'
     settingsUrl = webuiBase + '/settings.html'
+    searchUrl = webuiBase + '/search.html'
 
     const initialWindow = this.createTabbedWindow({
       initialUrls: [settingsUrl],
@@ -786,6 +789,12 @@ class Browser extends EventEmitter {
           }
 
           kccp.logger.log(logSource, 'Cache cleared.')
+          break
+        case 'start-find-in-page':
+          this.startFindInPage(data.tabId, data.searchInput)
+          break
+        case 'close-find-in-page':
+          this.toggleFindInPage(data.tabId)
           break
         case 'kc3-doupdate':
           await this.updateKc3(configStore.get('kc3kai.update.channel'))
@@ -1166,10 +1175,10 @@ class Browser extends EventEmitter {
       initKccp()
     }
 
-    /*
+    /* webui.html
     if (process.env.SHELL_DEBUG) {
-      win.webContents.openDevTools({ mode: 'detach' })
-    }*/
+      newTabbedWindow.webContents.openDevTools({ mode: 'detach' })
+    }//*/
 
     return newTabbedWindow
   }
@@ -1297,7 +1306,9 @@ class Browser extends EventEmitter {
       })
     })
 
-    /*if (process.env.SHELL_DEBUG && ['backgroundPage', 'remote'].includes(webContents.getType())) {
+    /*
+    const devToolsTypes = ['backgroundPage', 'remote']
+    if (process.env.SHELL_DEBUG && devToolsTypes.includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
     } //*/
 
@@ -1428,6 +1439,25 @@ class Browser extends EventEmitter {
     let tabIdx = parentWin.tabs.tabList.findIndex((t) => t.id == tabId) + 1
     if (tabIdx >= parentWin.tabs.tabList.length) tabIdx = 1
     parentWin.tabs.select(parentWin.tabs.tabList[tabIdx].id)
+  }
+
+  openFindInPage(tabId) {
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
+
+    tab.openFindInPage()
+  }
+  toggleFindInPage(tabId) {
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
+
+    tab.toggleFindInPage()
+  }
+  startFindInPage(tabId, searchInput) {
+    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
+    const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
+
+    tab.findInPage(searchInput)
   }
 
   getKc3Path() {

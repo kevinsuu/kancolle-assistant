@@ -16,6 +16,28 @@ const checkMessageSource = function () {
   if (!messageSource) throw new Error('Must set messageSource before using sendMessage.')
 }
 
+const tryInvoke = async function (asyncCallback, name) {
+  let result
+  let tries = 5
+  let error
+  while (!result && tries-- > 0) {
+    try {
+      console.log(`>> invoking ${name ?? 'action'}...`)
+      result = await asyncCallback()
+      console.log(`>> received`, result)
+      return result
+    } catch (err) {
+      error = err
+
+      console.error(
+        ` >> got error while invoking ${name ?? 'action'}. ${tries > 0 ? 'retrying...' : 'giving up.'}`,
+        err,
+      )
+    }
+  }
+  throw error
+}
+
 const sendToMain = function (type, data) {
   return sendMessage('main', type, data)
 }

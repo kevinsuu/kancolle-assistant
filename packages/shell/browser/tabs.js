@@ -7,6 +7,7 @@ class Tabs extends EventEmitter {
 
   // damecon customizations
   newTabPageUrl = null
+  searchPageUrl = null
   hidden = false
 
   constructor(browserWindow, options) {
@@ -14,6 +15,7 @@ class Tabs extends EventEmitter {
     this.window = browserWindow
     // damecon customizations
     this.newTabPageUrl = options.newTabPageUrl ?? 'about:blank'
+    this.searchPageUrl = options.searchPageUrl ?? 'about:blank'
     this.hidden = options?.hidden ?? false
   }
 
@@ -35,7 +37,7 @@ class Tabs extends EventEmitter {
 
   create(webContentsViewOptions) {
     //console.log('>> tabs.create()', webContentsViewOptions?.initialUrl)
-    const tab = new Tab(this.window, webContentsViewOptions)
+    const tab = new Tab(this.window, webContentsViewOptions, this.searchPageUrl)
     this.tabList.push(tab)
     if (!this.selected) this.selected = tab
 
