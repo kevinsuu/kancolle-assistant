@@ -515,6 +515,7 @@ ul {
 
 .toolbar {
   height: 1.875rem;
+  width: 100%;
   display: flex;
   align-items: center;
   padding: 0.2rem 0.5rem;
@@ -594,11 +595,16 @@ ul {
   border-radius: 3px;
 }
 
-.find-results {
-  margin: 2px 8px;
+.search-bar.toolbar {
+  margin-top: 2px;
+  gap: 8px;
 }
-.find-results > * {
-  margin: 0;
+.search-bar .input-bar {
+  margin-right: 4px;
+}
+.find-results {
+  font-size: small;
+  margin: 0 0 4px 0;
 }
 
 #close:hover {

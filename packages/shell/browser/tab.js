@@ -108,6 +108,7 @@ class Tab {
         })
       } else {
         this.searchView.setBounds({ x: 0, y: 0, width: 0, height: 0 })
+        this.webContents.stopFindInPage('clearSelection')
       }
     } else {
       this.view.setAutoResize({ width: false, height: false })
@@ -126,27 +127,38 @@ class Tab {
     //this.window.off('resize', this.updateLayout)
   }
 
-  toggleFindInPage() {
-    this.searchVisible = !this.searchVisible
+  async setFindInPageVisible(visible) {
+    let changed = false
+    if (!this.searchVisible && visible) {
+      const selection = await this.view.webContents.executeJavaScript(
+        'window.getSelection().toString()',
+      )
+      if (selection?.length > 0) {
+        this.searchInput = selection
+        changed = true
+      }
+    }
+    this.searchVisible = visible
     this.updateLayout()
     this.focusSearch()
-  }
-  openFindInPage() {
-    this.searchVisible = true
-    this.updateLayout()
-    this.focusSearch()
+    if (!changed)
+      // prevent double trigger
+      this.findInPage(this.searchInput)
   }
 
   focusSearch() {
     if (this.searchVisible) {
       this.searchView.webContents.focus()
-      this.sendMessage(this.searchView.webContents, 'prepare-search')
+      this.sendMessage(this.searchView.webContents, 'prepare-search', {
+        searchInput: this.searchInput,
+      })
     }
   }
 
   findInPage(searchInput) {
     this.searchInput = searchInput
-    this.webContents.findInPage(searchInput)
+    if (this.searchVisible && searchInput?.length > 0) this.webContents.findInPage(searchInput)
+    else this.webContents.stopFindInPage('clearSelection')
   }
 
   sendMessage(webContents, type, data) {

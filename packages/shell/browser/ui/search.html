@@ -26,24 +26,20 @@
 <body>
   <!-- ko if: config -->
   <div id="root" data-bind="attr: { class: `theme-${config().window.style.theme} brightness-${config().window.style.brightness}` }, event: { keydown: rootKeyDown }">
-    <div id="topbar-container">
-      <div id="topbar">
-        <div class="toolbar">
-          <div class="find-bar input-bar">
-            <div class="input-backdrop"></div>
-            <input id="search-input" type="text" placeholder="find in page" data-bind="value: searchInput, valueUpdate: 'afterkeydown', event: { keydown: onKeyDown }"/>
-          </div>
-          <!-- ko if: searchResult -->
-          <div class="find-results">
-            <label data-bind="text: searchResult().activeMatchOrdinal"></label>
-            <label>/</label>
-            <label data-bind="text: searchResult().matches"></label>
-          </div>
-          <!-- /ko -->
-          <div>
-            <button type="button" class="control btn btn-outline-secondary btn-sm" data-bind="click: closeSearch, clickBubble: false" title="close search"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-        </div>
+    <div class="toolbar search-bar">
+      <div class="find-bar input-bar">
+        <div class="input-backdrop"></div>
+        <input id="search-input" type="text" placeholder="find in page" data-bind="value: searchInput, valueUpdate: 'afterkeydown', event: { keydown: onKeyDown }"/>
+      </div>
+      <!-- ko if: searchResult -->
+      <div class="find-results">
+        <label data-bind="text: searchResult().activeMatchOrdinal"></label>
+        <label>/</label>
+        <label data-bind="text: searchResult().matches"></label>
+      </div>
+      <!-- /ko -->
+      <div class="close-controls">
+        <button type="button" class="control btn btn-outline-secondary btn-sm" data-bind="click: closeSearch, clickBubble: false" title="close search"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
   </div>

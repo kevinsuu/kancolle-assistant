@@ -38,6 +38,7 @@ class Search {
         await this.handleFound(msg.data)
         break
       case 'prepare-search':
+        if (msg.data?.searchInput?.length > 0) this.searchInput(msg.data.searchInput)
         document.getElementById('search-input').focus()
         break
     }

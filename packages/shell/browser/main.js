@@ -519,7 +519,9 @@ class Browser extends EventEmitter {
       globalShortcut.registerAll(['CmdOrCtrl+W', 'CmdOrCtrl+F4'], () =>
         this.confirmCloseTab(fTab().id),
       )
-      globalShortcut.registerAll(['F3', 'CmdOrCtrl+F'], () => this.openFindInPage(fTab().id))
+      globalShortcut.registerAll(['F3', 'CmdOrCtrl+F'], () =>
+        this.setFindInPageVisible(fTab().id, true),
+      )
       globalShortcut.registerAll(['Alt+A'], () => this.toggleAddressBar(fTab().id))
       globalShortcut.registerAll(['Alt+D'], () => this.focusAddressBar(fTab().id))
       globalShortcut.registerAll(['CmdOrCtrl+Tab'], () => this.nextTab(fTab().id))
@@ -794,7 +796,7 @@ class Browser extends EventEmitter {
           this.startFindInPage(data.tabId, data.searchInput)
           break
         case 'close-find-in-page':
-          this.toggleFindInPage(data.tabId)
+          this.setFindInPageVisible(data.tabId, false)
           break
         case 'kc3-doupdate':
           await this.updateKc3(configStore.get('kc3kai.update.channel'))
@@ -1441,17 +1443,11 @@ class Browser extends EventEmitter {
     parentWin.tabs.select(parentWin.tabs.tabList[tabIdx].id)
   }
 
-  openFindInPage(tabId) {
+  setFindInPageVisible(tabId, visible) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
     const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
 
-    tab.openFindInPage()
-  }
-  toggleFindInPage(tabId) {
-    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
-
-    tab.toggleFindInPage()
+    tab.setFindInPageVisible(visible)
   }
   startFindInPage(tabId, searchInput) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
