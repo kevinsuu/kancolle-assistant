@@ -146,7 +146,7 @@ New Tab launch page:
 
 GPL-3
 
-This project is based on the `electron-browser-shell` project by Samuel Maddock.
+This project is based on the [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) project by Samuel Maddock.
 
 The following notice has been retained from the original repository:
 
