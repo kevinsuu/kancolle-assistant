@@ -21,7 +21,7 @@ class Tab {
     this.searchView = new BrowserView()
     this.window.addBrowserView(this.searchView)
     this.searchView.webContents.loadURL(searchPageUrl)
-    this.searchView.webContents.openDevTools({ mode: 'detach', activate: true })
+    //this.searchView.webContents.openDevTools({ mode: 'detach', activate: true })
 
     this.webContents.on('found-in-page', (event, result) => {
       console.log('found on page', event, result)
