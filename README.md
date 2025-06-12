@@ -125,7 +125,7 @@ New Tab launch page:
 - [x] Per-site address bar hiding with wildcard support
 - [x] Common mouse gestures (Tab middle-click, draggable tabs, Ctrl+scroll, etc)
 - [ ] Link hover URL tooltips
-- [ ] Find in page (Ctrl+F)
+- [x] Find in page (Ctrl+F)
 
 ### 🤞 Eventually
 
