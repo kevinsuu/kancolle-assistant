@@ -27,11 +27,14 @@
   <!-- ko if: config -->
   <div id="root" data-bind="attr: { class: `theme-${config().window.style.theme} brightness-${config().window.style.brightness}` }, event: { keydown: rootKeyDown }">
     <div class="toolbar search-bar">
+      <div>
+        <label for="search-input">Find:</label>
+      </div>
       <div class="find-bar input-bar">
         <div class="input-backdrop"></div>
         <input id="search-input" type="text" placeholder="find in page" data-bind="value: searchInput, valueUpdate: 'afterkeydown', event: { keydown: onKeyDown }"/>
       </div>
-      <!-- ko if: searchResult -->
+      <!-- ko if: searchResult() && searchInput().length > 0 -->
       <div class="find-results">
         <label data-bind="text: searchResult().activeMatchOrdinal"></label>
         <label>/</label>

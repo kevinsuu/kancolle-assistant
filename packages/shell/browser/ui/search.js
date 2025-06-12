@@ -49,7 +49,7 @@ class Search {
   }
 
   rootKeyDown(data, ev) {
-    if (ev.originalEvent.code == 'Escape') this.closeSearch()
+    //if (ev.originalEvent.code == 'Escape') this.closeSearch()
     return true
   }
   async closeSearch() {

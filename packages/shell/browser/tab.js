@@ -1,3 +1,5 @@
+import { setMainWindow } from '../../kccacheproxy/src/proxy/ipc'
+
 const { BrowserView } = require('electron')
 
 let topBarHeight = 64
@@ -81,10 +83,19 @@ class Tab {
     const { width, height } = this.window.getContentBounds()
     const padding = 0
     if (headerHeight > 0) topBarHeight = headerHeight
-    const yOffset = topBarHeight
 
     if (this.visible) {
+      const searchBaseWidth = 300
+      const searchSnapWidth = 500
+      const searchHeight = 36
+
       const finalWidth = width - padding * 2
+
+      const yOffsetSearchMod =
+        this.searchVisible && finalWidth <= searchSnapWidth ? searchHeight : 0
+      const yOffset = topBarHeight + yOffsetSearchMod
+      const searchOffset = topBarHeight
+
       const finalHeight = height - yOffset - padding
 
       this.view.setBackgroundColor('white')
@@ -97,12 +108,11 @@ class Tab {
       this.view.setAutoResize({ width: true, height: true })
 
       if (this.searchVisible) {
-        const searchWidth = Math.min(finalWidth, 300)
-        const searchHeight = 36
+        const searchWidth = finalWidth <= searchSnapWidth ? finalWidth : searchBaseWidth
         const searchX = Math.round((finalWidth - searchWidth) / 2)
         this.searchView.setBounds({
           x: searchX,
-          y: yOffset,
+          y: searchOffset,
           width: searchWidth,
           height: searchHeight,
         })
@@ -133,7 +143,7 @@ class Tab {
       const selection = await this.view.webContents.executeJavaScript(
         'window.getSelection().toString()',
       )
-      if (selection?.length > 0) {
+      if (selection?.length > 0 && selection != this.searchInput) {
         this.searchInput = selection
         changed = true
       }

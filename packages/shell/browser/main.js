@@ -522,6 +522,7 @@ class Browser extends EventEmitter {
       globalShortcut.registerAll(['F3', 'CmdOrCtrl+F'], () =>
         this.setFindInPageVisible(fTab().id, true),
       )
+      globalShortcut.registerAll(['Escape'], () => this.setFindInPageVisible(fTab().id, false))
       globalShortcut.registerAll(['Alt+A'], () => this.toggleAddressBar(fTab().id))
       globalShortcut.registerAll(['Alt+D'], () => this.focusAddressBar(fTab().id))
       globalShortcut.registerAll(['CmdOrCtrl+Tab'], () => this.nextTab(fTab().id))

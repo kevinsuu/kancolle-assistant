@@ -534,7 +534,7 @@ ul {
 }
 
 .input-bar {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   line-height: 0;
   height: 100%;
   position: relative;
@@ -596,15 +596,20 @@ ul {
 }
 
 .search-bar.toolbar {
-  margin-top: 2px;
+  height: 100%;
+  align-items: center;
+  padding: 6px;
   gap: 8px;
+}
+.search-bar.toolbar label {
+  font-size: small;
+  margin-bottom: 2px;
 }
 .search-bar .input-bar {
   margin-right: 4px;
 }
-.find-results {
-  font-size: small;
-  margin: 0 0 4px 0;
+.search-bar.toolbar > div {
+  display: flex;
 }
 
 #close:hover {
