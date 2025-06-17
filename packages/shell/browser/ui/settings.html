@@ -8,7 +8,7 @@
   <script type="text/javascript" src="assets/js/jquery-3.3.1.min.js"></script>
   <script type="text/javascript" src="assets/js/popper.min.js"></script>
   <script type="text/javascript" src="assets/js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="assets/js/fontawesome.js"></script>
+  <script type="text/javascript" src="assets/js/fontawesome.js" defer></script>
 
   <script type="text/javascript" src="assets/js/knockout-3.5.1.js"></script>
   <script type="text/javascript" src="assets/js/knockout-i18n.js"></script>
@@ -405,7 +405,7 @@
           <div class="input-group col">
             <input id="proxycachelocation" type="text" class="form-control sensitive" data-bind="value: kccpConfig.cacheLocation, enable: kccpConfig.useCacheLocation" placeholder="Select cache location">
             <div class="input-group-append">
-              <button type="button" class="btn btn-secondary-sm" data-bind="enable: kccpConfig.useCacheLocation">browse</button>
+              <button type="button" class="btn btn-secondary-sm" data-bind="enable: kccpConfig.useCacheLocation, click: getCustomKccpPath">browse</button>
             </div>
           </div>
           <!-- /ko -->

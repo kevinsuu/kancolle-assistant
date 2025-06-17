@@ -807,6 +807,7 @@ class Browser extends EventEmitter {
           break
         case 'kc3-select-custom-location':
         case 'select-custom-data-location':
+        case 'select-custom-kccp-location':
           const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openDirectory'],
           })

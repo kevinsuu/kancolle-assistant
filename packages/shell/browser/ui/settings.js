@@ -411,6 +411,14 @@ class Settings {
     this.config.app.data.customPath(path)
   }
 
+  async getCustomKccpPath() {
+    const result = await sendToMain('select-custom-kccp-location')
+    if (result.canceled || !result.filePaths.length) return
+    const path = result.filePaths[0]
+    console.log('Selected KCCP path', path)
+    this.kccpConfig.cacheLocation(path)
+  }
+
   friendlySize(bytes, decimals = 2) {
     let received = bytes
     if (received < 1024) return `${received}bytes`
