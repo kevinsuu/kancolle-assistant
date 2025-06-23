@@ -2,6 +2,8 @@
 
 A minimal, tabbed web browser for playing Kantai Collection, with integrated KC3Kai and KCCacheProxy support.
 
+Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
+
 ![browser preview image showing a typical setup with the game open, KC3Kai visible in the developer tools panel, and some tools open in background tabs.](./screenshots/ingame.png)
 
 ## Usage
