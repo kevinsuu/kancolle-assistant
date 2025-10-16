@@ -49,6 +49,7 @@ const configSchema = {
       hideAddressBarSites: {
         type: 'array',
         default: [
+          'https://play.games.dmm.com/game/kancolle',
           'http://www.dmm.com/netgame/social/-/gadgets/=/app_id=854854/',
           '{{kc3-extension}}/*',
         ],

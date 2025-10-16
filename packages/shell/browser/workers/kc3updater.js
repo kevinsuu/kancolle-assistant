@@ -70,7 +70,7 @@ class KC3Updater {
       } else if (channel == 'release') {
         const updateCheckProcess = self.newProcess('Checking for updates')
         const releaseData = await (
-          await fetch('http://api.github.com/repos/kc3kai/kc3kai/releases/latest')
+          await fetch('https://api.github.com/repos/kc3kai/kc3kai/releases/latest')
         ).json()
         const latestVersion = releaseData.name
         updateCheckProcess.complete()

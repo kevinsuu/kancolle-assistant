@@ -440,36 +440,13 @@ class Browser extends EventEmitter {
       return `function FindProxyForURL(url, host) {\n return "PROXY ${host}:${port}";\n }\n`
     }
 
-    const ips = [
-      '*.kancolle-server.com',
-      '203.104.209.71',
-      '203.104.209.87',
-      '125.6.184.215',
-      '203.104.209.183',
-      '203.104.209.150',
-      '203.104.209.134',
-      '203.104.209.167',
-      '203.104.209.199',
-      '125.6.189.7',
-      '125.6.189.39',
-      '125.6.189.71',
-      '125.6.189.103',
-      '125.6.189.135',
-      '125.6.189.167',
-      '125.6.189.215',
-      '125.6.189.247',
-      '203.104.209.23',
-      '203.104.209.39',
-      '203.104.209.55',
-      '203.104.209.102',
-    ]
-    const gadget = 'w00g.kancolle-server.com'
-    //const gadget = '203.104.209.7';
+    // server letters, will expand to '00g|01y|02k' etc
+    const servers = 'gyksmotlrsbtpbhpskish'
+    const serversExp = [...servers].map((c, i) => String(i).padStart(2, '0') + c).join('|')
 
-    const ipsExp = ips.join('|')
     const pac =
       'function FindProxyForURL(url, host) {\n' +
-      `  if (shExpMatch(url, "http://(${ipsExp})/(kcs|kcs2)/*") || host == "${gadget}")\n` +
+      `  if (new RegExp("w(${serversExp})\\.kancolle-server\\.com").test(host))\n` +
       `    return "PROXY ${host}:${port}";\n` +
       '  return "DIRECT";\n' +
       '}\n'
@@ -1551,7 +1528,8 @@ class Browser extends EventEmitter {
     this.currentKc3ExtensionId = kc3ExtensionId
 
     kc3StartPageUrl = 'chrome-extension://' + kc3ExtensionId + '/pages/game/direct.html'
-    DMMPageUrl = 'http://www.dmm.com/netgame/social/-/gadgets/=/app_id=854854/'
+    //DMMPageUrl = 'https://www.dmm.com/netgame/social/-/gadgets/=/app_id=854854/'
+    DMMPageUrl = 'https://play.games.dmm.com/game/kancolle'
     confirmCloseUrls = [DMMPageUrl]
     let startTab
 
