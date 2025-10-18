@@ -238,8 +238,8 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
   font-size: 16px;
 }
 
@@ -652,4 +652,12 @@ browser-action-list::part(action):hover {
   background: conic-gradient(white 0% calc(var(--pct) * 1%), #ffffff1f calc(var(--pct) * 1%) 100%);
   width: 100%;
   height: 100%;
+}
+
+.platform-macos #tabstrip {
+  padding-left: 70px;
+}
+
+.platform-macos .window-controls {
+  display: none;
 }
