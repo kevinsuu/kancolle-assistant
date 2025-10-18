@@ -414,6 +414,7 @@ class Browser extends EventEmitter {
   async applyProxy() {
     const enable = configStore.get('proxy.enable')
     if (enable) {
+      /*
       const mode = configStore.get('proxy.mode')
       let host, port
       if (mode.endsWith('-external')) {
@@ -432,6 +433,8 @@ class Browser extends EventEmitter {
       await this.session.setProxy(proxyConfig)
     } else {
       await this.session.setProxy({ mode: 'system' })
+    }
+      */
     }
   }
 
