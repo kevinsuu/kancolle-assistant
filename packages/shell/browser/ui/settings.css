@@ -71,7 +71,8 @@
 
 #version {
   width: 110%;
-  padding: 0 5px;
+  padding: 0 10px 0 0;
+  text-align: center;
   color: var(--chrome-bg-color);
   font-size: 9pt;
   white-space: nowrap;

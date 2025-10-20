@@ -367,7 +367,6 @@
         <li class="nav-item">
           <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == 0 ? ' active' : ''}` }, click: () => kccpTab(0)">Configuration</a>
         </li>
-        <!-- ko if: kccpConfig.enableModder -->
         <li class="nav-item">
           <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == 1 ? ' active' : ''}` }, click: () => kccpTab(1)">
             <span>Asset Mods</span>
@@ -376,7 +375,6 @@
             <!-- /ko -->
           </a>
         </li>
-        <!-- /ko -->
         <li class="nav-item">
           <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == 2 ? ' active' : ''}` }, click: () => kccpTab(2)">Proxy Log</a>
         </li>
@@ -421,10 +419,6 @@
             <input class="form-check-input" id="gadgetbypass" type="checkbox" data-bind="checked: kccpConfig.bypassGadgetUpdateCheck">
             <label class="form-check-label" for="gadgetbypass">Bypass gadget server</label>
           </div>
-          <div class="form-check">
-            <input class="form-check-input" id="enablemodder" type="checkbox" data-bind="checked: kccpConfig.enableModder">
-            <label class="form-check-label" for="enablemodder">Enable asset modifiers</label>
-          </div>
           <div class="form-group mt-3">
             <button type="button" class="btn btn-secondary" data-bind="click: kccpReloadCache" title="reload KCCP cache">Reload cache</button>
             <button type="button" class="btn btn-secondary" data-bind="click: kccpVerifyCache" title="verify KCCP cache">Verify cache (may take a bit)</button>
@@ -441,7 +435,20 @@
           </div>
         </div>
         <!-- /ko -->
-        <!-- ko if: kccpConfig.enableModder() && kccpTab() == 1 -->
+        <!-- ko if: kccpTab() == 1 -->
+        <div class="settings-group">
+          <div class="form-check">
+            <input class="form-check-input" id="enablemodder" type="checkbox" data-bind="checked: kccpConfig.enableModder">
+            <label class="form-check-label" for="enablemodder">Enable asset modifiers</label>
+          </div>
+          <!-- ko if: kccpConfig.enableModder() -->
+          <div class="form-check">
+            <input class="form-check-input" id="autoupdategitmods" type="checkbox" data-bind="checked: kccpConfig.autoUpdateGitMods">
+            <label class="form-check-label" for="autoupdategitmods">Auto-update git mods</label>
+          </div>
+          <!-- /ko -->
+        </div>
+        <!-- ko if: kccpConfig.enableModder() -->
         <h6>Installed mods</h6>
         <div class="settings-group">
           <div class="form-items-scroller">
@@ -495,6 +502,7 @@
             </ul>
           </div>
         </div>
+        <!-- /ko -->
         <!-- /ko -->
         <!-- ko if: kccpTab() == 2 -->
         <div class="settings-group">

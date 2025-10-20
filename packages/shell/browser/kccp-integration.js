@@ -256,6 +256,10 @@ function getKccpStatus() {
   return kccpStatus
 }
 
+async function proxyRequest(req, callback) {
+  return await kccpProxy.proxyRequest(req, callback)
+}
+
 export {
   getKccpStatus,
   kccpSendStatusUpdate,
@@ -268,4 +272,5 @@ export {
   getKccpKcs2CachePath,
   getKccpImgCachePath,
   getKccpModPath,
+  proxyRequest,
 }

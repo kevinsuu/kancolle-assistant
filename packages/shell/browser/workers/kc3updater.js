@@ -6,41 +6,19 @@ import { finished } from 'stream/promises'
 import AdmZip from 'adm-zip'
 import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/node'
+import ProcessTracker from './processtracker'
+import { onUpdateStarted, onUpdateProgress, onUpdateCompleted } from './updater-utils.js'
 
 let self
 
-class ProcessTracker {
-  name
-  processStarted // (process)
-  processProgress // (process, stage, current, total)
-  processCompleted // (process)
-
-  constructor(name, options) {
-    this.name = name
-    this.processStarted = options.processStarted
-    this.processProgress = options.processProgress
-    this.processCompleted = options.processCompleted
-    if (this.processStarted) this.processStarted(name)
-  }
-
-  progress(ev) {
-    if (this.processProgress) this.processProgress(this.name, ev.phase, ev.loaded, ev.total)
-  }
-
-  complete() {
-    if (this.processCompleted) this.processCompleted(this.name)
-  }
-}
-
 class KC3Updater {
-  processOpts
+  processOpts = {
+    processStarted: onUpdateStarted,
+    processProgress: onUpdateProgress,
+    processCompleted: onUpdateCompleted,
+  }
 
   constructor(options) {
-    this.processOpts = {
-      processStarted: options.onProcessStarted,
-      processProgress: options.onProcessProgress,
-      processCompleted: options.onProcessCompleted,
-    }
     self = this
   }
 

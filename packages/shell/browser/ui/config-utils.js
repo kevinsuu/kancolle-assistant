@@ -106,6 +106,7 @@ const configSchema = {
       port: { type: 'number', default: 8081 },
     },
   },
+  version: { type: 'string', default: '0.10.0' },
 }
 
 const updateConfigDefaults = function (options) {
