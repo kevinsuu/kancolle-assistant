@@ -52,7 +52,9 @@ class Tab {
     }
 
     this.webContents = undefined
+    this.view.webContents.destroy()
     this.view = undefined
+    this.searchView.webContents.destroy()
     this.searchView = undefined
   }
 

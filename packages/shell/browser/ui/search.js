@@ -7,26 +7,28 @@ class Search {
   searchResult = ko.observable()
 
   addBrowserListeners() {
-    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-      ;(async () => {
-        const myWindowId = (await chrome.windows.getCurrent()).id
-        const tabId = (await chrome.tabs.getCurrent()).id
-        if (!msg.meta.allWindows && msg.meta.windowId !== myWindowId) {
-          console.log('Ignoring message for other window', msg.meta.windowId)
-          return
-        }
-        if (!msg.meta.allWindows && !msg.meta.allTabs && msg.meta.tabId !== tabId) {
-          console.log('Ignoring message for other tab', msg.meta.tabId)
-          return
-        }
+    chrome.runtime.onMessage.addListener(this.onMessage)
+  }
 
-        try {
-          await this.receiveFromMain(msg)
-        } catch (error) {
-          console.log('error receiving message', error)
-        }
-      })()
-    })
+  onMessage(msg, sender, sendResponse) {
+    ;(async () => {
+      const myWindowId = (await chrome.windows.getCurrent()).id
+      const tabId = (await chrome.tabs.getCurrent()).id
+      if (!msg.meta.allWindows && msg.meta.windowId !== myWindowId) {
+        console.log('Ignoring message for other window', msg.meta.windowId)
+        return
+      }
+      if (!msg.meta.allWindows && !msg.meta.allTabs && msg.meta.tabId !== tabId) {
+        console.log('Ignoring message for other tab', msg.meta.tabId)
+        return
+      }
+
+      try {
+        await this.receiveFromMain(msg)
+      } catch (error) {
+        console.log('error receiving message', error)
+      }
+    })()
   }
 
   async receiveFromMain(msg) {
