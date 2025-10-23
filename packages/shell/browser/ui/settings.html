@@ -371,10 +371,10 @@
       <h5>KCCacheProxy</h5>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == 0 ? ' active' : ''}` }, click: () => kccpTab(0)">Configuration</a>
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.config ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.config)">Configuration</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == 1 ? ' active' : ''}` }, click: () => kccpTab(1)">
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.mods ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.mods)">
             <span>Asset Mods</span>
             <!-- ko if: kccpModsOutOfDate() > 0 -->
             <span class="badge badge-danger" data-bind="text: kccpModsOutOfDate"></span>
@@ -382,11 +382,11 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == 2 ? ' active' : ''}` }, click: () => kccpTab(2)">Proxy Log</a>
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.log ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.log)">Proxy Log</a>
         </li>
       </ul>
       <div class="tab-content" data-bind="enable: !kccpStatus().busy">
-        <!-- ko if: kccpTab() == 0 -->
+        <!-- ko if: kccpTab() == kccpTabs.config -->
         <div class="settings-group">
           <div class="form-row">
             <div class="col-sm-3"><label for="proxyclienthost">Hostname/IP</label></div>
@@ -441,7 +441,7 @@
           </div>
         </div>
         <!-- /ko -->
-        <!-- ko if: kccpTab() == 1 -->
+        <!-- ko if: kccpTab() == kccpTabs.mods -->
         <div class="settings-group">
           <div class="form-check">
             <input class="form-check-input" id="enablemodder" type="checkbox" data-bind="checked: kccpConfig.enableModder">
@@ -510,7 +510,7 @@
         </div>
         <!-- /ko -->
         <!-- /ko -->
-        <!-- ko if: kccpTab() == 2 -->
+        <!-- ko if: kccpTab() == kccpTabs.log -->
         <div class="settings-group">
           <div id="kccp-log-scroller" class="log-scroller">
             <ul>

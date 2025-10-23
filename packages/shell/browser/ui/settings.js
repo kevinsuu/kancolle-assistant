@@ -56,6 +56,7 @@ class Settings {
   })
 
   kccpStatus = ko.observable({ busy: false, started: false })
+  kccpTabs = { config: 0, mods: 1, log: 2 }
   kccpTab = ko.observable(0)
   appTab = ko.observable(0)
   // TODO: Don't reference UI stuff in VM
@@ -147,7 +148,7 @@ class Settings {
   }
 
   kccpOpenLog() {
-    this.kccpTab(0)
+    this.kccpTab(this.kccpTabs.log)
   }
   async kccpImportBasicCacheDump() {
     this.kccpOpenLog()
