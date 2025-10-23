@@ -64,6 +64,7 @@ import {
 } from './kccp-integration.js'
 
 const logSource = 'damecon-browser'
+const devtoolsDebug = false
 
 const homePath = app.getPath('home')
 const hideHome = function (filePath) {
@@ -1359,10 +1360,10 @@ class Browser extends EventEmitter {
       initKccp()
     }
 
-    /* webui.html
-    if (process.env.SHELL_DEBUG) {
+    //* webui.html
+    if (devtoolsDebug && process.env.SHELL_DEBUG) {
       newTabbedWindow.webContents.openDevTools({ mode: 'detach' })
-    }//*/
+    } //*/
 
     return newTabbedWindow
   }
@@ -1490,9 +1491,9 @@ class Browser extends EventEmitter {
       })
     })
 
-    /*
+    //*
     const devToolsTypes = ['backgroundPage', 'remote']
-    if (process.env.SHELL_DEBUG && devToolsTypes.includes(webContents.getType())) {
+    if (devtoolsDebug && process.env.SHELL_DEBUG && devToolsTypes.includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
     } //*/
 
