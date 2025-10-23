@@ -86,7 +86,7 @@ const configSchema = {
       },
       schedule: {
         type: 'option',
-        options: ['startup', 'daily', 'weekly', 'manual'],
+        options: ['startup', 'daily', 'weekly' /*, 'manual'*/],
         default: 'daily',
       },
       auto: { type: 'bool', default: true },

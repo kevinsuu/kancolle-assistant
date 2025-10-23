@@ -1651,7 +1651,7 @@ class Browser extends EventEmitter {
       startup: 0,
       daily: 1,
       weekly: 7,
-      manual: null,
+      manual: 999999,
     }
     let doUpdate = false
     if (canUpdate && autoUpdate && (!lastUpdated || scheduleMap[schedule] >= 0)) {
