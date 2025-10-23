@@ -7,7 +7,7 @@ class Search {
   searchResult = ko.observable()
 
   addBrowserListeners() {
-    chrome.runtime.onMessage.addListener(this.onMessage)
+    chrome.runtime.onMessage.addListener(this.onMessage.bind(this))
   }
 
   onMessage(msg, sender, sendResponse) {
