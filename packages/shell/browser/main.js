@@ -1041,6 +1041,10 @@ class Browser extends EventEmitter {
     }
   }
 
+  getModPath(config) {
+    return config.mods.length > 0 ? join(config.mods[config.mods.length - 1].path, '..') : undefined
+  }
+
   serverHost = ''
   //requestIgnoreIds = []
   setProxyHandler() {
@@ -1086,7 +1090,7 @@ class Browser extends EventEmitter {
           callback({ redirectURL })
           return
         } else if (this.serverHost && url.protocol === 'http:') {
-          const match = url.pathname?.match(/\/kcs2\/resources\/world\/(.*)_t\.png$/)
+          const match = url.pathname?.match(/\/kcs2\/resources\/world\/(.*)_([lst])\.png$/)
           const worldStr = this.serverHost.split('.')[0].substring(1) + '_ver_com'
           if (match && match[1] != worldStr) {
             url.pathname = url.pathname.replace(match[1], worldStr)
