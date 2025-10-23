@@ -5,6 +5,7 @@ const { Readable } = require('stream')
 import {
   app,
   session,
+  net,
   BrowserWindow,
   Notification,
   globalShortcut,
@@ -373,6 +374,7 @@ class Browser extends EventEmitter {
   kc3IsUpdating = false
   kccpModderIsUpdating = false
   isProxyEnabled = false
+  session = null
 
   urls = {
     newtab: 'about:blank',
@@ -385,6 +387,19 @@ class Browser extends EventEmitter {
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve
     })
+
+    /*
+    protocol.registerSchemesAsPrivileged([
+      {
+        scheme: 'kancolle',
+        privileges: {
+          secure: true,
+          standard: true,
+          supportFetchAPI: true,
+          corsEnabled: true
+        }
+      }
+    ]);*/
 
     app.whenReady().then(this.init.bind(this))
 
@@ -1014,85 +1029,145 @@ class Browser extends EventEmitter {
     }
   }
 
+  async getProxyDestination() {
+    const proxyCfg = configStore.get('proxy')
+    if (proxyCfg.mode === 'kccp-internal') {
+      const { hostname, port } = (await getKccpConfig(configStore)).config
+      return { host: hostname, port }
+    } else {
+      const { host, port } = proxyCfg.client
+      return { host, port }
+    }
+  }
+
+  serverHost = ''
+  //requestIgnoreIds = []
   setProxyHandler() {
-    this.session.webRequest.onBeforeRequest({ urls: ['https://*/*'] }, (details, callback) => {
-      // required in order for protocol.* to work ????
-      callback({})
-    })
+    //const proxyHeader = 'X-Proxied'
+    /*this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>']}, (details, callback) => {
+      if (!details.url.startsWith('ws')) {
+        const wasProxied = details.requestHeaders[proxyHeader]
+        if (wasProxied)
+        {
+          console.log(`proxied id ${details.id}`)
+          delete details.requestHeaders[proxyHeader]
+          this.requestIgnoreIds.push(details.id)
+        }
+      }
+      callback({ requestHeaders: details.requestHeaders })
+    })*/
 
-    this.session.protocol.interceptStreamProtocol('https', (request, callback) => {
-      const url = new URL(request.url)
+    this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
+      const url = new URL(details.url)
+      const cfg = configStore.get('proxy')
+      if (
+        !cfg.enable ||
+        details.method !== 'GET' ||
+        !url.hostname.endsWith('.kancolle-server.com') ||
+        url.pathname.includes('/kcscontents/news')
+      ) {
+        callback({ cancel: false })
+        return
+      }
+      /*if (this.requestIgnoreIds.includes(details.id)) {
+        console.log(`found id ${details.id}`)
+        this.requestIgnoreIds.splice(this.requestIgnoreIds.indexOf(details.id), 1)
+        callback({ cancel: false })
+        return
+      }*/
 
-      let called = false
-      function safeCallback(data) {
-        if (called) {
-          kccp.logger.error(
-            kccp.kccpLogSource,
-            `HTTPS request callback called more than once!`,
-            `${url.host}${url.pathname}`,
-          )
+      if (url.protocol == 'https:') {
+        if (!url.hostname.startsWith('w00')) this.serverHost = url.hostname
+
+        const { host, port } = await this.getProxyDestination()
+        let redirectURL = `http://${host}:${port}` //.replace(/^https:/, 'kancolle:')
+        //if (self.settings.proxyMode === 'path')
+        const pathHost =
+          url.protocol.slice(0, -1) +
+          '/' +
+          (url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]
+        redirectURL += `/${pathHost}`
+        redirectURL += `${url.pathname}${url.search}`
+
+        callback({ redirectURL })
+        return
+      } else if (url.protocol == 'http:') {
+        if (!cfg.enable || !this.serverHost || !url.pathname?.includes('/kcs2/resources/world')) {
+          callback({ cancel: false }) // No-op, just activates the pipeline
           return
         }
-        called = true
-        callback(data)
-      }
 
-      const ignore = ['www.facebook.com/tr/', 'connect.facebook.net']
-      if (ignore.includes(url.hostname)) {
-        callback({ statusCode: 502, data: 'Trackers begone' })
+        const redirectURL = details.url.replace(
+          /\d{3}_\d{3}_\d{3}_\d{3}/,
+          `${this.serverHost.split('.')[0].substring(1)}_ver_com`,
+        )
+        callback({ redirectURL })
         return
       }
 
+      callback({ cancel: false })
+    })
+
+    /*
+    protocol.registerStreamProtocol('kancolle', (request, callback) => {
+      const { method, headers } = request
+      const url = new URL(request.url)
+        
       const cfg = configStore.all
       const host = cfg.proxy.client.host
       const port = cfg.proxy.client.port
-      const destUrl = `http://${host}:${port}/${url.protocol.slice(0, -1)}/${url.hostname}${url.pathname}${url.search}`
+      const proxyUrl = `http://${host}:${port}/https/${url.hostname}${url.pathname}${url.search}`
+      const destUrl = request.url.replace(/^kancolle:/,'https:')
       const isKancolle = url.hostname.endsWith('.kancolle-server.com')
       const proxyAll = cfg.proxy.mode.startsWith('all-')
 
-      const { method, headers } = request
-
       if (this.isProxyEnabled && (isKancolle || proxyAll)) {
         if (cfg.proxy.mode == 'kccp-internal') {
+          const newHeaders = { ...headers }
+          newHeaders['X-Proxied'] = '1'
           proxyRequest(
             {
               method,
-              headers,
+              headers: newHeaders,
               url: destUrl,
               bodyStream: request.uploadData?.length
                 ? Readable.from(request.uploadData.map((part) => part.bytes))
                 : null,
             },
-            safeCallback,
+            callback,
           )
         } else if (cfg.proxy.mode.endsWith('-external')) {
-          this.proxyHTTPSRequest(request, destUrl, method, headers, safeCallback, 'External proxy')
+          this.proxyHTTPSRequest(request, destUrl, method, headers, callback, 'External proxy')
         }
         return
       }
 
       // direct handling
-      this.proxyHTTPSRequest(request, url.href, method, headers, safeCallback)
+      this.proxyHTTPSRequest(request, url.href, method, headers, callback)
     })
+    //*/
   }
 
   proxyHTTPSRequest(request, url, method, headers, callback, type = 'HTTPS request') {
-    const proxyReq = https.request(url, { method, headers }, (res) => {
+    const proxyReq = net.request({ url, method, headers }, (res) => {
       callback({
         statusCode: res.statusCode,
         headers: res.headers,
         data: res,
       })
     })
-    if (request.uploadData?.length) {
-      for (const part of request.uploadData) {
-        if (part.bytes) proxyReq.write(part.bytes)
-      }
-    }
+
     proxyReq.on('error', (err) => {
       kccp.logger.error(kccp.kccpLogSource, `${type} failed: ${err}`)
       callback({ statusCode: 502, data: null })
     })
+
+    if (request.uploadData) {
+      for (const part of request.uploadData) {
+        if (part.bytes) proxyReq.write(Buffer.from(part.bytes))
+      }
+    }
+
     proxyReq.end()
   }
 
