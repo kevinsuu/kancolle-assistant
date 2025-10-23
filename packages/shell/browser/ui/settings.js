@@ -1,16 +1,23 @@
+scrollTop = function (selector, force = false) {
+  var el = document.querySelector(selector)
+
+  // the scroll bar is all the way down, so we know they want to follow the text
+  if (
+    el &&
+    el.scrollTop !== undefined &&
+    (force || el.scrollTop == el.scrollHeight - el.clientHeight)
+  ) {
+    // have to push our code outside of this thread since the text hasn't updated yet
+    setTimeout(function () {
+      el.scrollTop = el.scrollHeight - el.clientHeight
+    }, 0)
+  }
+}
+
 ko.extenders.scrollFollow = function (target, selector) {
   target.subscribe(function (newval) {
-    var el = document.querySelector(selector)
-
-    // the scroll bar is all the way down, so we know they want to follow the text
-    if (el?.hasOwnProperty('scrollTop') && el.scrollTop == el.scrollHeight - el.clientHeight) {
-      // have to push our code outside of this thread since the text hasn't updated yet
-      setTimeout(function () {
-        el.scrollTop = el.scrollHeight - el.clientHeight
-      }, 0)
-    }
+    scrollTop(selector)
   })
-
   return target
 }
 
@@ -653,6 +660,12 @@ class Settings {
     await sendToMain('kccp-log-get-recent')
 
     this.config.version(this.version.split(' v')[1])
+
+    this.kccpTab.subscribe((value) => {
+      if (value === this.kccpTabs.log) {
+        setTimeout(() => scrollTop('#kccp-log-scroller', true), 10)
+      }
+    })
   }
 }
 window.vm = new Settings()

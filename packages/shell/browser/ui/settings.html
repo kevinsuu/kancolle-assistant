@@ -371,10 +371,10 @@
       <h5>KCCacheProxy</h5>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.config ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.config)">Configuration</a>
+          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.config ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.config)">Configuration</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.mods ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.mods)">
+          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.mods ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.mods)">
             <span>Asset Mods</span>
             <!-- ko if: kccpModsOutOfDate() > 0 -->
             <span class="badge badge-danger" data-bind="text: kccpModsOutOfDate"></span>
@@ -382,7 +382,7 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.log ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.log)">Proxy Log</a>
+          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.log ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.log)">Proxy Log</a>
         </li>
       </ul>
       <div class="tab-content" data-bind="enable: !kccpStatus().busy">
