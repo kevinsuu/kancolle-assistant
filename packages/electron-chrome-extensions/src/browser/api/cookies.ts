@@ -110,6 +110,8 @@ export class CookiesAPI {
       removed,
     }
 
-    this.ctx.router.broadcastEvent('cookies.onChanged', changeInfo)
+    if (cookie.name !== '_dd_s')
+      // spams several times every second
+      this.ctx.router.broadcastEvent('cookies.onChanged', changeInfo)
   }
 }
