@@ -1070,47 +1070,31 @@ class Browser extends EventEmitter {
     this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
       const url = new URL(details.url)
       const cfg = configStore.get('proxy')
-      if (
-        !cfg.enable ||
-        details.method !== 'GET' ||
-        !url.hostname.endsWith('.kancolle-server.com') ||
-        url.pathname.includes('/kcscontents/news')
-      ) {
-        callback({ cancel: false })
-        return
-      }
-      /*if (this.requestIgnoreIds.includes(details.id)) {
-        console.log(`found id ${details.id}`)
-        this.requestIgnoreIds.splice(this.requestIgnoreIds.indexOf(details.id), 1)
-        callback({ cancel: false })
-        return
-      }*/
 
-      if (url.protocol == 'https:') {
-        if (!url.hostname.startsWith('w00')) this.serverHost = url.hostname
+      if (cfg.enable && details.method === 'GET' && !url.pathname.includes('/kcscontents/news')) {
+        if (url.protocol === 'https:' && url.hostname.endsWith('.kancolle-server.com')) {
+          if (!url.hostname.startsWith('w00')) this.serverHost = url.hostname
 
-        const { host, port } = await this.getProxyDestination()
-        let redirectURL = `http://${host}:${port}` //.replace(/^https:/, 'kancolle:')
-        if (cfg.method === 'path')
-          redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+\.kancolle-server\.com)$/) || ['', url.hostname])[1]}`
-        // shortform pathing not yet in public KCCP
-        //redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]}`;
-        redirectURL += `${url.pathname}${url.search}`
+          const { host, port } = await this.getProxyDestination()
+          let redirectURL = `http://${host}:${port}` //.replace(/^https:/, 'kancolle:')
+          if (cfg.method === 'path')
+            redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+\.kancolle-server\.com)$/) || ['', url.hostname])[1]}`
+          // shortform pathing not yet in public KCCP
+          //redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]}`;
+          redirectURL += `${url.pathname}${url.search}`
 
-        callback({ redirectURL })
-        return
-      } else if (url.protocol == 'http:') {
-        if (!cfg.enable || !this.serverHost || !url.pathname?.includes('/kcs2/resources/world')) {
-          callback({ cancel: false }) // No-op, just activates the pipeline
+          callback({ redirectURL })
           return
+        } else if (this.serverHost && url.protocol === 'http:') {
+          const match = url.pathname?.match(/\/kcs2\/resources\/world\/(.*)_t\.png$/)
+          const worldStr = this.serverHost.split('.')[0].substring(1) + '_ver_com'
+          if (match && match[1] != worldStr) {
+            url.pathname = url.pathname.replace(match[1], worldStr)
+            // careful! potential for an infinite redirect if this is botched
+            callback({ redirectURL: url.href })
+            return
+          }
         }
-
-        const redirectURL = details.url.replace(
-          /\d{3}_\d{3}_\d{3}_\d{3}/,
-          `${this.serverHost.split('.')[0].substring(1)}_ver_com`,
-        )
-        callback({ redirectURL })
-        return
       }
 
       callback({ cancel: false })
