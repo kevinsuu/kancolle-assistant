@@ -340,12 +340,18 @@
       <h3>Proxy Settings</h3>
       <div class="settings-group" data-bind="enable: !kccpStatus().busy">
         <div class="form-check form-row row">
-          <div class="form-check col-sm-3">
+          <div class="form-check col-sm-2">
             <input class="form-check-input" id="proxyenable" type="checkbox" data-bind="checked: config.proxy.enable">
             <label class="form-check-label" for="proxyenable">Enabled</label>
           </div>
-          <label class="form-check-label" for="proxymode" class="col-sm-3">Mode</label>
-          <select id="proxymode" class="col form-control" data-bind="options: configSchema.proxy.mode.options, value: config.proxy.mode"></select>
+          <div class="form-check col">
+            <label for="proxymode" class="form-check-label">Mode</label>
+            <select id="proxymode" class="col form-control" data-bind="options: configSchema.proxy.mode.options, value: config.proxy.mode"></select>
+          </div>
+          <div class="form-check col">
+            <label for="proxymethod" class="form-check-label">Method</label>
+            <select id="proxymethod" class="col form-control" data-bind="options: configSchema.proxy.method.options, value: config.proxy.method"></select>
+          </div>
         </div>
       </div>
       <!-- ko if: config.proxy.mode().endsWith('-external') -->

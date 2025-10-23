@@ -1044,18 +1044,27 @@ class Browser extends EventEmitter {
   //requestIgnoreIds = []
   setProxyHandler() {
     //const proxyHeader = 'X-Proxied'
-    /*this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>']}, (details, callback) => {
-      if (!details.url.startsWith('ws')) {
-        const wasProxied = details.requestHeaders[proxyHeader]
-        if (wasProxied)
-        {
-          console.log(`proxied id ${details.id}`)
-          delete details.requestHeaders[proxyHeader]
-          this.requestIgnoreIds.push(details.id)
-        }
+    this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (details, callback) => {
+      const proxyCfg = configStore.get('proxy')
+      if (!proxyCfg.enable || proxyCfg.method !== 'header' || details.url.startsWith('ws')) {
+        callback({ requestHeaders: details.requestHeaders })
+        return
       }
+
+      const url = new URL(details.url)
+      if (['/gadget_html5/', '/kcscontents/'].some((x) => url.pathname?.includes(x)))
+        details.requestHeaders['x-host'] = 'w00g.kancolle-server.com'
+      else if (this.serverHost) details.requestHeaders['x-host'] = this.serverHost
+
+      /*const wasProxied = details.requestHeaders[proxyHeader]
+      if (wasProxied)
+      {
+        console.log(`proxied id ${details.id}`)
+        delete details.requestHeaders[proxyHeader]
+        this.requestIgnoreIds.push(details.id)
+      }//*/
       callback({ requestHeaders: details.requestHeaders })
-    })*/
+    })
 
     this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
       const url = new URL(details.url)
@@ -1081,12 +1090,10 @@ class Browser extends EventEmitter {
 
         const { host, port } = await this.getProxyDestination()
         let redirectURL = `http://${host}:${port}` //.replace(/^https:/, 'kancolle:')
-        //if (self.settings.proxyMode === 'path')
-        const pathHost =
-          url.protocol.slice(0, -1) +
-          '/' +
-          (url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]
-        redirectURL += `/${pathHost}`
+        if (cfg.method === 'path')
+          redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+\.kancolle-server\.com)$/) || ['', url.hostname])[1]}`
+        // shortform pathing not yet in public KCCP
+        //redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]}`;
         redirectURL += `${url.pathname}${url.search}`
 
         callback({ redirectURL })
