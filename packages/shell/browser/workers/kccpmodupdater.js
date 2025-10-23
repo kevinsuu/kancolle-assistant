@@ -21,13 +21,14 @@ class KCCPModUpdater {
   }
 
   async update(config) {
-    if (!config.autoUpdateGitMods) return
-
-    let modCount = config.mods.length
-    if (modCount == 0) return
-
     const updateProcess = self.newProcess('KCCP Mod Update')
+    let modCount = 0
     try {
+      if (!config.autoUpdateGitMods) return
+
+      modCount = config.mods?.length
+      if (modCount == 0) return
+
       for (let i = 0; i < modCount; i++) {
         const mod = config.mods[i]
         updateProcess.progress({
