@@ -1,16 +1,23 @@
+scrollTop = function (selector, force = false) {
+  var el = document.querySelector(selector)
+
+  // the scroll bar is all the way down, so we know they want to follow the text
+  if (
+    el &&
+    el.scrollTop !== undefined &&
+    (force || el.scrollTop == el.scrollHeight - el.clientHeight)
+  ) {
+    // have to push our code outside of this thread since the text hasn't updated yet
+    setTimeout(function () {
+      el.scrollTop = el.scrollHeight - el.clientHeight
+    }, 0)
+  }
+}
+
 ko.extenders.scrollFollow = function (target, selector) {
   target.subscribe(function (newval) {
-    var el = document.querySelector(selector)
-
-    // the scroll bar is all the way down, so we know they want to follow the text
-    if (el?.hasOwnProperty('scrollTop') && el.scrollTop == el.scrollHeight - el.clientHeight) {
-      // have to push our code outside of this thread since the text hasn't updated yet
-      setTimeout(function () {
-        el.scrollTop = el.scrollHeight - el.clientHeight
-      }, 0)
-    }
+    scrollTop(selector)
   })
-
   return target
 }
 
@@ -56,6 +63,7 @@ class Settings {
   })
 
   kccpStatus = ko.observable({ busy: false, started: false })
+  kccpTabs = { config: 0, mods: 1, log: 2 }
   kccpTab = ko.observable(0)
   appTab = ko.observable(0)
   // TODO: Don't reference UI stuff in VM
@@ -93,6 +101,9 @@ class Settings {
   canSetKc3Channel = ko.computed(() => !this.kc3IsUpdating(), this)
   canUpdateKc3 = ko.observable(true)
 
+  kccpModderIsUpdating = ko.observable(false)
+  canUpdateKccpMods = ko.observable(false)
+
   downloads = ko.observableArray([])
 
   /*async sendMessage(type, data) {
@@ -115,6 +126,7 @@ class Settings {
       'verifyCache',
       'bypassGadgetUpdateCheck',
       'enableModder',
+      'autoUpdateGitMods',
     ]
     const cfg = this.kccpConfig
     this.convertPropertiesToObservables(cfg.current(), {
@@ -143,7 +155,7 @@ class Settings {
   }
 
   kccpOpenLog() {
-    this.kccpTab(0)
+    this.kccpTab(this.kccpTabs.log)
   }
   async kccpImportBasicCacheDump() {
     this.kccpOpenLog()
@@ -462,7 +474,11 @@ class Settings {
         this.kc3IsUpdating(msg.data.isUpdating)
         this.kc3UpdatingChannel(msg.data.channel)
         break
-      case 'error-do-update':
+      case 'status-kccp-modder-is-updating':
+        this.kccpModderIsUpdating(msg.data.isUpdating)
+        break
+      case 'error-do-kc3-update':
+      case 'error-do-kccp-modder-update':
         // TODO: report the error
         break
       case 'update-process-started':
@@ -579,6 +595,23 @@ class Settings {
     this.canUpdateKc3(!this.kc3IsUpdating() && !!this.config?.kc3kai?.update.channel())
   }
 
+  setCanUpdateKccpMods() {
+    this.canUpdateKccpMods(
+      !this.kccpModderIsUpdating() && !!this.config?.kccpConfig?.current()?.autoUpdateGitMods,
+    )
+  }
+
+  compareVersions(a, b) {
+    const pa = a.split('.').map(Number)
+    const pb = b.split('.').map(Number)
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const na = pa[i] || 0
+      const nb = pb[i] || 0
+      if (na !== nb) return na > nb ? 1 : -1
+    }
+    return 0
+  }
+
   constructor() {
     this.init()
   }
@@ -598,6 +631,17 @@ class Settings {
     console.log('done prepping config', this.config)
     this.settingsInitialized(true)
 
+    const cfgVer = this.config.version()
+    if (!cfgVer || this.compareVersions(cfgVer, '0.10.0') < 0) {
+      console.log('Adding new game page URL')
+      const newGamePageUrl = 'https://play.games.dmm.com/game/kancolle'
+      const sites = vm.config.window.view.hideAddressBarSites()
+      if (!sites.includes(newGamePageUrl)) {
+        this.newHideAddressBarSite(newGamePageUrl)
+        this.addNewHideAddressBarSite()
+      }
+    }
+
     const downloads = await chrome.downloads.search({})
     downloads.forEach((d) => this.downloads.push(this.prepDownload(d)))
 
@@ -606,12 +650,22 @@ class Settings {
 
     this.addBrowserListeners()
 
-    const updateStatus = await sendToMain('kc3-get-isupdating')
+    const kc3UpdateStatus = await sendToMain('kc3-get-isupdating')
+    const kccpModUpdateStatus = await sendToMain('kccp-modder-get-isupdating')
     this.kc3IsUpdating.subscribe((newValue) => this.setCanUpdateKc3())
-    this.kc3IsUpdating(updateStatus.isUpdating)
-    this.kc3UpdatingChannel(updateStatus.channel)
+    this.kc3IsUpdating(kc3UpdateStatus.isUpdating)
+    this.kccpModderIsUpdating(kccpModUpdateStatus.isUpdating)
+    this.kc3UpdatingChannel(kc3UpdateStatus.channel)
 
     await sendToMain('kccp-log-get-recent')
+
+    this.config.version(this.version.split(' v')[1])
+
+    this.kccpTab.subscribe((value) => {
+      if (value === this.kccpTabs.log) {
+        setTimeout(() => scrollTop('#kccp-log-scroller', true), 10)
+      }
+    })
   }
 }
 window.vm = new Settings()

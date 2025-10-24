@@ -1,8 +1,11 @@
 import path from 'path'
 import fsSync, { utimesSync } from 'fs'
+const https = require('https')
+const { Readable } = require('stream')
 import {
   app,
   session,
+  net,
   BrowserWindow,
   Notification,
   globalShortcut,
@@ -11,6 +14,7 @@ import {
   dialog,
   autoUpdater,
   webFrameMain,
+  protocol,
 } from 'electron'
 import { EventEmitter } from 'events'
 
@@ -37,9 +41,9 @@ import { debug, error } from 'console'
 // for wildcard matching URLs to hide address bar for
 import { isMatch } from 'matcher'
 
-// KC3
+// Updaters
 import './workers/worker-shim'
-import kc3UpdateWorker from 'worker-loader!./workers/kc3update-worker.js'
+import updateWorker from 'worker-loader!./workers/updater-worker.js'
 
 // KCCP
 const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
@@ -56,9 +60,11 @@ import {
   getKccpCachePath,
   getKccpModPath,
   getKccpKcs2CachePath,
+  proxyRequest,
 } from './kccp-integration.js'
 
 const logSource = 'damecon-browser'
+const devtoolsDebug = false
 
 const homePath = app.getPath('home')
 const hideHome = function (filePath) {
@@ -366,6 +372,10 @@ class Browser extends EventEmitter {
   kccpMainWindow = null
   currentWindowId = null
   currentKc3ExtensionId = null
+  kc3IsUpdating = false
+  kccpModderIsUpdating = false
+  isProxyEnabled = false
+  session = null
 
   urls = {
     newtab: 'about:blank',
@@ -378,6 +388,19 @@ class Browser extends EventEmitter {
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve
     })
+
+    /*
+    protocol.registerSchemesAsPrivileged([
+      {
+        scheme: 'kancolle',
+        privileges: {
+          secure: true,
+          standard: true,
+          supportFetchAPI: true,
+          corsEnabled: true
+        }
+      }
+    ]);*/
 
     app.whenReady().then(this.init.bind(this))
 
@@ -412,9 +435,9 @@ class Browser extends EventEmitter {
   }
 
   async applyProxy() {
-    const enable = configStore.get('proxy.enable')
-    if (enable) {
-      /*
+    this.isProxyEnabled = configStore.get('proxy.enable')
+
+    /*if (enable) {
       const mode = configStore.get('proxy.mode')
       let host, port
       if (mode.endsWith('-external')) {
@@ -433,9 +456,7 @@ class Browser extends EventEmitter {
       await this.session.setProxy(proxyConfig)
     } else {
       await this.session.setProxy({ mode: 'system' })
-    }
-      */
-    }
+    }*/
   }
 
   generatePac(host, port, mode) {
@@ -782,8 +803,14 @@ class Browser extends EventEmitter {
         case 'kc3-doupdate':
           await this.updateKc3(configStore.get('kc3kai.update.channel'))
           break
+        case 'kccp-modder-doupdate':
+          await this.updateKccpMods()
+          break
         case 'kc3-get-isupdating':
           result = { isUpdating: this.kc3IsUpdating, channel: this.kc3UpdatingChannel }
+          break
+        case 'kccp-modder-get-isupdating':
+          result = { isUpdating: this.kccpModderIsUpdating }
           break
         case 'kc3-select-custom-location':
         case 'select-custom-data-location':
@@ -817,9 +844,18 @@ class Browser extends EventEmitter {
           result = await getKccpConfig(configStore)
           break
         case 'kccp-save-config':
-          await setKccpConfig(data)
-          await startStopKccp(configStore)
-          await this.applyProxy() // reapply to react to updated ip/port
+          const oldConfig = (await getKccpConfig(configStore)).config
+          const newConfig = data
+          await setKccpConfig(newConfig)
+          if (
+            newConfig.autoUpdateGitMods &&
+            newConfig.autoUpdateGitMods != oldConfig.autoUpdateGitMods
+          ) {
+            await this.updateKccpMods()
+          } else {
+            await startStopKccp(configStore)
+            await this.applyProxy()
+          }
           break
         case 'kccp-import-cache':
           let location = 'unknown'
@@ -976,51 +1012,204 @@ class Browser extends EventEmitter {
     await initialWindow.ready
     this.resolveReady()
 
-    // Init proxy
-    await startStopKccp(configStore)
-    await this.applyProxy()
-
     // set up kc3 update worker thread
     kccp.logger.log(logSource, 'Starting KC3 update service')
 
-    this.kc3UpdateWorker = new kc3UpdateWorker()
-    this.kc3UpdateWorker.on('message', async (msg) => {
-      //console.log('main.js received message from KC3 update worker', msg)
-      // msg: { type, data }
-      if (!msg?.type)
-        throw new Error('Messages sent from worker must be in the format { type, data }')
-      switch (msg.type) {
-        case 'status-kc3-is-updating':
-          this.kc3IsUpdating = msg.data.isUpdating
-          this.kc3UpdatingChannel = msg.data.channel
-          this.sendToAllWindows(msg.type, msg.data)
-          break
-        case 'error-do-update':
-        case 'update-process-started':
-        case 'update-process-progress':
-          this.sendToAllWindows(msg.type, msg.data)
-          break
-        case 'update-process-completed':
-          this.sendToAllWindows(msg.type, msg.data)
-
-          if (msg.data.name === 'KC3 Update') {
-            const kc3Path = this.getKc3Path()
-            if (!kc3Path) {
-              //console.log('No kc3 path provided.')
-              return
-            }
-            const channel = this.kc3UpdatingChannel
-            if (!channel.startsWith('custom'))
-              configStore.set('kc3kai.update.time.' + channel, Date.now())
-            await this.checkStartKc3(kc3Path)
-          }
-          break
-        default:
-          throw new Error(`Unknown message type ${msg.type}`)
-      }
-    })
+    this.updateWorker = new updateWorker()
+    this.updateWorker.on('message', this.handleWorkerMessage.bind(this))
 
     await this.updateKc3IfScheduled()
+
+    // Init KCCP
+    this.setProxyHandler()
+    if ((await getKccpConfig(configStore))?.config?.autoUpdateGitMods) {
+      await this.updateKccpMods()
+    } else {
+      await startStopKccp(configStore)
+      await this.applyProxy()
+    }
+  }
+
+  async getProxyDestination() {
+    const proxyCfg = configStore.get('proxy')
+    if (proxyCfg.mode === 'kccp-internal') {
+      const { hostname, port } = (await getKccpConfig(configStore)).config
+      return { host: hostname, port }
+    } else {
+      const { host, port } = proxyCfg.client
+      return { host, port }
+    }
+  }
+
+  getModPath(config) {
+    return config.mods.length > 0 ? join(config.mods[config.mods.length - 1].path, '..') : undefined
+  }
+
+  serverHost = ''
+  //requestIgnoreIds = []
+  setProxyHandler() {
+    //const proxyHeader = 'X-Proxied'
+    this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (details, callback) => {
+      const proxyCfg = configStore.get('proxy')
+      if (!proxyCfg.enable || proxyCfg.method !== 'header' || details.url.startsWith('ws')) {
+        callback({ requestHeaders: details.requestHeaders })
+        return
+      }
+
+      const url = new URL(details.url)
+      if (['/gadget_html5/', '/kcscontents/'].some((x) => url.pathname?.includes(x)))
+        details.requestHeaders['x-host'] = 'w00g.kancolle-server.com'
+      else if (this.serverHost) details.requestHeaders['x-host'] = this.serverHost
+
+      /*const wasProxied = details.requestHeaders[proxyHeader]
+      if (wasProxied)
+      {
+        console.log(`proxied id ${details.id}`)
+        delete details.requestHeaders[proxyHeader]
+        this.requestIgnoreIds.push(details.id)
+      }//*/
+      callback({ requestHeaders: details.requestHeaders })
+    })
+
+    this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
+      const url = new URL(details.url)
+      const cfg = configStore.get('proxy')
+
+      if (cfg.enable && details.method === 'GET' && !url.pathname.includes('/kcscontents/news')) {
+        if (url.protocol === 'https:' && url.hostname.endsWith('.kancolle-server.com')) {
+          if (!url.hostname.startsWith('w00')) this.serverHost = url.hostname
+
+          const { host, port } = await this.getProxyDestination()
+          let redirectURL = `http://${host}:${port}` //.replace(/^https:/, 'kancolle:')
+          if (cfg.method === 'path')
+            redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+\.kancolle-server\.com)$/) || ['', url.hostname])[1]}`
+          // shortform pathing not yet in public KCCP
+          //redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]}`;
+          redirectURL += `${url.pathname}${url.search}`
+
+          callback({ redirectURL })
+          return
+        } else if (this.serverHost && url.protocol === 'http:') {
+          const match = url.pathname?.match(/\/kcs2\/resources\/world\/(.*)_([lst])\.png$/)
+          const worldStr = this.serverHost.split('.')[0].substring(1) + '_ver_com'
+          if (match && match[1] != worldStr) {
+            url.pathname = url.pathname.replace(match[1], worldStr)
+            // careful! potential for an infinite redirect if this is botched
+            callback({ redirectURL: url.href })
+            return
+          }
+        }
+      }
+
+      callback({ cancel: false })
+    })
+
+    /*
+    protocol.registerStreamProtocol('kancolle', (request, callback) => {
+      const { method, headers } = request
+      const url = new URL(request.url)
+        
+      const cfg = configStore.all
+      const host = cfg.proxy.client.host
+      const port = cfg.proxy.client.port
+      const proxyUrl = `http://${host}:${port}/https/${url.hostname}${url.pathname}${url.search}`
+      const destUrl = request.url.replace(/^kancolle:/,'https:')
+      const isKancolle = url.hostname.endsWith('.kancolle-server.com')
+      const proxyAll = cfg.proxy.mode.startsWith('all-')
+
+      if (this.isProxyEnabled && (isKancolle || proxyAll)) {
+        if (cfg.proxy.mode == 'kccp-internal') {
+          const newHeaders = { ...headers }
+          newHeaders['X-Proxied'] = '1'
+          proxyRequest(
+            {
+              method,
+              headers: newHeaders,
+              url: destUrl,
+              bodyStream: request.uploadData?.length
+                ? Readable.from(request.uploadData.map((part) => part.bytes))
+                : null,
+            },
+            callback,
+          )
+        } else if (cfg.proxy.mode.endsWith('-external')) {
+          this.proxyHTTPSRequest(request, destUrl, method, headers, callback, 'External proxy')
+        }
+        return
+      }
+
+      // direct handling
+      this.proxyHTTPSRequest(request, url.href, method, headers, callback)
+    })
+    //*/
+  }
+
+  proxyHTTPSRequest(request, url, method, headers, callback, type = 'HTTPS request') {
+    const proxyReq = net.request({ url, method, headers }, (res) => {
+      callback({
+        statusCode: res.statusCode,
+        headers: res.headers,
+        data: res,
+      })
+    })
+
+    proxyReq.on('error', (err) => {
+      kccp.logger.error(kccp.kccpLogSource, `${type} failed: ${err}`)
+      callback({ statusCode: 502, data: null })
+    })
+
+    if (request.uploadData) {
+      for (const part of request.uploadData) {
+        if (part.bytes) proxyReq.write(Buffer.from(part.bytes))
+      }
+    }
+
+    proxyReq.end()
+  }
+
+  async handleWorkerMessage(msg) {
+    //console.log('main.js received message from KC3 update worker', msg)
+    // msg: { type, data }
+    if (!msg?.type)
+      throw new Error('Messages sent from worker must be in the format { type, data }')
+    switch (msg.type) {
+      case 'status-kc3-is-updating':
+        this.kc3IsUpdating = msg.data.isUpdating
+        this.kc3UpdatingChannel = msg.data.channel
+        this.sendToAllWindows(msg.type, msg.data)
+        break
+      case 'status-kccp-modder-is-updating':
+        this.kccpModderIsUpdating = msg.data.isUpdating
+        this.sendToAllWindows(msg.type, msg.data)
+        break
+      case 'error-do-kc3-update':
+      case 'error-do-kccp-modder-update':
+      case 'update-process-started':
+      case 'update-process-progress':
+        this.sendToAllWindows(msg.type, msg.data)
+        break
+      case 'update-process-completed':
+        this.sendToAllWindows(msg.type, msg.data)
+
+        if (msg.data.name === 'KC3 Update') {
+          const kc3Path = this.getKc3Path()
+          if (!kc3Path) {
+            //console.log('No kc3 path provided.')
+            return
+          }
+          const channel = this.kc3UpdatingChannel
+          if (!channel.startsWith('custom'))
+            configStore.set('kc3kai.update.time.' + channel, Date.now())
+          await this.checkStartKc3(kc3Path)
+        } else if (msg.data.name === 'KCCP Mod Update') {
+          kccp.logger.log(kccp.kccpLogSource, 'Finished updating KCCP mods.')
+          await startStopKccp(configStore)
+          await this.applyProxy()
+        }
+        break
+      default:
+        throw new Error(`Unknown message type ${msg.type}`)
+    }
   }
 
   removeWindow(browserWindow) {
@@ -1159,10 +1348,10 @@ class Browser extends EventEmitter {
       initKccp()
     }
 
-    /* webui.html
-    if (process.env.SHELL_DEBUG) {
+    //* webui.html
+    if (devtoolsDebug && process.env.SHELL_DEBUG) {
       newTabbedWindow.webContents.openDevTools({ mode: 'detach' })
-    }//*/
+    } //*/
 
     return newTabbedWindow
   }
@@ -1290,9 +1479,9 @@ class Browser extends EventEmitter {
       })
     })
 
-    /*
+    //*
     const devToolsTypes = ['backgroundPage', 'remote']
-    if (process.env.SHELL_DEBUG && devToolsTypes.includes(webContents.getType())) {
+    if (devtoolsDebug && process.env.SHELL_DEBUG && devToolsTypes.includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
     } //*/
 
@@ -1458,7 +1647,7 @@ class Browser extends EventEmitter {
       startup: 0,
       daily: 1,
       weekly: 7,
-      manual: null,
+      manual: 999999,
     }
     let doUpdate = false
     if (canUpdate && autoUpdate && (!lastUpdated || scheduleMap[schedule] >= 0)) {
@@ -1480,9 +1669,18 @@ class Browser extends EventEmitter {
     }
   }
 
+  async updateKccpMods() {
+    const config = (await getKccpConfig(configStore))?.config
+    kccp.logger.log(kccp.kccpLogSource, 'Checking for asset mod updates...')
+    this.updateWorker.postMessage({
+      type: 'do-kccp-modder-update',
+      data: { config },
+    })
+  }
+
   async updateKc3(channel) {
-    this.kc3UpdateWorker.postMessage({
-      type: 'do-update',
+    this.updateWorker.postMessage({
+      type: 'do-kc3-update',
       data: { path: PATHS.KC3_EXTENSIONS, channel },
     })
   }

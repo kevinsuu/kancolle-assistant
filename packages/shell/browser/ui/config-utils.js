@@ -86,7 +86,7 @@ const configSchema = {
       },
       schedule: {
         type: 'option',
-        options: ['startup', 'daily', 'weekly', 'manual'],
+        options: ['startup', 'daily', 'weekly' /*, 'manual'*/],
         default: 'daily',
       },
       auto: { type: 'bool', default: true },
@@ -101,11 +101,17 @@ const configSchema = {
       options: ['kccp-external', 'kccp-internal', 'all-external'],
       default: 'kccp-external',
     },
+    method: {
+      type: 'option',
+      options: ['path', 'header'],
+      default: 'path',
+    },
     client: {
       host: { type: 'string', default: '127.0.0.1' },
       port: { type: 'number', default: 8081 },
     },
   },
+  version: { type: 'string', default: '0.10.0' },
 }
 
 const updateConfigDefaults = function (options) {
