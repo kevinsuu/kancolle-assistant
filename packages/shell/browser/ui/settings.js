@@ -80,6 +80,8 @@ class Settings {
 
   version = ''
 
+  logMaxLength = 50
+
   selectedConfigPage = ko.observable(0)
 
   // This sets up the mappings between knockout properties and config keys.
@@ -510,8 +512,10 @@ class Settings {
         break
       case 'kccp-log-update':
         if (!this.logTypes.includes(msg.data[2])) return
-        if (msg.data[1].startsWith('kccp-')) this.kccpLogRecent.push(msg.data)
-        else this.appLogRecent.push(msg.data)
+        let logTarget = this.appLogRecent
+        if (msg.data[1].startsWith('kccp-')) logTarget = this.kccpLogRecent
+        logTarget.push(msg.data)
+        if (logTarget().length > this.logMaxLength) logTarget.shift()
         break
       case 'kccp-log-recent':
         msg.data.reverse()
@@ -521,8 +525,8 @@ class Settings {
         const appLog = msg.data.filter(
           (l) => !l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
         )
-        this.kccpLogRecent(kccpLog)
-        this.appLogRecent(appLog)
+        this.kccpLogRecent(kccpLog.slice(kccpLog.length - this.logMaxLength))
+        this.appLogRecent(appLog.slice(appLog.length - this.logMaxLength))
         break
       default:
         throw new Error(`Unknown message type ${msg.type || '(none)'}`)
