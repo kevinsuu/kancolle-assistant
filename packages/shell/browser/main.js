@@ -76,8 +76,9 @@ const hideHome = function (filePath) {
 let appDir = app.getAppPath()
 kccp.logger.log(logSource, 'Base appPath:', hideHome(appDir))
 let isSquirrel = false
+//added case insentivity flag
 const appDirCheck =
-  /^(?<base>.+?)[\\/](?<path>(?<squirrelpath>app-\d+\.\d+\.\d+[\\/])?resources[\\/]app\.asar)$/.exec(
+  /^(?<base>.+?)[\\/](?<path>(?<squirrelpath>app-\d+\.\d+\.\d+[\\/])?resources[\\/]app\.asar)$/i.exec(
     appDir,
   )
 if (!!appDirCheck) {
