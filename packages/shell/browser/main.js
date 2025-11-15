@@ -326,10 +326,16 @@ class TabbedBrowserWindow {
     this.tabs.on('tab-navigated', function onTabNavigated(tab, tabUrl) {
       //console.log(">> main.tabs.on('tab-navigated', tabsOpts)")
       if (
-        (tabUrl === kc3StartPageUrl || tabUrl === DMMPageUrl) &&
+        (tabUrl === kc3StartPageUrl || tabUrl == DMMPageUrl) &&
         configStore.get('kc3kai.startup.openDevtools')
       ) {
-        tab.webContents.openDevTools({ activate: true })
+        //delaying opening of devtools on initial tab load
+        const startDevTools = async () => {
+          await setTimeout(2000)
+          tab.webContents.openDevTools({ activate: true })
+        }
+        startDevTools()
+        //tab.webContents.openDevTools({ activate: true })
       }
     })
 
@@ -1029,6 +1035,31 @@ class Browser extends EventEmitter {
       await startStopKccp(configStore)
       await this.applyProxy()
     }
+
+    //2nd see if kc3 needs to be updated
+    //await this.updateKc3IfScheduled()
+
+    /*//3rd create startup tabs
+    kccp.logger.log(logSource, 'Creating startup tabs ... ')
+    let startTab
+    const currentWin = this.getFocusedWindow()
+
+    switch (configStore.get('kc3kai.startup.gamePage')) {
+      case 'kc3':
+        startTab = currentWin.tabs.create({ initialUrl: kc3StartPageUrl })
+        break
+      case 'dmm':
+        startTab = currentWin.tabs.create({ initialUrl: DMMPageUrl })
+        break
+    }
+
+    const kc3StratRoomUrl = 'chrome-extension://' + kc3ExtensionId + '/pages/strategy/strategy.html'
+    if (configStore.get('kc3kai.startup.openStratRoom')) {
+      const stratRoomTab = currentWin.tabs.create({ initialUrl: kc3StratRoomUrl })
+      startTab = startTab || stratRoomTab
+    }
+
+    if (startTab) currentWin.tabs.select(startTab.id)*/
   }
 
   async getProxyDestination() {
@@ -1377,7 +1408,13 @@ class Browser extends EventEmitter {
             ((details.url == kc3StartPageUrl || details.url == DMMPageUrl) &&
               configStore.get('kc3kai.startup.openDevtools'))
           ) {
-            tab.webContents.openDevTools({ activate: true })
+            //delaying opening of devtools on tab open
+            const startDevTools = async () => {
+              await setTimeout(2000)
+              tab.webContents.openDevTools({ activate: true })
+            }
+            startDevTools()
+            //tab.webContents.openDevTools({ activate: true })
           }
 
           // POST submission
