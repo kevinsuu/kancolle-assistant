@@ -76,6 +76,7 @@ const configSchema = {
       openStartPage: { type: 'bool' }, // TODO: remove
       openDMMPage: { type: 'bool' }, // TODO: remove
       openDevtools: { type: 'bool', default: true },
+      openDevtoolsDelay: { type: 'number', default: process.platform === 'darwin' ? 2 : 0 },
       openStratRoom: { type: 'bool', default: true },
     },
     update: {

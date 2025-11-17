@@ -331,7 +331,8 @@ class TabbedBrowserWindow {
       ) {
         //delaying opening of devtools on initial tab load
         const startDevTools = async () => {
-          await setTimeout(2000)
+          const delaySeconds = configStore.get('kc3kai.startup.openDevtoolsDelay') || 0
+          await setTimeout(delaySeconds * 1000)
           tab.webContents.openDevTools({ activate: true })
         }
         startDevTools()
@@ -1385,7 +1386,8 @@ class Browser extends EventEmitter {
           ) {
             //delaying opening of devtools on tab open
             const startDevTools = async () => {
-              await setTimeout(2000)
+              const delaySeconds = configStore.get('kc3kai.startup.openDevtoolsDelay') || 0
+              await setTimeout(delaySeconds * 1000)
               tab.webContents.openDevTools({ activate: true })
             }
             startDevTools()
