@@ -128,14 +128,13 @@ class KC3Updater {
       } else if (channel == 'release') {
         const updateCheckProcess = self.newProcess('Checking for updates')
         const releaseData = await (
-          await fetch('https://api.github.com/repos/kc3kai/kc3kai/releases/latest')
+          await fetch(
+            'https://raw.githubusercontent.com/KC3Kai/KC3Kai/refs/heads/webstore/package.json',
+          )
         ).json()
-        const latestVersion = releaseData.name
+        const latestVersion = releaseData.version
+        const downloadUrl = `https://github.com/KC3Kai/KC3Kai/releases/download/${latestVersion}/kc3kai-${latestVersion}.zip`
         updateCheckProcess.complete()
-
-        const releaseAsset = releaseData.assets.filter((a) =>
-          /^kc3kai-[\d.]+\.zip$/.test(a.name),
-        )[0]
 
         const releaseFile = path.join(dir, 'release')
 
@@ -161,16 +160,24 @@ class KC3Updater {
               fs.mkdirSync(dir)
             } catch (err) {}
 
-            const readable = await fetchWithProgress(
-              releaseAsset.browser_download_url,
-              (loaded, total) => {
-                zipProcess.progress({ phase: 'Downloading', loaded, total, type: 'bytes' })
-              },
-            )
             const zipFilename = 'kc3kai-release-' + latestVersion + '.zip'
             const zipFilePath = path.join(dir, zipFilename)
-            const stream = fs.createWriteStream(zipFilePath, { flags: 'wx' })
-            await finished(readable.pipe(stream))
+            try {
+              const readable = await fetchWithProgress(downloadUrl, (loaded, total) => {
+                zipProcess.progress({ phase: 'Downloading', loaded, total, type: 'bytes' })
+              })
+              const stream = fs.createWriteStream(zipFilePath, { flags: 'wx' })
+              await finished(readable.pipe(stream))
+            } catch (err) {
+              if (err?.status === 404) {
+                console.error(
+                  'kc3updater.js: Release zip not present on server. Publish may be in progress.',
+                )
+              } else {
+                console.error('kc3updater.js: Error downloading release zip:', err)
+              }
+              return
+            }
 
             var zip = new AdmZip(zipFilePath)
             zip.extractAllTo(dir, true)
