@@ -76,8 +76,9 @@ const hideHome = function (filePath) {
 let appDir = app.getAppPath()
 kccp.logger.log(logSource, 'Base appPath:', hideHome(appDir))
 let isSquirrel = false
+//added case insentivity flag
 const appDirCheck =
-  /^(?<base>.+?)[\\/](?<path>(?<squirrelpath>app-\d+\.\d+\.\d+[\\/])?resources[\\/]app\.asar)$/.exec(
+  /^(?<base>.+?)[\\/](?<path>(?<squirrelpath>app-\d+\.\d+\.\d+[\\/])?resources[\\/]app\.asar)$/i.exec(
     appDir,
   )
 if (!!appDirCheck) {
@@ -328,7 +329,13 @@ class TabbedBrowserWindow {
         (tabUrl === kc3StartPageUrl || tabUrl === DMMPageUrl) &&
         configStore.get('kc3kai.startup.openDevtools')
       ) {
-        tab.webContents.openDevTools({ activate: true })
+        //delaying opening of devtools on initial tab load
+        const startDevTools = async () => {
+          await setTimeout(2000)
+          tab.webContents.openDevTools({ activate: true })
+        }
+        startDevTools()
+        //tab.webContents.openDevTools({ activate: true })
       }
     })
 
@@ -1373,10 +1380,16 @@ class Browser extends EventEmitter {
           const tab = sourceWin.tabs.create(opts)
           if (
             process.env.SHELL_DEBUG ||
-            ((details.url == kc3StartPageUrl || details.url == DMMPageUrl) &&
+            ((details.url == kc3StartPageUrl || details.url === DMMPageUrl) &&
               configStore.get('kc3kai.startup.openDevtools'))
           ) {
-            tab.webContents.openDevTools({ activate: true })
+            //delaying opening of devtools on tab open
+            const startDevTools = async () => {
+              await setTimeout(2000)
+              tab.webContents.openDevTools({ activate: true })
+            }
+            startDevTools()
+            //tab.webContents.openDevTools({ activate: true })
           }
 
           // POST submission
