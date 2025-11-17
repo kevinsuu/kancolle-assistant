@@ -391,7 +391,7 @@ class Settings {
       )
     })
     p.progress = ko.computed(() => {
-      if (p.total() <= 0) return ''
+      if (p.total() <= 0 || !p.total()) return ''
 
       const current = p.type() === 'bytes' ? this.friendlySize(p.current()) : p.current()
       const total = p.type() === 'bytes' ? this.friendlySize(p.total()) : p.total()
