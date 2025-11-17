@@ -654,10 +654,14 @@ browser-action-list::part(action):hover {
   height: 100%;
 }
 
+/*MacOS Modifications*/
+
 .platform-macos #tabstrip {
   padding-left: 70px;
 }
 
-.platform-macos .window-controls {
+.platform-macos .window-controls .control#minimize,
+.control#maximize,
+.control#close {
   display: none;
 }
