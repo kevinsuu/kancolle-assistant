@@ -17,6 +17,13 @@ const onUpdateCompleted = function (name) {
 const fetchWithProgress = async function (url, onProgress) {
   const res = await fetch(url)
 
+  if (!res.ok) {
+    throw new Error({
+      message: `Failed to fetch ${url}: ${res.status} ${res.statusText}`,
+      status: res.status,
+    })
+  }
+
   const totalSize = Number(res.headers.get('content-length')) || 0
 
   let downloaded = 0
