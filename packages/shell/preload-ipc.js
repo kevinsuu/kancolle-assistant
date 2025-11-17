@@ -9,6 +9,7 @@ export const injectIpc = () => {
     on: function (channel, callback) {
       ipcRenderer.on(channel, (ev, data) => callback(ev, data))
     },
+    platform: process.platform,
   }
 
   //function mainWorldScript() {

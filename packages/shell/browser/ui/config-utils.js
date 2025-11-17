@@ -1,3 +1,10 @@
+let platform = 'unknown'
+if (typeof ipc !== 'undefined') {
+  platform = ipc.platform
+} else if (typeof process !== 'undefined') {
+  platform = process.platform
+}
+
 const configSchema = {
   app: {
     update: {
@@ -76,7 +83,7 @@ const configSchema = {
       openStartPage: { type: 'bool' }, // TODO: remove
       openDMMPage: { type: 'bool' }, // TODO: remove
       openDevtools: { type: 'bool', default: true },
-      openDevtoolsDelay: { type: 'number', default: process.platform === 'darwin' ? 2 : 0 },
+      openDevtoolsDelay: { type: 'number', default: platform === 'darwin' ? 2 : 0 },
       openStratRoom: { type: 'bool', default: true },
     },
     update: {
