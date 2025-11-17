@@ -7,7 +7,12 @@ import AdmZip from 'adm-zip'
 import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/node'
 import ProcessTracker from './processtracker'
-import { onUpdateStarted, onUpdateProgress, onUpdateCompleted } from './updater-utils.js'
+import {
+  onUpdateStarted,
+  onUpdateProgress,
+  onUpdateCompleted,
+  fetchWithProgress,
+} from './updater-utils.js'
 
 let self
 
@@ -34,7 +39,7 @@ class KC3Updater {
     const repoName = path.basename(dir)
     let removeCounter = 0
     let isUnmodified = true
-    
+
     // Checking for local changes
     const unmodCheckProcess = self.newProcess('Checking for local changes')
     let status = await git.statusMatrix({ fs, dir, cache })
@@ -66,7 +71,7 @@ class KC3Updater {
         dir,
         ref: latestCommit.oid,
         onProgress: pullProcess.progress.bind(pullProcess),
-        cache
+        cache,
       })
       pullProcess.complete()
     } else {
@@ -79,10 +84,10 @@ class KC3Updater {
         dir,
         ref: latestCommit.oid,
         onProgress: fetchProcess.progress.bind(fetchProcess),
-        cache
+        cache,
       })
       fetchProcess.complete()
-    
+
       console.log(`Pulling ${repoName}...`)
       // Pull from remote
       const pullProcess = self.newProcess('Pulling new commits')
@@ -92,7 +97,7 @@ class KC3Updater {
         force: true,
         ref: latestCommit.oid,
         onProgress: pullProcess.progress.bind(pullProcess),
-        cache
+        cache,
       })
       pullProcess.complete()
     }
@@ -155,11 +160,17 @@ class KC3Updater {
             try {
               fs.mkdirSync(dir)
             } catch (err) {}
-            const zipRes = await fetch(releaseAsset.browser_download_url)
+
+            const readable = await fetchWithProgress(
+              releaseAsset.browser_download_url,
+              (loaded, total) => {
+                zipProcess.progress({ phase: 'Downloading', loaded, total, type: 'bytes' })
+              },
+            )
             const zipFilename = 'kc3kai-release-' + latestVersion + '.zip'
             const zipFilePath = path.join(dir, zipFilename)
             const stream = fs.createWriteStream(zipFilePath, { flags: 'wx' })
-            await finished(Readable.fromWeb(zipRes.body).pipe(stream))
+            await finished(readable.pipe(stream))
 
             var zip = new AdmZip(zipFilePath)
             zip.extractAllTo(dir, true)
@@ -191,7 +202,7 @@ class KC3Updater {
             url: 'https://github.com/kc3kai/kc3kai',
             ref: channel,
             onProgress: kc3CloneProcess.progress.bind(kc3CloneProcess),
-            cache
+            cache,
           })
           kc3CloneProcess.complete()
         } else console.log('Updating existing repo...')
@@ -205,16 +216,15 @@ class KC3Updater {
         let currentCommit = (await git.log({ fs, dir, depth: 1, cache }))[0]
         // Get current lang commit
         let currentLangCommit
-        if (langOk)
-          currentLangCommit = (await git.log({ fs, dir: langDir, depth: 1, cache }))[0]
+        if (langOk) currentLangCommit = (await git.log({ fs, dir: langDir, depth: 1, cache }))[0]
 
         // Get newest commit
         let latestCommits = await git.listServerRefs({
           http,
           url: 'https://github.com/kc3kai/kc3kai',
           prefix: `refs/heads/${channel}`,
-          cache
-          })
+          cache,
+        })
         let latestCommit = latestCommits[0]
 
         console.log(`current kc3: ${currentCommit.oid}`)
@@ -226,7 +236,7 @@ class KC3Updater {
 
         if (!IsKc3UpToDate || !langOk) {
           if (!IsKc3UpToDate) {
-            await self.pullCommits(dir, latestCommit, cache);
+            await self.pullCommits(dir, latestCommit, cache)
           }
 
           updateProgress()
@@ -238,7 +248,7 @@ class KC3Updater {
             dir,
             filepath: langPath,
             depth: 1,
-            cache
+            cache,
           })
           let latestSubmoduleCommit = latestSubmoduleCommits[0]
 
@@ -247,7 +257,7 @@ class KC3Updater {
             dir,
             oid: latestSubmoduleCommit.commit.tree,
             filepath: 'src/data',
-            cache
+            cache,
           })
           let latestLangCommit = tree.tree.find((t) => t.path === 'lang')
 
@@ -268,7 +278,7 @@ class KC3Updater {
                 url: 'https://github.com/kc3kai/kc3-translations',
                 ref: latestLangCommit.oid,
                 onProgress: langCloneProcess.progress.bind(langCloneProcess),
-                cache
+                cache,
               })
               langCloneProcess.complete()
             } else {

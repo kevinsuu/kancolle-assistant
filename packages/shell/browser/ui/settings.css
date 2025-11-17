@@ -279,6 +279,7 @@ h3 button {
 #background-processes .progress-bar {
   background-color: var(--chrome-bg-color);
   width: 100%;
+  transition: width 0.02s ease;
 }
 
 span.sensitive {

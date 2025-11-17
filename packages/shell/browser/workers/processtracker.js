@@ -13,7 +13,8 @@ class ProcessTracker {
   }
 
   progress(ev) {
-    if (this.processProgress) this.processProgress(this.name, ev.phase, ev.loaded, ev.total)
+    if (this.processProgress)
+      this.processProgress(this.name, ev.phase, ev.loaded, ev.total, ev.type)
   }
 
   complete() {

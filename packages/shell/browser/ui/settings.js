@@ -383,6 +383,7 @@ class Settings {
       phase: ko.observable(''),
       current: ko.observable(0),
       total: ko.observable(0),
+      type: ko.observable('steps'),
     }
     p.progressPct = ko.computed(() => {
       return new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 }).format(
@@ -390,7 +391,12 @@ class Settings {
       )
     })
     p.progress = ko.computed(() => {
-      return p.total() > 0 ? `${p.current()}/${p.total()} (${p.progressPct()}%)` : ''
+      if (p.total() <= 0) return ''
+
+      const current = p.type() === 'bytes' ? this.friendlySize(p.current()) : p.current()
+      const total = p.type() === 'bytes' ? this.friendlySize(p.total()) : p.total()
+
+      return `${current}/${total} (${p.progressPct()}%)`
     })
     this.processes.push(p)
   }
@@ -493,8 +499,9 @@ class Settings {
           this.addNewProcess(msg.data)
         }
         processToUpdate.phase(msg.data.phase)
-        processToUpdate.current(msg.data.current)
+        processToUpdate.type(msg.data.type)
         processToUpdate.total(msg.data.total)
+        processToUpdate.current(msg.data.current)
         break
       case 'update-process-completed':
         console.log('process completed', msg.data.name)
