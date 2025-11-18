@@ -162,8 +162,10 @@ class KC3Updater {
 
             const zipFilename = 'kc3kai-release-' + latestVersion + '.zip'
             const zipFilePath = path.join(dir, zipFilename)
+            let totalBytes = 0
             try {
               const readable = await fetchWithProgress(downloadUrl, (loaded, total) => {
+                totalBytes = total
                 zipProcess.progress({ phase: 'Downloading', loaded, total, type: 'bytes' })
               })
               const stream = fs.createWriteStream(zipFilePath, { flags: 'wx' })
@@ -179,9 +181,21 @@ class KC3Updater {
               return
             }
 
+            zipProcess.progress({
+              phase: 'Extracting',
+              loaded: totalBytes,
+              total: totalBytes,
+              type: 'bytes',
+            })
             var zip = new AdmZip(zipFilePath)
             zip.extractAllTo(dir, true)
 
+            zipProcess.progress({
+              phase: 'Cleaning up',
+              loaded: totalBytes,
+              total: totalBytes,
+              type: 'bytes',
+            })
             try {
               fs.rmSync(zipFilePath)
             } catch (err) {}
