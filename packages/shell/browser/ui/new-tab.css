@@ -38,7 +38,7 @@
 .links {
   display: flex;
   flex-direction: row;
-  width: 800px;
+  width: 100%;
 }
 
 .col {
