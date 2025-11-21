@@ -128,6 +128,9 @@ configStore.all = cfg // save with updated defaults
 if (!configStore.get('window.behavior.occlusion'))
   app.commandLine.appendSwitch('disable-renderer-backgrounding')
 
+//app.commandLine.appendSwitch('host-resolver-rules', 'MAP localhost 127.0.0.1') // wants to prefer IPv6 otherwise
+app.commandLine.appendSwitch('allow-insecure-localhost')
+
 const gpuConfig = configStore.get('window.gpu')
 app.commandLine.appendSwitch(
   'force-gpu-mem-available-mb',
@@ -443,28 +446,37 @@ class Browser extends EventEmitter {
   }
 
   async applyProxy() {
-    this.isProxyEnabled = configStore.get('proxy.enable')
+    const proxyCfg = configStore.get('proxy')
+    this.isProxyEnabled = proxyCfg.enable
+    const mode = proxyCfg.mode
+    const method = proxyCfg.method
 
-    /*if (enable) {
-      const mode = configStore.get('proxy.mode')
+    const internal = mode === 'kccp-internal'
+    const https = method === 'https-mitm'
+
+    if (this.isProxyEnabled && (internal || https)) {
       let host, port
-      if (mode.endsWith('-external')) {
-        host = configStore.get('proxy.client.host')
-        port = configStore.get('proxy.client.port')
-      } else {
+      if (internal) {
         const kccpConfig = await getKccpConfig(configStore)
         host = kccpConfig.config.hostname
-        port = kccpConfig.config.port
+        port = kccpConfig.config.httpsPort
+      } else {
+        host = proxyCfg.client.host
+        port = method === 'https-mitm' ? proxyCfg.client.httpsPort : proxyCfg.client.port
       }
-      const data = this.generatePac(host, port, mode)
+
+      kccp.logger.log(logSource, 'Applying proxy settings:', this.isProxyEnabled, mode, host, port)
+
+      const pac = this.generatePac(host, port, mode)
       const pacData =
         'data:application/x-ns-proxy-autoconfig;base64,' +
-        Buffer.from(data, 'utf8').toString('base64')
+        Buffer.from(pac, 'utf8').toString('base64')
       const proxyConfig = { mode: 'pac_script', pacScript: pacData }
       await this.session.setProxy(proxyConfig)
     } else {
+      kccp.logger.log(logSource, 'Clearing proxy settings')
       await this.session.setProxy({ mode: 'system' })
-    }*/
+    }
   }
 
   generatePac(host, port, mode) {
@@ -538,6 +550,15 @@ class Browser extends EventEmitter {
       globalShortcut.registerAll(['CmdOrCtrl+Shift+Tab'], () => this.prevTab(fTab().id))
     })
     app.on('browser-window-blur', () => globalShortcut.unregisterAll())
+
+    this.session.setCertificateVerifyProc((request, callback) => {
+      if (request.hostname.endsWith('.kancolle-server.com')) {
+        // Bypass certificate errors for KCCP HTTPS MITM connections
+        kccp.logger.log(logSource, 'Bypassing certificate error for', request.hostname)
+        return callback(0)
+      }
+      return callback(-3)
+    })
 
     if ('registerPreloadScript' in this.session) {
       this.session.registerPreloadScript({
@@ -1013,6 +1034,8 @@ class Browser extends EventEmitter {
         case 'kccp-prepatch':
           await kccpPatcher.prepatch()
           break
+        case 'kccp-check-mitm-cert':
+          await kccp.checkTrustMitmCert()
       }
       return result
     })
@@ -1058,8 +1081,9 @@ class Browser extends EventEmitter {
   setProxyHandler() {
     //const proxyHeader = 'X-Proxied'
     this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (details, callback) => {
+      if (details.url.startsWith('ws')) return
       const proxyCfg = configStore.get('proxy')
-      if (!proxyCfg.enable || proxyCfg.method !== 'header' || details.url.startsWith('ws')) {
+      if (!proxyCfg.enable || proxyCfg.mode.endsWith('-internal') || proxyCfg.method !== 'header') {
         callback({ requestHeaders: details.requestHeaders })
         return
       }
@@ -1080,10 +1104,17 @@ class Browser extends EventEmitter {
     })
 
     this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
+      if (details.url.startsWith('ws')) return
       const url = new URL(details.url)
       const cfg = configStore.get('proxy')
 
-      if (cfg.enable && details.method === 'GET' && !url.pathname.includes('/kcscontents/news')) {
+      if (
+        cfg.enable &&
+        !cfg.mode.endsWith('-internal') &&
+        cfg.method !== 'https-mitm' &&
+        details.method === 'GET' &&
+        !url.pathname.includes('/kcscontents/news')
+      ) {
         if (url.protocol === 'https:' && url.hostname.endsWith('.kancolle-server.com')) {
           if (!url.hostname.startsWith('w00')) this.serverHost = url.hostname
 

@@ -111,12 +111,13 @@ const configSchema = {
     },
     method: {
       type: 'option',
-      options: ['path', 'header'],
+      options: ['https-mitm', 'path', 'header'],
       default: 'path',
     },
     client: {
       host: { type: 'string', default: '127.0.0.1' },
       port: { type: 'number', default: 8081 },
+      httpsPort: { type: 'number', default: 8082 },
     },
   },
   version: { type: 'string', default: '0.10.0' },

@@ -368,7 +368,7 @@
           <input id="proxyclienthost" type="text" class="col form-control" data-bind="value: config.proxy.client.host" placeholder="Enter IP/host (e.g. 127.0.0.1)">
         </div>
         <div class="form-row">
-          <label for="proxyclientport" class="col-sm-3">Port</label>
+          <label for="proxyclientport" class="col-sm-3">HTTP Port</label>
           <input id="proxyclientport" type="number" class="col form-control" data-bind="value: config.proxy.client.port" placeholder="Enter port (e.g. 8081)">
         </div>
       </div>
@@ -395,15 +395,31 @@
         <!-- ko if: kccpTab() == kccpTabs.config -->
         <div class="settings-group">
           <div class="form-row">
-            <div class="col-sm-3"><label for="proxyclienthost">Hostname/IP</label></div>
+            <div class="col-sm-3"><label for="proxyserverhost">Hostname/IP</label></div>
             <div class="col">
-              <input id="proxyclienthost" type="text" class="form-control" data-bind="value: kccpConfig.hostname" placeholder="Enter host/IP (e.g. 127.0.0.1)">
+              <input id="proxyserverhost" type="text" class="form-control" data-bind="value: kccpConfig.hostname" placeholder="Enter host/IP (e.g. 127.0.0.1)">
             </div>
           </div>
           <div class="form-row">
-            <div class="col-sm-3"><label for="proxyclientport">Port</label></div>
+            <div class="col-sm-3"><label for="proxyserverporthttp">HTTP Port</label></div>
             <div class="col">
-              <input id="proxyclientport" type="number" class="form-control" data-bind="value: kccpConfig.port" placeholder="Enter port (e.g. 8081)">
+              <input id="proxyserverporthttp" type="number" class="form-control" data-bind="value: kccpConfig.port" placeholder="Enter HTTP port (e.g. 8081)">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="col-sm-3"><label for="proxyserverporthttps">HTTPS Port</label></div>
+            <div class="col">
+              <input id="proxyserverporthttps" type="number" class="form-control" data-bind="value: kccpConfig.httpsPort" placeholder="Enter HTTPS port (e.g. 8081)">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="col-sm-3"><label for="proxyservermode">Mode</label></div>
+            <div class="col">
+              <select id="proxyservermode" class="form-control" data-bind="value: kccpConfig.mode">
+                <option value="http-https">HTTP+HTTPS</option>
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+              </select>
             </div>
           </div>
           <p>KCCacheProxy is built into Damecon. The hostname/port settings can be used to allow other KanColle clients to connect through this KCCP instance.</p>

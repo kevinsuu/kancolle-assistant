@@ -123,6 +123,8 @@ class Settings {
     const keys = [
       'hostname',
       'port',
+      'httpsPort',
+      'mode',
       'cacheLocation',
       'disableBrowserCache',
       'verifyCache',

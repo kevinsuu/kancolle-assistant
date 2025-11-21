@@ -4,7 +4,7 @@ const fs = require('fs/promises')
 module.exports = {
   packagerConfig: {
     name: 'damecon-browser',
-    asar: true,
+    asar: false,
     extraResource: ['browser/ui'],
     icon: 'icon',
   },

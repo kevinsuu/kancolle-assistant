@@ -16,4 +16,9 @@ module.exports = {
       ],
     }),
   ],
+  externals: {
+    bufferutil: 'commonjs bufferutil',
+    'utf-8-validate': 'commonjs utf-8-validate',
+    _http_common: 'commonjs _http_common',
+  },
 }
