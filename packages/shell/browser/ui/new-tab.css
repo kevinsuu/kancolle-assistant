@@ -38,6 +38,7 @@
 .links {
   display: flex;
   flex-direction: row;
+  max-width: 850px;
   width: 100%;
 }
 

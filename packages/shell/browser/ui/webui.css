@@ -661,7 +661,7 @@ browser-action-list::part(action):hover {
 }
 
 .platform-macos .window-controls .control#minimize,
-.control#maximize,
-.control#close {
+.platform-macos .window-controls .control#maximize,
+.platform-macos .window-controls .control#close {
   display: none;
 }
