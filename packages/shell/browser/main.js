@@ -61,6 +61,8 @@ import {
   getKccpModPath,
   getKccpKcs2CachePath,
   proxyRequest,
+  installKccpGitMod,
+  updateKccpGitMod,
 } from './kccp-integration.js'
 
 const logSource = 'damecon-browser'
@@ -776,8 +778,16 @@ class Browser extends EventEmitter {
         case 'set-config-item':
           result = configStore.set(data.key, data.value)
           if (data.key.startsWith('proxy.')) {
-            await startStopKccp(configStore)
-            await this.applyProxy()
+            if (
+              data.key == 'proxy.enable' &&
+              data.value == true &&
+              (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
+            ) {
+              await this.updateKccpMods()
+            } else {
+              await startStopKccp(configStore)
+              await this.applyProxy()
+            }
           } else if (data.key == 'kc3kai.update.channel') {
             if (kc3ExtensionId) this.session.removeExtension(kc3ExtensionId)
             await this.updateKc3IfScheduled()
@@ -873,13 +883,9 @@ class Browser extends EventEmitter {
           result = await getKccpConfig(configStore)
           break
         case 'kccp-save-config':
-          const oldConfig = (await getKccpConfig(configStore)).config
           const newConfig = data
           await setKccpConfig(newConfig)
-          if (
-            newConfig.autoUpdateGitMods &&
-            newConfig.autoUpdateGitMods != oldConfig.autoUpdateGitMods
-          ) {
+          if (configStore.get('proxy.enable') && newConfig.autoUpdateGitMods) {
             await this.updateKccpMods()
           } else {
             await startStopKccp(configStore)
@@ -1022,6 +1028,19 @@ class Browser extends EventEmitter {
           // will automatically start when fetching the config and checking for updates
           await this.applyProxy()
           break
+        case 'kccp-add-git-mod':
+          const { url } = data
+          if (!url) return
+          kccp.logger.log(logSource, 'Adding KCCP git mod')
+          await installKccpGitMod(configStore, url)
+          break
+        case 'kccp-update-git-mod':
+          const { mod } = data
+          if (!path) return
+          kccp.logger.log(logSource, 'Updating KCCP git mod', mod.path)
+          await updateKccpGitMod(mod)
+          await startStopKccp(configStore)
+          break
         case 'kccp-log-get-recent':
           kccp.logger.sendRecent()
           break
@@ -1053,7 +1072,10 @@ class Browser extends EventEmitter {
 
     // Init KCCP
     this.setProxyHandler()
-    if ((await getKccpConfig(configStore))?.config?.autoUpdateGitMods) {
+    if (
+      configStore.get('proxy.enable') &&
+      (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
+    ) {
       await this.updateKccpMods()
     } else {
       await startStopKccp(configStore)

@@ -56,6 +56,8 @@ class Settings {
     modInfo: ko.observable(),
   }
 
+  addingKccpGitMod = ko.observable(false)
+  kccpGitModUrl = ko.observable('')
   kccpModsOutOfDate = ko.pureComputed(() => {
     return this.kccpConfig
       .modInfo()
@@ -191,6 +193,23 @@ class Settings {
     await sendToMain('kccp-convert-poi')
   }
 
+  kccpBeginAddGitMod() {
+    this.kccpGitModUrl('')
+    this.addingKccpGitMod(true)
+  }
+  kccpCancelAddGitMod() {
+    this.addingKccpGitMod(false)
+  }
+  async kccpAddGitMod() {
+    const url = this.kccpGitModUrl()
+    this.addingKccpGitMod(false)
+    console.log('Adding git mod ' + url)
+    await sendToMain('kccp-add-git-mod', { url })
+  }
+  async kccpUpdateGitMod(mod) {
+    console.log('Updating git mod ' + mod.path)
+    await sendToMain('kccp-update-git-mod', { mod })
+  }
   async kccpAddMod() {
     await sendToMain('kccp-add-mod')
   }
@@ -536,6 +555,28 @@ class Settings {
         )
         this.kccpLogRecent(kccpLog.slice(kccpLog.length - this.logMaxLength))
         this.appLogRecent(appLog.slice(appLog.length - this.logMaxLength))
+        break
+      case 'kccp-git-mod-installed':
+        const installedProcessName = 'Installing/updating KCCP mod'
+        const installedProcess = this.processes().find((p) => p.name == installedProcessName)
+        if (installedProcess) this.processes.remove(installedProcess)
+        console.log('KCCP git mod installed:', msg.data)
+        break
+      case 'kccp-git-mod-updated':
+        const updatedProcessName = 'Installing/updating KCCP mod'
+        const updatedProcess = this.processes().find((p) => p.name == updatedProcessName)
+        if (updatedProcess) this.processes.remove(updatedProcess)
+        console.log('KCCP git mod updated:', msg.data)
+        break
+      case 'kccp-git-mod-progress':
+        try {
+          const installingProcessName = 'Installing/updating KCCP mod'
+          const installingProcess = this.processes().find((p) => p.name == installingProcessName)
+          if (!installingProcess) this.addNewProcess({ name: installingProcessName })
+        } catch (error) {
+          console.error('Error checking processes', error)
+        }
+        console.log('KCCP git mod install/update progress:', msg.data)
         break
       default:
         throw new Error(`Unknown message type ${msg.type || '(none)'}`)

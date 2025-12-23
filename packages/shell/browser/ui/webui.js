@@ -287,6 +287,10 @@ class WebUI {
       case 'update-process-completed':
       case 'kccp-status':
       case 'kccp-config-saved':
+      case 'kccp-config-saved':
+      case 'kccp-git-mod-installed':
+      case 'kccp-git-mod-updated':
+      case 'kccp-git-mod-progress':
         // (worker ->) main -> webui -> settings
         chrome.runtime.sendMessage(msg)
         break

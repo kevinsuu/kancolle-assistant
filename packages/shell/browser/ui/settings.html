@@ -488,9 +488,22 @@
                   <span data-bind="text: info.name"></span>
                   <span data-bind="text: `v${info.version}`" class="subtext"></span>
                   <!-- ko if: $data.latestVersion && $data.latestVersion != $data.info.version -->
+                  <!-- ko if: $data.git -->
+                  <a href="#" data-bind="click: () => $parent.kccpUpdateGitMod($data)" title="update available">
+                    <span data-bind="text: `v${latestVersion} available!`" class="badge badge-info"></span> 
+                  </a>
+                  <!-- /ko -->
+                  <!-- ko if: !$data.git -->
                   <a href="#" data-bind="click: () => chrome.tabs.create({url: info.url})" title="update available">
                     <span data-bind="text: `v${latestVersion} available!`" class="badge badge-info"></span> 
                   </a>
+                  <!-- /ko -->
+                  <!-- /ko -->
+                  <!-- ko if: $data.git -->
+                  <span class="subtext badge badge-secondary">git</span>
+                  <!-- /ko -->
+                  <!-- ko if: !$data.git -->
+                  <span class="subtext badge badge-secondary">local</span>
                   <!-- /ko -->
                 </div>
                 <span class="subtext" data-bind="text: info.authors.join(', ')"></span>
@@ -508,8 +521,20 @@
             </div>
             <!-- /ko -->
           </div>
+          <!-- ko if: addingKccpGitMod() -->
+          <div class="form-group mt-3 input-group">
+            <input id="gitmodurl" type="text" class="form-control" data-bind="value: kccpGitModUrl" placeholder="Git mod URL">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-primary" data-bind="click: kccpAddGitMod">Add from git</button>
+              <button type="button" class="btn btn-secondary" data-bind="click: kccpCancelAddGitMod">Cancel</button>
+            </div>
+          </div>
+          <!-- /ko -->
           <div class="form-group mt-3">
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpAddMod">Add a patcher</button>
+            <!-- ko if: !addingKccpGitMod() -->
+            <button type="button" class="btn btn-secondary" data-bind="click: kccpBeginAddGitMod">Add from git</button>
+            <!-- /ko -->
+            <button type="button" class="btn btn-secondary" data-bind="click: kccpAddMod">Add from disk</button>
             <button type="button" class="btn btn-secondary" data-bind="click: kccpReloadMods">Reload mod data</button>
             <button type="button" class="btn btn-secondary" data-bind="click: kccpPrepatchAssets">Pre-patch ALL assets</button>
           </div>

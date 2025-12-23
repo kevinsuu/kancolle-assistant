@@ -18,6 +18,10 @@ const kccpCacher = require('../../kccacheproxy/src/proxy/cacher.js')
 const kccpCacheHandler = require('../../kccacheproxy/src/proxy/cacheHandler.js')
 const kccpModderUtils = require('../../kccacheproxy/src/proxy/mod/modderUtils.js')
 const kccpPatcher = require('../../kccacheproxy/src/proxy/mod/patcher.js')
+const {
+  updateMod,
+  handleModInstallation,
+} = require('../../kccacheproxy/src/proxy/mod/gitModHandler.js')
 
 let kccpProxy
 const kccpStatus = { started: false, busy: false, busyActions: 0 }
@@ -44,7 +48,62 @@ const kccpSendStatusUpdate = function () {
   }
 }
 
-const getKccpConfig = async function (configStore) {
+function handleProgress(progress) {
+  const windows = BrowserWindow.getAllWindows()
+  windows.forEach((w) =>
+    w.webContents.send('webui-message', {
+      type: 'kccp-git-mod-progress',
+      meta: { windowId: w.id },
+      data: progress,
+    }),
+  )
+}
+
+async function installKccpGitMod(configStore, url) {
+  const kccpConfig = await getKccpConfig(configStore, true)
+  const installResult = await handleModInstallation(
+    getKccpModsPath(kccpConfig),
+    url,
+    kccpConfig.config,
+    kccpConfig.configManager,
+    handleProgress,
+  )
+  const windows = BrowserWindow.getAllWindows()
+  windows.forEach((w) =>
+    w.webContents.send('webui-message', {
+      type: 'kccp-git-mod-installed',
+      meta: { windowId: w.id },
+      data: installResult,
+    }),
+  )
+  // force finalization
+  await getKccpConfig(configStore)
+
+  await startStopKccp(configStore)
+  return installResult
+}
+
+const updateKccpGitMod = async function (mod) {
+  try {
+    const updateResult = await updateMod(mod.path, mod.git, handleProgress)
+    if (updateResult.success) {
+      await kccpPatcher.reloadModCache()
+      const windows = BrowserWindow.getAllWindows()
+      windows.forEach((w) =>
+        w.webContents.send('webui-message', {
+          type: 'kccp-git-mod-updated',
+          meta: { windowId: w.id },
+          data: updateResult,
+        }),
+      )
+      kccpSendStatusUpdate()
+    }
+  } catch (error) {
+    kccp.logger.error(logSource, `Failed to update Git mod ${mod.git}:`, error)
+  }
+}
+
+const getKccpConfig = async function (configStore, includeManager) {
   let traceShown = false
   while (kccpStatus.busy) {
     kccp.logger.log(logSource, '(getKccpConfig): KCCacheProxy is currently busy; waiting.')
@@ -56,10 +115,12 @@ const getKccpConfig = async function (configStore) {
   kccpIncBusy(1)
   kccpSendStatusUpdate()
   try {
-    const config = kccp.config.getConfig()
+    const configManager = kccp.config
+    const config = configManager.getConfig()
     const modInfo = []
     let modified = false
 
+    // check mods
     for (const mod of config.mods) {
       const path = mod.path
       const exists = fsSync.existsSync(path)
@@ -74,55 +135,56 @@ const getKccpConfig = async function (configStore) {
           title: 'Mod not found',
           message: `Couldn't find a KCCP mod in this location.\nlocation: ${mod.path}`,
         })
-      } else {
-        try {
-          const modData = JSON.parse(fsSync.readFileSync(mod.path))
-          info.info = modData
-          if (modData.updateUrl) {
-            if (mod.lastCheck == undefined || mod.lastCheck < Date.now() - 3 * 60 * 60 * 1000) {
-              try {
-                mod.lastCheck = Date.now()
-                kccp.logger.log(logSource, `Checking for update for KCCP mod ${modData.name}`)
-                const response = await fetch(modData.updateUrl)
-                const updateJson = await response.json()
-                //const oldVersion = mod.latestVersion
-                mod.latestVersion = updateJson.version
-                mod.url = updateJson.downloadUrl || updateJson.url || updateJson.updateUrl
+        continue
+      }
 
-                modified = true
-              } catch (error) {
-                kccp.logger.error(
-                  logSource,
-                  `failed to check for updates for KCCP mod ${mod.name} at ${mod.updateUrl}`,
-                )
-              }
+      try {
+        const modData = JSON.parse(fsSync.readFileSync(mod.path))
+        info.info = modData
+        if (modData.updateUrl) {
+          if (mod.lastCheck == undefined || mod.lastCheck < Date.now() - 3 * 60 * 60 * 1000) {
+            try {
+              mod.lastCheck = Date.now()
+              kccp.logger.log(logSource, `Checking for update for KCCP mod ${modData.name}`)
+              const response = await fetch(modData.updateUrl)
+              const updateJson = await response.json()
+              //const oldVersion = mod.latestVersion
+              mod.latestVersion = updateJson.version
+              mod.url = updateJson.downloadUrl || updateJson.url || updateJson.updateUrl
+
+              modified = true
+            } catch (error) {
+              kccp.logger.error(
+                logSource,
+                `failed to check for updates for KCCP mod ${mod.name} at ${mod.updateUrl}`,
+              )
             }
           }
-
-          if (modData.requireScripts && !mod.allowScripts) {
-            const message = `The mod '${modData.name}' (${mod.path}) requires scripts to be enabled. Do you trust this mod?`
-            const resp = dialog.showMessageBoxSync(this, {
-              type: 'question',
-              buttons: ['Yes', 'No'],
-              title: 'Mod Scripts',
-              message,
-            })
-            if (resp == 1) {
-              const ind = config.mods.indexOf(mod)
-              config.mods.splice(ind, 1)
-              continue
-            }
-            mod.allowScripts = true
-            modified = true
-          }
-        } catch (error) {
-          dialog.showMessageBoxSync(this, {
-            type: 'info',
-            buttons: ['OK'],
-            title: 'Mod load error',
-            message: `Failed to load metadata for mod.\nlocation: ${mod.path}\nerror:${error}`,
-          })
         }
+
+        if (modData.requireScripts && !mod.allowScripts) {
+          const message = `The mod '${modData.name}' (${mod.path}) requires scripts to be enabled. Do you trust this mod?`
+          const resp = dialog.showMessageBoxSync(this, {
+            type: 'question',
+            buttons: ['Yes', 'No'],
+            title: 'Mod Scripts',
+            message,
+          })
+          if (resp == 1) {
+            const ind = config.mods.indexOf(mod)
+            config.mods.splice(ind, 1)
+            continue
+          }
+          mod.allowScripts = true
+          modified = true
+        }
+      } catch (error) {
+        dialog.showMessageBoxSync(this, {
+          type: 'info',
+          buttons: ['OK'],
+          title: 'Mod load error',
+          message: `Failed to load metadata for mod.\nlocation: ${mod.path}\nerror:${error}`,
+        })
       }
 
       modInfo.push(info)
@@ -134,7 +196,9 @@ const getKccpConfig = async function (configStore) {
       await startStopKccp(configStore, kccpStatus.busyActions)
     }
 
-    return { config, modInfo, modified }
+    const result = { config, modInfo, modified }
+    if (includeManager) result.configManager = configManager
+    return result
   } finally {
     kccpIncBusy(-1)
     kccpSendStatusUpdate()
@@ -223,6 +287,10 @@ const stopKccp = function () {
   }
 }
 
+function getKccpRootPath(kccpConfig) {
+  return path.join(app.getPath('userData'), 'ProxyData')
+}
+
 function getKccpCachePath(kccpConfig) {
   let cachePath = kccpConfig.cacheLocation
   if (
@@ -230,8 +298,12 @@ function getKccpCachePath(kccpConfig) {
     kccpConfig.cacheLocation == undefined ||
     kccpConfig.cacheLocation == 'default'
   )
-    cachePath = path.join(app.getPath('userData'), 'ProxyData', 'cache')
+    cachePath = path.join(getKccpRootPath(kccpConfig), 'cache')
   return cachePath
+}
+
+function getKccpModsPath(kccpConfig) {
+  return path.join(getKccpRootPath(kccpConfig), 'mods')
 }
 
 function getKccpKcs2CachePath(kccpConfig) {
@@ -273,4 +345,6 @@ export {
   getKccpImgCachePath,
   getKccpModPath,
   proxyRequest,
+  installKccpGitMod,
+  updateKccpGitMod,
 }
