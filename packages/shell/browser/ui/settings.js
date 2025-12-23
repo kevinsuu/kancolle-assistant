@@ -200,8 +200,17 @@ class Settings {
   kccpCancelAddGitMod() {
     this.addingKccpGitMod(false)
   }
+  async kccpAddEnPatchMod() {
+    this.kccpGitModUrl('https://github.com/Oradimi/KanColle-English-Patch-KCCP')
+    await this.kccpAddGitMod()
+  }
+  async kccpAddKCFixesMod() {
+    this.kccpGitModUrl('https://github.com/Tibowl/KCFixes')
+    await this.kccpAddGitMod()
+  }
   async kccpAddGitMod() {
     const url = this.kccpGitModUrl()
+    this.kccpGitModUrl('')
     this.addingKccpGitMod(false)
     console.log('Adding git mod ' + url)
     await sendToMain('kccp-add-git-mod', { url })
