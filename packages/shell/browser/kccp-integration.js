@@ -30,6 +30,7 @@ const logSource = 'kccp-integration'
 
 const kccpIncBusy = function (amt) {
   kccpStatus.busyActions += amt
+  kccpSendStatusUpdate()
 }
 
 const kccpSendStatusUpdate = function () {
@@ -106,19 +107,20 @@ const updateKccpGitMod = async function (mod) {
 const getKccpConfig = async function (configStore, includeManager) {
   let traceShown = false
   while (kccpStatus.busy) {
-    kccp.logger.log(logSource, '(getKccpConfig): KCCacheProxy is currently busy; waiting.')
-    if (!traceShown) kccp.logger.trace(logSource, 'startStopKccp')
+    const busyMessage = '(getKccpConfig): KCCacheProxy is currently busy; waiting.'
+    if (!traceShown) kccp.logger.trace(logSource, busyMessage)
+    else kccp.logger.log(logSource, busyMessage)
     traceShown = true
     await setTimeout(1000)
   }
 
   kccpIncBusy(1)
-  kccpSendStatusUpdate()
   try {
     const configManager = kccp.config
     const config = configManager.getConfig()
     const modInfo = []
     let modified = false
+    let doRestart = false
 
     // check mods
     for (const mod of config.mods) {
@@ -177,6 +179,7 @@ const getKccpConfig = async function (configStore, includeManager) {
           }
           mod.allowScripts = true
           modified = true
+          doRestart = true
         }
       } catch (error) {
         dialog.showMessageBoxSync(this, {
@@ -193,7 +196,10 @@ const getKccpConfig = async function (configStore, includeManager) {
     if (modified) {
       await setKccpConfig(config)
       await kccpPatcher.reloadModCache()
-      await startStopKccp(configStore, kccpStatus.busyActions)
+      if (doRestart) {
+        kccp.logger.log(logSource, 'Config updates pending, restarting KCCP...')
+        await startStopKccp(configStore, kccpStatus.busyActions)
+      }
     }
 
     const result = { config, modInfo, modified }
@@ -201,7 +207,6 @@ const getKccpConfig = async function (configStore, includeManager) {
     return result
   } finally {
     kccpIncBusy(-1)
-    kccpSendStatusUpdate()
   }
 }
 
@@ -243,7 +248,6 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
   }
   kccpIncBusy(1)
   kccpStatus.started = false
-  kccpSendStatusUpdate()
   try {
     if (enabled !== true || mode !== 'kccp-internal') {
       stopKccp()
@@ -254,9 +258,10 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
 
     if (kccpProxy) {
       kccpProxy.close()
-      kccp.logger.log(logSource, 'Waiting for KCCacheProxy to stop listening.')
-      while (kccpProxy.server.listening) {
-        await setTimeout(10)
+      await setTimeout(100)
+      while (kccpProxy.listening()) {
+        kccp.logger.log(logSource, 'Waiting for KCCacheProxy to stop listening.')
+        await setTimeout(500)
       }
       kccp.logger.log(logSource, 'KCCacheProxy has stopped listening.')
     }
@@ -264,9 +269,10 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
     kccpProxy = new kccp.Proxy()
     await kccpProxy.init()
     await kccpProxy.start()
-    kccp.logger.log(logSource, 'Waiting for KCCacheProxy to start listening.')
-    while (!kccpProxy.server.listening) {
-      await setTimeout(10)
+    await setTimeout(100)
+    while (!kccpProxy.listening()) {
+      kccp.logger.log(logSource, 'Waiting for KCCacheProxy to start listening.')
+      await setTimeout(500)
     }
     kccp.logger.log(logSource, 'KCCacheProxy is now listening.')
   } catch (error) {
@@ -275,7 +281,6 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
   } finally {
     kccpIncBusy(-1)
     kccpStatus.started = true
-    kccpSendStatusUpdate()
   }
 }
 
