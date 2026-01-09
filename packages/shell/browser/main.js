@@ -66,12 +66,14 @@ import {
 } from './kccp-integration.js'
 
 const logSource = 'damecon-browser'
-const devtoolsDebug = false
 
 const homePath = app.getPath('home')
 const hideHome = function (filePath) {
   return filePath.replace(homePath, process.platform == 'win32' ? '%USERPROFILE%' : '~')
 }
+
+const devtoolsDebug = true
+const shellDebug = process.env.SHELL_DEBUG
 
 // folder the app was launched from
 // for installed versions, this is the squirrel folder, not the folder containing resource.
@@ -1331,7 +1333,7 @@ class Browser extends EventEmitter {
       console.info(`service worker ${event.versionId} ${event.runningStatus}`)
     })
 
-    if (process.env.SHELL_DEBUG) {
+    if (shellDebug) {
       this.session.serviceWorkers.once('running-status-changed', () => {
         const tab = this.windows[0]?.getFocusedTab()
         if (tab) {
@@ -1410,7 +1412,7 @@ class Browser extends EventEmitter {
     }
 
     //* webui.html
-    if (devtoolsDebug && process.env.SHELL_DEBUG) {
+    if (devtoolsDebug && shellDebug) {
       newTabbedWindow.webContents.openDevTools({ mode: 'detach' })
     } //*/
 
@@ -1433,7 +1435,7 @@ class Browser extends EventEmitter {
           const opts = {}
           const tab = sourceWin.tabs.create(opts)
           if (
-            process.env.SHELL_DEBUG ||
+            shellDebug ||
             ((details.url == kc3StartPageUrl || details.url === DMMPageUrl) &&
               configStore.get('kc3kai.startup.openDevtools'))
           ) {
@@ -1541,15 +1543,16 @@ class Browser extends EventEmitter {
     webContents.setBackgroundThrottling(configStore.get('window.behavior.occlusion'))
 
     webContents.on('devtools-opened', (e) => {
+      const devtools = webContents.devToolsWebContents
       kccp.logger.log(logSource, 'DevTools opened')
-      webContents.devToolsWebContents.on('did-create-window', (window, details) => {
+      devtools.on('did-create-window', (window, details) => {
         kccp.logger.log(logSource, 'Window created', details)
       })
     })
 
     //*
     const devToolsTypes = ['backgroundPage', 'remote']
-    if (devtoolsDebug && process.env.SHELL_DEBUG && devToolsTypes.includes(webContents.getType())) {
+    if (devtoolsDebug && shellDebug && devToolsTypes.includes(webContents.getType())) {
       webContents.openDevTools({ mode: 'detach', activate: true })
     } //*/
 
@@ -1612,8 +1615,9 @@ class Browser extends EventEmitter {
         frameRoutingId,
       ) => {
         const frame = webFrameMain.fromId(frameProcessId, frameRoutingId)
-        const isCustomDevtoolsPanel =
-          url.startsWith('chrome-extension:') && frame.parent?.url.startsWith('devtools:')
+        const isDevTools = url.startsWith('devtools:')
+        const isDevToolsPanel = frame.parent?.url.startsWith('devtools:')
+        const isCustomDevtoolsPanel = url.startsWith('chrome-extension:') && isDevToolsPanel
         frame.executeJavaScript(this.alwaysActiveUpdateJs)
         // {preserveDrawingBuffer: true} for canvas getContext
         const skip = ['devtools:', 'about:']
