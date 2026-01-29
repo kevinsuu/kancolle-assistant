@@ -93,20 +93,23 @@
       
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() == 0 ? ' active' : ''}` }, click: () => appTab(0)">Window</a>
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.window ? ' active' : ''}` }, click: () => appTab(appTabs.window)">Window</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() == 1 ? ' active' : ''}` }, click: () => appTab(1)">Application</a>
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.kancolle ? ' active' : ''}` }, click: () => appTab(appTabs.kancolle)">KanColle</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() == 2 ? ' active' : ''}` }, click: () => appTab(2)">Application Log</a>
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.application ? ' active' : ''}` }, click: () => appTab(appTabs.application)">Application</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() == 9 ? ' active' : ''}` }, click: () => appTab(9)">Advanced</a>
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.appLog ? ' active' : ''}` }, click: () => appTab(appTabs.appLog)">Application Log</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.advanced ? ' active' : ''}` }, click: () => appTab(appTabs.advanced)">Advanced</a>
         </li>
       </ul>
       <div class="form-group"></div>
-      <!-- ko if: appTab() == 0 -->
+      <!-- ko if: appTab() === appTabs.window -->
       <h5>Style</h5>
       <div class="settings-group">
         <div class="form-row">
@@ -167,7 +170,15 @@
         </div>
       </div>
       <!-- /ko -->
-      <!-- ko if: appTab() == 1 -->
+      <!-- ko if: appTab() === appTabs.kancolle -->
+      <div class="settings-group">
+        <div class="form-group form-check">
+          <input class="form-check-input" id="kancolleforcecookiehack" type="checkbox" data-bind="checked: config.kancolle.forceCookieHack">
+          <label class="form-check-label" for="kancolleforcecookiehack">Force DMM region cookie hack (experimental, changing requires app restart)</label>
+        </div>
+      </div>
+      <!-- /ko -->
+      <!-- ko if: appTab() === appTabs.application -->
       <div class="settings-group">
         <div class="form-group form-check">
           <input class="form-check-input" id="appupdatesauto" type="checkbox" data-bind="checked: config.app.update.auto">
@@ -218,7 +229,7 @@
         <button type="button" class="btn btn-secondary" data-bind="click: clearSessionCache">Clear browser cache</button>
       </div>
       <!-- /ko -->
-      <!-- ko if: appTab() == 2 -->
+      <!-- ko if: appTab() === appTabs.appLog -->
       <div class="settings-group">
         <div id="app-log-scroller" class="log-scroller">
           <ul>
@@ -236,7 +247,7 @@
         </div>
       </div>
       <!-- /ko -->
-      <!-- ko if: appTab() == 9 -->
+      <!-- ko if: appTab() === appTabs.advanced -->
       <p>Damecon must be restarted for these settings to take effect.</p>
       <h5>Behavior</h5>
       <div class="settings-group">
@@ -525,7 +536,7 @@
           <div class="form-group mt-3 input-group">
             <input id="gitmodurl" type="text" class="form-control" data-bind="value: kccpGitModUrl" placeholder="Git mod URL">
             <div class="input-group-append">
-              <button type="button" class="btn btn-primary" data-bind="click: kccpAddGitMod">Add from git</button>
+              <button type="button" class="btn btn-primary" data-bind="click: () => kccpAddGitMod()">Add from git</button>
               <button type="button" class="btn btn-secondary" data-bind="click: kccpCancelAddGitMod">Cancel</button>
             </div>
           </div>
@@ -549,9 +560,9 @@
         <div class="settings-group">
           <div class="form-group">
             <ul>
-              <li><a href="https://github.com/Oradimi/KanColle-English-Patch-KCCP" target="_blank">English Patch</a> by InochiPM and Oradimi <button type="button" class="btn btn-secondary" data-bind="click: kccpAddEnPatchMod">Install</button></li>
-              <li><a href="https://drive.google.com/file/d/1XhVCuhmLDTJQvzwnPpahgkDxEPhfuf5j/view?usp=sharing" target="_blank">True Critical Hit</a> by Oradimi</li>
-              <li><a href="https://github.com/Tibowl/KCFixes" target="_blank">KC Fixes</a> by Tibo <button type="button" class="btn btn-secondary" data-bind="click: kccpAddKCFixesMod">Install</button></li>
+              <!-- ko foreach: getMods -->
+              <li class="mb-2"><a data-bind="attr: { href: url }, text: name" target="_blank"></a> by <span data-bind="text: authors.join(', ')" /> <button type="button" class="btn btn-secondary ml-2" data-bind="click: () => $parent.kccpAddGitMod($data.url)">Install</button></li>
+              <!-- /ko -->
             </ul>
           </div>
         </div>

@@ -10,7 +10,7 @@ import {
   nativeTheme,
   dialog,
 } from 'electron'
-import { setTimeout } from 'timers/promises'
+import { setTimeout as delay } from 'timers/promises'
 
 // KCCP
 const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
@@ -111,7 +111,7 @@ const getKccpConfig = async function (configStore, includeManager) {
     if (!traceShown) kccp.logger.trace(logSource, busyMessage)
     else kccp.logger.log(logSource, busyMessage)
     traceShown = true
-    await setTimeout(1000)
+    await delay(1000)
   }
 
   kccpIncBusy(1)
@@ -235,18 +235,51 @@ const initKccp = function () {
   }
 }
 
+var kccpRetryStart = false
+
+const kccpCheckRestart = async function (configStore, expectedBusyActions = 0) {
+  try {
+    // only attempt restart if a retry is pending
+    if (kccpRetryStart) {
+      kccp.logger.log(logSource, 'KCCacheProxy retrying start procedure.')
+      await startStopKccp(configStore, expectedBusyActions)
+    }
+
+    // if the user does something like doubleclicking the enabled checkbox, it could end up running when it shouldn't be etc
+    if (
+      !kccpStatus.busy &&
+      kccpProxy &&
+      kccpProxy.listening() !=
+        (configStore.get('proxy.enable') && configStore.get('proxy.mode') == 'kccp-internal')
+    ) {
+      kccp.logger.log(
+        logSource,
+        'KCCacheProxy listening state out of sync; initiating start/stop procedure.',
+      )
+      await startStopKccp(configStore, expectedBusyActions)
+    }
+  } finally {
+    // schedule next check
+    setTimeout(() => kccpCheckRestart(configStore), 5000)
+  }
+}
+
 const startStopKccp = async function (configStore, expectedBusyActions = 0) {
   const enabled = configStore.get('proxy.enable')
   const mode = configStore.get('proxy.mode')
-  let traceShown = false
-  while (kccpStatus.busyActions > expectedBusyActions) {
+  //let traceShown = false
+  if (kccpStatus.busyActions > expectedBusyActions) {
+    // enable kccpCheckRestart routing to retry starting later
+    kccpRetryStart = true
     kccp.logger.log(logSource, '(startStopKccp): KCCacheProxy is currently busy; waiting.')
     //if (!traceShown)
     //kccp.logger.trace(logSource, 'startStopKccp')
-    traceShown = true
-    await setTimeout(1000)
+    //traceShown = true
+    //await delay(1000)
+    return
   }
   kccpIncBusy(1)
+  kccpRetryStart = false
   kccpStatus.started = false
   try {
     if (enabled !== true || mode !== 'kccp-internal') {
@@ -258,10 +291,10 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
 
     if (kccpProxy) {
       kccpProxy.close()
-      await setTimeout(100)
+      await delay(100)
       while (kccpProxy.listening()) {
         kccp.logger.log(logSource, 'Waiting for KCCacheProxy to stop listening.')
-        await setTimeout(500)
+        await delay(500)
       }
       kccp.logger.log(logSource, 'KCCacheProxy has stopped listening.')
     }
@@ -269,14 +302,23 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
     kccpProxy = new kccp.Proxy()
     await kccpProxy.init()
     await kccpProxy.start()
-    await setTimeout(100)
-    while (!kccpProxy.listening()) {
+    await delay(100)
+    let attemptLimit = 5
+    while (!kccpProxy.listening() && attemptLimit-- > 0) {
       kccp.logger.log(logSource, 'Waiting for KCCacheProxy to start listening.')
-      await setTimeout(500)
+      await delay(500)
+    }
+    if (!kccpProxy.listening() || kccpProxy.lastStartError) {
+      kccpRetryStart = true
+      if (kccpProxy.lastStartError.code === 'EADDRINUSE') {
+        throw `Address/port already in use. (Is external KCCP running on the same host/port?)`
+      } else {
+        throw 'Failed to start listening. Error data: ' + JSON.stringify(kccpProxy.lastStartError)
+      }
     }
     kccp.logger.log(logSource, 'KCCacheProxy is now listening.')
   } catch (error) {
-    kccp.logger.error(logSource, `Error occurred starting KCCacheProxy.`, error)
+    kccp.logger.error(logSource, `Error starting KCCacheProxy.`, error)
     stopKccp()
   } finally {
     kccpIncBusy(-1)
@@ -344,6 +386,7 @@ export {
   setKccpConfig,
   initKccp,
   startStopKccp,
+  kccpCheckRestart,
   stopKccp,
   getKccpCachePath,
   getKccpKcs2CachePath,

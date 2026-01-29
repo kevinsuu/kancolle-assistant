@@ -20,6 +20,9 @@ const configSchema = {
       customPath: { type: 'string' },
     },
   },
+  kancolle: {
+    forceCookieHack: { type: 'bool', default: true },
+  },
   window: {
     state: {
       width: { type: 'number', default: 1200 },
@@ -160,39 +163,43 @@ const configApplySync = function (target, options) {
   schema = schema || configSchema
   path = path || ''
   source = source || target
+  let modified = false
   for (const key in schema) {
     const keyPath = path ? `${path}.${key}` : key
     const keySchema = schema[key]
     if (keySchema.type && typeof keySchema.type == 'string') {
       // config property
-      propertyCallback(keyPath, key, keySchema, target, source)
+      modified = propertyCallback(keyPath, key, keySchema, target, source) || modified
     } else {
       // sub-key
       createKey(target, key)
       if (!!source) createKey(source, key)
-      configApplySync(target[key], {
-        propertyCallback,
-        schema: keySchema,
-        path: keyPath,
-        source: source[key],
-      })
+      modified =
+        configApplySync(target[key], {
+          propertyCallback,
+          schema: keySchema,
+          path: keyPath,
+          source: source[key],
+        }) || modified
     }
   }
-  return target
+  return modified
 }
 
-const populateConfigDefaults = function (config, schema = configSchema) {
-  configApplySync(config, {
+const populateConfigDefaults = function (config, schema = configSchema, log = console.log) {
+  let modified = configApplySync(config, {
     propertyCallback: (path, key, keySchema, config) => {
-      if (
+      const ignore =
         typeof keySchema.default == 'undefined' ||
         (config.hasOwnProperty(key) && typeof config[key] != 'undefined')
-      )
-        return
+      if (ignore) return false
+      log(`Setting default for config.${path}: ${keySchema.default}`)
       config[key] = keySchema.default
+      return true
     },
     schema,
   })
+  return modified
 }
 
 // gets a value that may be an observable or a plain value

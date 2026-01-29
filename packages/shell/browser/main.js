@@ -35,7 +35,7 @@ import { buildChromeContextMenu } from 'electron-chrome-context-menu'
 import setupMenu from './menu'
 import Tabs from './tabs'
 
-import { setTimeout } from 'timers/promises'
+import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
 
 // for wildcard matching URLs to hide address bar for
@@ -57,6 +57,7 @@ import {
   setKccpConfig,
   initKccp,
   startStopKccp,
+  kccpCheckRestart,
   getKccpCachePath,
   getKccpModPath,
   getKccpKcs2CachePath,
@@ -119,7 +120,10 @@ updateConfigDefaults({ isSquirrel, preexisting })
 const configStore = new ConfigStore('damecon-browser', {}, cfgOpts)
 
 const cfg = configStore.all
-populateConfigDefaults(cfg)
+kccp.logger.log(logSource, 'Populating defaults for config')
+const configModified = populateConfigDefaults(cfg, configSchema, (...input) =>
+  kccp.logger.log(logSource, ...input),
+)
 
 // config fixes
 if (cfg.proxy.client.enable === 'false') cfg.proxy.client.enable = false // i'm stupid
@@ -339,7 +343,7 @@ class TabbedBrowserWindow {
         //delaying opening of devtools on initial tab load
         const startDevTools = async () => {
           const delaySeconds = configStore.get('kc3kai.startup.openDevtoolsDelay') || 0
-          await setTimeout(delaySeconds * 1000)
+          await delay(delaySeconds * 1000)
           tab.webContents.openDevTools({ activate: true })
         }
         startDevTools()
@@ -781,8 +785,12 @@ class Browser extends EventEmitter {
           result = configStore.set(data.key, data.value)
           if (data.key.startsWith('proxy.')) {
             if (
-              data.key == 'proxy.enable' &&
-              data.value == true &&
+              ((data.key == 'proxy.enable' &&
+                data.value == true &&
+                configStore.get('proxy.mode') == 'kccp-internal') ||
+                (data.key == 'proxy.mode' &&
+                  data.value == 'kccp-internal' &&
+                  configStore.get('proxy.enable') == true)) &&
               (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
             ) {
               await this.updateKccpMods()
@@ -1083,6 +1091,8 @@ class Browser extends EventEmitter {
       await startStopKccp(configStore)
       await this.applyProxy()
     }
+    // check to see if we need to retry kccp startup periodically
+    setTimeout(() => kccpCheckRestart(configStore), 5000)
   }
 
   async getProxyDestination() {
@@ -1329,6 +1339,11 @@ class Browser extends EventEmitter {
     //console.log('>> main.initSession()')
     this.session = session.defaultSession
 
+    if (configStore.get('kancolle.forceCookieHack')) {
+      kccp.logger.log(logSource, 'Applying DMM cookie hack.')
+      this.applyCookieHack()
+    }
+
     this.session.serviceWorkers.on('running-status-changed', (event) => {
       console.info(`service worker ${event.versionId} ${event.runningStatus}`)
     })
@@ -1442,7 +1457,7 @@ class Browser extends EventEmitter {
             //delaying opening of devtools on tab open
             const startDevTools = async () => {
               const delaySeconds = configStore.get('kc3kai.startup.openDevtoolsDelay') || 0
-              await setTimeout(delaySeconds * 1000)
+              await delay(delaySeconds * 1000)
               tab.webContents.openDevTools({ activate: true })
             }
             startDevTools()
@@ -1534,6 +1549,31 @@ class Browser extends EventEmitter {
         }(ContextClass.prototype.getContext);
       }
     }());`
+
+  applyCookieHack() {
+    const playUrl = 'https://games.dmm.com'
+    const kcUrl = 'https://play.games.dmm.com/game/kancolle'
+    const cookies = [
+      ['cklg', 'welcome', '.dmm.com', '/'],
+      ['cklg', 'welcome', '.dmm.com', '/netgame/'],
+      ['cklg', 'welcome', '.dmm.com', '/netgame_s/'],
+      ['cklg', 'welcome', '.dmm.com', '/play/'],
+      ['ckcy', '1', '.dmm.com', '/'],
+      ['ckcy', '1', '.dmm.com', '/netgame/'],
+      ['ckcy', '1', '.dmm.com', '/netgame_s/'],
+      ['ckcy', '1', '.dmm.com', '/play/'],
+      ['ckcy', '1', 'www.dmm.com', '/'],
+      ['ckcy', '1', 'osapi.dmm.com', '/'],
+      ['ckcy', '1', 'log-netgame.dmm.com', '/'],
+      ['ckcy_remedied_check', 'ec_mrnhbtk', '.dmm.com', '/'],
+    ]
+    const expires = new Date(+new Date() + 31536e6) * 60 * 60 * 24 * 7
+
+    cookies.forEach((c) => {
+      const cookie = { name: c[0], value: c[1], domain: c[2], path: c[3], expirationDate: expires }
+      this.session.cookies.set(cookie)
+    })
+  }
 
   async onWebContentsCreated(event, webContents) {
     const browser = this
@@ -1733,7 +1773,7 @@ class Browser extends EventEmitter {
     }
 
     if (doUpdate) {
-      await setTimeout(1000)
+      await delay(1000)
       await this.updateKc3(currentChannel)
     } else {
       const kc3Path = this.getKc3Path()

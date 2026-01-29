@@ -67,7 +67,8 @@ class Settings {
   kccpStatus = ko.observable({ busy: false, started: false })
   kccpTabs = { config: 0, mods: 1, log: 2 }
   kccpTab = ko.observable(0)
-  appTab = ko.observable(0)
+  appTabs = { window: 0, kancolle: 1, application: 2, appLog: 3, advanced: 4 }
+  appTab = ko.observable(this.appTabs.window)
   // TODO: Don't reference UI stuff in VM
   kccpLogRecent = ko.observableArray([]).extend({ scrollFollow: '#kccp-log-scroller' })
 
@@ -79,6 +80,24 @@ class Settings {
     trace: 'warning',
     error: 'danger',
   }
+
+  getMods = [
+    {
+      name: 'English Patch',
+      authors: ['Oradimi', 'InochiPM'],
+      url: 'https://github.com/Oradimi/KanColle-English-Patch-KCCP',
+    },
+    {
+      name: 'True Critical Hit',
+      authors: ['Oradimi'],
+      url: 'https://github.com/Oradimi/KanColle-True-Critical-Hits',
+    },
+    {
+      name: 'KC Fixes',
+      authors: ['Tibo'],
+      url: 'https://github.com/Tibowl/KCFixes',
+    },
+  ]
 
   version = ''
 
@@ -200,16 +219,9 @@ class Settings {
   kccpCancelAddGitMod() {
     this.addingKccpGitMod(false)
   }
-  async kccpAddEnPatchMod() {
-    this.kccpGitModUrl('https://github.com/Oradimi/KanColle-English-Patch-KCCP')
-    await this.kccpAddGitMod()
-  }
-  async kccpAddKCFixesMod() {
-    this.kccpGitModUrl('https://github.com/Tibowl/KCFixes')
-    await this.kccpAddGitMod()
-  }
-  async kccpAddGitMod() {
-    const url = this.kccpGitModUrl()
+
+  async kccpAddGitMod(repoUrl) {
+    const url = repoUrl || this.kccpGitModUrl()
     this.kccpGitModUrl('')
     this.addingKccpGitMod(false)
     console.log('Adding git mod ' + url)
