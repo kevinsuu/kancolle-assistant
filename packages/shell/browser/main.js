@@ -806,6 +806,8 @@ class Browser extends EventEmitter {
           } else if (data.key.startsWith('kc3kai.custom')) {
             const kc3Path = this.getKc3Path()
             await this.checkStartKc3(kc3Path)
+          } else if (data.key == 'kancolle.forceCookieHack' && data.value == true) {
+            this.applyCookieHack()
           }
           this.sendToAllWindows('config-saved', configStore.all)
           break
@@ -1340,9 +1342,21 @@ class Browser extends EventEmitter {
     this.session = session.defaultSession
 
     if (configStore.get('kancolle.forceCookieHack')) {
-      kccp.logger.log(logSource, 'Applying DMM cookie hack.')
       this.applyCookieHack()
     }
+
+    this.session.cookies.on('changed', (event, cookie, cause, removed) => {
+      if (!configStore.get('kancolle.forceCookieHack')) return
+      if (removed) return
+      if (
+        cookie.domain != '.dmm.com' ||
+        (cause != 'explicit' && cause != 'expired-overwrite') ||
+        !cookie.name.startsWith('ck')
+      )
+        return
+      //kccp.logger.log(logSource, `Cookie ${removed ? 'removed' : 'changed'}: ${cookie.name}=${cookie.value} ; Cause: ${cause}`)
+      this.interceptCookieUpdate({ cookie, cause, removed })
+    })
 
     this.session.serviceWorkers.on('running-status-changed', (event) => {
       console.info(`service worker ${event.versionId} ${event.runningStatus}`)
@@ -1552,27 +1566,101 @@ class Browser extends EventEmitter {
 
   applyCookieHack() {
     const playUrl = 'https://games.dmm.com'
-    const kcUrl = 'https://play.games.dmm.com/game/kancolle'
+    const kcUrl = 'https://play.games.dmm.com' // /game/kancolle
     const cookies = [
-      ['cklg', 'welcome', '.dmm.com', '/'],
-      ['cklg', 'welcome', '.dmm.com', '/netgame/'],
-      ['cklg', 'welcome', '.dmm.com', '/netgame_s/'],
-      ['cklg', 'welcome', '.dmm.com', '/play/'],
-      ['ckcy', '1', '.dmm.com', '/'],
-      ['ckcy', '1', '.dmm.com', '/netgame/'],
-      ['ckcy', '1', '.dmm.com', '/netgame_s/'],
-      ['ckcy', '1', '.dmm.com', '/play/'],
-      ['ckcy', '1', 'www.dmm.com', '/'],
-      ['ckcy', '1', 'osapi.dmm.com', '/'],
-      ['ckcy', '1', 'log-netgame.dmm.com', '/'],
-      ['ckcy_remedied_check', 'ec_mrnhbtk', '.dmm.com', '/'],
+      [kcUrl, 'cklg', 'welcome', '.dmm.com', '/'],
+      [kcUrl, 'cklg', 'welcome', '.dmm.com', '/netgame/'],
+      [kcUrl, 'cklg', 'welcome', '.dmm.com', '/netgame_s/'],
+      [kcUrl, 'cklg', 'welcome', '.dmm.com', '/play/'],
+      [kcUrl, 'ckcy', '1', '.dmm.com', '/'],
+      [kcUrl, 'ckcy', '1', '.dmm.com', '/netgame/'],
+      [kcUrl, 'ckcy', '1', '.dmm.com', '/netgame_s/'],
+      [kcUrl, 'ckcy', '1', '.dmm.com', '/play/'],
+      //['ckcy', '1', 'www.dmm.com', '/'],
+      //['ckcy', '1', 'osapi.dmm.com', '/'],
+      //['ckcy', '1', 'log-netgame.dmm.com', '/'],
+      [kcUrl, 'ckcy_remedied_check', 'ec_mrnhbtk', '.dmm.com', '/'],
     ]
     const expires = new Date(+new Date() + 31536e6) * 60 * 60 * 24 * 7
 
     cookies.forEach((c) => {
-      const cookie = { name: c[0], value: c[1], domain: c[2], path: c[3], expirationDate: expires }
+      const cookie = {
+        url: c[0],
+        name: c[1],
+        value: c[2],
+        domain: c[3],
+        path: c[4],
+        expirationDate: expires,
+      }
       this.session.cookies.set(cookie)
     })
+
+    kccp.logger.log(logSource, 'DMM cookie hack applied.')
+  }
+
+  interceptCookieUpdate(changeInfo) {
+    var nextYear = new Date()
+    nextYear.setFullYear(nextYear.getFullYear() + 1)
+
+    // CKCY force 1
+    if (changeInfo.cookie.name == 'ckcy' && changeInfo.cookie.value != '1') {
+      kccp.logger.log(logSource, 'ckcy cookie changed, re-hacking it.')
+      // console.log("CKCY=", changeInfo.cookie.value, changeInfo);
+      this.session.cookies.set(
+        {
+          url: 'https://play.games.dmm.com',
+          name: 'ckcy',
+          value: '1',
+          domain: '.dmm.com',
+          expirationDate: Math.ceil(nextYear.getTime() / 1000),
+          path: changeInfo.cookie.path,
+        },
+        function (cookie) {
+          // console.log("ckcy cookie re-hacked", cookie);
+        },
+      )
+    }
+
+    // CKLG force welcome
+    if (changeInfo.cookie.name == 'cklg' && changeInfo.cookie.value != 'welcome') {
+      kccp.logger.log(logSource, 'cklg cookie changed, re-hacking it.')
+      // console.log("CKLG=", changeInfo.cookie.value, changeInfo);
+      this.session.cookies.set(
+        {
+          url: 'https://play.games.dmm.com',
+          name: 'cklg',
+          value: 'welcome',
+          domain: '.dmm.com',
+          expirationDate: Math.ceil(nextYear.getTime() / 1000),
+          path: changeInfo.cookie.path,
+        },
+        function (cookie) {
+          // console.log("cklg cookie re-hacked", cookie);
+        },
+      )
+    }
+
+    // ckcy_remedied_check force?
+    if (
+      changeInfo.cookie.name == 'ckcy_remedied_check' &&
+      changeInfo.cookie.value != 'ec_mrnhbtk'
+    ) {
+      kccp.logger.log(logSource, 'ckcy_remedied_check cookie changed, re-hacking it.')
+      // console.log("ckcy_remedied_check=", changeInfo.cookie.value, changeInfo);
+      this.session.cookies.set(
+        {
+          url: 'https://play.games.dmm.com',
+          name: 'ckcy_remedied_check',
+          value: 'ec_mrnhbtk',
+          domain: '.dmm.com',
+          expirationDate: Math.ceil(nextYear.getTime() / 1000),
+          path: changeInfo.cookie.path,
+        },
+        function (cookie) {
+          // console.log("ckcy_remedied_check cookie re-hacked", cookie);
+        },
+      )
+    }
   }
 
   async onWebContentsCreated(event, webContents) {
