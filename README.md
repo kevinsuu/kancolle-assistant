@@ -10,7 +10,7 @@ Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-brow
 
 ### From a Release build:
 
-From the Releases page, download one of the following:
+From the [Releases page](https://github.com/planetarian/damecon-browser/releases/latest), download one of the following:
 
 Installer: `damecon-browser-*.Setup.exe`
 
