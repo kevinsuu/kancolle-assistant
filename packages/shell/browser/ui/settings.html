@@ -496,6 +496,10 @@
               <div class="kccp-mod-label">
                 <div>
                   <span data-bind="text: `${$index()+1}.`"></span>
+                  <!-- ko if: !$data.info -->
+                  <span data-bind="text: path"></span>
+                  <!-- /ko -->
+                  <!-- ko if: $data.info -->
                   <span data-bind="text: info.name"></span>
                   <span data-bind="text: `v${info.version}`" class="subtext"></span>
                   <!-- ko if: $data.latestVersion && $data.latestVersion != $data.info.version -->
@@ -510,6 +514,7 @@
                   </a>
                   <!-- /ko -->
                   <!-- /ko -->
+                  <!-- /ko -->
                   <!-- ko if: $data.git -->
                   <span class="subtext badge badge-secondary">git</span>
                   <!-- /ko -->
@@ -517,7 +522,9 @@
                   <!--<span class="subtext badge badge-secondary">local</span>-->
                   <!-- /ko -->
                 </div>
+                <!-- ko if: $data.info -->
                 <span class="subtext" data-bind="text: info.authors.join(', ')"></span>
+                <!-- /ko -->
               </div>
               <div class="controls">
                 <!-- ko if: $index() > 0 -->
@@ -526,7 +533,10 @@
                 <!-- ko if: $index() < $parent.kccpConfig.modInfo().length-1 -->
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, 1)" title="web site"><i class="fa-solid fa-arrow-down"></i></button>
                 <!-- /ko -->
+                <!-- ko if: $data.info -->
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => chrome.tabs.create({url: info.url})" title="web site"><i class="fa-solid fa-globe"></i></button>
+                <!-- /ko -->
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpOpenModFolder($data)" title="open folder"><i class="fa-regular fa-folder-open"></i></button>
                 <button type="button" class="btn btn-outline-danger btn-sm" data-bind="click: () => $parent.kccpRemoveMod($data.path)" title="remove"><i class="fa-regular fa-trash-can"></i></button>
               </div>
             </div>

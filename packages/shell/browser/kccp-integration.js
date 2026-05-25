@@ -62,8 +62,46 @@ function handleProgress(progress) {
 
 async function installKccpGitMod(configStore, url) {
   const kccpConfig = await getKccpConfig(configStore, true)
+  const repoName = url.split('/').pop().replace('.git', '')
+  const modsPath = getKccpModsPath(kccpConfig)
+  const modPath = path.join(modsPath, repoName)
+  // Check if mod directory already exists before attempting installation
+  // if it exists, ask the user if they want to delete the old folder or cancel the installation
+  if (fsSync.existsSync(modPath)) {
+    const response = dialog.showMessageBoxSync({
+      type: 'question',
+      buttons: ['Delete and continue', 'Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Mod directory already exists',
+      message: `A directory for this git mod already exists at ${modPath}.\n\nThis was most likely from a previous installation and can be safely removed.\nDo you want to delete the existing folder and continue with the installation?`,
+    })
+    if (response === 0) {
+      try {
+        fsSync.rmSync(modPath, { recursive: true, force: true })
+        kccp.logger.log(logSource, `Deleted existing mod directory at ${modPath}.`)
+      } catch (error) {
+        kccp.logger.error(
+          logSource,
+          `Failed to delete existing mod directory at ${modPath}:`,
+          error,
+        )
+        dialog.showMessageBoxSync({
+          type: 'error',
+          buttons: ['OK'],
+          title: 'Error deleting existing mod directory',
+          message: `Failed to delete existing mod directory at ${modPath}. Please check the logs for more details and try again.`,
+        })
+        return { success: false, error }
+      }
+    } else {
+      kccp.logger.log(logSource, 'User cancelled mod installation due to existing mod directory.')
+      return { success: false, error: new Error('User cancelled installation') }
+    }
+  }
+
   const installResult = await handleModInstallation(
-    getKccpModsPath(kccpConfig),
+    modsPath,
     url,
     kccpConfig.config,
     kccpConfig.configManager,
@@ -104,6 +142,7 @@ const updateKccpGitMod = async function (mod) {
   }
 }
 
+let modErrors = []
 const getKccpConfig = async function (configStore, includeManager) {
   let traceShown = false
   while (kccpStatus.busy) {
@@ -122,6 +161,7 @@ const getKccpConfig = async function (configStore, includeManager) {
     let modified = false
     let doRestart = false
 
+    let errorCount = 0
     // check mods
     for (const mod of config.mods) {
       const path = mod.path
@@ -182,13 +222,23 @@ const getKccpConfig = async function (configStore, includeManager) {
           doRestart = true
         }
       } catch (error) {
-        dialog.showMessageBoxSync(this, {
-          type: 'info',
-          buttons: ['OK'],
-          title: 'Mod load error',
-          message: `Failed to load metadata for mod.\nlocation: ${mod.path}\nerror:${error}`,
-        })
+        errorCount++
+        kccp.logger.error(logSource, `Failed to load mod at ${mod.path}:`, error)
+        // Only show the dialog for a specific mod once, to prevent spamming if there are multiple errors with the same mod
+        if (!modErrors.includes(mod.path)) {
+          modErrors.push(mod.path)
+          dialog.showMessageBoxSync(this, {
+            type: 'info',
+            buttons: ['OK'],
+            title: 'Mod load error',
+            message: `Failed to load metadata for mod.\nlocation: ${mod.path}\nerror:${error}\n\nRecommended action: Remove and re-add the mod. If the problem persists, report to mod author.`,
+          })
+        }
       }
+
+      // If we loaded all mods successfully, clear the error list so that future errors will trigger dialogs again
+      // This is to prevent a scenario where a mod repeatedly triggers error dialogs
+      if (errorCount === 0) modErrors = []
 
       modInfo.push(info)
     }
@@ -310,7 +360,9 @@ const startStopKccp = async function (configStore, expectedBusyActions = 0) {
     }
     if (!kccpProxy.listening() || kccpProxy.lastStartError) {
       kccpRetryStart = true
-      if (kccpProxy.lastStartError.code === 'EADDRINUSE') {
+      if (!kccpProxy.lastStartError) {
+        throw 'Failed to start listening. Reason unspecified.'
+      } else if (kccpProxy.lastStartError.code === 'EADDRINUSE') {
         throw `Address/port already in use. (Is external KCCP running on the same host/port?)`
       } else {
         throw 'Failed to start listening. Error data: ' + JSON.stringify(kccpProxy.lastStartError)

@@ -15,6 +15,7 @@ import {
   autoUpdater,
   webFrameMain,
   protocol,
+  shell,
 } from 'electron'
 import { EventEmitter } from 'events'
 
@@ -1047,11 +1048,17 @@ class Browser extends EventEmitter {
           await installKccpGitMod(configStore, url)
           break
         case 'kccp-update-git-mod':
-          const { mod } = data
+          const modToUpdate = data.mod
           if (!path) return
-          kccp.logger.log(logSource, 'Updating KCCP git mod', mod.path)
-          await updateKccpGitMod(mod)
+          kccp.logger.log(logSource, 'Updating KCCP git mod', modToUpdate.path)
+          await updateKccpGitMod(modToUpdate)
           await startStopKccp(configStore)
+          break
+        case 'kccp-open-mod-folder':
+          const modToOpen = data.mod
+          kccpConfig = await getKccpConfig(configStore)
+          const modPath = this.getModPath(kccpConfig.config)
+          if (modPath) shell.openPath(modPath)
           break
         case 'kccp-log-get-recent':
           kccp.logger.sendRecent()
@@ -1109,7 +1116,9 @@ class Browser extends EventEmitter {
   }
 
   getModPath(config) {
-    return config.mods.length > 0 ? join(config.mods[config.mods.length - 1].path, '..') : undefined
+    return config.mods.length > 0
+      ? path.join(config.mods[config.mods.length - 1].path, '..')
+      : undefined
   }
 
   serverHost = ''

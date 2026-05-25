@@ -61,7 +61,7 @@ class Settings {
   kccpModsOutOfDate = ko.pureComputed(() => {
     return this.kccpConfig
       .modInfo()
-      .filter((m) => m.latestVersion && m.latestVersion != m.info.version).length
+      .filter((m) => m.latestVersion && m.info && m.latestVersion != m.info.version).length
   })
 
   kccpStatus = ko.observable({ busy: false, started: false })
@@ -230,6 +230,9 @@ class Settings {
   async kccpUpdateGitMod(mod) {
     console.log('Updating git mod ' + mod.path)
     await sendToMain('kccp-update-git-mod', { mod })
+  }
+  async kccpOpenModFolder(mod) {
+    await sendToMain('kccp-open-mod-folder', { mod })
   }
   async kccpAddMod() {
     await sendToMain('kccp-add-mod')
