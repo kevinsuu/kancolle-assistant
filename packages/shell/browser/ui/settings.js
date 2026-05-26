@@ -146,6 +146,7 @@ class Settings {
       'port',
       'httpsPort',
       'mode',
+      'httpTimeoutMs',
       'cacheLocation',
       'disableBrowserCache',
       'verifyCache',

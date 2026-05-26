@@ -433,6 +433,12 @@
               </select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="col-sm-3"><label for="proxyservertimeoutms">Request Timeout (ms)</label></div>
+            <div class="col">
+              <input id="proxyservertimeoutms" type="number" class="form-control" data-bind="value: kccpConfig.httpTimeoutMs" placeholder="Enter request timeout (e.g. 60000)">
+            </div>
+          </div>
           <p>KCCacheProxy is built into Damecon. The hostname/port settings can be used to allow other KanColle clients to connect through this KCCP instance.</p>
           <div class="form-check">
             <input class="form-check-input" id="useproxycachelocation" type="checkbox" data-bind="checked: kccpConfig.useCacheLocation">
