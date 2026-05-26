@@ -534,10 +534,10 @@
               </div>
               <div class="controls">
                 <!-- ko if: $index() > 0 -->
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, -1)" title="web site"><i class="fa-solid fa-arrow-up"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, -1)" title="move up in list"><i class="fa-solid fa-arrow-up"></i></button>
                 <!-- /ko -->
                 <!-- ko if: $index() < $parent.kccpConfig.modInfo().length-1 -->
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, 1)" title="web site"><i class="fa-solid fa-arrow-down"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, 1)" title="move down in list"><i class="fa-solid fa-arrow-down"></i></button>
                 <!-- /ko -->
                 <!-- ko if: $data.info -->
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => chrome.tabs.create({url: info.url})" title="web site"><i class="fa-solid fa-globe"></i></button>
