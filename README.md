@@ -6,6 +6,18 @@ Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-brow
 
 ![browser preview image showing a typical setup with the game open, KC3Kai visible in the developer tools panel, and some tools open in background tabs.](./screenshots/ingame.png)
 
+## ⚠️ Notice
+
+#### Damecon is NOT intended to be used as a general-purpose browser.
+
+Damecon is designed for one purpose only, and that is playing KanColle.
+
+Damecon is built upon Electron, and lacks many of the security features of major browsers. Plus, I have no idea what I'm doing.
+
+Seriously, I've literally never worked with Electron before. There's some real spaghetti-tier code going on here. Do you really wanna put your trust in that?
+
+#### If you use Damecon for any activities involving sensitive information, you do so at your own risk.
+
 ## Usage
 
 ### From a Release build:
@@ -72,18 +84,6 @@ Damecon is designed to work seamlessly with KCCacheProxy. Extensions like ProxyS
 You can configure your KCCP host/port in the `Proxy` section of the settings page.
 
 The `Enabled` checkbox will enable/disable routing KanColle traffic through the proxy.
-
-## ⚠️ Notice
-
-#### Damecon is NOT intended to be used as a general-purpose browser.
-
-Damecon is designed for one purpose only, and that is playing KanColle.
-
-Damecon is built upon Electron, and lacks many of the security features of major browsers. Plus, I have no idea what I'm doing.
-
-Seriously, I've literally never worked with Electron before. There's some real spaghetti-tier code going on here. Do you really wanna put your trust in that?
-
-#### If you use Damecon for any activities involving sensitive information, you do so at your own risk.
 
 ## Features
 
