@@ -1,21 +1,7 @@
-import { getMapOptions, recommendFleet } from '@damecon/recommendation-core'
+import { getMapOptions } from '@damecon/recommendation-core'
+import { ACCOUNT_CHANNEL, MAP_OPTIONS_CHANNEL, RECOMMEND_CHANNEL } from './channels'
 import { readKC3AccountSnapshot } from './kc3-bridge'
-
-const ACCOUNT_CHANNEL = 'recommendation:account-summary'
-const MAP_OPTIONS_CHANNEL = 'recommendation:map-options'
-const RECOMMEND_CHANNEL = 'recommendation:recommend'
-const OBJECTIVES = new Set([
-  'balanced',
-  'boss-clear',
-  'low-cost',
-  'leveling',
-  'resource-fuel',
-  'resource-ammo',
-  'resource-steel',
-  'resource-bauxite',
-  'resource-bucket',
-  'resource-devmat',
-])
+import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
 
@@ -57,7 +43,7 @@ const readAccount = async (event, getKc3ExtensionId) => {
 
 const parseRequest = (request) => {
   if (!request || typeof request !== 'object') return null
-  if (typeof request.mapId !== 'string' || !OBJECTIVES.has(request.objective)) return null
+  if (typeof request.mapId !== 'string' || typeof request.objective !== 'string') return null
   const mapOption = getMapOptions().find((item) => item.id === request.mapId)
   if (!mapOption || !mapOption.objectives.includes(request.objective)) return null
   if (
@@ -76,7 +62,7 @@ const parseRequest = (request) => {
   }
 }
 
-export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, logger }) => {
+export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, recommend, logger }) => {
   ipcMain.handle(MAP_OPTIONS_CHANNEL, async (event) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
@@ -105,7 +91,17 @@ export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, logger }
     const snapshot = await readAccount(event, getKc3ExtensionId)
     if (snapshot.status === 'error') return snapshot
 
-    const result = recommendFleet({ ...parsedRequest, account: snapshot })
+    let result
+    try {
+      result = await recommend({ ...parsedRequest, account: snapshot })
+    } catch (error) {
+      logger('recommendation.failed', {
+        mapId: parsedRequest.mapId,
+        objective: parsedRequest.objective,
+        message: error?.message || String(error),
+      })
+      return errorResult('SOLVER_FAILED', '推薦計算失敗，請稍後再試。')
+    }
     if (result.status !== 'error') {
       logger('recommendation.completed', {
         mapId: parsedRequest.mapId,
@@ -115,6 +111,6 @@ export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, logger }
         recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
       })
     }
-    return result
+    return toRecommendationRendererResult(result)
   })
 }

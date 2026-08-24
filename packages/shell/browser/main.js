@@ -41,8 +41,8 @@ import {
   constrainWindowSizeToDisplay,
   fitGameTabOnce,
 } from './display/game-auto-fit'
-import { registerGameAutoFitIpc } from './display/game-auto-fit-ipc'
 import { registerRecommendationIpc } from './recommendation/recommendation-ipc'
+import { createRecommendationWorkerService } from './recommendation/recommendation-worker-service'
 
 import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
@@ -52,7 +52,8 @@ import { isMatch } from 'matcher'
 
 // Updaters
 import './workers/worker-shim'
-import updateWorker from 'worker-loader!./workers/updater-worker.js'
+import updateWorker from 'worker-loader?filename=updater.worker.js!./workers/updater-worker.js'
+import recommendationWorker from 'worker-loader?filename=recommendation.worker.js!./workers/recommendation-worker.js'
 
 // KCCP
 const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
@@ -204,7 +205,6 @@ const PATHS = {
     ? path.resolve(process.resourcesPath, 'workers')
     : path.resolve(SHELL_ROOT_DIR, 'browser', 'workers'),
   PRELOAD: path.join(__dirname, '../renderer/browser/preload.js'),
-  GAME_CANVAS_PRELOAD: path.join(__dirname, '../renderer/game-canvas/preload.js'),
   LOCAL_EXTENSIONS: path.join(dataPath, 'extensions'),
   KC3_EXTENSIONS: path.join(dataPath, 'extensions'),
   //KC3_EXTENSIONS: path.join(ROOT_DIR, 'ext_kc3kai'),
@@ -575,31 +575,22 @@ class Browser extends EventEmitter {
     return window ? this.getWindowFromBrowserWindow(window) : null
   }
 
-  getTabFromWebContents(webContents) {
-    for (const window of this.windows) {
-      const tab = window.tabs.tabList.find((item) => item.webContents === webContents)
-      if (tab) return tab
-    }
-    return null
-  }
-
   async init() {
     this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
     kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
     setupMenu(this)
+    this.recommendationService = createRecommendationWorkerService({
+      createWorker: () => new recommendationWorker(),
+      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+    })
     registerRecommendationIpc({
       ipcMain,
       getKc3ExtensionId: () => this.currentKc3ExtensionId,
+      recommend: (input) => this.recommendationService.recommend(input),
       logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
     })
-    registerGameAutoFitIpc({
-      ipcMain,
-      enabled: () => configStore.get('window.view.autoFitGameOnStartup'),
-      findTab: (webContents) => this.getTabFromWebContents(webContents),
-      displayMetrics: this.startupDisplayMetrics,
-      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
-    })
+    app.once('will-quit', () => this.recommendationService.dispose())
 
     app.on('browser-window-focus', () => {
       const fWin = () => this.getFocusedWindow()
@@ -645,14 +636,9 @@ class Browser extends EventEmitter {
         type: 'frame',
         filePath: PATHS.PRELOAD,
       })
-      this.session.registerPreloadScript({
-        id: 'game-canvas-preload',
-        type: 'frame',
-        filePath: PATHS.GAME_CANVAS_PRELOAD,
-      })
     } else {
       // TODO(mv3): remove
-      this.session.setPreloads([PATHS.PRELOAD, PATHS.GAME_CANVAS_PRELOAD])
+      this.session.setPreloads([PATHS.PRELOAD])
     }
 
     this.extensions = new ElectronChromeExtensions({

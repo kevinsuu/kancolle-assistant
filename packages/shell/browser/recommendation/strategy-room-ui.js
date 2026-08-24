@@ -1,6 +1,4 @@
-const ACCOUNT_CHANNEL = 'recommendation:account-summary'
-const MAP_OPTIONS_CHANNEL = 'recommendation:map-options'
-const RECOMMEND_CHANNEL = 'recommendation:recommend'
+import { ACCOUNT_CHANNEL, MAP_OPTIONS_CHANNEL, RECOMMEND_CHANNEL } from './channels'
 
 const roleLabels = {
   'main-battleship': '主力戰艦',
@@ -246,7 +244,7 @@ const renderRecommendation = (recommendation) => {
   return `
     <article class="dfr-plan">
       <header class="dfr-plan-head">
-        <div><h2>${escapeHtml(recommendation.title)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${recommendation.route.metadata.confidence}`)}</p></div>
+        <div><h2>${escapeHtml(recommendation.title)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${recommendation.route.confidence}`)}</p></div>
         <div class="dfr-score bscolor3 fcolor2">${recommendation.score.total.toFixed(1)} <small>/ 100</small></div>
       </header>
       <div class="dfr-metrics">

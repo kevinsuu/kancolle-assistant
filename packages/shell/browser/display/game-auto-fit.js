@@ -4,7 +4,7 @@ const MAX_ZOOM = 1.25
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_POLL_INTERVAL_MS = 250
 const DEFAULT_STABLE_SAMPLES = 3
-const fittedWebContentsIds = new Set()
+const fittedWebContents = new WeakSet()
 
 const MEASURE_GAME_CANVAS_SCRIPT = `(() => {
   const canvas = Array.from(document.querySelectorAll('canvas')).find((element) =>
@@ -209,7 +209,7 @@ export const fitGameTabOnce = async ({
   initialMeasurement = null,
 }) => {
   const webContents = tab?.webContents
-  if (!webContents || webContents.isDestroyed() || fittedWebContentsIds.has(webContents.id)) {
+  if (!webContents || webContents.isDestroyed() || fittedWebContents.has(webContents)) {
     return { applied: false, reason: 'already-fitted-or-unavailable' }
   }
 
@@ -271,7 +271,7 @@ export const fitGameTabOnce = async ({
     }
   }
 
-  fittedWebContentsIds.add(webContents.id)
+  fittedWebContents.add(webContents)
   logger('display.game-auto-fit', {
     displayId: displayMetrics.displayId,
     scaleFactor: displayMetrics.scaleFactor,
