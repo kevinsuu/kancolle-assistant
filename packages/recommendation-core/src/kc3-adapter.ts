@@ -1,0 +1,194 @@
+import type {
+  AccountSnapshot,
+  EquipmentInstanceId,
+  EquipmentMasterId,
+  EquipmentStats,
+  OwnedEquipment,
+  OwnedShip,
+  ShipInstanceId,
+  ShipMasterId,
+  ShipSpeed,
+  ShipStats,
+} from './types'
+
+type UnknownRecord = Record<string, unknown>
+
+const asRecord = (value: unknown, path: string): UnknownRecord => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${path} 必須是物件`)
+  }
+  return value as UnknownRecord
+}
+
+const asArray = (value: unknown, path: string): readonly unknown[] => {
+  if (!Array.isArray(value)) throw new Error(`${path} 必須是陣列`)
+  return value
+}
+
+const asNumber = (value: unknown, path: string): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`${path} 必須是有限數字`)
+  }
+  return value
+}
+
+const asString = (value: unknown, path: string): string => {
+  if (typeof value !== 'string') throw new Error(`${path} 必須是字串`)
+  return value
+}
+
+const asBoolean = (value: unknown, path: string): boolean => {
+  if (typeof value !== 'boolean') throw new Error(`${path} 必須是布林值`)
+  return value
+}
+
+const optionalNumber = (value: unknown, fallback = 0): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback
+
+const numberArray = (value: unknown, path: string): readonly number[] =>
+  asArray(value, path).map((item, index) => asNumber(item, `${path}[${index}]`))
+
+const speedFromValue = (value: number): ShipSpeed => {
+  if (value >= 20) return 'fastest'
+  if (value >= 15) return 'fast+'
+  if (value >= 10) return 'fast'
+  return 'slow'
+}
+
+const parseStats = (value: unknown, path: string): ShipStats => {
+  const record = asRecord(value, path)
+  return {
+    hp: asNumber(record.hp, `${path}.hp`),
+    firepower: asNumber(record.firepower, `${path}.firepower`),
+    torpedo: asNumber(record.torpedo, `${path}.torpedo`),
+    antiAir: asNumber(record.antiAir, `${path}.antiAir`),
+    armor: asNumber(record.armor, `${path}.armor`),
+    evasion: asNumber(record.evasion, `${path}.evasion`),
+    asw: asNumber(record.asw, `${path}.asw`),
+    los: asNumber(record.los, `${path}.los`),
+    luck: asNumber(record.luck, `${path}.luck`),
+  }
+}
+
+const parseEquipmentStats = (value: unknown, path: string): EquipmentStats => {
+  const record = asRecord(value, path)
+  return {
+    firepower: optionalNumber(record.firepower),
+    torpedo: optionalNumber(record.torpedo),
+    antiAir: optionalNumber(record.antiAir),
+    armor: optionalNumber(record.armor),
+    asw: optionalNumber(record.asw),
+    los: optionalNumber(record.los),
+    bombing: optionalNumber(record.bombing),
+    accuracy: optionalNumber(record.accuracy),
+    evasion: optionalNumber(record.evasion),
+  }
+}
+
+const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
+  const path = `ships[${index}]`
+  const record = asRecord(value, path)
+  const speedValue = asNumber(record.speedValue, `${path}.speedValue`)
+  const equippedItemIds = numberArray(record.equippedItemIds, `${path}.equippedItemIds`).map(
+    (id) => (id > 0 ? (id as EquipmentInstanceId) : null),
+  )
+  const expansionSlotItemId = optionalNumber(record.expansionSlotItemId, 0)
+
+  return {
+    id: asNumber(record.id, `${path}.id`) as ShipInstanceId,
+    masterId: asNumber(record.masterId, `${path}.masterId`) as ShipMasterId,
+    name: asString(record.name, `${path}.name`),
+    level: asNumber(record.level, `${path}.level`),
+    shipTypeId: asNumber(record.shipTypeId, `${path}.shipTypeId`),
+    shipType: asString(record.shipType, `${path}.shipType`),
+    speed: speedFromValue(speedValue),
+    speedValue,
+    stats: parseStats(record.stats, `${path}.stats`),
+    nakedLos: asNumber(record.nakedLos, `${path}.nakedLos`),
+    slotSizes: numberArray(record.slotSizes, `${path}.slotSizes`),
+    equippedItemIds,
+    expansionSlotItemId:
+      expansionSlotItemId > 0 ? (expansionSlotItemId as EquipmentInstanceId) : null,
+    expansionSlotUnlocked: asBoolean(record.expansionSlotUnlocked, `${path}.expansionSlotUnlocked`),
+    regularEquipableMasterIds: numberArray(
+      record.regularEquipableMasterIds,
+      `${path}.regularEquipableMasterIds`,
+    ).map((id) => id as EquipmentMasterId),
+    locked: asBoolean(record.locked, `${path}.locked`),
+    morale: optionalNumber(record.morale),
+    eventTag: optionalNumber(record.eventTag) || null,
+    fuelCost: optionalNumber(record.fuelCost),
+    ammoCost: optionalNumber(record.ammoCost),
+  }
+}
+
+const parseOwnedEquipment = (value: unknown, index: number): OwnedEquipment => {
+  const path = `equipment[${index}]`
+  const record = asRecord(value, path)
+  const holder = optionalNumber(record.currentlyEquippedBy, 0)
+  const airPowerRecord = asRecord(record.airPowerBySlotSize, `${path}.airPowerBySlotSize`)
+  const airPowerBySlotSize = Object.fromEntries(
+    Object.entries(airPowerRecord).map(([slotSize, power]) => [
+      slotSize,
+      asNumber(power, `${path}.airPowerBySlotSize.${slotSize}`),
+    ]),
+  )
+
+  return {
+    id: asNumber(record.id, `${path}.id`) as EquipmentInstanceId,
+    masterId: asNumber(record.masterId, `${path}.masterId`) as EquipmentMasterId,
+    name: asString(record.name, `${path}.name`),
+    typeId: asNumber(record.typeId, `${path}.typeId`),
+    type: asString(record.type, `${path}.type`),
+    improvement: optionalNumber(record.improvement),
+    proficiency: optionalNumber(record.proficiency, -1),
+    locked: asBoolean(record.locked, `${path}.locked`),
+    currentlyEquippedBy: holder > 0 ? (holder as ShipInstanceId) : null,
+    stats: parseEquipmentStats(record.stats, `${path}.stats`),
+    losImprovement: optionalNumber(record.losImprovement),
+    airPowerBySlotSize,
+  }
+}
+
+export const parseKC3AccountSnapshot = (value: unknown): AccountSnapshot => {
+  const record = asRecord(value, 'snapshot')
+  const capabilities = asRecord(record.capabilities, 'snapshot.capabilities')
+  const ships = asArray(record.ships, 'snapshot.ships').map(parseOwnedShip)
+  const equipment = asArray(record.equipment, 'snapshot.equipment').map(parseOwnedEquipment)
+
+  if (ships.length === 0) throw new Error('KC3 尚未同步艦娘資料')
+  if (equipment.length === 0) throw new Error('KC3 尚未同步裝備資料')
+
+  const shipIds = new Set<number>()
+  ships.forEach((ship) => {
+    if (shipIds.has(ship.id)) throw new Error(`艦娘 instance ID 重複：${ship.id}`)
+    shipIds.add(ship.id)
+  })
+
+  const equipmentIds = new Set<number>()
+  equipment.forEach((gear) => {
+    if (equipmentIds.has(gear.id)) throw new Error(`裝備 instance ID 重複：${gear.id}`)
+    equipmentIds.add(gear.id)
+  })
+
+  return {
+    generatedAt: asString(record.generatedAt, 'snapshot.generatedAt'),
+    hqLevel: asNumber(record.hqLevel, 'snapshot.hqLevel'),
+    ships,
+    equipment,
+    currentFleetShipIds: numberArray(
+      record.currentFleetShipIds,
+      'snapshot.currentFleetShipIds',
+    ).map((id) => id as ShipInstanceId),
+    metadata: {
+      source: 'kc3',
+      schemaVersion: 1,
+      capabilities: {
+        accountShips: asBoolean(capabilities.accountShips, 'capabilities.accountShips'),
+        accountEquipment: asBoolean(capabilities.accountEquipment, 'capabilities.accountEquipment'),
+        masterData: asBoolean(capabilities.masterData, 'capabilities.masterData'),
+        currentFleet: asBoolean(capabilities.currentFleet, 'capabilities.currentFleet'),
+      },
+    },
+  }
+}

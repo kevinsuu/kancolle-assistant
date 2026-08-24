@@ -1,0 +1,92 @@
+# Normal Map Fleet Recommender
+
+The first fleet recommender vertical slice is embedded in KC3Kai's Strategy Room. It reads the
+current KC3 account state and returns up to three deterministic, account-owned fleets for normal
+maps 1-1 through 7-5, including 5-6.
+It never changes the game or equipment state.
+
+## Scope
+
+- Maps: all 37 currently available normal maps, including multi-phase maps and 5-6.
+- Routes: 92 canonical strategy templates.
+- Objectives: balanced, boss clear, low cost, leveling, and resource farming.
+- Output: exact ship and equipment instance IDs, basic air power, Formula 33 LoS, estimated
+  resource use, reasons, and warnings.
+- Optional preference: leave equipment used by current fleets out of the recommendation pool.
+
+Event maps, quest-specific compositions, combined fleets, land-based air squadron assignment,
+support fleets, and automatic equipment changes remain out of scope. Routes requiring Fast+ or
+special equipment are present but retain explicit tags and warnings until the gear-dependent speed
+validator is complete.
+
+## Architecture
+
+`@damecon/recommendation-core` owns the normalized domain, validated 5-5 rule, fleet beam search,
+global equipment beam search, metrics, scoring, and explanations. It has no access to KC3 globals
+or Electron.
+
+The shell main process owns the KC3 anti-corruption boundary. Three fixed IPC commands are accepted
+only from the currently loaded KC3 Strategy Room origin:
+
+- `recommendation:account-summary`
+- `recommendation:map-options`
+- `recommendation:recommend`
+
+The preload adds a `關卡推薦` item to the Strategy Room fleet menu and renders the result. Account
+inventory stays in the main process; the renderer receives only an account summary or the final
+recommendations.
+
+The page reuses KC3 Strategy Room's native page title, help panel, section, control, theme color,
+and dense fleet-row conventions. Both the dark and legacy themes are driven by KC3's existing
+`bscolor*` and `fcolor*` classes rather than a separate Damecon palette.
+
+## Rule data
+
+The catalog is stored in:
+
+- `source-map-recommendations.json`: MIT-licensed base route constraints from
+  `shichiria/kancolle-browser`.
+- `strategy-overlays.json`: curated boss, leveling, resource, X-5, and 5-6 strategies.
+
+Every normalized route includes source URLs, confidence, verification date, category, objectives,
+tags, and a rule version. Invalid source or overlay shapes fail during module initialization.
+
+Examples of calculated hard constraints:
+
+- Air power: minimum 175, recommended 392.
+- Formula 33 LoS: coefficient 2, minimum 81.
+
+The minimum is the legal solver constraint when the source provides a verified threshold. Routes
+without a reliable numeric threshold do not invent one; the UI labels the metric as having no hard
+minimum.
+
+## Solver behavior
+
+The fleet solver ranks bounded candidates and uses deterministic beam search over generic min/max,
+ship-count, and named-ship constraints.
+The equipment solver builds all ship slots as one resource-allocation problem. A piece of equipment
+can be assigned only once, must be owned by the account, and must be compatible according to the
+compatibility list captured from `KC3Master.equip_on_ship`.
+
+Recommendations that fail minimum air power or LoS are discarded rather than penalized with a
+score. If no legal result remains, the UI reports the observed missing ship type, air power, LoS,
+or assignment constraint.
+
+Air power delegates per-slot calculations to KC3 when the snapshot is captured. Formula 33 LoS
+uses KC3's documented coefficients and naked ship LoS values. Combat score and resource use are
+heuristics and are labelled as such in every recommendation.
+
+## Development
+
+Build the core before packaging the shell:
+
+```sh
+yarn build:recommendation
+yarn build:shell
+```
+
+The root `yarn build` command already runs those in the required order.
+
+When testing with an account, compare at least five ships and ten equipment instances against KC3,
+including master ID, instance ID, improvement, and proficiency. Also confirm that no equipment ID
+appears twice within each result.

@@ -35,6 +35,7 @@ const { installChromeWebStore, loadAllExtensions } = require('electron-chrome-we
 import { buildChromeContextMenu } from 'electron-chrome-context-menu'
 import setupMenu from './menu'
 import Tabs from './tabs'
+import { registerRecommendationIpc } from './recommendation/recommendation-ipc'
 
 import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
@@ -530,6 +531,11 @@ class Browser extends EventEmitter {
   async init() {
     this.initSession()
     setupMenu(this)
+    registerRecommendationIpc({
+      ipcMain,
+      getKc3ExtensionId: () => this.currentKc3ExtensionId,
+      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+    })
 
     app.on('browser-window-focus', () => {
       const fWin = () => this.getFocusedWindow()
