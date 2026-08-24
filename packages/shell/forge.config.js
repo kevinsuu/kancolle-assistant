@@ -42,6 +42,12 @@ module.exports = {
                 js: './preload.ts',
               },
             },
+            {
+              name: 'game-canvas',
+              preload: {
+                js: './game-canvas-preload.ts',
+              },
+            },
           ],
         },
         devServer: {

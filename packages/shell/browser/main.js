@@ -11,6 +11,7 @@ import {
   globalShortcut,
   ipcMain,
   nativeTheme,
+  screen,
   dialog,
   autoUpdater,
   webFrameMain,
@@ -35,6 +36,12 @@ const { installChromeWebStore, loadAllExtensions } = require('electron-chrome-we
 import { buildChromeContextMenu } from 'electron-chrome-context-menu'
 import setupMenu from './menu'
 import Tabs from './tabs'
+import {
+  captureStartupDisplayMetrics,
+  constrainWindowSizeToDisplay,
+  fitGameTabOnce,
+} from './display/game-auto-fit'
+import { registerGameAutoFitIpc } from './display/game-auto-fit-ipc'
 import { registerRecommendationIpc } from './recommendation/recommendation-ipc'
 
 import { setTimeout as delay } from 'timers/promises'
@@ -197,6 +204,7 @@ const PATHS = {
     ? path.resolve(process.resourcesPath, 'workers')
     : path.resolve(SHELL_ROOT_DIR, 'browser', 'workers'),
   PRELOAD: path.join(__dirname, '../renderer/browser/preload.js'),
+  GAME_CANVAS_PRELOAD: path.join(__dirname, '../renderer/game-canvas/preload.js'),
   LOCAL_EXTENSIONS: path.join(dataPath, 'extensions'),
   KC3_EXTENSIONS: path.join(dataPath, 'extensions'),
   //KC3_EXTENSIONS: path.join(ROOT_DIR, 'ext_kc3kai'),
@@ -338,18 +346,56 @@ class TabbedBrowserWindow {
 
     this.tabs.on('tab-navigated', function onTabNavigated(tab, tabUrl) {
       //console.log(">> main.tabs.on('tab-navigated', tabsOpts)")
+      const isKc3StartPage = tabUrl === kc3StartPageUrl
+      const isDmmGamePage =
+        tabUrl === DMMPageUrl ||
+        tabUrl.startsWith(`${DMMPageUrl}?`) ||
+        tabUrl.startsWith(`${DMMPageUrl}/`)
+      const canOpenGameDevtools = isKc3StartPage || isDmmGamePage
+
       if (
-        (tabUrl === kc3StartPageUrl || tabUrl === DMMPageUrl) &&
-        configStore.get('kc3kai.startup.openDevtools')
+        canOpenGameDevtools &&
+        configStore.get('kc3kai.startup.openDevtools') &&
+        !tab.gameDevtoolsPrepared
       ) {
-        //delaying opening of devtools on initial tab load
-        const startDevTools = async () => {
+        tab.gameDevtoolsPrepared = true
+        tab.gameDevtoolsReady = (async () => {
+          // delaying opening of devtools on initial tab load
           const delaySeconds = configStore.get('kc3kai.startup.openDevtoolsDelay') || 0
           await delay(delaySeconds * 1000)
-          tab.webContents.openDevTools({ activate: true })
+          if (!tab.webContents.isDevToolsOpened()) {
+            tab.webContents.openDevTools({ activate: true })
+          }
+          await delay(300)
+        })().catch((error) => {
+          kccp.logger.error(logSource, 'Unable to open game DevTools.', error)
+        })
+      }
+
+      if (
+        isDmmGamePage &&
+        configStore.get('window.view.autoFitGameOnStartup') &&
+        !tab.gameAutoFitScheduled
+      ) {
+        tab.gameAutoFitScheduled = true
+        kccp.logger.log(logSource, 'display.game-auto-fit-scheduled', {
+          source: 'main-frame-navigation',
+          tabUrl,
+          webContentsId: tab.webContents.id,
+        })
+        const autoFitFromMainProcess = async () => {
+          if (tab.gameDevtoolsReady) await tab.gameDevtoolsReady
+          const result = await fitGameTabOnce({
+            tab,
+            displayMetrics: options.startupDisplayMetrics,
+            logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+          })
+          if (!result.applied) tab.gameAutoFitScheduled = false
         }
-        startDevTools()
-        //tab.webContents.openDevTools({ activate: true })
+        autoFitFromMainProcess().catch((error) => {
+          tab.gameAutoFitScheduled = false
+          kccp.logger.error(logSource, 'Unable to auto-fit game tab.', error)
+        })
       }
     })
 
@@ -397,6 +443,7 @@ class Browser extends EventEmitter {
   kccpModderIsUpdating = false
   isProxyEnabled = false
   session = null
+  startupDisplayMetrics = null
 
   urls = {
     newtab: 'about:blank',
@@ -528,12 +575,29 @@ class Browser extends EventEmitter {
     return window ? this.getWindowFromBrowserWindow(window) : null
   }
 
+  getTabFromWebContents(webContents) {
+    for (const window of this.windows) {
+      const tab = window.tabs.tabList.find((item) => item.webContents === webContents)
+      if (tab) return tab
+    }
+    return null
+  }
+
   async init() {
+    this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
+    kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
     setupMenu(this)
     registerRecommendationIpc({
       ipcMain,
       getKc3ExtensionId: () => this.currentKc3ExtensionId,
+      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+    })
+    registerGameAutoFitIpc({
+      ipcMain,
+      enabled: () => configStore.get('window.view.autoFitGameOnStartup'),
+      findTab: (webContents) => this.getTabFromWebContents(webContents),
+      displayMetrics: this.startupDisplayMetrics,
       logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
     })
 
@@ -581,9 +645,14 @@ class Browser extends EventEmitter {
         type: 'frame',
         filePath: PATHS.PRELOAD,
       })
+      this.session.registerPreloadScript({
+        id: 'game-canvas-preload',
+        type: 'frame',
+        filePath: PATHS.GAME_CANVAS_PRELOAD,
+      })
     } else {
       // TODO(mv3): remove
-      this.session.setPreloads([PATHS.PRELOAD])
+      this.session.setPreloads([PATHS.PRELOAD, PATHS.GAME_CANVAS_PRELOAD])
     }
 
     this.extensions = new ElectronChromeExtensions({
@@ -1390,14 +1459,22 @@ class Browser extends EventEmitter {
   createTabbedWindow(options) {
     //console.log('>> main.createWindow()')
     const windowConfig = configStore.get('window')
+    const initialWindowSize = constrainWindowSizeToDisplay(
+      {
+        width: windowConfig.state?.width || configSchema.window.state.width.default,
+        height: windowConfig.state?.height || configSchema.window.state.height.default,
+      },
+      this.startupDisplayMetrics,
+    )
 
     const newTabbedWindow = new TabbedBrowserWindow({
       ...options,
       //urls: this.urls,
       extensions: this.extensions,
+      startupDisplayMetrics: this.startupDisplayMetrics,
       window: {
-        width: windowConfig.state?.width || configSchema.window.state.width.default,
-        height: windowConfig.state?.height || configSchema.window.state.height.default,
+        width: initialWindowSize.width,
+        height: initialWindowSize.height,
         frame: false,
         titleBarStyle: 'hidden',
         // remove the min/max/close buttons so we can theme them

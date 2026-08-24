@@ -44,8 +44,8 @@ class Tabs extends EventEmitter {
     //tab.show() // must be attached to window
     const url = webContentsViewOptions?.initialUrl ?? this.newTabPageUrl
     //console.log('>> creating tab', url, webContentsViewOptions)
-    tab.webContents.on('did-navigate', (origin, targets) => {
-      this.emit('tab-navigated', tab, url)
+    tab.webContents.on('did-navigate', (event, targetUrl) => {
+      this.emit('tab-navigated', tab, targetUrl)
     })
     tab.webContents.loadURL(url)
 

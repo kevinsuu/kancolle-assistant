@@ -68,6 +68,7 @@ const configSchema = {
       alwaysShowReload: { type: 'bool', default: true },
       alwaysShowBack: { type: 'bool', default: false },
       alwaysShowForward: { type: 'bool', default: false },
+      autoFitGameOnStartup: { type: 'bool', default: true },
     },
     behavior: {
       confirmCloseGamePage: { type: 'bool', default: true },
