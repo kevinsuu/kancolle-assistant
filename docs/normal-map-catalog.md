@@ -14,9 +14,13 @@ The catalog contains all 37 normal maps available on 2026-08-24:
 7-1 .. 7-5
 ```
 
-It normalizes 92 canonical strategy templates. A canonical template represents a different routing
+It normalizes 97 canonical strategy templates. A canonical template represents a different routing
 condition, phase, or gameplay objective; swapping one ship for another of the same accepted type
 does not create another template.
+
+The recommendation-core test suite locks the current map and route counts, rejects duplicate route
+IDs and normalized semantic duplicates, and validates every objective and fleet constraint before
+solver refactors are accepted.
 
 ## Sources
 

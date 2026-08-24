@@ -8,7 +8,7 @@ It never changes the game or equipment state.
 ## Scope
 
 - Maps: all 37 currently available normal maps, including multi-phase maps and 5-6.
-- Routes: 92 canonical strategy templates.
+- Routes: 97 canonical strategy templates.
 - Objectives: balanced, boss clear, low cost, leveling, and resource farming.
 - Output: exact ship and equipment instance IDs, basic air power, Formula 33 LoS, estimated
   resource use, reasons, and warnings.
@@ -33,8 +33,10 @@ only from the currently loaded KC3 Strategy Room origin:
 - `recommendation:recommend`
 
 The preload adds a `關卡推薦` item to the Strategy Room fleet menu and renders the result. Account
-inventory stays in the main process; the renderer receives only an account summary or the final
-recommendations.
+inventory stays behind the main-process boundary. Fleet and equipment search runs in a lazy worker
+thread with request correlation, crash recovery, and a 30-second defensive timeout. Before a
+successful result crosses IPC, it is reduced to the route, ship, equipment, metric, score, reason,
+and warning fields used by the Strategy Room UI.
 
 The page reuses KC3 Strategy Room's native page title, help panel, section, control, theme color,
 and dense fleet-row conventions. Both the dark and legacy themes are driven by KC3's existing
@@ -86,6 +88,14 @@ yarn build:shell
 ```
 
 The root `yarn build` command already runs those in the required order.
+
+Run the deterministic parser, catalog, metric, and solver regression suite with:
+
+```sh
+yarn test:recommendation
+```
+
+The root `yarn test` command runs these tests before the existing extension suite.
 
 When testing with an account, compare at least five ships and ten equipment instances against KC3,
 including master ID, instance ID, improvement, and proficiency. Also confirm that no equipment ID

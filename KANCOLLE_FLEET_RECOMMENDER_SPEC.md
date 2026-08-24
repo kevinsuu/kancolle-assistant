@@ -903,8 +903,6 @@ export interface RouteTemplate {
 
   readonly calculatedConstraints: readonly CalculatedConstraint[]
 
-  readonly recommendedRoles: readonly FleetRoleRequirement[]
-
   readonly objectiveWeights?: Partial<Record<ScoreDimension, number>>
 
   readonly metadata: {
