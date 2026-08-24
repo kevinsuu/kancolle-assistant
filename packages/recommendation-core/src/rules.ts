@@ -1,5 +1,6 @@
 import sourceMapData from './rules/normal/source-map-recommendations.json'
 import strategyOverlayData from './rules/normal/strategy-overlays.json'
+import { RECOMMENDATION_OBJECTIVES } from './types'
 import type {
   CalculatedConstraint,
   FleetConstraint,
@@ -12,16 +13,6 @@ import type {
 type UnknownRecord = Record<string, unknown>
 
 const BASIC_OBJECTIVES: readonly RecommendationObjective[] = ['balanced', 'boss-clear', 'low-cost']
-const ALL_OBJECTIVES: readonly RecommendationObjective[] = [
-  ...BASIC_OBJECTIVES,
-  'leveling',
-  'resource-fuel',
-  'resource-ammo',
-  'resource-steel',
-  'resource-bauxite',
-  'resource-bucket',
-  'resource-devmat',
-]
 const STRATEGY_CATEGORIES: readonly StrategyCategory[] = ['boss', 'leveling', 'resource', 'gimmick']
 
 const isRecord = (value: unknown): value is UnknownRecord =>
@@ -145,7 +136,6 @@ const sourceRoutes = (sourceMapData as unknown[]).flatMap((mapValue) => {
       tags: tagsFromDescription(description),
       fleetConstraints: routeValue.fleet.map(parseSourceConstraint),
       calculatedConstraints: [],
-      recommendedRoles: [],
       metadata: {
         source: [
           'https://github.com/shichiria/kancolle-browser/blob/main/src-tauri/data/map_recommendations.json',
@@ -173,7 +163,11 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
       throw new Error(`normal map overlay ${mapId}: category invalid`)
     }
     const objectives = readStringArray(routeValue.objectives, 'objectives')
-    if (!objectives.every((item) => ALL_OBJECTIVES.includes(item as RecommendationObjective))) {
+    if (
+      !objectives.every((item) =>
+        RECOMMENDATION_OBJECTIVES.includes(item as RecommendationObjective),
+      )
+    ) {
       throw new Error(`normal map overlay ${mapId}: objective invalid`)
     }
     const tags = readStringArray(routeValue.tags, 'tags')
@@ -201,7 +195,6 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
       calculatedConstraints: Array.isArray(routeValue.calculated)
         ? routeValue.calculated.map(parseCalculatedConstraint)
         : [],
-      recommendedRoles: [],
       metadata: {
         source: sources,
         confidence: isNewMap ? 'experimental' : 'community',

@@ -7,17 +7,19 @@ export type EquipmentMasterId = Brand<number, 'EquipmentMasterId'>
 
 export type MapId = string
 export type ShipSpeed = 'slow' | 'fast' | 'fast+' | 'fastest'
-export type RecommendationObjective =
-  | 'balanced'
-  | 'boss-clear'
-  | 'low-cost'
-  | 'leveling'
-  | 'resource-fuel'
-  | 'resource-ammo'
-  | 'resource-steel'
-  | 'resource-bauxite'
-  | 'resource-bucket'
-  | 'resource-devmat'
+export const RECOMMENDATION_OBJECTIVES = [
+  'balanced',
+  'boss-clear',
+  'low-cost',
+  'leveling',
+  'resource-fuel',
+  'resource-ammo',
+  'resource-steel',
+  'resource-bauxite',
+  'resource-bucket',
+  'resource-devmat',
+] as const
+export type RecommendationObjective = (typeof RECOMMENDATION_OBJECTIVES)[number]
 export type FleetRole =
   | 'main-battleship'
   | 'carrier-air-superiority'
@@ -142,12 +144,6 @@ export type CalculatedConstraint =
       readonly minimum: number
     }
 
-export interface FleetRoleRequirement {
-  readonly role: FleetRole
-  readonly count: number
-  readonly allowedShipTypeIds: readonly number[]
-}
-
 export interface RouteTemplate {
   readonly id: string
   readonly mapId: MapId
@@ -161,7 +157,6 @@ export interface RouteTemplate {
   readonly tags: readonly string[]
   readonly fleetConstraints: readonly FleetConstraint[]
   readonly calculatedConstraints: readonly CalculatedConstraint[]
-  readonly recommendedRoles: readonly FleetRoleRequirement[]
   readonly metadata: {
     readonly source: readonly string[]
     readonly confidence: 'verified' | 'community' | 'experimental'
