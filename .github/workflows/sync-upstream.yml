@@ -1,0 +1,95 @@
+name: Sync official Damecon
+
+on:
+  schedule:
+    - cron: '17 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-official-damecon
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPOSITORY: planetarian/damecon-browser
+  UPSTREAM_BRANCH: electron25
+  MIRROR_BRANCH: electron25
+  CUSTOM_BRANCH: ${{ vars.CUSTOM_BRANCH || 'fleet-main' }}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the clean mirror branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.MIRROR_BRANCH }}
+          fetch-depth: 0
+
+      - name: Fast-forward from the official repository
+        id: sync
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          git fetch upstream "${UPSTREAM_BRANCH}"
+
+          before="$(git rev-parse HEAD)"
+          git merge --ff-only "upstream/${UPSTREAM_BRANCH}"
+          after="$(git rev-parse HEAD)"
+
+          if [ "${before}" = "${after}" ]; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          git push origin "HEAD:${MIRROR_BRANCH}"
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Open an upstream sync pull request
+        if: steps.sync.outputs.changed == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
+        run: |
+          pull_request_url="$(
+            gh pr list \
+              --base "${CUSTOM_BRANCH}" \
+              --head "${MIRROR_BRANCH}" \
+              --state open \
+              --json url \
+              --jq '.[0].url'
+          )"
+
+          if [ -z "${pull_request_url}" ]; then
+            pull_request_url="$(
+              gh pr create \
+                --base "${CUSTOM_BRANCH}" \
+                --head "${MIRROR_BRANCH}" \
+                --title "chore: sync official Damecon" \
+                --body "Automated sync from planetarian/damecon-browser:${UPSTREAM_BRANCH}."
+            )"
+          fi
+
+          echo "Upstream sync PR: ${pull_request_url}"
+
+      - name: Enable auto-merge when explicitly configured
+        if: steps.sync.outputs.changed == 'true' && vars.UPSTREAM_AUTO_MERGE == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
+        run: |
+          pull_request_url="$(
+            gh pr list \
+              --base "${CUSTOM_BRANCH}" \
+              --head "${MIRROR_BRANCH}" \
+              --state open \
+              --json url \
+              --jq '.[0].url'
+          )"
+          gh pr merge --auto --merge "${pull_request_url}"
