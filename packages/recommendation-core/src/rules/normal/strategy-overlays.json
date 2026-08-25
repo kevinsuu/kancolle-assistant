@@ -11,6 +11,20 @@
         "stableBoss": false,
         "tags": ["retreat-after-e", "landing-craft", "stable-resource"],
         "desc": "補給艦1、駆逐4-5、潜水0-1。D燃料マス固定後、E戦闘完了で帰投。",
+        "sources": [
+          "https://en.kancollewiki.net/World_1/1-3",
+          "https://en.kancollewiki.net/Resource_Farming"
+        ],
+        "lastVerified": "2026-08-25",
+        "resourceProfile": {
+          "target": "fuel",
+          "reachRate": 1,
+          "averageBaseGain": 15,
+          "landingCraftBonus": 3,
+          "drumBonus": 2,
+          "fuelCostRate": 0.2,
+          "ammoCostRate": 0.2
+        },
         "fleet": [
           { "type": "ShipCount", "value": 6 },
           { "type": "ShipTypeCount", "stypes": [22], "value": 1 },
@@ -27,6 +41,20 @@
         "stableBoss": false,
         "tags": ["retreat-after-e", "landing-craft", "resource-routing-80pct"],
         "desc": "水母1、駆逐4-5、潜水0-1。補給艦不足時の代用（D到達率約80%）。",
+        "sources": [
+          "https://en.kancollewiki.net/World_1/1-3",
+          "https://en.kancollewiki.net/Resource_Farming"
+        ],
+        "lastVerified": "2026-08-25",
+        "resourceProfile": {
+          "target": "fuel",
+          "reachRate": 0.8,
+          "averageBaseGain": 15,
+          "landingCraftBonus": 3,
+          "drumBonus": 2,
+          "fuelCostRate": 0.2,
+          "ammoCostRate": 0.2
+        },
         "fleet": [
           { "type": "ShipCount", "value": 6 },
           { "type": "ShipTypeCount", "stypes": [16], "value": 1 },

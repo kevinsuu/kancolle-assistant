@@ -102,5 +102,57 @@ const access = function (o, s) {
 
 const sleep = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs))
 
+ko.bindingHandlers['style'] = {
+  update: function (element, valueAccessor) {
+    const value = ko.utils.unwrapObservable(valueAccessor() || {})
+    ko.utils.objectForEach(value, function (styleName, styleValue) {
+      styleValue = ko.utils.unwrapObservable(styleValue)
+
+      if (styleValue === null || styleValue === undefined || styleValue === false) {
+        styleValue = ''
+      }
+
+      if (styleName.startsWith('--')) element.style.setProperty(styleName, styleValue)
+      else element.style[styleName] = styleValue
+    })
+  },
+}
+
+const normalizeThemeColor = function (value) {
+  const color = String(value || '').trim()
+  return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : null
+}
+
+const mixThemeColor = function (color, blackWeight) {
+  const channels = color
+    .slice(1)
+    .match(/.{2}/g)
+    .map((channel) => parseInt(channel, 16))
+  const mixed = channels.map((channel) => Math.round(channel * (1 - blackWeight)))
+  return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
+}
+
+const createCustomThemeStyle = function (value) {
+  const color = normalizeThemeColor(value) || '#6e35ae'
+  const channels = color
+    .slice(1)
+    .match(/.{2}/g)
+    .map((channel) => parseInt(channel, 16) / 255)
+  const luminance = channels
+    .map((channel) =>
+      channel <= 0.04045 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4),
+    )
+    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0)
+  const textColor = luminance > 0.42 ? '#171717' : '#ececec'
+
+  return {
+    '--custom-theme-color': color,
+    '--custom-theme-mid-color': mixThemeColor(color, 0.22),
+    '--custom-theme-bg-color': mixThemeColor(color, 0.44),
+    '--custom-theme-text-color': textColor,
+    '--custom-theme-control-text-color': `${textColor}c0`,
+  }
+}
+
 const urlRegex =
   /^(?<base>(?:(?<scheme>[\w-]+:)(?<open>\/\/\/?)(?<cred>(?<user>[\w]*)(?::(?<pw>[\w]*))?@)?)?(?<host>[\d\w\.-]+?(?<tld>\.[\w]+)?)(?::(?<port>\d+))?)?(?:\/(?<path>[\/\\\w\.()-]*))?(?:(?<query>[?][^#]*)?(?<hash>#.*)?)*$/gim

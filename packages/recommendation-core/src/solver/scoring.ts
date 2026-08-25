@@ -117,7 +117,10 @@ export const scoreFleet = (
       ) / 3,
     ),
     openingAsw: clamp(metrics.openingAswCount * 35),
-    resourceCost: clamp(115 - (metrics.estimatedFuelCost + metrics.estimatedAmmoCost) / 20),
+    resourceCost:
+      metrics.estimatedNetResourceGain === null
+        ? clamp(115 - (metrics.estimatedFuelCost + metrics.estimatedAmmoCost) / 20)
+        : clamp(50 + metrics.estimatedNetResourceGain * 2),
     equipmentOpportunityCost: clamp(100 - movedEquipmentCount * 7),
     routeReliability: clamp(
       (metrics.losRequired ? 70 + Math.min(metrics.los33 - metrics.losMinimum, 15) * 2 : 80) +

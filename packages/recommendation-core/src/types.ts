@@ -83,6 +83,7 @@ export interface OwnedEquipment {
   readonly masterId: EquipmentMasterId
   readonly name: string
   readonly typeId: number
+  readonly iconTypeId: number
   readonly type: string
   readonly improvement: number
   readonly proficiency: number
@@ -157,12 +158,23 @@ export interface RouteTemplate {
   readonly tags: readonly string[]
   readonly fleetConstraints: readonly FleetConstraint[]
   readonly calculatedConstraints: readonly CalculatedConstraint[]
+  readonly resourceProfile?: RouteResourceProfile
   readonly metadata: {
     readonly source: readonly string[]
     readonly confidence: 'verified' | 'community' | 'experimental'
     readonly lastVerified: string
     readonly ruleVersion: string
   }
+}
+
+export interface RouteResourceProfile {
+  readonly target: 'fuel' | 'ammo' | 'steel' | 'bauxite'
+  readonly reachRate: number
+  readonly averageBaseGain: number
+  readonly landingCraftBonus: number
+  readonly drumBonus: number
+  readonly fuelCostRate: number
+  readonly ammoCostRate: number
 }
 
 export interface RecommendationPreferences {
@@ -195,6 +207,11 @@ export interface FleetMetrics {
   readonly openingAswCount: number
   readonly estimatedFuelCost: number
   readonly estimatedAmmoCost: number
+  readonly estimatedResourceGain: number | null
+  readonly estimatedNetResourceGain: number | null
+  readonly resourceTarget: RouteResourceProfile['target'] | null
+  readonly landingCraftCount: number
+  readonly drumCount: number
   readonly nightCutInCandidates: number
   readonly finalSpeedClass: ShipSpeed
 }
@@ -217,6 +234,7 @@ export interface RecommendationScore {
 export interface RecommendationMessage {
   readonly code: string
   readonly message: string
+  readonly values?: Readonly<Record<string, string | number>>
 }
 
 export interface FleetRecommendation {
@@ -234,6 +252,7 @@ export interface FleetRecommendation {
 export interface UnsatisfiedRequirement {
   readonly code: string
   readonly message: string
+  readonly values?: Readonly<Record<string, string | number>>
 }
 
 export type RecommendFleetResult =

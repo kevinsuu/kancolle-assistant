@@ -39,6 +39,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   const recommendationCandidates: FleetRecommendation[] = []
   let bestAirPower = 0
   let bestLos = Number.NEGATIVE_INFINITY
+  let speedRequirementFailed = false
 
   availableRoutes.forEach(({ route }, routeIndex) => {
     const fleetCandidates = generateFleetCandidates(input.account, route, input.objective)
@@ -52,6 +53,10 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         const metrics = calculateFleetMetrics(builds, route, input.account.hqLevel)
         bestAirPower = Math.max(bestAirPower, metrics.airPower)
         bestLos = Math.max(bestLos, metrics.los33)
+        if (route.tags.includes('fast') && metrics.finalSpeedClass === 'slow') {
+          speedRequirementFailed = true
+          return
+        }
         if (!satisfiesCalculatedConstraints(metrics)) return
         const score = scoreFleet(builds, metrics, input.objective)
         const messages = recommendationMessages(builds, metrics, route)
@@ -122,12 +127,20 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       reasons.push({
         code: 'AIR_POWER_INSUFFICIENT',
         message: `目前搜尋到的最高制空值為 ${bestAirPower}，最低需要 ${airMinimum}。`,
+        values: { best: bestAirPower, minimum: airMinimum },
       })
     }
     if (losMinimum !== null && bestLos < losMinimum) {
       reasons.push({
         code: 'LOS_INSUFFICIENT',
         message: `目前搜尋到的最高 33 式索敵為 ${Math.max(bestLos, 0).toFixed(1)}，最低需要 ${losMinimum}。`,
+        values: { best: Math.max(bestLos, 0).toFixed(1), minimum: losMinimum },
+      })
+    }
+    if (speedRequirementFailed) {
+      reasons.push({
+        code: 'FLEET_SPEED_INSUFFICIENT',
+        message: '此路線要求全艦高速，但目前候選包含低速艦；已拒絕輸出不符合帶路條件的方案。',
       })
     }
     if (reasons.length === 0) {

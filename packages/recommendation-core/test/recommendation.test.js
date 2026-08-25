@@ -9,7 +9,7 @@ const {
   parseKC3AccountSnapshot,
   recommendFleet,
 } = require('../dist/index.js')
-const { createRawSnapshot } = require('./fixtures.js')
+const { createRawSnapshot, createResourceRawSnapshot } = require('./fixtures.js')
 
 const OBJECTIVES = new Set(RECOMMENDATION_OBJECTIVES)
 
@@ -26,6 +26,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
   assert.equal(account.ships.length, 6)
   assert.equal(account.equipment.length, 24)
   assert.equal(account.ships[0].speed, 'fast')
+  assert.equal(account.equipment[0].iconTypeId, 1)
   assert.equal(account.metadata.source, 'kc3')
 
   raw.ships[1].id = raw.ships[0].id
@@ -64,6 +65,16 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   })
 })
 
+test('every route links to its current per-map guide', () => {
+  NORMAL_MAP_ROUTES.forEach((route) => {
+    const world = route.mapId.split('-')[0]
+    assert.ok(
+      route.metadata.source.includes(`https://en.kancollewiki.net/World_${world}/${route.mapId}`),
+      `missing map guide: ${route.id}`,
+    )
+  })
+})
+
 test('fleet metrics apply air-power and Formula 33 hard constraints', () => {
   const account = parseKC3AccountSnapshot(createRawSnapshot())
   const builds = account.ships.slice(0, 2).map((ship) => ({
@@ -74,6 +85,7 @@ test('fleet metrics apply air-power and Formula 33 hard constraints', () => {
   }))
   const route = {
     ...NORMAL_MAP_ROUTES[0],
+    resourceProfile: undefined,
     calculatedConstraints: [
       { kind: 'air-power', minimum: 10, recommended: 20 },
       { kind: 'los', formula: '33', coefficient: 1, minimum: 5 },
@@ -88,6 +100,38 @@ test('fleet metrics apply air-power and Formula 33 hard constraints', () => {
   assert.equal(metrics.losMinimum, 5)
   assert.equal(metrics.estimatedFuelCost, 25)
   assert.equal(metrics.estimatedAmmoCost, 33)
+  assert.equal(metrics.estimatedResourceGain, null)
+  assert.equal(metrics.estimatedNetResourceGain, null)
+})
+
+test('1-3 fuel farming fills effective landing craft and calculates net fuel', () => {
+  const account = parseKC3AccountSnapshot(createResourceRawSnapshot())
+  const result = recommendFleet({
+    mapId: '1-3',
+    routeId: '1-3-fuel-ao',
+    objective: 'resource-fuel',
+    account,
+  })
+
+  assert.equal(result.status, 'success')
+  const recommendation = result.recommendations[0]
+  assert.ok(recommendation)
+  assert.equal(
+    recommendation.ships.some((build) => build.ship.name === 'Fixture incompatible destroyer'),
+    false,
+  )
+  assert.equal(recommendation.metrics.landingCraftCount, 15)
+  assert.equal(recommendation.metrics.drumCount, 0)
+  assert.equal(recommendation.metrics.estimatedResourceGain, 60)
+  assert.equal(recommendation.metrics.estimatedFuelCost, 19)
+  assert.equal(recommendation.metrics.estimatedNetResourceGain, 41)
+  assert.equal(
+    recommendation.ships
+      .filter((build) => build.role === 'resource-carrier')
+      .flatMap((build) => build.equipment)
+      .some((gear) => gear === null),
+    false,
+  )
 })
 
 test('solver is deterministic and only returns account-owned unique instances', () => {

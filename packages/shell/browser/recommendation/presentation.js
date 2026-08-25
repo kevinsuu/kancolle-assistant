@@ -3,6 +3,7 @@ const summarizeEquipment = (gear) =>
     ? {
         id: gear.id,
         name: gear.name,
+        iconTypeId: gear.iconTypeId,
         improvement: gear.improvement,
         proficiency: gear.proficiency,
       }
@@ -16,6 +17,9 @@ const summarizeRecommendation = (recommendation) => ({
     nodes: recommendation.route.nodes,
     phase: recommendation.route.phase,
     confidence: recommendation.route.metadata.confidence,
+    description: recommendation.route.description,
+    sources: recommendation.route.metadata.source,
+    lastVerified: recommendation.route.metadata.lastVerified,
   },
   ships: recommendation.ships.map((build) => ({
     role: build.role,
@@ -37,6 +41,11 @@ const summarizeRecommendation = (recommendation) => ({
     losMinimum: recommendation.metrics.losMinimum,
     estimatedFuelCost: recommendation.metrics.estimatedFuelCost,
     estimatedAmmoCost: recommendation.metrics.estimatedAmmoCost,
+    estimatedResourceGain: recommendation.metrics.estimatedResourceGain,
+    estimatedNetResourceGain: recommendation.metrics.estimatedNetResourceGain,
+    resourceTarget: recommendation.metrics.resourceTarget,
+    landingCraftCount: recommendation.metrics.landingCraftCount,
+    drumCount: recommendation.metrics.drumCount,
   },
   score: { total: recommendation.score.total },
   reasons: recommendation.reasons,

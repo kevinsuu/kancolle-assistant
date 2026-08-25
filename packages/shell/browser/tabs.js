@@ -5,7 +5,7 @@ class Tabs extends EventEmitter {
   tabList = []
   selected = null
 
-  // damecon customizations
+  // KanColle Assistant customizations
   newTabPageUrl = null
   searchPageUrl = null
   hidden = false
@@ -13,7 +13,7 @@ class Tabs extends EventEmitter {
   constructor(browserWindow, options) {
     super()
     this.window = browserWindow
-    // damecon customizations
+    // KanColle Assistant customizations
     this.newTabPageUrl = options.newTabPageUrl ?? 'about:blank'
     this.searchPageUrl = options.searchPageUrl ?? 'about:blank'
     this.hidden = options?.hidden ?? false

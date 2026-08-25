@@ -50,10 +50,13 @@ const configSchema = {
           'sakura',
           'sammy',
           'seafoam',
+          'custom',
         ],
         default: 'damecon',
       },
       brightness: { type: 'option', options: ['system', 'light', 'dark'], default: 'system' },
+      customColor: { type: 'string', default: '#6e35ae' },
+      customIcon: { type: 'string', default: '' },
     },
     view: {
       hideAddressBarSites: {
@@ -88,6 +91,7 @@ const configSchema = {
       openDMMPage: { type: 'bool' }, // TODO: remove
       openDevtools: { type: 'bool', default: true },
       openDevtoolsDelay: { type: 'number', default: platform === 'darwin' ? 2 : 0 },
+      devtoolsLocaleInfobarDefaultsVersion: { type: 'number', default: 0 },
       openStratRoom: { type: 'bool', default: true },
     },
     update: {

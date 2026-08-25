@@ -21,11 +21,11 @@
   <link rel="stylesheet" href="webui.css" />
   <link rel="stylesheet" href="settings.css" />
 
-  <link rel="icon" href="assets/icons/damecon_icon_48.png" />
+  <link rel="icon" href="assets/icons/logo.png" />
 </head>
 <body>
   <!-- ko if: config -->
-  <div id="root" data-bind="attr: { class: `theme-${config().window.style.theme} brightness-${config().window.style.brightness}` }, event: { keydown: rootKeyDown }">
+  <div id="root" data-bind="attr: { class: `theme-${config().window.style.theme} brightness-${config().window.style.brightness}` }, style: createCustomThemeStyle(config().window.style.customColor), event: { keydown: rootKeyDown }">
     <div class="toolbar search-bar">
       <div>
         <label for="search-input">Find:</label>

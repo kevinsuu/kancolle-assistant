@@ -3,7 +3,8 @@ const fs = require('fs/promises')
 
 module.exports = {
   packagerConfig: {
-    name: 'damecon-browser',
+    name: 'kancolle-assistant',
+    appBundleId: 'io.github.kevinsuu.kancolle-assistant',
     asar: true,
     extraResource: ['browser/ui'],
     icon: 'icon',
@@ -21,10 +22,10 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       platforms: ['win32'],
-      config: (arch) => ({
-        remoteReleases: `https://tsunkit.net/damecon-browser/updates/win32/${arch}`,
+      config: () => ({
+        name: 'kancolle-assistant',
         setupIcon: 'icon.ico',
-        authors: 'TsunKit',
+        authors: 'kevinsuu',
       }),
     },
   ],

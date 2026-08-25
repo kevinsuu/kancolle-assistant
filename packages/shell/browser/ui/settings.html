@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>Damecon settings</title>
+  <title>KanColle Assistant settings</title>
   <meta charset="utf-8">
 
   <script type="text/javascript" src="assets/js/jquery-3.3.1.min.js"></script>
@@ -21,16 +21,16 @@
   <link rel="stylesheet" href="webui.css" />
   <link rel="stylesheet" href="settings.css" />
 
-  <link rel="icon" href="assets/icons/damecon_icon_48.png" />
+  <link id="app-icon" rel="icon" href="assets/icons/logo.png" />
 </head>
 
 <body>
-  <div id="root" data-bind="attr: { class: `theme-${theme()} brightness-${brightness()}` }">
+  <div id="root" data-bind="attr: { class: `theme-${theme()} brightness-${brightness()}` }, style: createCustomThemeStyle(customColor())">
     <!-- ko if: settingsInitialized -->
     <div id="settings">
       <div id="settings-menu">
         <div class="menu-header">
-          <!--<h5>Damecon</h5>-->
+          <!--<h5>KanColle Assistant</h5>-->
         </div>
         <div class="menu-items">
           <!-- ko foreach: configPages -->
@@ -89,7 +89,7 @@
   <div id="settings-content-templates">
 
     <script type="text/html" id="settings-content-0">
-      <h3>Damecon Settings</h3>
+      <h3>KanColle Assistant Settings</h3>
       
       <ul class="nav nav-tabs">
         <li class="nav-item">
@@ -107,20 +107,12 @@
         <li class="nav-item">
           <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.advanced ? ' active' : ''}` }, click: () => appTab(appTabs.advanced)">Advanced</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.theme ? ' active' : ''}` }, click: () => appTab(appTabs.theme)">Theme</a>
+        </li>
       </ul>
       <div class="form-group"></div>
       <!-- ko if: appTab() === appTabs.window -->
-      <h5>Style</h5>
-      <div class="settings-group">
-        <div class="form-row">
-          <label for="windowstyletheme" class="col-sm-3">Theme</label>
-          <select id="windowstyletheme" class="col form-control" data-bind="options: configSchema.window.style.theme.options, value: config.window.style.theme"></select>
-        </div>
-        <div class="form-row">
-          <label for="windowstylebright" class="col-sm-3">Brightness</label>
-          <select id="windowstylebright" class="col form-control" data-bind="options: configSchema.window.style.brightness.options, value: config.window.style.brightness"></select>
-        </div>
-      </div>
       <h5>View</h5>
       <div class="settings-group">
         <div class="form-group form-check">
@@ -172,6 +164,50 @@
             <label for="always-show-reload" title="refresh"><i class="fa-solid fa-rotate-right"></i></label>
           </div>
         </div>
+      </div>
+      <!-- /ko -->
+      <!-- ko if: appTab() === appTabs.theme -->
+      <div class="theme-preview settings-group">
+        <div class="theme-preview-icon">
+          <img data-bind="attr: { src: appIcon }" alt="KanColle Assistant icon preview">
+        </div>
+        <div>
+          <h5>KanColle Assistant</h5>
+          <p>Preview your browser color and app icon.</p>
+        </div>
+      </div>
+      <h5>Browser color</h5>
+      <div class="settings-group">
+        <div class="form-row">
+          <label for="windowstyletheme" class="col-sm-3">Theme</label>
+          <select id="windowstyletheme" class="col form-control" data-bind="options: configSchema.window.style.theme.options, value: config.window.style.theme"></select>
+        </div>
+        <div class="form-row">
+          <label for="windowstylebright" class="col-sm-3">Brightness</label>
+          <select id="windowstylebright" class="col form-control" data-bind="options: configSchema.window.style.brightness.options, value: config.window.style.brightness"></select>
+        </div>
+        <div class="form-row theme-color-row">
+          <label for="customthemecolor" class="col-sm-3">Custom color</label>
+          <div class="col theme-color-control">
+            <input id="customthemecolor" type="color" data-bind="value: customColor, event: { input: selectCustomThemeColor, change: commitSelectedCustomThemeColor }" title="Choose custom theme color">
+            <input type="text" class="form-control" maxlength="7" spellcheck="false" aria-label="Custom theme color hex value" data-bind="textInput: customThemeColorInput, event: { blur: applyCustomThemeColor, keydown: customThemeColorKeyDown }">
+          </div>
+        </div>
+        <!-- ko if: themeColorError -->
+        <p class="theme-message theme-message-error" role="alert" data-bind="text: themeColorError"></p>
+        <!-- /ko -->
+      </div>
+      <h5>App icon</h5>
+      <div class="settings-group icon-upload-group">
+        <p>Upload a PNG, JPEG, or WebP image up to 2 MB. A square image works best.</p>
+        <div class="icon-upload-actions">
+          <label class="btn btn-secondary mb-0" for="custom-icon-upload">Upload icon</label>
+          <input id="custom-icon-upload" class="sr-only" type="file" accept="image/png,image/jpeg,image/webp" data-bind="event: { change: uploadCustomIcon }">
+          <button type="button" class="btn btn-outline-secondary" data-bind="click: resetCustomIcon, visible: config.window.style.customIcon">Use default</button>
+        </div>
+        <!-- ko if: iconUploadError -->
+        <p class="theme-message theme-message-error" role="alert" data-bind="text: iconUploadError"></p>
+        <!-- /ko -->
       </div>
       <!-- /ko -->
       <!-- ko if: appTab() === appTabs.kancolle -->
@@ -226,7 +262,7 @@
         <!-- /ko -->
         <div class="form-group"></div>
         <div class="form-group">
-          <span>Note: You will need to close and restart Damecon for the data location setting to take effect.</span>
+          <span>Note: You will need to close and restart KanColle Assistant for the data location setting to take effect.</span>
         </div>
       </div>
       <div class="form-group">
@@ -252,7 +288,7 @@
       </div>
       <!-- /ko -->
       <!-- ko if: appTab() === appTabs.advanced -->
-      <p>Damecon must be restarted for these settings to take effect.</p>
+      <p>KanColle Assistant must be restarted for these settings to take effect.</p>
       <h5>Behavior</h5>
       <div class="settings-group">
         <div class="form-group form-check">
@@ -369,7 +405,7 @@
             <label for="proxymode" class="form-check-label">Mode</label>
             <select id="proxymode" class="col form-control" data-bind="options: configSchema.proxy.mode.options, value: config.proxy.mode"></select>
           </div>
-          <div class="form-check col">
+          <div class="form-check col" data-bind="visible: config.proxy.mode() !== 'all-external'">
             <label for="proxymethod" class="form-check-label">Method</label>
             <select id="proxymethod" class="col form-control" data-bind="options: configSchema.proxy.method.options, value: config.proxy.method"></select>
           </div>
@@ -382,10 +418,19 @@
           <label for="proxyclienthost" class="col-sm-3">Host</label>
           <input id="proxyclienthost" type="text" class="col form-control" data-bind="value: config.proxy.client.host" placeholder="Enter IP/host (e.g. 127.0.0.1)">
         </div>
+        <!-- ko if: config.proxy.mode() === 'kccp-external' -->
         <div class="form-row">
           <label for="proxyclientport" class="col-sm-3">Port</label>
           <input id="proxyclientport" type="number" class="col form-control" data-bind="value: config.proxy.client.port" placeholder="Enter port (e.g. 8081)">
         </div>
+        <!-- /ko -->
+        <!-- ko if: config.proxy.mode() === 'all-external' -->
+        <div class="form-row">
+          <label for="proxyclienthttpsport" class="col-sm-3">Forward proxy port</label>
+          <input id="proxyclienthttpsport" type="number" class="col form-control" data-bind="value: config.proxy.client.httpsPort" placeholder="Enter port (e.g. 8080)">
+        </div>
+        <p>All external routes browser traffic through an unauthenticated HTTP/HTTPS forward proxy. Configure an authorized endpoint before enabling it.</p>
+        <!-- /ko -->
       </div>
       <!-- /ko -->
       <!-- ko if: config.proxy.mode() === 'kccp-internal' -->
@@ -443,7 +488,7 @@
               <input id="proxyservertimeoutms" type="number" class="form-control" data-bind="value: kccpConfig.httpTimeoutMs" placeholder="Enter request timeout (e.g. 60000)">
             </div>
           </div>
-          <p>KCCacheProxy is built into Damecon. The hostname/port settings can be used to allow other KanColle clients to connect through this KCCP instance.</p>
+          <p>KCCacheProxy is built into KanColle Assistant. The hostname/port settings can be used to allow other KanColle clients to connect through this KCCP instance.</p>
           <div class="form-check">
             <input class="form-check-input" id="useproxycachelocation" type="checkbox" data-bind="checked: kccpConfig.useCacheLocation">
             <label class="form-check-label" for="useproxycachelocation">Custom Cache Location</label>

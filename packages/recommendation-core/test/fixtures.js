@@ -27,6 +27,7 @@ const createEquipment = (id, masterId, typeId, index) => ({
   masterId,
   name: `Fixture gear ${id}`,
   typeId,
+  iconTypeId: typeId,
   type: String(typeId),
   improvement: index % 3,
   proficiency: -1,
@@ -84,4 +85,118 @@ const createRawSnapshot = ({ shipCount = 6 } = {}) => {
   }
 }
 
-module.exports = { createRawSnapshot }
+const createResourceRawSnapshot = () => {
+  const landingCraft = Array.from({ length: 15 }, (_, index) =>
+    createEquipment(3001 + index, 4001 + index, 24, index),
+  )
+  const drums = Array.from({ length: 5 }, (_, index) =>
+    createEquipment(3101 + index, 4101 + index, 30, index),
+  )
+  const torpedoes = Array.from({ length: 2 }, (_, index) =>
+    createEquipment(3201 + index, 4201 + index, 5, index),
+  )
+  const equipment = [...landingCraft, ...drums, ...torpedoes]
+  const transportMasterIds = [...landingCraft, ...drums].map((gear) => gear.masterId)
+  const ships = [
+    {
+      id: 201,
+      masterId: 601,
+      name: 'Fixture oiler',
+      level: 80,
+      shipTypeId: 22,
+      shipType: 'Fleet Oiler',
+      speedValue: 5,
+      stats: createStats(1),
+      nakedLos: 20,
+      slotSizes: [0, 0, 0],
+      equippedItemIds: [0, 0, 0],
+      expansionSlotItemId: 0,
+      expansionSlotUnlocked: false,
+      regularEquipableMasterIds: transportMasterIds,
+      locked: true,
+      morale: 49,
+      eventTag: 0,
+      fuelCost: 25,
+      ammoCost: 10,
+    },
+    ...Array.from({ length: 4 }, (_, index) => ({
+      id: 202 + index,
+      masterId: 602 + index,
+      name: `Fixture transport destroyer ${index + 1}`,
+      level: 60 + index,
+      shipTypeId: 2,
+      shipType: 'Destroyer',
+      speedValue: 10,
+      stats: createStats(index),
+      nakedLos: 18 + index,
+      slotSizes: [0, 0, 0],
+      equippedItemIds: [0, 0, 0],
+      expansionSlotItemId: 0,
+      expansionSlotUnlocked: false,
+      regularEquipableMasterIds: transportMasterIds,
+      locked: true,
+      morale: 49,
+      eventTag: 0,
+      fuelCost: 15,
+      ammoCost: 20,
+    })),
+    {
+      id: 206,
+      masterId: 606,
+      name: 'Fixture incompatible destroyer',
+      level: 175,
+      shipTypeId: 2,
+      shipType: 'Destroyer',
+      speedValue: 10,
+      stats: createStats(20),
+      nakedLos: 40,
+      slotSizes: [0, 0, 0],
+      equippedItemIds: [0, 0, 0],
+      expansionSlotItemId: 0,
+      expansionSlotUnlocked: false,
+      regularEquipableMasterIds: [],
+      locked: true,
+      morale: 49,
+      eventTag: 0,
+      fuelCost: 15,
+      ammoCost: 20,
+    },
+    {
+      id: 207,
+      masterId: 607,
+      name: 'Fixture submarine',
+      level: 50,
+      shipTypeId: 13,
+      shipType: 'Submarine',
+      speedValue: 5,
+      stats: createStats(0),
+      nakedLos: 10,
+      slotSizes: [0, 0],
+      equippedItemIds: [0, 0],
+      expansionSlotItemId: 0,
+      expansionSlotUnlocked: false,
+      regularEquipableMasterIds: torpedoes.map((gear) => gear.masterId),
+      locked: true,
+      morale: 49,
+      eventTag: 0,
+      fuelCost: 10,
+      ammoCost: 20,
+    },
+  ]
+
+  return {
+    generatedAt: '2026-08-25T00:00:00.000Z',
+    hqLevel: 120,
+    ships,
+    equipment,
+    currentFleetShipIds: [],
+    capabilities: {
+      accountShips: true,
+      accountEquipment: true,
+      masterData: true,
+      currentFleet: true,
+    },
+  }
+}
+
+module.exports = { createRawSnapshot, createResourceRawSnapshot }

@@ -1,7 +1,7 @@
 {
-  "name": "electron-browser-shell",
+  "name": "kancolle-assistant",
   "version": "1.0.0",
-  "description": "A minimal browser shell built on Electron.",
+  "description": "A KanColle-focused browser with KC3Kai and KCCacheProxy integration.",
   "private": true,
   "workspaces": [
     "packages/shell",
@@ -35,12 +35,12 @@
   "author": "Samuel Maddock <sam@samuelmaddock.com>",
   "dependencies": {},
   "devDependencies": {
-    "electron": "^25.0.0",
+    "electron": "25.9.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2"
   },
-  "repository": "git@github.com:samuelmaddock/electron-browser-shell.git",
+  "repository": "https://github.com/kevinsuu/kancolle-assistant",
   "engines": {
     "node": "20 || >=22",
     "yarn": ">= 1.10.0 < 2.0.0"

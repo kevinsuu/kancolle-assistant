@@ -5,6 +5,7 @@ import type {
   RouteTemplate,
   ShipSpeed,
 } from './types'
+import { isDrumCanister, isNormalResourceLandingCraft } from './resource'
 
 const LOS_MULTIPLIERS: Readonly<Record<number, number>> = {
   8: 0.8,
@@ -89,6 +90,31 @@ export const calculateFleetMetrics = (
 ): FleetMetrics => {
   const airConstraint = getAirConstraint(route)
   const losConstraint = getLosConstraint(route)
+  const equipment = builds.flatMap((build) => build.equipment).filter((gear) => gear !== null)
+  const landingCraftCount = equipment.filter(isNormalResourceLandingCraft).length
+  const drumCount = equipment.filter(isDrumCanister).length
+  const fuelCostRate = route.resourceProfile?.fuelCostRate ?? 0.8
+  const ammoCostRate = route.resourceProfile?.ammoCostRate ?? 0.8
+  const estimatedFuelCost = Math.ceil(
+    builds.reduce((total, build) => total + build.ship.fuelCost, 0) * fuelCostRate,
+  )
+  const estimatedAmmoCost = Math.ceil(
+    builds.reduce((total, build) => total + build.ship.ammoCost, 0) * ammoCostRate,
+  )
+  const estimatedResourceGain = route.resourceProfile
+    ? Math.floor(
+        (route.resourceProfile.averageBaseGain +
+          landingCraftCount * route.resourceProfile.landingCraftBonus +
+          drumCount * route.resourceProfile.drumBonus) *
+          route.resourceProfile.reachRate,
+      )
+    : null
+  const targetSortieCost =
+    route.resourceProfile?.target === 'fuel'
+      ? estimatedFuelCost
+      : route.resourceProfile?.target === 'ammo'
+        ? estimatedAmmoCost
+        : 0
 
   return {
     airPower: calculateFleetAirPower(builds),
@@ -99,12 +125,14 @@ export const calculateFleetMetrics = (
     losRequired: losConstraint !== null,
     losMinimum: losConstraint?.minimum ?? 0,
     openingAswCount: calculateOpeningAswCount(builds),
-    estimatedFuelCost: Math.ceil(
-      builds.reduce((total, build) => total + build.ship.fuelCost, 0) * 0.8,
-    ),
-    estimatedAmmoCost: Math.ceil(
-      builds.reduce((total, build) => total + build.ship.ammoCost, 0) * 0.8,
-    ),
+    estimatedFuelCost,
+    estimatedAmmoCost,
+    estimatedResourceGain,
+    estimatedNetResourceGain:
+      estimatedResourceGain === null ? null : estimatedResourceGain - targetSortieCost,
+    resourceTarget: route.resourceProfile?.target ?? null,
+    landingCraftCount,
+    drumCount,
     nightCutInCandidates: calculateNightCutInCandidates(builds),
     finalSpeedClass: calculateFinalSpeed(builds),
   }

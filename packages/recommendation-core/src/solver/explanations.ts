@@ -19,6 +19,13 @@ const RECOMMENDATION_TITLES: Readonly<Record<RecommendationObjective, readonly s
   'resource-devmat': ['開發主案', '開發替案', '兼收替案'],
 }
 
+const RESOURCE_LABELS = {
+  fuel: '燃料',
+  ammo: '彈藥',
+  steel: '鋼材',
+  bauxite: '鋁土',
+} as const
+
 export const recommendationMessages = (
   builds: readonly RecommendedShipBuild[],
   metrics: FleetMetrics,
@@ -31,6 +38,10 @@ export const recommendationMessages = (
     {
       code: 'ROUTE_FIXED_COMPOSITION',
       message: `採用「${route.name}」${route.nodes.length ? `（${route.nodes.join(' → ')}）` : ''}，艦種配置符合資料規則。`,
+      values: {
+        routeName: route.name,
+        nodes: route.nodes.length ? ` (${route.nodes.join(' → ')})` : '',
+      },
     },
     {
       code: 'EQUIPMENT_INSTANCES_UNIQUE',
@@ -38,16 +49,22 @@ export const recommendationMessages = (
     },
   ]
   const warnings: RecommendationMessage[] = []
+  const emptyEquipmentCount = builds.reduce(
+    (total, build) => total + build.equipment.filter((gear) => gear === null).length,
+    0,
+  )
 
   if (metrics.airPowerRequired && metrics.airPower >= metrics.airPowerRecommended) {
     reasons.push({
       code: 'AIR_POWER_RECOMMENDED',
       message: `制空值 ${metrics.airPower}，已達建議值 ${metrics.airPowerRecommended}。`,
+      values: { airPower: metrics.airPower, recommended: metrics.airPowerRecommended },
     })
   } else if (metrics.airPowerRequired) {
     warnings.push({
       code: 'AIR_POWER_BELOW_RECOMMENDED',
       message: `制空值 ${metrics.airPower} 通過最低值，但未達建議值 ${metrics.airPowerRecommended}。`,
+      values: { airPower: metrics.airPower, recommended: metrics.airPowerRecommended },
     })
   }
 
@@ -56,6 +73,7 @@ export const recommendationMessages = (
     reasons.push({
       code: 'LOS_CONSTRAINT_PASSED',
       message: `33 式索敵為 ${metrics.los33.toFixed(1)}，餘裕 ${losMargin.toFixed(1)}。`,
+      values: { los: metrics.los33.toFixed(1), margin: losMargin.toFixed(1) },
     })
   }
   if (metrics.losRequired && losMargin < 5) {
@@ -77,6 +95,40 @@ export const recommendationMessages = (
     warnings.push({
       code: 'EQUIPMENT_MOVEMENT_REQUIRED',
       message: `需從其他艦娘調度 ${movedEquipmentCount} 件現有裝備；系統不會自動換裝。`,
+      values: { count: movedEquipmentCount },
+    })
+  }
+  if (metrics.estimatedResourceGain !== null && metrics.estimatedNetResourceGain !== null) {
+    const resourceLabel = metrics.resourceTarget ? RESOURCE_LABELS[metrics.resourceTarget] : '資源'
+    reasons.push({
+      code: 'RESOURCE_NET_GAIN_CALCULATED',
+      message: `依路線到達率估計可取得 ${metrics.estimatedResourceGain} ${resourceLabel}，扣除同資源出擊消耗後淨收益 ${metrics.estimatedNetResourceGain}；已裝 ${metrics.landingCraftCount} 件有效大發系、${metrics.drumCount} 個運輸桶。`,
+      values: {
+        gain: metrics.estimatedResourceGain,
+        net: metrics.estimatedNetResourceGain,
+        resource: metrics.resourceTarget || 'resource',
+        resourceLabel,
+        landingCraft: metrics.landingCraftCount,
+        drums: metrics.drumCount,
+      },
+    })
+  } else if (route.category === 'resource') {
+    warnings.push({
+      code: 'RESOURCE_GAIN_NOT_CALCULATED',
+      message: '此資源路線尚無完整節點收益模型；目前只比較出擊消耗，結果不代表最高淨收益。',
+    })
+  }
+  if (emptyEquipmentCount > 0) {
+    warnings.push({
+      code: 'EMPTY_EQUIPMENT_SLOTS',
+      message: `帳號內可裝且符合用途的裝備不足，方案仍有 ${emptyEquipmentCount} 個空槽；請勿直接照抄出擊。`,
+      values: { count: emptyEquipmentCount },
+    })
+  }
+  if (route.tags.includes('oasw') && metrics.openingAswCount === 0) {
+    warnings.push({
+      code: 'OASW_NOT_READY',
+      message: '此路線依賴先制對潛，但目前方案未達一般 100 對潛判定；請依艦種個別門檻確認。',
     })
   }
   if (route.tags.includes('random-routing') || route.tags.some((tag) => tag.includes('routing-'))) {
@@ -91,9 +143,40 @@ export const recommendationMessages = (
       message: '此路線仍屬新海域／實驗資料，出擊前請再次核對最新攻略。',
     })
   }
+  const world = Number(route.mapId.split('-')[0])
+  if (route.category === 'boss' && world >= 2 && route.calculatedConstraints.length === 0) {
+    warnings.push({
+      code: 'COMBAT_THRESHOLDS_UNVERIFIED',
+      message: '此模板已核對路線與艦種，但尚未建入完整制空／索敵硬門檻；出擊前請開啟攻略來源核對。',
+    })
+  }
+  const externallyConfiguredTags = [
+    'anti-installation',
+    'boss-support',
+    'historical-bonus',
+    'lbas',
+    'night-carrier',
+    'pt',
+    'rocket-barrage-required',
+    'special-attack',
+  ].filter((tag) => route.tags.includes(tag))
+  if (externallyConfiguredTags.length > 0) {
+    warnings.push({
+      code: 'EXTERNAL_COMBAT_SETUP_REQUIRED',
+      message: `此路線另需人工設定：${externallyConfiguredTags.join('、')}；求解器尚未驗證這些條件。`,
+      values: { tags: externallyConfiguredTags.join(', ') },
+    })
+  }
+  if (route.tags.includes('fast+')) {
+    warnings.push({
+      code: 'FAST_PLUS_NOT_VERIFIED',
+      message: '高速＋需要依艦娘實際裝備提速；目前只顯示候選艦隊，未驗證每艘都已達高速＋。',
+    })
+  }
   warnings.push({
     code: 'HEURISTIC_COMBAT_SCORE',
-    message: '火力與消耗為啟發式評估，不是完整戰鬥模擬。',
+    message:
+      '適配度是規則與裝備的啟發式比較，不是勝率或通關保證；損傷、士氣、交戰形態與隨機分歧仍會影響結果。',
   })
 
   return { reasons, warnings }

@@ -139,6 +139,7 @@ const parseOwnedEquipment = (value: unknown, index: number): OwnedEquipment => {
     masterId: asNumber(record.masterId, `${path}.masterId`) as EquipmentMasterId,
     name: asString(record.name, `${path}.name`),
     typeId: asNumber(record.typeId, `${path}.typeId`),
+    iconTypeId: asNumber(record.iconTypeId, `${path}.iconTypeId`),
     type: asString(record.type, `${path}.type`),
     improvement: optionalNumber(record.improvement),
     proficiency: optionalNumber(record.proficiency, -1),

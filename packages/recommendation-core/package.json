@@ -1,5 +1,5 @@
 {
-  "name": "@damecon/recommendation-core",
+  "name": "@kancolle-assistant/recommendation-core",
   "version": "0.1.0",
   "description": "Account-aware KanColle fleet and equipment recommendation core.",
   "main": "dist/index.js",

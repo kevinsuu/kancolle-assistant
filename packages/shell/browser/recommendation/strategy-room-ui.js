@@ -1,28 +1,7 @@
 import { ACCOUNT_CHANNEL, MAP_OPTIONS_CHANNEL, RECOMMEND_CHANNEL } from './channels'
+import { createStrategyRoomI18n } from './i18n'
 
-const roleLabels = {
-  'main-battleship': '主力戰艦',
-  'carrier-air-superiority': '制空空母',
-  'utility-cruiser': '索敵巡洋艦',
-  'escort-destroyer': '護衛艦',
-  'anti-submarine': '先制對潛',
-  submarine: '潛水艦',
-  'resource-carrier': '資源運輸',
-  wildcard: '自由枠',
-}
-
-const objectiveLabels = {
-  balanced: '均衡',
-  'boss-clear': '斬殺',
-  'low-cost': '節約',
-  leveling: '練船',
-  'resource-fuel': '撈油',
-  'resource-ammo': '撈彈',
-  'resource-steel': '撈鋼',
-  'resource-bauxite': '撈鋁',
-  'resource-bucket': '撈水桶',
-  'resource-devmat': '撈開發資材',
-}
+let { locale, t, translateMessage } = createStrategyRoomI18n()
 
 const escapeHtml = (value) =>
   String(value)
@@ -34,77 +13,85 @@ const escapeHtml = (value) =>
 
 const formatDate = (value) => {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('zh-TW', { hour12: false })
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString(locale, { hour12: false })
 }
 
 const formatEquipment = (gear) => {
-  if (!gear) return '<span class="dfr-empty-gear">— 空槽 —</span>'
+  if (!gear) return `<span class="dfr-empty-gear">${t('fleet.emptySlot')}</span>`
   const improvement = gear.improvement > 0 ? ` <b>★+${gear.improvement}</b>` : ''
-  const proficiency = gear.proficiency > 0 ? ` <span>熟練 ${gear.proficiency}</span>` : ''
-  return `${escapeHtml(gear.name)}${improvement}${proficiency} <small>#${gear.id}</small>`
+  const proficiency =
+    gear.proficiency > 0
+      ? ` <span>${t('fleet.proficiency', { value: gear.proficiency })}</span>`
+      : ''
+  const iconTypeId = Number(gear.iconTypeId)
+  const icon =
+    Number.isInteger(iconTypeId) && iconTypeId >= 0
+      ? `<img class="dfr-gear-icon" src="../../assets/img/items_p2/${iconTypeId}.png" alt="" aria-hidden="true">`
+      : ''
+  return `<span class="dfr-gear">${icon}<span class="dfr-gear-copy">${escapeHtml(gear.name)}${improvement}${proficiency} <small>#${gear.id}</small></span></span>`
 }
 
 const panelMarkup = () => `
   <div id="damecon-fleet-recommender" class="dfr-root tab_fleet">
     <div class="page_title">
-      <span>關卡艦隊推薦</span>
-      <div class="page_help_btn hover"><span>?</span> <span>說明</span></div>
+      <span>${t('fleet.title')}</span>
+      <div class="page_help_btn hover"><span>?</span> <span>${t('common.help')}</span></div>
     </div>
 
     <div class="page_help">
-      <div class="help_q">這個頁面會做什麼？</div>
-      <div class="help_a">依 KC3 已同步的艦娘與裝備，產生目前通常海域可實際組成的艦隊與配裝。</div>
-      <div class="help_q">會自動操作遊戲嗎？</div>
-      <div class="help_a">不會。推薦結果只供閱讀，不會自動換裝或出擊。</div>
-      <div class="help_q">包含哪些用途？</div>
-      <div class="help_a">進王攻略、練船、燃料、彈藥、鋼材、鋁土、水桶與開發資材回收。</div>
+      <div class="help_q">${t('fleet.help.whatQuestion')}</div>
+      <div class="help_a">${t('fleet.help.whatAnswer')}</div>
+      <div class="help_q">${t('fleet.help.automaticQuestion')}</div>
+      <div class="help_a">${t('fleet.help.automaticAnswer')}</div>
+      <div class="help_q">${t('fleet.help.scopeQuestion')}</div>
+      <div class="help_a">${t('fleet.help.scopeAnswer')}</div>
     </div>
 
     <section class="page_panel bscolor4 dfr-account" aria-live="polite">
       <div>
-        <strong id="dfr-account-title">正在讀取 KC3 帳號</strong>
-        <span id="dfr-account-detail">請稍候…</span>
+        <strong id="dfr-account-title">${t('fleet.account.loading')}</strong>
+        <span id="dfr-account-detail">${t('common.loading')}</span>
       </div>
-      <button id="dfr-sync" class="dfr-button dfr-button-quiet" type="button">重新同步</button>
+      <button id="dfr-sync" class="dfr-button dfr-button-quiet" type="button">${t('fleet.sync')}</button>
     </section>
 
     <div class="page_padding">
-      <div class="page_section">推薦條件</div>
+      <div class="page_section">${t('fleet.conditions')}</div>
       <section class="section_body dfr-controls">
         <div class="dfr-control-row">
           <label class="dfr-field">
-            <span>關卡</span>
+            <span>${t('fleet.map')}</span>
             <select id="dfr-map" class="control_input" disabled></select>
           </label>
           <label class="dfr-field">
-            <span>路線／階段</span>
+            <span>${t('fleet.route')}</span>
             <select id="dfr-route-select" class="control_input" disabled></select>
           </label>
           <fieldset class="dfr-objectives">
-            <legend>攻略目的</legend>
+            <legend>${t('fleet.objective')}</legend>
             <div id="dfr-objective-options"></div>
           </fieldset>
         </div>
         <div class="dfr-route-row bscolor3 fcolor2">
-          <span class="dfr-field-label">資料狀態</span>
-          <strong id="dfr-map-summary" class="dfr-route">載入中</strong>
+          <span class="dfr-field-label">${t('fleet.dataStatus')}</span>
+          <strong id="dfr-map-summary" class="dfr-route">${t('fleet.loading')}</strong>
         </div>
         <div class="dfr-action-row">
           <label class="dfr-check">
             <input id="dfr-preserve-fleet" type="checkbox">
-            保留目前艦隊的裝備
+            ${t('fleet.keepEquipment')}
           </label>
           <button id="dfr-generate" class="dfr-button" type="button" disabled>
-            <span>產生推薦</span>
+            <span>${t('fleet.generate')}</span>
           </button>
         </div>
       </section>
 
-      <div class="page_section">推薦結果</div>
+      <div class="page_section">${t('fleet.results')}</div>
       <div id="dfr-output" class="dfr-output" aria-live="polite">
         <div class="dfr-idle bscolor3 fcolor2">
-          <strong>尚未產生推薦</strong>
-          <span>同步完成後，按「產生推薦」查看最多三組合法方案。</span>
+          <strong>${t('fleet.idleTitle')}</strong>
+          <span>${t('fleet.idleDetail')}</span>
         </div>
       </div>
     </div>
@@ -182,6 +169,9 @@ const styles = `
   body.dark .dfr-gear-list li { border-top: 1px solid #303030; }
   body:not(.dark) .dfr-gear-list li { border-top: 1px solid #ddd; }
   .dfr-gear-list li > span:first-child { color: #777; font-size: 9px; }
+  .dfr-gear { display: flex; align-items: center; min-width: 0; }
+  .dfr-gear-icon { flex: 0 0 18px; width: 18px; height: 18px; margin-right: 5px; object-fit: contain; }
+  .dfr-gear-copy { min-width: 0; }
   .dfr-gear-list b { color: #f90; font-weight: normal; }
   .dfr-gear-list small { color: #777; font-size: 8px; }
   .dfr-empty-gear { color: #c44; }
@@ -210,21 +200,37 @@ const styles = `
   }
 `
 
-const renderRecommendation = (recommendation) => {
+const renderRecommendation = (recommendation, planIndex) => {
   const metrics = recommendation.metrics
+  const sourceMarkup = recommendation.route.sources
+    .map(
+      (source, index) =>
+        `<a href="${escapeHtml(source)}" target="_blank" rel="noreferrer">${t('fleet.source', { index: index + 1 })}</a>`,
+    )
+    .join(' · ')
+  const resourceMetricMarkup =
+    metrics.estimatedResourceGain === null
+      ? `
+        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.estimatedFuel')}</span><strong>${metrics.estimatedFuelCost}</strong><small>${t('fleet.singleSortie')}</small></div>
+        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.estimatedAmmo')}</span><strong>${metrics.estimatedAmmoCost}</strong><small>${t('fleet.singleSortie')}</small></div>
+      `
+      : `
+        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.expectedResource', { resource: t(`common.${metrics.resourceTarget}`) || t('fleet.resourceFallback') })}</span><strong>${metrics.estimatedResourceGain}</strong><small>${t('fleet.includingArrivalRate')}</small></div>
+        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.expectedNetResource', { resource: t(`common.${metrics.resourceTarget}`) || t('fleet.resourceFallback') })}</span><strong>${metrics.estimatedNetResourceGain}</strong><small>${t('fleet.afterSortieCost')}</small></div>
+      `
   const shipMarkup = recommendation.ships
     .map(
       (build) => `
         <article class="dfr-ship bscolor3 fcolor2">
           <div class="dfr-ship-head">
             <h3>${escapeHtml(build.ship.name)} <span>Lv.${build.ship.level}</span></h3>
-            <span class="dfr-role">${escapeHtml(roleLabels[build.role] || build.role)}</span>
+            <span class="dfr-role">${escapeHtml(t(`fleet.role.${build.role}`))}</span>
           </div>
           <ol class="dfr-gear-list">
             ${build.equipment
               .map(
                 (gear, slotIndex) => `
-                  <li><span>SLOT ${slotIndex + 1}<br>${build.ship.slotSizes[slotIndex] || 0} 機</span><span>${formatEquipment(gear)}</span></li>
+                  <li><span>${t('fleet.slot', { index: slotIndex + 1 })}<br>${t('fleet.slotAircraft', { count: build.ship.slotSizes[slotIndex] || 0 })}</span><span>${formatEquipment(gear)}</span></li>
                 `,
               )
               .join('')}
@@ -235,28 +241,27 @@ const renderRecommendation = (recommendation) => {
     )
     .join('')
   const reasons = recommendation.reasons
-    .map((reason) => `<li>${escapeHtml(reason.message)}</li>`)
+    .map((reason) => `<li>${escapeHtml(translateMessage(reason))}</li>`)
     .join('')
   const warnings = recommendation.warnings
-    .map((warning) => `<li>${escapeHtml(warning.message)}</li>`)
+    .map((warning) => `<li>${escapeHtml(translateMessage(warning))}</li>`)
     .join('')
 
   return `
     <article class="dfr-plan">
       <header class="dfr-plan-head">
-        <div><h2>${escapeHtml(recommendation.title)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${recommendation.route.confidence}`)}</p></div>
-        <div class="dfr-score bscolor3 fcolor2">${recommendation.score.total.toFixed(1)} <small>/ 100</small></div>
+        <div><h2>${escapeHtml(`${recommendation.route.name} · ${t('fleet.recommendationTab', { index: planIndex + 1 })}`)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${t(`fleet.confidence.${recommendation.route.confidence}`)}`)} · ${sourceMarkup} · ${t('fleet.verifiedAt', { date: escapeHtml(recommendation.route.lastVerified) })}</p></div>
+        <div class="dfr-score bscolor3 fcolor2">${recommendation.score.total.toFixed(1)} <small>${t('fleet.score')} / 100</small></div>
       </header>
       <div class="dfr-metrics">
-        <div class="dfr-metric bscolor3 fcolor2"><span>制空值</span><strong>${metrics.airPower}</strong><small>${metrics.airPowerRequired ? `最低 ${metrics.airPowerMinimum}` : '未設硬門檻'}</small></div>
-        <div class="dfr-metric bscolor3 fcolor2"><span>33 式索敵</span><strong>${metrics.los33.toFixed(1)}</strong><small>${metrics.losRequired ? `最低 ${metrics.losMinimum}` : '未設硬門檻'}</small></div>
-        <div class="dfr-metric bscolor3 fcolor2"><span>估計燃料</span><strong>${metrics.estimatedFuelCost}</strong><small>單次出擊</small></div>
-        <div class="dfr-metric bscolor3 fcolor2"><span>估計彈藥</span><strong>${metrics.estimatedAmmoCost}</strong><small>單次出擊</small></div>
+        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.airPower')}</span><strong>${metrics.airPower}</strong><small>${metrics.airPowerRequired ? t('common.minimum', { value: metrics.airPowerMinimum }) : t('common.noMinimum')}</small></div>
+        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.los')}</span><strong>${metrics.los33.toFixed(1)}</strong><small>${metrics.losRequired ? t('common.minimum', { value: metrics.losMinimum }) : t('common.noMinimum')}</small></div>
+        ${resourceMetricMarkup}
       </div>
       <div class="dfr-ship-grid">${shipMarkup}</div>
       <footer class="dfr-notes">
-        <section class="dfr-note-group bscolor3 fcolor2"><h4>推薦依據</h4><ul>${reasons}</ul></section>
-        <section class="dfr-note-group warning bscolor3 fcolor2"><h4>執行前確認</h4><ul>${warnings}</ul></section>
+        <section class="dfr-note-group bscolor3 fcolor2"><h4>${t('fleet.reasons')}</h4><ul>${reasons}</ul></section>
+        <section class="dfr-note-group warning bscolor3 fcolor2"><h4>${t('fleet.warnings')}</h4><ul>${warnings}</ul></section>
       </footer>
     </article>
   `
@@ -267,18 +272,18 @@ const renderResults = (output, result) => {
   const renderActivePlan = () => {
     const recommendation = result.recommendations[activeIndex]
     output.innerHTML = `
-      <nav class="dfr-plan-tabs" aria-label="推薦方案">
+      <nav class="dfr-plan-tabs" aria-label="${t('fleet.planNavigation')}">
         ${result.recommendations
           .map(
             (item, index) => `
               <button class="dfr-plan-tab${index === activeIndex ? ' active' : ''}" data-plan-index="${index}" type="button">
-                <span>${escapeHtml(item.title)}</span><strong>${item.score.total.toFixed(1)}</strong>
+                <span>${escapeHtml(t('fleet.recommendationTab', { index: index + 1 }))}</span><strong>${item.score.total.toFixed(1)}</strong>
               </button>
             `,
           )
           .join('')}
       </nav>
-      ${renderRecommendation(recommendation)}
+      ${renderRecommendation(recommendation, activeIndex)}
     `
     output.querySelectorAll('[data-plan-index]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -328,7 +333,9 @@ const mountPanel = (invoke) => {
     mapSelect.disabled = busy || !mapOptionsReady
     routeSelect.disabled = busy || !mapOptionsReady
     generateButton.disabled = busy || !accountReady || !mapOptionsReady
-    generateButton.querySelector('span').textContent = busy ? '計算中…' : '產生推薦'
+    generateButton.querySelector('span').textContent = busy
+      ? t('fleet.generating')
+      : t('fleet.generate')
   }
 
   const renderMapObjectives = () => {
@@ -337,7 +344,7 @@ const mountPanel = (invoke) => {
     objectiveOptions.innerHTML = mapOption.objectives
       .map(
         (objective, index) => `
-          <label><input type="radio" name="dfr-objective" value="${escapeHtml(objective)}"${index === 0 ? ' checked' : ''}> ${escapeHtml(objectiveLabels[objective] || objective)}</label>
+          <label><input type="radio" name="dfr-objective" value="${escapeHtml(objective)}"${index === 0 ? ' checked' : ''}> ${escapeHtml(t(`fleet.objective.${objective}`))}</label>
         `,
       )
       .join('')
@@ -350,19 +357,22 @@ const mountPanel = (invoke) => {
     if (!mapOption || !objective) return
     const routes = mapOption.routes.filter((route) => route.objectives.includes(objective))
     routeSelect.innerHTML = [
-      '<option value="">自動比較可用路線（Top 3）</option>',
+      `<option value="">${t('fleet.autoRoutes')}</option>`,
       ...routes.map(
         (route) =>
-          `<option value="${escapeHtml(route.id)}">${escapeHtml(route.phase ? `${route.phase}｜${route.name}` : route.name)}${route.stableBoss ? '｜穩定' : ''}</option>`,
+          `<option value="${escapeHtml(route.id)}">${escapeHtml(route.phase ? `${route.phase}｜${route.name}` : route.name)}${route.stableBoss ? `｜${t('fleet.stable')}` : ''}</option>`,
       ),
     ].join('')
-    mapSummary.textContent = `${mapOption.routeCount} 個攻略模板｜${mapOption.stableBossRouteCount} 個穩定進王模板`
+    mapSummary.textContent = t('fleet.routeSummary', {
+      routeCount: mapOption.routeCount,
+      stableCount: mapOption.stableBossRouteCount,
+    })
   }
 
   const loadMapOptions = async () => {
     const result = await invoke(MAP_OPTIONS_CHANNEL)
     if (result.status !== 'success') {
-      mapSummary.textContent = result.error?.message || '關卡資料載入失敗'
+      mapSummary.textContent = translateMessage(result.error, 'fleet.mapUnavailableDetail')
       return
     }
     mapOptions = result.maps
@@ -372,38 +382,61 @@ const mountPanel = (invoke) => {
           `<option value="${escapeHtml(item.id)}">${escapeHtml(item.id)}｜${escapeHtml(item.name)}</option>`,
       )
       .join('')
-    if (mapOptions.some((item) => item.id === '5-5')) mapSelect.value = '5-5'
+    if (mapOptions.some((item) => item.id === '1-1')) mapSelect.value = '1-1'
     mapOptionsReady = true
     renderMapObjectives()
     setBusy(false)
   }
 
-  const syncAccount = async () => {
+  const syncAccount = async ({ invalidateResults = false } = {}) => {
     setBusy(true)
-    title.textContent = '正在讀取 KC3 帳號'
-    detail.textContent = '驗證艦娘、裝備與 master data…'
+    title.textContent = t('fleet.account.loading')
+    detail.textContent = t('fleet.account.validating')
+    if (invalidateResults) {
+      output.innerHTML = `
+        <div class="dfr-idle bscolor3 fcolor2">
+          <strong>${t('fleet.resyncingTitle')}</strong>
+          <span>${t('fleet.resyncingDetail')}</span>
+        </div>
+      `
+    }
     const result = await invoke(ACCOUNT_CHANNEL)
     if (result.status === 'success') {
       accountReady = true
-      title.textContent = `KC3 已同步｜艦娘 ${result.account.shipCount}・裝備 ${result.account.equipmentCount}`
-      detail.textContent = `快照 ${formatDate(result.account.generatedAt)} · schema v1`
+      title.textContent = t('fleet.account.synced', {
+        ships: result.account.shipCount,
+        equipment: result.account.equipmentCount,
+      })
+      detail.textContent = t('fleet.account.snapshot', {
+        time: formatDate(result.account.generatedAt),
+      })
+      if (invalidateResults) {
+        output.innerHTML = `
+          <div class="dfr-idle bscolor3 fcolor2">
+            <strong>${t('fleet.updatedTitle')}</strong>
+            <span>${t('fleet.updatedDetail')}</span>
+          </div>
+        `
+      }
     } else {
       accountReady = false
-      title.textContent = '尚未取得 KC3 帳號資料'
-      detail.textContent = result.error?.message || '請先讓 KC3 完成母港資料同步。'
+      title.textContent = t('fleet.account.unavailable')
+      detail.textContent = translateMessage(result.error, 'fleet.account.syncFirst')
+      if (invalidateResults) {
+        renderError(output, t('fleet.resyncIncomplete'), [detail.textContent])
+      }
     }
     setBusy(false)
   }
 
-  syncButton.addEventListener('click', syncAccount)
+  syncButton.addEventListener('click', () => syncAccount({ invalidateResults: true }))
   mapSelect.addEventListener('change', renderMapObjectives)
   objectiveOptions.addEventListener('change', renderRouteOptions)
   generateButton.addEventListener('click', async () => {
     const objective = contentHtml.querySelector('input[name="dfr-objective"]:checked').value
     const mapId = mapSelect.value
     setBusy(true)
-    output.innerHTML =
-      '<div class="dfr-idle bscolor3 fcolor2"><strong>正在規劃艦隊</strong><span>比對候選艦、裝備 instance、制空與索敵限制…</span></div>'
+    output.innerHTML = `<div class="dfr-idle bscolor3 fcolor2"><strong>${t('fleet.planningTitle')}</strong><span>${t('fleet.planningDetail')}</span></div>`
     try {
       const result = await invoke(RECOMMEND_CHANNEL, {
         mapId,
@@ -416,33 +449,37 @@ const mountPanel = (invoke) => {
       } else if (result.status === 'no-solution') {
         renderError(
           output,
-          `目前帳號無法組成 ${mapId}「${objectiveLabels[objective]}」方案`,
-          result.analysis.reasons.map((reason) => reason.message),
+          t('fleet.noSolutionForObjective', {
+            mapId,
+            objective: t(`fleet.objective.${objective}`),
+          }),
+          result.analysis.reasons.map((reason) => translateMessage(reason)),
         )
       } else {
-        renderError(output, '推薦未完成', [result.error?.message || '未知錯誤'])
+        renderError(output, t('fleet.incomplete'), [translateMessage(result.error)])
       }
-    } catch (error) {
-      renderError(output, '推薦服務無法回應', [String(error)])
+    } catch {
+      renderError(output, t('fleet.serviceUnavailable'), [t('fleet.failedFallback')])
     } finally {
       setBusy(false)
     }
   })
 
-  syncAccount().catch((error) => {
+  syncAccount().catch(() => {
     accountReady = false
-    title.textContent = '尚未取得 KC3 帳號資料'
-    detail.textContent = String(error)
+    title.textContent = t('fleet.account.unavailable')
+    detail.textContent = t('fleet.account.syncFirst')
     setBusy(false)
   })
-  loadMapOptions().catch((error) => {
-    mapSummary.textContent = String(error)
+  loadMapOptions().catch(() => {
+    mapSummary.textContent = t('fleet.mapUnavailableDetail')
     mapOptionsReady = false
     setBusy(false)
   })
 }
 
 export const injectFleetRecommender = (invoke) => {
+  ;({ locale, t, translateMessage } = createStrategyRoomI18n())
   const style = document.createElement('style')
   style.id = 'damecon-fleet-recommender-style'
   style.textContent = styles
@@ -454,8 +491,8 @@ export const injectFleetRecommender = (invoke) => {
 
   const menuItem = document.createElement('li')
   menuItem.dataset.id = 'damecon-recommendation'
-  menuItem.textContent = '關卡推薦'
-  menuItem.title = '依 KC3 帳號產生關卡艦隊與配裝推薦'
+  menuItem.textContent = t('fleet.menu')
+  menuItem.title = t('fleet.menuTitle')
   menuItem.addEventListener(
     'click',
     (event) => {

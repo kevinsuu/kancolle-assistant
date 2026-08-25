@@ -5,9 +5,10 @@ import type {
   RecommendedShipBuild,
 } from '../types'
 import type { FleetMember, FleetSearchState } from './internal-types'
+import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
 
 const GEAR_BEAM_WIDTH = 120
-const GEAR_CANDIDATES_PER_SLOT = 10
+const MIN_GEAR_CANDIDATES_PER_SLOT = 10
 
 type GearRequirementKind =
   | 'big-gun'
@@ -98,6 +99,9 @@ const requirementsForMember = (
 }
 
 const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind): boolean => {
+  if (kind === 'landing-craft') {
+    return isNormalResourceLandingCraft(gear) || isDrumCanister(gear)
+  }
   const acceptedTypes: Readonly<Record<GearRequirementKind, readonly number[]>> = {
     'big-gun': [3],
     'main-gun': [2, 3],
@@ -110,7 +114,7 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
     'small-gun': [1],
     sonar: [14, 40],
     'depth-charge': [15],
-    'landing-craft': [24, 46],
+    'landing-craft': [],
     seaplane: [10, 11],
     general: [],
   }
@@ -142,7 +146,11 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
     case 'depth-charge':
       return stats.asw * 6 + stats.accuracy + improvement
     case 'landing-craft':
-      return 50 + stats.firepower + stats.armor + improvement
+      if (isNormalResourceLandingCraft(gear)) {
+        return 80 + stats.firepower + stats.armor + improvement
+      }
+      if (isDrumCanister(gear)) return 45 + improvement
+      return -20
     case 'seaplane':
       return stats.los * 4 + stats.bombing * 3 + stats.antiAir * 2
     case 'general':
@@ -164,6 +172,7 @@ const optionsForRequirement = (
   members: readonly FleetMember[],
   account: AccountSnapshot,
   avoidCurrentFleetEquipment: boolean,
+  candidateLimit: number,
 ): readonly GearOption[] => {
   const ship = members[requirement.shipIndex].ship
   const currentFleetIds = new Set(account.currentFleetShipIds)
@@ -178,7 +187,7 @@ const optionsForRequirement = (
     )
     .map((gear) => ({ gear, score: gearScore(gear, requirement) }))
     .sort((left, right) => right.score - left.score || left.gear.id - right.gear.id)
-    .slice(0, GEAR_CANDIDATES_PER_SLOT)
+    .slice(0, candidateLimit)
 }
 
 export const buildGearSolutions = (
@@ -187,6 +196,10 @@ export const buildGearSolutions = (
   avoidCurrentFleetEquipment: boolean,
 ): readonly RecommendedShipBuild[][] => {
   const requirements = fleet.members.flatMap(requirementsForMember)
+  const requirementCounts = new Map<GearRequirementKind, number>()
+  requirements.forEach((requirement) => {
+    requirementCounts.set(requirement.kind, (requirementCounts.get(requirement.kind) ?? 0) + 1)
+  })
   const requirementsWithOptions = requirements
     .map((requirement) => ({
       requirement,
@@ -195,6 +208,7 @@ export const buildGearSolutions = (
         fleet.members,
         account,
         avoidCurrentFleetEquipment,
+        Math.max(MIN_GEAR_CANDIDATES_PER_SLOT, (requirementCounts.get(requirement.kind) ?? 0) + 6),
       ),
     }))
     .sort(

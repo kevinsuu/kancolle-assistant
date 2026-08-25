@@ -1,9 +1,12 @@
 const GAME_VIEWPORT = Object.freeze({ width: 1200, height: 720 })
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 1.25
+const ZOOM_PRECISION = 1000
+const ZOOM_STEP = 1 / ZOOM_PRECISION
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000
 const DEFAULT_POLL_INTERVAL_MS = 250
 const DEFAULT_STABLE_SAMPLES = 3
+const DEFAULT_TOP_BAR_HEIGHT = 32
 const fittedWebContents = new WeakSet()
 
 const MEASURE_GAME_CANVAS_SCRIPT = `(() => {
@@ -177,7 +180,9 @@ const calculateZoomFactor = (measurement, currentZoom, displayMetrics) => {
   const canvasWidth = Number(measurement.canvas.width) * currentZoom
   const canvasHeight = Number(measurement.canvas.height) * currentZoom
   const fitRatio = Math.min(availableWidth / canvasWidth, availableHeight / canvasHeight)
-  return Math.round(clamp(currentZoom * fitRatio, MIN_ZOOM, MAX_ZOOM) * 100) / 100
+  return (
+    Math.floor(clamp(currentZoom * fitRatio, MIN_ZOOM, MAX_ZOOM) * ZOOM_PRECISION) / ZOOM_PRECISION
+  )
 }
 
 export const captureStartupDisplayMetrics = (electronScreen) => {
@@ -198,6 +203,60 @@ export const constrainWindowSizeToDisplay = (size, displayMetrics) => ({
   width: Math.min(size.width, displayMetrics.workAreaSize.width),
   height: Math.min(size.height, displayMetrics.workAreaSize.height),
 })
+
+export const calculateGameAndSidebarWindowLayout = ({
+  displayMetrics,
+  sidebarWidth,
+  topBarHeight = DEFAULT_TOP_BAR_HEIGHT,
+}) => {
+  const maximumZoom = Math.min(
+    (displayMetrics.workAreaSize.width - sidebarWidth) / GAME_VIEWPORT.width,
+    (displayMetrics.workAreaSize.height - topBarHeight) / GAME_VIEWPORT.height,
+    MAX_ZOOM,
+  )
+  if (maximumZoom < MIN_ZOOM) return { applied: false, reason: 'display-too-small' }
+
+  const zoomFactor = Math.floor(maximumZoom * ZOOM_PRECISION) / ZOOM_PRECISION
+  return {
+    applied: true,
+    targetSize: {
+      width: Math.round(GAME_VIEWPORT.width * zoomFactor + sidebarWidth),
+      height: Math.round(GAME_VIEWPORT.height * zoomFactor + topBarHeight),
+    },
+    topBarHeight,
+    sidebarWidth,
+    zoomFactor,
+  }
+}
+
+export const fitWindowForGameAndSidebar = ({ tab, displayMetrics, sidebarWidth }) => {
+  const browserWindow = tab?.window
+  if (!browserWindow || browserWindow.isDestroyed() || !tab.view || sidebarWidth <= 0) {
+    return { applied: false, reason: 'window-or-sidebar-unavailable' }
+  }
+  if (browserWindow.isFullScreen()) return { applied: false, reason: 'fullscreen' }
+
+  const currentBounds = browserWindow.getContentBounds()
+  const topBarHeight = Math.max(tab.view.getBounds().y, 0)
+  const layout = calculateGameAndSidebarWindowLayout({
+    displayMetrics,
+    sidebarWidth,
+    topBarHeight,
+  })
+  if (!layout.applied) return layout
+
+  if (
+    currentBounds.width !== layout.targetSize.width ||
+    currentBounds.height !== layout.targetSize.height
+  ) {
+    browserWindow.setContentSize(layout.targetSize.width, layout.targetSize.height)
+  }
+
+  return {
+    ...layout,
+    previousSize: { width: currentBounds.width, height: currentBounds.height },
+  }
+}
 
 export const fitGameTabOnce = async ({
   tab,
@@ -265,7 +324,7 @@ export const fitGameTabOnce = async ({
       webContents.getZoomFactor(),
       displayMetrics,
     )
-    if (Math.abs(correctedZoom - zoomFactor) >= 0.01) {
+    if (Math.abs(correctedZoom - zoomFactor) >= ZOOM_STEP) {
       zoomFactor = correctedZoom
       webContents.setZoomFactor(zoomFactor)
     }

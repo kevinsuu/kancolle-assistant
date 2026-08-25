@@ -1,45 +1,80 @@
-# ![Damecon icon](./packages/shell/browser/ui/assets/icons/damecon_icon_48.png) damecon-browser
+# <img src="./packages/shell/browser/ui/assets/icons/logo.png" alt="KanColle Assistant icon" width="48"> kancolle-assistant
 
-A minimal, tabbed web browser for playing Kantai Collection, with integrated KC3Kai and KCCacheProxy support.
+**English** · [繁體中文](./README.zh-TW.md) · [简体中文](./README.zh-CN.md) ·
+[日本語](./README.ja.md)
 
-Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
+KanColle Assistant is a minimal, tabbed web browser for playing Kantai Collection, with integrated
+KC3Kai and KCCacheProxy support.
 
-![browser preview image showing a typical setup with the game open, KC3Kai visible in the developer tools panel, and some tools open in background tabs.](./screenshots/ingame.png)
+This project is a modified fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser).<br>
+The original Damecon project is built on Samuel Maddock's [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
+
+## Release status
+
+| App version | README updated |
+| ----------- | -------------- |
+| `v0.11.3`   | `2026-08-25`   |
+
+- **Downloads:** Installers and portable archives are available from
+  [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
+- **Per-version changes:** The
+  [latest release notes](https://github.com/kevinsuu/kancolle-assistant/releases/latest) contain the
+  generated update log between tags.
+- **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
+  supports, what may be added later, and what is out of scope.
+- **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### Project-specific highlights
+
+Compared with the original project, this source adds or improves:
+
+1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
+2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later manual adjustments remain available.
+3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — KC3 Strategy Room can suggest up to three account-owned fleets for maps 1-1 through 7-5, including 5-6, without changing game state.
+4. **[Expedition resource-goal planning](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page uses current resources, targets, selected expeditions, and fleets 2–4 to recommend one best pairing; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
+5. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
+6. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
+7. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin up to five Strategy Room tabs in `常用連結`; ordinary navigation keeps their order unchanged, and a sixth pin replaces the bottom link.
+
+These added Strategy Room interfaces follow KC3's selected language and support English,
+Traditional Chinese, Simplified Chinese, and Japanese.
 
 ## ⚠️ Notice
 
-#### Damecon is NOT intended to be used as a general-purpose browser.
+#### KanColle Assistant is NOT intended to be used as a general-purpose browser.
 
-Damecon is designed for one purpose only, and that is playing KanColle.
+KanColle Assistant is designed for one purpose only: playing KanColle.
 
-Damecon is built upon Electron, and lacks many of the security features of major browsers. Plus, I have no idea what I'm doing.
+KanColle Assistant is built upon Electron and lacks many security features found in major
+browsers.
 
 Seriously, I've literally never worked with Electron before. There's some real spaghetti-tier code going on here. Do you really wanna put your trust in that?
 
-#### If you use Damecon for any activities involving sensitive information, you do so at your own risk.
+#### If you use KanColle Assistant for sensitive activities, you do so at your own risk.
 
 ## Usage
 
 ### From a Release build:
 
-From the [Releases page](https://github.com/planetarian/damecon-browser/releases/latest), download one of the following:
+From the [Releases page](https://github.com/kevinsuu/kancolle-assistant/releases/latest), download
+one of the following:
 
-Installer: `damecon-browser-*.Setup.exe`
+Installer: `kancolle-assistant-*.Setup.exe`
 
 - Simply download and run it to install.
-- This provides automatic updates for Damecon, and the simplest overall process.
+- This provides automatic updates for KanColle Assistant and is the simplest installation method.
 
-Alternatively, use the zip file: `damecon-browser-*.zip`
+Alternatively, use the ZIP file: `kancolle-assistant-*.zip`
 
-- Download and extract its contents to an empty folder, and run `damecon-browser.exe` from the extracted files.
+- Download and extract its contents to an empty folder, then run `kancolle-assistant.exe`.
 - This lets you use specific versions if desired, but lacks automatic updates.
 
 ### From source code, using `yarn`:
 
 ```bash
 # Get the code
-git clone --recurse-submodules https://github.com/planetarian/damecon-browser
-cd damecon-browser
+git clone --recurse-submodules https://github.com/kevinsuu/kancolle-assistant
+cd kancolle-assistant
 
 # Install and launch the browser
 yarn
@@ -61,7 +96,8 @@ On first launch, the settings page will open.
 
 It will automatically begin downloading the latest Release version of KC3Kai, and upon completion, the KC3 start page will open.
 
-You can access the Damecon settings again at any time by clicking the damecon icon at the top-left corner of the window.
+You can access the KanColle Assistant settings at any time by clicking the app icon at the
+top-left corner of the window.
 
 ### KC3Kai Update Configuration
 
@@ -79,31 +115,39 @@ You can select from three different update channels: `release`, `master`, and `d
 
 ### Proxy Configuration
 
-Damecon is designed to work seamlessly with KCCacheProxy. Extensions like ProxySwitchy are no longer necessary.
+KanColle Assistant integrates with KCCacheProxy, so extensions such as ProxySwitchy are no longer
+necessary.
 
 You can configure your KCCP host/port in the `Proxy` section of the settings page.
 
 The `Enabled` checkbox will enable/disable routing KanColle traffic through the proxy.
 
-## Features
+`KCCP internal` and `KCCP external` only proxy KanColle game-server traffic. They do not change
+the public IP used for DMM login and region checks. To use an authorized HTTP/HTTPS forward proxy
+for all browser traffic, select `all-external`, enter its host and forward-proxy port, and then
+enable proxying. KanColle Assistant reapplies the proxy, closes pooled connections, and retries a DMM page
+that was redirected to the regional-access error.
+
+KanColle Assistant does not include or discover public proxies. Do not send DMM credentials through an
+untrusted proxy. If DMM displays its regional-access page while you are already on a supported
+network, disable unintended VPN, proxy, or private-relay software and retry.
+
+## Feature status
 
 ### ✨ Showcase
 
-Configurable KC3Kai autostart/update options:
+Resource Center summarizes current resources and recent gains, consumption, and net changes:
 
-![preview image showing KC3Kai configuration options.](./screenshots/update.png)
+![KC3 Strategy Room Resource Center dashboard.](./screenshots/resource-center.png)
 
-KCCacheProxy client options:
+Expedition Recommendations plans resource goals and assigns the best expedition to each available
+fleet:
 
-![preview image showing KCCacheProxy client options.](./screenshots/proxy.png)
+![KC3 Strategy Room Expedition Recommendations page.](./screenshots/expedition-recommendation.png)
 
-Themes:
+Map Recommendations suggests account-owned fleets and equipment for normal maps:
 
-![preview image showing theme options.](./screenshots/themes.png)
-
-New Tab launch page:
-
-![preview image showing new tab page.](./screenshots/newtab.png)
+![KC3 Strategy Room Map Recommendations page.](./screenshots/map-recommendation.png)
 
 ### 🚀 Current
 
@@ -113,24 +157,32 @@ New Tab launch page:
 - [x] Support both release and in-development versions of KC3
 - [x] Configurable KC3 update schedule (daily/weekly/always/never)
 - [x] Auto-open KC3 start page (with developer tools) and strategy room
+- [x] Prioritize and select the KC3 `KanColle` panel when game DevTools opens
 - [x] KCCacheProxy full integration & proxy client support
-- [x] Color and light/dark theme support
+- [x] Authorized all-traffic external proxy mode with DMM regional-error guidance
+- [x] [Preset and custom browser colors, light/dark themes, and an uploadable settings icon](./docs/theme-personalization.md)
 - [x] Manifest V3 extensions support
 - [x] Chrome Webstore extensions support
 - [x] New Tab page with links to common third-party KanColle resources
 - [x] Configuration options for new tab behavior
   - Can select KC3 launch page, DMM game page, strategy room
 - [x] Multiple window support
-- [ ] Option to ask before installing KC3 updates
 - [x] 'Custom' channel for managing your own KC3 folder location
 - [x] Common keyboard shortcuts (F12, Ctrl+T, Ctrl+F4, Ctrl+Tab, Ctrl+D, etc)
 - [x] Per-site address bar hiding with wildcard support
 - [x] Common mouse gestures (Tab middle-click, draggable tabs, Ctrl+scroll, etc)
-- [ ] Link hover URL tooltips
 - [x] Find in page (Ctrl+F)
+- [x] DMM-only local credential vault using operating-system encryption
+- [x] One-time KanColle game-canvas auto-fit for the current display
+- [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5
+- [x] Expedition resource-goal planning with fleet assignments
+- [x] KC3 resource-ledger summaries for fixed recent periods
+- [x] Up to five pinned KC3 Strategy Room quick links with stable ordering
 
 ### 🤞 Eventually
 
+- [ ] Option to ask before installing KC3 updates
+- [ ] Link hover URL tooltips
 - [ ] Extension management (enable/disable/uninstall)
 - [ ] .CRX extension loader
 - [ ] Support for more common [`chrome.*` extension APIs](https://developer.chrome.com/extensions/devguide)
@@ -141,14 +193,15 @@ New Tab launch page:
 
 - Detachable tabs
 - Advanced general-use browser features from Chrome/Edge/etc
-  - Including password manager and other security features
+  - Including a general-purpose password manager and other security features
 - AI integration of any kind (you're welcome)
 
 ## License
 
 GPL-3
 
-This project is based on the [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) project by Samuel Maddock.
+This repository is a modified fork of the original [damecon-browser](https://github.com/planetarian/damecon-browser) project maintained by planetarian.<br>
+Damecon itself is based on Samuel Maddock's [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) project.
 
 The following notice has been retained from the original repository:
 

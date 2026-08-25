@@ -8,6 +8,7 @@ import type {
   UnsatisfiedRequirement,
 } from '../types'
 import type { FleetMember, FleetSearchState } from './internal-types'
+import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
 
 const FLEET_BEAM_WIDTH = 400
 const FLEET_CANDIDATES_PER_ROLE = 14
@@ -15,10 +16,19 @@ const FLEET_CANDIDATES_PER_ROLE = 14
 const shipSignature = (members: readonly FleetMember[]): string =>
   members.map((member) => member.ship.id).join('-')
 
+const resourceGearKindsForShip = (ship: OwnedShip, account: AccountSnapshot): ReadonlySet<string> =>
+  new Set(
+    account.equipment
+      .filter((gear) => ship.regularEquipableMasterIds.includes(gear.masterId))
+      .filter((gear) => isNormalResourceLandingCraft(gear) || isDrumCanister(gear))
+      .map((gear) => (isNormalResourceLandingCraft(gear) ? 'landing-craft' : 'drum')),
+  )
+
 const candidateShipScore = (
   ship: OwnedShip,
   role: FleetRole,
   objective: RecommendationObjective,
+  account: AccountSnapshot,
 ): number => {
   const level = Math.min(ship.level, 180) / 1.8
   const survival = ship.stats.hp * 0.8 + ship.stats.armor + ship.stats.evasion * 0.45
@@ -42,7 +52,19 @@ const candidateShipScore = (
     return roleFit * 0.2 + survival * 0.1 + (180 - Math.min(ship.level, 180)) * 1.5
   }
   if (objective.startsWith('resource-')) {
-    return roleFit * 0.15 + survival * 0.1 + 180 - (ship.fuelCost + ship.ammoCost) * 1.4
+    const resourceGearKinds = new Set(
+      role === 'resource-carrier' ? resourceGearKindsForShip(ship, account) : [],
+    )
+    const transportFit = resourceGearKinds.has('landing-craft')
+      ? ship.slotSizes.length * 80
+      : resourceGearKinds.has('drum')
+        ? ship.slotSizes.length * 35
+        : role === 'resource-carrier'
+          ? -1000
+          : 0
+    return (
+      roleFit * 0.15 + survival * 0.1 + transportFit + 180 - (ship.fuelCost + ship.ammoCost) * 1.4
+    )
   }
   return roleFit * 0.45 + survival * 0.25 + offense * 0.15 + level
 }
@@ -54,7 +76,10 @@ const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
   ) {
     return 'anti-submarine'
   }
-  if (route.category === 'resource' && [2, 6, 16, 22].includes(ship.shipTypeId)) {
+  const needsResourceEquipment = route.tags.some((tag) =>
+    ['landing-craft', 'amphibious-tank'].includes(tag),
+  )
+  if (needsResourceEquipment && [2, 6, 16, 22].includes(ship.shipTypeId)) {
     return 'resource-carrier'
   }
   if ([8, 9, 10, 12].includes(ship.shipTypeId)) return 'main-battleship'
@@ -131,9 +156,14 @@ const genericCandidatePool = (
   objective: RecommendationObjective,
 ): readonly OwnedShip[] => {
   const ranked = account.ships
-    .map((ship) => ({
+    .map((ship) => ({ ship, role: roleForShip(ship, route) }))
+    .filter(
+      ({ ship, role }) =>
+        role !== 'resource-carrier' || resourceGearKindsForShip(ship, account).size > 0,
+    )
+    .map(({ ship, role }) => ({
       ship,
-      score: candidateShipScore(ship, roleForShip(ship, route), objective),
+      score: candidateShipScore(ship, role, objective, account),
     }))
     .sort((left, right) => right.score - left.score || left.ship.id - right.ship.id)
   const byType = new Map<number, number>()
@@ -183,7 +213,7 @@ export const generateFleetCandidates = (
           usedShipIds,
           score:
             state.score +
-            candidateShipScore(ship, role, objective) +
+            candidateShipScore(ship, role, objective, account) +
             requiredConstraintBonus(ship, state.members, route),
           lastCandidateIndex: candidateIndex,
         })
@@ -215,6 +245,7 @@ export const analyzeFleetAvailability = (
         reasons.push({
           code: 'MISSING_SPECIFIC_SHIP',
           message: `此路線需要 ${constraint.names.join('/')}，目前帳號缺少可用艦。`,
+          values: { names: constraint.names.join('/') },
         })
       }
       return
@@ -229,6 +260,7 @@ export const analyzeFleetAvailability = (
       reasons.push({
         code: 'INSUFFICIENT_SHIP_TYPE',
         message: `符合艦種條件的艦娘只有 ${count} 艘，需要 ${minimum} 艘。`,
+        values: { count, minimum },
       })
     }
   })

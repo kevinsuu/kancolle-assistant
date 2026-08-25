@@ -7,6 +7,7 @@ import type {
   MapOption,
   RecommendationObjective,
   RouteTemplate,
+  RouteResourceProfile,
   StrategyCategory,
 } from './types'
 
@@ -98,9 +99,38 @@ const parseCalculatedConstraint = (value: unknown): CalculatedConstraint => {
   throw new Error(`normal map catalog: 未支援 calculated constraint ${kind}`)
 }
 
+const parseResourceProfile = (value: unknown): RouteResourceProfile => {
+  if (!isRecord(value)) throw new Error('normal map catalog: resourceProfile 必須是物件')
+  const record = value
+  const target = readString(record, 'target')
+  if (!['fuel', 'ammo', 'steel', 'bauxite'].includes(target)) {
+    throw new Error(`normal map catalog: resourceProfile.target invalid: ${target}`)
+  }
+  const reachRate = readNumber(record, 'reachRate')
+  const fuelCostRate = readNumber(record, 'fuelCostRate')
+  const ammoCostRate = readNumber(record, 'ammoCostRate')
+  if (reachRate <= 0 || reachRate > 1 || fuelCostRate < 0 || ammoCostRate < 0) {
+    throw new Error('normal map catalog: resourceProfile rates invalid')
+  }
+  return {
+    target: target as RouteResourceProfile['target'],
+    reachRate,
+    averageBaseGain: readNumber(record, 'averageBaseGain'),
+    landingCraftBonus: readNumber(record, 'landingCraftBonus'),
+    drumBonus: readNumber(record, 'drumBonus'),
+    fuelCostRate,
+    ammoCostRate,
+  }
+}
+
 const routeNodesFromDescription = (description: string): readonly string[] => {
   const match = description.match(/[A-Z][A-Z0-9]*(?:→[A-Z][A-Z0-9]*)+/)
   return match ? match[0].split('→') : []
+}
+
+const mapGuideSource = (mapId: string): string => {
+  const [world] = mapId.split('-')
+  return `https://en.kancollewiki.net/World_${world}/${mapId}`
 }
 
 const tagsFromDescription = (description: string): readonly string[] => {
@@ -139,7 +169,7 @@ const sourceRoutes = (sourceMapData as unknown[]).flatMap((mapValue) => {
       metadata: {
         source: [
           'https://github.com/shichiria/kancolle-browser/blob/main/src-tauri/data/map_recommendations.json',
-          `https://en.kancollewiki.net/${mapId}`,
+          mapGuideSource(mapId),
         ],
         confidence: 'community',
         lastVerified: '2026-03-02',
@@ -172,14 +202,17 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
     }
     const tags = readStringArray(routeValue.tags, 'tags')
     const isNewMap = tags.includes('new-map')
-    const source =
+    const strategySource =
       category === 'resource'
-        ? 'https://en.kancollewiki.net/Help:Resource_Farming'
+        ? 'https://en.kancollewiki.net/Resource_Farming'
         : category === 'leveling'
           ? 'https://en.kancollewiki.net/Tutorial:Leveling'
-          : `https://en.kancollewiki.net/${mapId}`
-    const sources =
-      routeValue.sources === undefined ? [source] : readStringArray(routeValue.sources, 'sources')
+          : mapGuideSource(mapId)
+    const providedSources =
+      routeValue.sources === undefined
+        ? [strategySource]
+        : readStringArray(routeValue.sources, 'sources')
+    const sources = Array.from(new Set([mapGuideSource(mapId), ...providedSources]))
     return {
       id: readString(routeValue, 'id'),
       mapId,
@@ -195,10 +228,15 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
       calculatedConstraints: Array.isArray(routeValue.calculated)
         ? routeValue.calculated.map(parseCalculatedConstraint)
         : [],
+      resourceProfile:
+        routeValue.resourceProfile === undefined
+          ? undefined
+          : parseResourceProfile(routeValue.resourceProfile),
       metadata: {
         source: sources,
         confidence: isNewMap ? 'experimental' : 'community',
-        lastVerified: '2026-08-24',
+        lastVerified:
+          typeof routeValue.lastVerified === 'string' ? routeValue.lastVerified : '2026-08-24',
         ruleVersion: isNewMap ? '2026.08.24-5-6' : '2026.08.24-overlay',
       },
     }

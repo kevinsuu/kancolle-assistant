@@ -2,9 +2,9 @@
 
 ## Decision
 
-Use Strategy Room `webContents.executeJavaScript` as the account-data bridge. Damecon already owns
-the KC3 Strategy Room `BrowserView`, and KC3 loads its account managers and master data in that
-same extension page.
+Use Strategy Room `webContents.executeJavaScript` as the account-data bridge. KanColle Assistant
+already owns the KC3 Strategy Room `BrowserView`, and KC3 loads its account managers and master data
+in that same extension page.
 
 The bridge executes a fixed script from the Electron main process. Renderer input is never
 interpolated into the script, and there is no generic eval IPC.
@@ -51,7 +51,7 @@ master records are missing, or normalized schema validation fails.
 
 This repository environment does not contain the user's KC3 profile or active port data. The
 source-level bridge and schema are implemented, but Phase 0's live account comparison and
-anonymized fixture export cannot be completed here without launching Damecon against a real KC3
+anonymized fixture export cannot be completed here without launching KanColle Assistant against a real KC3
 account.
 
 Before release, perform the live sample checks described in `docs/fleet-recommender.md`. Do not

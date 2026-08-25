@@ -3,7 +3,7 @@
 const { Worker: NodeJSWorker } = require('worker_threads')
 const { resolve: resolvePath } = require('path')
 
-global.Worker = function NodeJSWorkerThreadsPathResolveWrap(path, options) {
+export const createNodeWorker = function NodeJSWorkerThreadsPathResolveWrap(path, options) {
   // this __dirname will travel into the bundle and only resolved at
   // runtime there, so it will be the path to the dist bin
   // and we can assume to find the worker there.
@@ -19,3 +19,5 @@ global.Worker = function NodeJSWorkerThreadsPathResolveWrap(path, options) {
   )
   return new NodeJSWorker(resolvePath(__dirname, path), options)
 }
+
+global.Worker = createNodeWorker

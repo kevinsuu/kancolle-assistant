@@ -5,26 +5,6 @@ ko.bindingHandlers.rendered = {
   },
 }
 
-ko.bindingHandlers['style'] = {
-  update: function (element, valueAccessor) {
-    var value = ko.utils.unwrapObservable(valueAccessor() || {})
-    ko.utils.objectForEach(value, function (styleName, styleValue) {
-      styleValue = ko.utils.unwrapObservable(styleValue)
-
-      if (styleValue === null || styleValue === undefined || styleValue === false) {
-        // Empty string removes the value, whereas null/undefined have no effect
-        styleValue = ''
-      }
-
-      if (styleName.substring(0, 2) === '--') {
-        element.style.setProperty(styleName, styleValue)
-      } else {
-        element.style[styleName] = styleValue
-      }
-    })
-  },
-}
-
 class WebUITab {
   inputUrl = ko.observable()
 }
@@ -175,8 +155,8 @@ class WebUI {
   async setTopbarObserver() {
     const resizeObserver = new ResizeObserver(async (entries) => {
       for (const entry of entries) {
-        const height = entry.devicePixelContentBoxSize[0].blockSize
         const factor = window.devicePixelRatio
+        const height = Math.round(entry.devicePixelContentBoxSize[0].blockSize / factor)
         if (height != this.topbarHeight) {
           this.topbarHeight = height
           await this.sendTopbarSize()

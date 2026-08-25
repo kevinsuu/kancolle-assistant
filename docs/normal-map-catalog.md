@@ -20,7 +20,9 @@ does not create another template.
 
 The recommendation-core test suite locks the current map and route counts, rejects duplicate route
 IDs and normalized semantic duplicates, and validates every objective and fleet constraint before
-solver refactors are accepted.
+solver refactors are accepted. It also requires every template to retain the direct Kancolle Wiki
+page for its map, so the UI can expose the current routing reference rather than an untraceable
+composition.
 
 ## Sources
 
@@ -90,8 +92,10 @@ allows cross-route Top 3; selecting a route constrains the solver to that phase/
   reviewed value.
 - LBAS requirements are notes/tags and are not assigned by the current gear solver.
 - Historical bonuses and quest-mandated ships are not exhaustively modeled.
-- Resource gain optimization records landing-craft intent, but the score does not yet calculate
-  exact per-node resource bonuses.
+- The 1-3 fuel routes calculate expected gross/net fuel with normal-node Daihatsu and drum bonuses.
+  Other resource routes still do not calculate exact per-node resource bonuses and are labelled as
+  cost-only estimates.
 
-These limitations are surfaced as tags or warnings; the solver does not silently invent missing
-game formulas.
+These limitations are surfaced as route-specific warnings with a direct guide link and verification
+date. The `/100` result is suitability, not win probability; the solver does not silently invent
+missing game formulas or claim that random combat outcomes are guaranteed.

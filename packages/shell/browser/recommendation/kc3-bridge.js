@@ -1,4 +1,4 @@
-import { parseKC3AccountSnapshot } from '@damecon/recommendation-core'
+import { parseKC3AccountSnapshot } from '@kancolle-assistant/recommendation-core'
 
 const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
   if (
@@ -8,6 +8,17 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
     !window.KC3Master.available
   ) {
     throw new Error('KC3 account managers are not ready')
+  }
+
+  window.KC3ShipManager.load()
+  window.KC3GearManager.load()
+  if (window.PlayerManager) {
+    if (window.PlayerManager.hq && typeof window.PlayerManager.hq.load === 'function') {
+      window.PlayerManager.hq.load()
+    }
+    if (typeof window.PlayerManager.loadFleets === 'function') {
+      window.PlayerManager.loadFleets()
+    }
   }
 
   const shipList = Object.values(window.KC3ShipManager.list || {})
@@ -116,6 +127,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
       masterId: Number(gear.masterId),
       name: typeof gear.name === 'function' ? String(gear.name()) : String(master.api_name || ''),
       typeId: Number(master.api_type && master.api_type[2] || 0),
+      iconTypeId: Number(master.api_type && master.api_type[3] || 0),
       type: String(master.api_type && master.api_type[2] || ''),
       improvement: Number(gear.stars || 0),
       proficiency: Number(gear.ace ?? -1),

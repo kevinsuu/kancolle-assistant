@@ -1,5 +1,5 @@
-import { parentPort } from 'worker_threads'
-import { recommendFleet } from '@damecon/recommendation-core'
+const { parentPort } = require('worker_threads')
+const { recommendFleet } = require('@kancolle-assistant/recommendation-core')
 
 parentPort.on('message', (message) => {
   if (message?.type !== 'recommendation:run' || typeof message.id !== 'number') return
