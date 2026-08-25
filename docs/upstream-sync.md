@@ -9,7 +9,7 @@ planetarian/damecon-browser:electron25
 origin/electron25                 clean, fast-forward-only mirror
                     │
                     ▼ pull request
-origin/fleet-main                 custom release branch
+origin/main                       custom release branch
                     │
                     └── feature/* day-to-day feature work
 ```
@@ -19,12 +19,16 @@ fail safely with `--ff-only` if the branch ever diverges.
 
 ## One-time GitHub setup
 
-1. Commit the current recommender work and create/push `fleet-main` from it.
-2. Change the fork's default branch to `fleet-main` in GitHub repository settings. Scheduled
+1. Commit the current recommender work and create/push `main` from it.
+2. Change the fork's default branch to `main` in GitHub repository settings. Scheduled
    workflows only run from the default branch.
 3. Keep the existing `electron25` branch as the official mirror.
 4. In repository Actions settings, allow workflows to create pull requests.
-5. Protect `fleet-main` and require the build check before merging.
+5. Create a fine-grained personal access token scoped only to this fork with **Contents:
+   read/write** and **Pull requests: read/write**, then store it as the repository Actions secret
+   `UPSTREAM_SYNC_TOKEN`.
+6. Protect `main` and require the `Test (ubuntu-latest)` and `Test (windows-latest)` checks
+   before merging.
 
 If the custom branch uses another name, create the repository variable `CUSTOM_BRANCH` with that
 branch name.
@@ -33,14 +37,11 @@ The workflow in `.github/workflows/sync-upstream.yml` runs daily and can also be
 It fast-forwards `electron25` from `planetarian/damecon-browser:electron25`, then opens a pull
 request from `electron25` into the custom branch.
 
-No local `.env` file or GitHub Environment is required. The workflow uses GitHub's built-in
-`GITHUB_TOKEN` by default.
-
-Pull requests created with `GITHUB_TOKEN` can require a one-time **Approve workflows to run** action
-before their CI starts. For fully unattended CI, create a fine-grained personal access token scoped
-only to this fork with **Contents: read/write** and **Pull requests: read/write**, then store it as
-the repository Actions secret `UPSTREAM_SYNC_TOKEN`. The workflow automatically prefers that
-secret and safely falls back to `GITHUB_TOKEN` when it is absent.
+No local `.env` file or GitHub Environment is required. `UPSTREAM_SYNC_TOKEN` is required because
+GitHub suppresses most workflow events created with the built-in `GITHUB_TOKEN`. Using the personal
+access token for both the mirror push and pull request allows the normal push or pull-request event
+to run CI for the synchronized commit. The workflow fails before changing the mirror when the
+secret is absent instead of opening an unvalidated pull request.
 
 ## Optional automatic merge
 
@@ -49,11 +50,25 @@ automatically after required checks pass:
 
 1. Enable auto-merge in the GitHub repository settings.
 2. Create a repository variable named `UPSTREAM_AUTO_MERGE` with value `true`.
-3. For no manual CI approval, configure the `UPSTREAM_SYNC_TOKEN` secret described above.
 
 Conflicts cannot be auto-merged. GitHub leaves the pull request open so only the small shell
 integration points need manual resolution. The recommendation engine and rule data remain in their
 own packages and normally do not overlap upstream changes.
+
+## Source synchronization versus releases
+
+The workflow follows commits on the upstream `electron25` branch. It does not copy upstream tags,
+GitHub Releases, release notes, or binary assets. If upstream publishes a release for an existing
+commit without changing the branch, there is nothing for this workflow to synchronize. After an
+upstream source change is merged into `main`, prepare and tag a separate fork release when a
+new custom installer is needed.
+
+## Electron runtime baseline
+
+The application, shell, and bundled Chrome extension bridge target Electron 25.9.8. Keep these
+package declarations aligned when syncing upstream changes. APIs introduced after Electron 25 must
+have an Electron 25-compatible path before they are merged into the custom branch. Shared preload
+modules must also tolerate execution before the page document element exists.
 
 ## Local equivalent
 
@@ -62,7 +77,7 @@ git fetch upstream --prune
 git switch electron25
 git merge --ff-only upstream/electron25
 git push origin electron25
-git switch fleet-main
+git switch main
 git merge electron25
 ```
 

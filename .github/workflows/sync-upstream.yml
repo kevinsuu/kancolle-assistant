@@ -17,17 +17,26 @@ env:
   UPSTREAM_REPOSITORY: planetarian/damecon-browser
   UPSTREAM_BRANCH: electron25
   MIRROR_BRANCH: electron25
-  CUSTOM_BRANCH: ${{ vars.CUSTOM_BRANCH || 'fleet-main' }}
+  CUSTOM_BRANCH: ${{ vars.CUSTOM_BRANCH || 'main' }}
+  SYNC_TOKEN_CONFIGURED: ${{ secrets.UPSTREAM_SYNC_TOKEN != '' }}
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the clean mirror branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.MIRROR_BRANCH }}
           fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
+
+      - name: Verify the synchronization token
+        if: env.SYNC_TOKEN_CONFIGURED != 'true'
+        shell: bash
+        run: |
+          echo "::error::UPSTREAM_SYNC_TOKEN is required so synchronized pushes and pull requests trigger CI."
+          exit 1
 
       - name: Fast-forward from the official repository
         id: sync
@@ -37,6 +46,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote remove upstream 2>/dev/null || true
           git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+
+          if ! git ls-remote --exit-code --heads origin "${CUSTOM_BRANCH}" >/dev/null; then
+            echo "::error::Custom branch '${CUSTOM_BRANCH}' does not exist on origin."
+            exit 1
+          fi
+
           git fetch upstream "${UPSTREAM_BRANCH}"
 
           before="$(git rev-parse HEAD)"
@@ -52,6 +67,7 @@ jobs:
           echo "changed=true" >> "${GITHUB_OUTPUT}"
 
       - name: Open an upstream sync pull request
+        id: pull-request
         if: steps.sync.outputs.changed == 'true'
         shell: bash
         env:
@@ -77,6 +93,7 @@ jobs:
           fi
 
           echo "Upstream sync PR: ${pull_request_url}"
+          echo "url=${pull_request_url}" >> "${GITHUB_OUTPUT}"
 
       - name: Enable auto-merge when explicitly configured
         if: steps.sync.outputs.changed == 'true' && vars.UPSTREAM_AUTO_MERGE == 'true'
@@ -84,12 +101,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || github.token }}
         run: |
-          pull_request_url="$(
-            gh pr list \
-              --base "${CUSTOM_BRANCH}" \
-              --head "${MIRROR_BRANCH}" \
-              --state open \
-              --json url \
-              --jq '.[0].url'
-          )"
-          gh pr merge --auto --merge "${pull_request_url}"
+          gh pr merge --auto --merge "${{ steps.pull-request.outputs.url }}"
