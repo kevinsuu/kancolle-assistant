@@ -55,13 +55,9 @@ jobs:
         with:
           run: yarn test
 
-      - name: Rebuild recommendation package (Windows)
+      - name: Run recommendation tests (Windows)
         if: runner.os == 'Windows'
-        run: yarn build:recommendation
-
-      - name: Run recommendation unit tests (Windows)
-        if: runner.os == 'Windows'
-        run: node --test packages/recommendation-core/test/*.test.js
+        run: yarn test:recommendation
 
       - name: Run extension tests (Windows)
         if: runner.os == 'Windows'
