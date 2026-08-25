@@ -13,7 +13,7 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 
 | 应用程序版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v0.11.3`    | `2026-08-25`    |
+| `v1.0.0`     | `2026-08-25`    |
 
 - **下载版本：** 安装程序和便携式压缩包可从
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下载。

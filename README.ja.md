@@ -13,7 +13,7 @@ KC3Kai と KCCacheProxy を統合しています。
 
 | アプリバージョン | README 更新日 |
 | ---------------- | ------------- |
-| `v0.11.3`        | `2026-08-25`  |
+| `v1.0.0`         | `2026-08-25`  |
 
 - **ダウンロード：** インストーラーとポータブル ZIP は
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)から入手できます。
