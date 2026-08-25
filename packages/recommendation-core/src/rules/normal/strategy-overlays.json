@@ -88,6 +88,8 @@
   },
   {
     "area": "1-5",
+    "sources": ["https://m.kcwiki.cn/wiki/%E9%95%87%E5%AE%88%E5%BA%9C%E6%B5%B7%E5%9F%9F/1-5"],
+    "replaceSourceRoutes": true,
     "routes": [
       {
         "id": "1-5-boss-de",
@@ -98,9 +100,10 @@
         "stableBoss": true,
         "tags": ["oasw", "fixed-route", "low-cost"],
         "desc": "海防艦4。最も低燃費で固定進王。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 4 },
-          { "type": "ShipTypeCount", "stypes": [1], "value": 4 }
+          { "type": "ExactShipTypeCount", "stypes": [1], "value": 4 }
         ]
       },
       {
@@ -112,9 +115,12 @@
         "stableBoss": true,
         "tags": ["oasw", "fixed-route"],
         "desc": "軽巡/練巡0-2、駆逐/海防2-4、計4隻。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [1, 2, 3, 21], "value": 4 },
           { "type": "ShipTypeCount", "stypes": [1, 2], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [1], "value": 3 },
           { "type": "MaxShipTypeCount", "stypes": [3, 21], "value": 2 }
         ]
       },
@@ -122,16 +128,18 @@
         "id": "1-5-boss-heavy",
         "name": "航戦二巡対潜",
         "category": "boss",
-        "objectives": ["balanced", "boss-clear"],
+        "objectives": ["boss-clear"],
         "nodes": ["A", "D", "F", "G", "J"],
         "stableBoss": true,
         "tags": ["oasw", "second-shelling"],
-        "desc": "航戦1、軽空母0-1、軽巡/駆逐/海防2-3、計4隻。",
+        "desc": "航戦1、軽巡2、駆逐1。初心者向けの砲撃二巡対潜編成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 4 },
-          { "type": "ShipTypeCount", "stypes": [10], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [1, 2, 3], "value": 2 },
-          { "type": "MaxShipTypeCount", "stypes": [7], "value": 1 }
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 10], "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 }
         ]
       },
       {
@@ -266,7 +274,58 @@
   },
   {
     "area": "2-5",
+    "sources": [
+      "https://m.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E7%BE%A4%E5%B2%9B%E6%B5%B7%E5%9F%9F/2-5"
+    ],
+    "replaceSourceRoutes": true,
     "routes": [
+      {
+        "id": "2-5-middle",
+        "name": "中央空母ルート",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["C", "E", "I", "O"],
+        "stableBoss": true,
+        "tags": ["fast", "los-cn1-34", "fixed-route"],
+        "desc": "正規/装甲空母0-1、軽空母1-2、軽巡1、駆逐3。高速統一。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [11, 18], "value": 1 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 19, "recommended": 42 },
+          { "kind": "los", "coefficient": 1, "minimum": 34 }
+        ]
+      },
+      {
+        "id": "2-5-north",
+        "name": "北ルート",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "F", "J", "O"],
+        "stableBoss": false,
+        "tags": ["slow", "los-cn1-49", "drum-canister-required"],
+        "desc": "航戦1-2、重巡/航巡1-5、軽巡/雷巡0-4、駆逐0-2。低速艦隊、2隻にドラム缶1個ずつ必須。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 4, 5, 6, 10], "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [10], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [3, 4], "value": 4 },
+          { "type": "MaxShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 19, "recommended": 42 },
+          { "kind": "los", "coefficient": 1, "minimum": 49 }
+        ]
+      },
       {
         "id": "2-5-north-middle",
         "name": "北中央軽量固定",
@@ -276,13 +335,45 @@
         "stableBoss": true,
         "tags": ["los-cn1-34", "spb-spf"],
         "desc": "重巡/航巡1、軽巡1、駆逐4。制空可能艦推奨。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 4 }
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
         ],
-        "calculated": [{ "kind": "los", "coefficient": 1, "minimum": 34 }]
+        "calculated": [
+          { "kind": "air-power", "minimum": 19, "recommended": 42 },
+          { "kind": "los", "coefficient": 1, "minimum": 34 }
+        ]
+      },
+      {
+        "id": "2-5-south",
+        "name": "南重量ルート",
+        "category": "boss",
+        "objectives": ["boss-clear"],
+        "nodes": ["C", "E", "G", "L", "O"],
+        "stableBoss": true,
+        "tags": ["los-cn1-41", "heavy-fleet"],
+        "desc": "戦艦/空母2、重巡/航巡0-1、軽巡1、駆逐2-3。任務向けの重量編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          {
+            "type": "ExactShipTypeCount",
+            "stypes": [2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 18],
+            "value": 6
+          },
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [2], "value": 3 },
+          { "type": "MaxShipTypeCount", "stypes": [5, 6], "value": 1 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 51, "recommended": 114 },
+          { "kind": "los", "coefficient": 1, "minimum": 41 }
+        ]
       }
     ]
   },
@@ -343,6 +434,8 @@
   },
   {
     "area": "3-5",
+    "sources": ["https://m.kcwiki.cn/wiki/%E5%8C%97%E6%96%B9%E6%B5%B7%E5%9F%9F/3-5"],
+    "replaceSourceRoutes": true,
     "routes": [
       {
         "id": "3-5-true-south",
@@ -353,10 +446,28 @@
         "stableBoss": true,
         "tags": ["los-cn4-28", "fixed-route"],
         "desc": "軽巡/水母1、駆逐5。最強の固定下路構成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 5 },
-          { "type": "ShipTypeCount", "stypes": [3, 16], "value": 1 }
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 },
+          { "type": "ExactShipTypeCount", "stypes": [3, 16], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+      },
+      {
+        "id": "3-5-torpedo-squadron",
+        "name": "精鋭水雷戦隊",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["F", "G", "K"],
+        "stableBoss": true,
+        "tags": ["los-cn4-28", "fixed-route", "elite-torpedo-squadron-command-facility"],
+        "desc": "旗艦軽巡1、駆逐5。精鋭水雷戦隊司令部と夜瑞雲を使う上級者向け。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
         ],
         "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
       },
@@ -367,13 +478,120 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "D", "H", "K"],
         "stableBoss": true,
-        "tags": ["upper-route", "installation", "los"],
-        "desc": "空母2以上、戦艦+空母4以下。北方棲姫経由。",
+        "tags": ["upper-route", "anti-installation", "los-cn4-40"],
+        "desc": "戦艦/空母3、重巡/航巡/雷巡2、重巡/航巡/雷巡/潜水1。北方棲姫経由。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
-          { "type": "MaxShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 4 }
+          {
+            "type": "ExactShipTypeCount",
+            "stypes": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18],
+            "value": 6
+          },
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [4, 5, 6], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [4, 5, 6, 13, 14], "value": 3 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 170, "recommended": 381 },
+          { "kind": "los", "coefficient": 4, "minimum": 40 }
         ]
+      },
+      {
+        "id": "3-5-south-cl-dd-av",
+        "name": "南路開幕・駆逐4",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["F→G→K / B→C→F→G→K"],
+        "stableBoss": false,
+        "tags": ["los-cn4-28", "random-routing"],
+        "desc": "軽巡1、駆逐4、水母1。開幕攻撃と引換にB逸れの可能性あり。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+      },
+      {
+        "id": "3-5-south-cl2-av2",
+        "name": "南路開幕・軽巡水母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["F→G→K / B→C→F→G→K"],
+        "stableBoss": false,
+        "tags": ["los-cn4-28", "random-routing"],
+        "desc": "軽巡2、駆逐2、水母2。開幕攻撃と引換にB逸れの可能性あり。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 2 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+      },
+      {
+        "id": "3-5-south-cl-av",
+        "name": "南路開幕・軽巡水母集中",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["F→G→K / B→C→F→G→K"],
+        "stableBoss": false,
+        "tags": ["los-cn4-28", "random-routing"],
+        "desc": "軽巡2-3、水母3-4。開幕攻撃重視、B逸れの可能性あり。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3, 16], "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [3], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [16], "value": 3 },
+          { "type": "MaxShipTypeCount", "stypes": [16], "value": 4 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+      },
+      {
+        "id": "3-5-light-ao",
+        "name": "軽量補給艦ルート",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "C", "F", "G", "K"],
+        "stableBoss": true,
+        "tags": ["los-cn4-28", "oiler"],
+        "desc": "軽巡2、雷巡1、水母2、補給艦1。開幕攻撃を増やした補給艦編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [22], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+      },
+      {
+        "id": "3-5-medium-ao",
+        "name": "中量補給艦ルート",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["F→G→K / B→C→F→G→K"],
+        "stableBoss": false,
+        "tags": ["los-cn4-28", "oiler", "random-routing"],
+        "desc": "軽巡2、駆逐/水母1、水母2、補給艦1。進路は駆逐数により変動。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 16, 22], "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [16], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [16], "value": 3 },
+          { "type": "MaxShipTypeCount", "stypes": [2], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [22], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
       },
       {
         "id": "3-5-leveling-subtank",
@@ -416,152 +634,248 @@
   },
   {
     "area": "4-5",
+    "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+    "replaceSourceRoutes": true,
     "routes": [
       {
-        "id": "4-5-fast-plus",
-        "name": "高速＋中央最短",
+        "id": "4-5-standard-balanced",
+        "name": "通常速度・重巡級3",
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
-        "nodes": ["C", "D", "H", "T"],
+        "nodes": ["A/C", "D", "H", "K", "T"],
         "stableBoss": true,
-        "tags": ["fast+", "anti-installation", "fixed-route"],
-        "desc": "戦艦/空母4以下、重巡/航巡/水母2。全艦高速＋。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238"
-        ],
+        "tags": ["los-cn2-71", "anti-installation", "heavy-fleet"],
+        "desc": "戦艦/空母3、重巡/航巡/水母3。K経由の通常速度編成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
-          { "type": "MaxShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 4 },
-          { "type": "ShipTypeCount", "stypes": [5, 6, 16], "value": 2 }
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6, 16], "value": 3 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 112, "recommended": 252 },
+          { "kind": "los", "coefficient": 2, "minimum": 71 }
         ]
+      },
+      {
+        "id": "4-5-standard-battleship",
+        "name": "通常速度・戦艦主体",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "K", "T"],
+        "stableBoss": true,
+        "tags": ["los-cn2-71", "anti-installation", "heavy-fleet"],
+        "desc": "戦艦2、正規/装甲空母1、重巡2、航巡1。K経由の砲撃主体編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 112, "recommended": 252 },
+          { "kind": "los", "coefficient": 2, "minimum": 71 }
+        ]
+      },
+      {
+        "id": "4-5-standard-carrier",
+        "name": "通常速度・空母主体",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "K", "T"],
+        "stableBoss": true,
+        "tags": ["los-cn2-71", "anti-installation", "carrier-opening"],
+        "desc": "戦艦1、正規/装甲空母2、軽空母1、重巡/航巡2。K経由の航空主体編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 112, "recommended": 252 },
+          { "kind": "los", "coefficient": 2, "minimum": 71 }
+        ]
+      },
+      {
+        "id": "4-5-standard-light",
+        "name": "通常速度・軽量K経由",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "K", "T"],
+        "stableBoss": true,
+        "tags": ["los-cn2-71", "anti-installation", "oasw"],
+        "desc": "正規/装甲空母1、軽空母2、軽巡1、駆逐2。HからK経由。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 112, "recommended": 252 },
+          { "kind": "los", "coefficient": 2, "minimum": 71 }
+        ]
+      },
+      {
+        "id": "4-5-small-ship",
+        "name": "軽空母小型艦・最短",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["anti-installation", "oasw", "fixed-route", "night-carrier", "carrier-opening"],
+        "desc": "正規/装甲空母0-1、軽空母1-2、軽巡1、駆逐3。HからT直行。2軽空母型は夜戦空母推奨。",
+        "lastVerified": "2026-08-25",
+        "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 7, 11, 18], "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
+      },
+      {
+        "id": "4-5-standard-carrier-heavy",
+        "name": "通常速度・空母軽空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "K", "T"],
+        "stableBoss": true,
+        "tags": ["los-cn2-71", "anti-installation", "carrier-opening"],
+        "desc": "正規/装甲空母1-2、軽空母2、重巡/航巡/雷巡2-3。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [4, 5, 6, 7, 11, 18], "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [4, 5, 6], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [4, 5, 6], "value": 3 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 112, "recommended": 252 },
+          { "kind": "los", "coefficient": 2, "minimum": 71 }
+        ]
+      },
+      {
+        "id": "4-5-fast-plus-heavy",
+        "name": "高速＋戦艦空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["fast+", "anti-installation", "fixed-route"],
+        "desc": "戦艦1-2、正規/装甲空母2-3、重巡/航巡/水母/雷巡2。全艦高速＋。",
+        "lastVerified": "2026-08-25",
+        "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          {
+            "type": "ExactShipTypeCount",
+            "stypes": [4, 5, 6, 8, 9, 10, 11, 12, 16, 18],
+            "value": 6
+          },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [11, 18], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [4, 5, 6, 16], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
+      },
+      {
+        "id": "4-5-fast-plus-carrier",
+        "name": "高速＋空母3",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["fast+", "anti-installation", "fixed-route", "carrier-opening"],
+        "desc": "正規/装甲空母3、重巡/航巡/水母3。全艦高速＋。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6, 16], "value": 3 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
       },
       {
         "id": "4-5-fast-plus-night-carrier",
-        "name": "高速＋夜戦空母周回",
+        "name": "高速＋夜戦空母雷巡",
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
-        "nodes": ["C", "D", "H", "T"],
+        "nodes": ["A/C", "D", "H", "T"],
         "stableBoss": true,
-        "tags": ["fast+", "night-carrier", "anti-installation", "fixed-route"],
-        "desc": "正規/装甲空母2（夜戦空母1以上推奨）、軽空母1、雷巡2、航戦1。全艦高速＋。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
+        "tags": [
+          "fast+",
+          "anti-installation",
+          "fixed-route",
+          "night-carrier",
+          "carrier-opening",
+          "oasw"
         ],
+        "desc": "航戦1、正規/装甲空母2、軽空母1、雷巡2。全艦高速＋、夜戦空母1以上推奨。",
+        "lastVerified": "2026-08-25",
+        "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [7], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [4], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [10], "value": 1 }
-        ]
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
       },
       {
-        "id": "4-5-fast-plus-nelson",
-        "name": "高速＋Nelson特攻",
+        "id": "4-5-cl-dd-heavy",
+        "name": "軽巡駆逐・重量最短",
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
-        "nodes": ["C", "D", "H", "T"],
+        "nodes": ["A/C", "D", "H", "T"],
         "stableBoss": true,
-        "tags": ["fast+", "special-attack", "anti-installation", "fixed-route"],
-        "desc": "Nelson1、正規/装甲空母3、重巡1、雷巡1。全艦高速＋、HでNelson Touch。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
-        ],
+        "tags": ["anti-installation", "fixed-route", "quest-friendly"],
+        "desc": "戦艦/空母2、軽巡1、駆逐3。Kを回避する小型艦条件。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ContainsShipName", "names": ["Nelson"], "count": 1 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 3 },
-          { "type": "ShipTypeCount", "stypes": [5], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [4], "value": 1 }
-        ]
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
       },
       {
-        "id": "4-5-light-shortest",
-        "name": "夜戦軽空母・小型最短",
+        "id": "4-5-cl-dd-light",
+        "name": "軽巡駆逐・軽量",
         "category": "boss",
         "objectives": ["low-cost", "balanced", "boss-clear"],
-        "nodes": ["C", "D", "H", "T"],
-        "stableBoss": true,
-        "tags": ["night-carrier", "oasw", "anti-installation", "fixed-route"],
-        "desc": "軽空母2（夜戦空母1推奨）、軽巡1、駆逐3。軽巡1駆逐3条件で中央最短。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238"
-        ],
-        "fleet": [
-          { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [7], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 3 }
-        ]
-      },
-      {
-        "id": "4-5-quest-shortest",
-        "name": "任務向け小型最短",
-        "category": "boss",
-        "objectives": ["balanced", "boss-clear"],
-        "nodes": ["C", "D", "H", "T"],
-        "stableBoss": true,
-        "tags": ["quest-friendly", "anti-installation", "fixed-route"],
-        "desc": "正規/装甲空母2、軽巡1、駆逐3。軽巡1駆逐3条件で中央最短。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
-        ],
-        "fleet": [
-          { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 3 }
-        ]
-      },
-      {
-        "id": "4-5-detour-chipping",
-        "name": "削り向け迂回",
-        "category": "boss",
-        "objectives": ["balanced", "boss-clear"],
-        "nodes": ["A/C", "E/F", "M/I", "N/J/H", "T"],
-        "stableBoss": true,
-        "tags": ["fast", "route-varies", "chipping-only", "anti-installation"],
-        "desc": "戦艦1、正規/装甲空母2、軽巡1、駆逐2。初手によりA-B-E-M-R-N-TまたはC-F-I-J-H-T、削り向け。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
-        ],
-        "fleet": [
-          { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
-        ]
-      },
-      {
-        "id": "4-5-light",
-        "name": "軽巡駆逐軽量",
-        "category": "boss",
-        "objectives": ["low-cost", "balanced"],
-        "nodes": ["A", "B", "E", "M", "N", "T"],
+        "nodes": ["A/C", "B/F", "E/I", "M/J", "N/H", "T"],
         "stableBoss": true,
         "tags": ["fast", "anti-installation", "quest-friendly"],
-        "desc": "高速戦艦1、軽空母2、軽巡1、駆逐2。",
-        "sources": [
-          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-          "https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238"
-        ],
+        "desc": "高速戦艦1、軽空母2、軽巡1、駆逐2。初手により二つの進路を取る。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [8], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [7], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
-        ]
+          { "type": "ExactShipTypeCount", "stypes": [8], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
       },
       {
         "id": "4-5-leveling-asw",
@@ -625,25 +939,31 @@
   },
   {
     "area": "5-5",
+    "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+    "replaceSourceRoutes": true,
     "routes": [
       {
-        "id": "5-5-upper-four-heavy",
-        "name": "北方主力路線",
+        "id": "5-5-middle",
+        "name": "中央標準",
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
-        "nodes": ["B", "K", "P", "S"],
+        "nodes": ["B", "F", "D", "H", "N", "O", "S"],
         "stableBoss": true,
-        "tags": ["los-cn2-81", "air-power", "fixed-route"],
-        "desc": "戦艦2、正規/装甲空母2、重巡/航巡2。",
+        "tags": ["los-cn2-67", "air-power", "special-attack"],
+        "desc": "戦艦2、重巡/航巡/軽巡1、重巡/航巡/雷巡1、駆逐2。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 2 }
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 4, 5, 6, 8, 9, 10, 12], "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3, 4, 5, 6], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3, 5, 6], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [4, 5, 6], "value": 1 }
         ],
         "calculated": [
-          { "kind": "air-power", "minimum": 175, "recommended": 392 },
-          { "kind": "los", "coefficient": 2, "minimum": 81 }
+          { "kind": "air-power", "minimum": 136, "recommended": 175 },
+          { "kind": "los", "coefficient": 2, "minimum": 67 }
         ]
       },
       {
@@ -653,14 +973,15 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "F", "D", "H", "N", "O", "S"],
         "stableBoss": true,
-        "tags": ["fast+", "los-cn2-67", "late-game"],
+        "tags": ["fast+", "los-cn2-67", "late-game", "special-attack"],
         "desc": "戦艦2、正規空母1、航巡1、駆逐2。全艦高速＋。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [6], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
         ],
         "calculated": [
           { "kind": "air-power", "minimum": 175, "recommended": 392 },
@@ -671,18 +992,106 @@
         "id": "5-5-middle-ao",
         "name": "中央補給艦",
         "category": "boss",
-        "objectives": ["balanced", "low-cost"],
+        "objectives": ["balanced", "boss-clear", "low-cost"],
         "nodes": ["B", "F", "D", "H", "N", "O", "S"],
         "stableBoss": true,
-        "tags": ["oiler", "los-cn2-67", "any-speed"],
-        "desc": "戦艦/空母3、補給艦1、駆逐2。高速＋不要。",
+        "tags": ["oiler", "los-cn2-67", "any-speed", "smoke-screen"],
+        "desc": "戦艦2、正規/装甲空母1、補給艦1、駆逐2。Hマス煙幕を使う高速＋不要編成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
-          { "type": "ShipTypeCount", "stypes": [22], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [22], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
         ],
-        "calculated": [{ "kind": "los", "coefficient": 2, "minimum": 67 }]
+        "calculated": [
+          { "kind": "air-power", "minimum": 136, "recommended": 175 },
+          { "kind": "los", "coefficient": 2, "minimum": 67 }
+        ]
+      },
+      {
+        "id": "5-5-north-heavy",
+        "name": "北方重量",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "K", "P", "S"],
+        "stableBoss": true,
+        "tags": ["los-cn2-81", "air-power", "heavy-fleet", "special-attack"],
+        "desc": "戦艦2、正規/装甲空母2、重巡/航巡2。逸れを避ける北方重量編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 175, "recommended": 392 },
+          { "kind": "los", "coefficient": 2, "minimum": 81 }
+        ]
+      },
+      {
+        "id": "5-5-north-medium",
+        "name": "北方中量",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "F", "J", "P", "S"],
+        "stableBoss": true,
+        "tags": ["los-cn2-81", "air-power", "special-attack"],
+        "desc": "戦艦2、正規/装甲空母2、駆逐2。B-F-Jを固定する北方中量編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 175, "recommended": 392 },
+          { "kind": "los", "coefficient": 2, "minimum": 81 }
+        ]
+      },
+      {
+        "id": "5-5-south-dd",
+        "name": "南路駆逐4",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced", "boss-clear"],
+        "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+        "stableBoss": true,
+        "tags": ["los-cn2-67", "night-battle", "special-attack"],
+        "desc": "戦艦/空母2、駆逐4。ボーキ消費を抑える南路。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 117, "recommended": 175 },
+          { "kind": "los", "coefficient": 2, "minimum": 67 }
+        ]
+      },
+      {
+        "id": "5-5-south-flex",
+        "name": "南路ドラム缶",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced", "boss-clear"],
+        "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+        "stableBoss": false,
+        "tags": ["los-cn2-67", "night-battle", "drum-canister-required", "special-attack"],
+        "desc": "戦艦/空母2、駆逐2、自由枠2。4隻にドラム缶を搭載して南路固定。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 117, "recommended": 175 },
+          { "kind": "los", "coefficient": 2, "minimum": 67 }
+        ]
       },
       {
         "id": "5-5-leveling-asw",
@@ -850,6 +1259,8 @@
   },
   {
     "area": "6-5",
+    "sources": ["https://m.kcwiki.cn/wiki/%E4%B8%AD%E9%83%A8%E6%B5%B7%E5%9F%9F/6-5"],
+    "replaceSourceRoutes": true,
     "routes": [
       {
         "id": "6-5-south",
@@ -860,13 +1271,20 @@
         "stableBoss": true,
         "tags": ["los-cn3-35", "lbas", "night-battle"],
         "desc": "戦艦2、重巡/航巡/軽巡1、軽巡1、駆逐2。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 5, 6, 8, 9, 10, 12], "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3, 5, 6], "value": 2 },
           { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+          { "type": "MaxShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
         ],
-        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 35 }]
+        "calculated": [
+          { "kind": "air-power", "minimum": 140, "recommended": 300 },
+          { "kind": "los", "coefficient": 3, "minimum": 35 }
+        ]
       },
       {
         "id": "6-5-south-north",
@@ -877,13 +1295,20 @@
         "stableBoss": true,
         "tags": ["los-cn3-50", "lbas", "heavy-fleet"],
         "desc": "戦艦3、重巡/航巡/軽巡1、軽巡1、駆逐1。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 5, 6, 8, 9, 10, 12], "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [3, 5, 6], "value": 2 },
           { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 1 }
+          { "type": "MaxShipTypeCount", "stypes": [3], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 }
         ],
-        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 50 }]
+        "calculated": [
+          { "kind": "air-power", "minimum": 208, "recommended": 300 },
+          { "kind": "los", "coefficient": 3, "minimum": 50 }
+        ]
       },
       {
         "id": "6-5-north",
@@ -893,14 +1318,43 @@
         "nodes": ["A", "C", "D", "G", "M"],
         "stableBoss": true,
         "tags": ["los-cn3-50", "lbas", "ammo-penalty"],
-        "desc": "戦艦0-2、空母1-2、重巡/軽巡/駆逐1、駆逐1-2。戦艦+空母3以下。",
+        "desc": "戦艦1、正規/装甲空母2、重巡/航巡1、軽巡/雷巡1、駆逐1。北路の推奨編成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 1 },
-          { "type": "MaxShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 }
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3, 4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 }
         ],
-        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 50 }]
+        "calculated": [
+          { "kind": "air-power", "minimum": 208, "recommended": 300 },
+          { "kind": "los", "coefficient": 3, "minimum": 50 }
+        ]
+      },
+      {
+        "id": "6-5-middle",
+        "name": "中央重量",
+        "category": "boss",
+        "objectives": ["boss-clear", "balanced"],
+        "nodes": ["A", "C", "E", "H", "G", "M"],
+        "stableBoss": true,
+        "tags": ["los-cn3-50", "lbas", "ammo-penalty", "heavy-fleet", "night-carrier", "oasw"],
+        "desc": "戦艦1、空母1、戦艦/空母2、軽巡1、駆逐1。4重量艦の高火力編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 208, "recommended": 468 },
+          { "kind": "los", "coefficient": 3, "minimum": 50 }
+        ]
       },
       {
         "id": "6-5-leveling-asw",
@@ -942,23 +1396,169 @@
   },
   {
     "area": "7-5",
+    "sources": ["https://m.kcwiki.cn/wiki/7-5"],
+    "replaceSourceRoutes": true,
     "routes": [
       {
-        "id": "7-5-p3-light",
-        "name": "第三戦力・軽量最短",
+        "id": "7-5-p1-light",
+        "name": "第一戦力・水雷戦隊",
         "category": "boss",
-        "objectives": ["balanced", "low-cost"],
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "phase": "P1",
+        "nodes": ["A", "B", "D", "F", "G", "H", "K"],
+        "stableBoss": true,
+        "tags": ["fixed-route", "historical-bonus"],
+        "desc": "軽巡1-4、雷巡0-3、駆逐2-5。第一戦力の最短水雷戦隊。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 4], "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [3], "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [2], "value": 5 },
+          { "type": "MaxShipTypeCount", "stypes": [4], "value": 3 }
+        ]
+      },
+      {
+        "id": "7-5-p1-mixed",
+        "name": "第一戦力・混成",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P1",
+        "nodes": ["A", "B", "D", "F", "G", "H", "K"],
+        "stableBoss": true,
+        "tags": ["fixed-route", "historical-bonus"],
+        "desc": "航戦1、航巡1、雷巡1、軽巡1、駆逐2。P1攻略後は同じ編成でMマスへ進める。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ]
+      },
+      {
+        "id": "7-5-gimmick-m-p1",
+        "name": "第三戦力開放・P1編成流用",
+        "category": "gimmick",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "Gimmick",
+        "nodes": ["A", "B", "D", "F", "G", "H", "I", "M"],
+        "stableBoss": false,
+        "tags": ["los-cn3-40", "historical-bonus"],
+        "desc": "航戦1、航巡1、雷巡1、軽巡1、駆逐2。P1編成を変更せずMマスへ進む省資源解謎。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 40 }]
+      },
+      {
+        "id": "7-5-gimmick-m",
+        "name": "第三戦力開放・Mマス",
+        "category": "gimmick",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "Gimmick",
+        "nodes": ["A", "B", "D", "F", "G", "H", "I", "M"],
+        "stableBoss": false,
+        "tags": ["los-cn3-40", "anti-installation", "pt", "historical-bonus"],
+        "desc": "航戦1、航巡/揚陸艦1、軽巡1、駆逐3。MマスS勝利、33式係数3で40以上。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6, 17], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 40 }]
+      },
+      {
+        "id": "7-5-p2-fast-carrier",
+        "name": "第二戦力・高速軽空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P2",
+        "nodes": ["A", "B", "D", "F", "J", "O", "Q"],
+        "stableBoss": true,
+        "tags": ["fast", "anti-installation", "pt", "fixed-route", "historical-bonus"],
+        "desc": "高速戦艦1、軽空母1、航巡1、軽巡1、駆逐2。高速統一のP2低配編成。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ]
+      },
+      {
+        "id": "7-5-p2-short",
+        "name": "第二戦力・最短",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P2",
+        "nodes": ["A", "B", "D", "F", "J", "O", "Q"],
+        "stableBoss": true,
+        "tags": ["anti-installation", "pt", "fixed-route", "historical-bonus"],
+        "desc": "航戦1、航巡/揚陸艦1、軽巡1、駆逐3。対地・PT装備必須。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6, 17], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ]
+      },
+      {
+        "id": "7-5-p3-light-dd",
+        "name": "第三戦力・軽量駆逐3",
+        "category": "boss",
+        "objectives": ["balanced", "low-cost", "boss-clear"],
         "phase": "P3",
         "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
         "stableBoss": true,
-        "tags": ["los-cn3-55", "historical-bonus"],
-        "desc": "戦艦0-1、重巡/航巡1-2、軽巡1、駆逐2-3。",
+        "tags": ["los-cn3-55", "historical-bonus", "fixed-route"],
+        "desc": "戦艦0-1、重巡/航巡1-2、軽巡1、駆逐3。第三戦力の最短編成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 5, 6, 8, 9, 10, 12], "value": 6 },
+          { "type": "MaxShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
           { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
-          { "type": "MaxShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 }
+          { "type": "MaxShipTypeCount", "stypes": [5, 6], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
+      },
+      {
+        "id": "7-5-p3-light-cvl",
+        "name": "第三戦力・軽空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P3",
+        "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
+        "stableBoss": true,
+        "tags": ["los-cn3-55", "historical-bonus", "fixed-route"],
+        "desc": "軽空母1、重巡/航巡2、軽巡1、駆逐2。最短路線で航空戦力を持ち込む。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
         ],
         "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
       },
@@ -970,34 +1570,58 @@
         "phase": "P3",
         "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
         "stableBoss": true,
-        "tags": ["fast", "los-cn3-55", "historical-bonus"],
+        "tags": ["fast", "los-cn3-55", "historical-bonus", "fixed-route"],
         "desc": "戦艦/軽空1、重巡/航巡1、雷巡/水母1、軽巡1、駆逐2。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
-          { "type": "ShipTypeCount", "stypes": [7, 8, 9, 10, 12], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [4, 16], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4, 16], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
         ],
         "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
       },
       {
         "id": "7-5-p3-heavy",
-        "name": "第三戦力・重量",
+        "name": "第三戦力・重量駆逐3",
         "category": "boss",
         "objectives": ["boss-clear"],
         "phase": "P3",
         "nodes": ["A", "B", "D", "F", "J", "O", "P", "R", "T"],
         "stableBoss": true,
         "tags": ["extra-battle", "los-cn3-55", "historical-bonus"],
-        "desc": "戦艦1-2、軽空母0-1、軽巡1、駆逐2-3。R追加戦と引換に高火力。",
+        "desc": "戦艦1-2、軽空母0-1、軽巡1、駆逐3。低速艦を含められる重量編成。",
+        "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [2, 3, 7, 8, 9, 10, 12], "value": 6 },
           { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
-          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
-          { "type": "MaxShipTypeCount", "stypes": [7], "value": 1 }
+          { "type": "MaxShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
+      },
+      {
+        "id": "7-5-p3-heavy-fast",
+        "name": "第三戦力・重量高速",
+        "category": "boss",
+        "objectives": ["boss-clear"],
+        "phase": "P3",
+        "nodes": ["A", "B", "D", "F", "J", "O", "P", "R", "T"],
+        "stableBoss": true,
+        "tags": ["fast", "extra-battle", "los-cn3-55", "historical-bonus"],
+        "desc": "戦艦2、軽空母1、軽巡1、駆逐2。高速統一で駆逐2に抑える。",
+        "lastVerified": "2026-08-25",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
         ],
         "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
       },

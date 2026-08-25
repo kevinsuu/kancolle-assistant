@@ -2,7 +2,7 @@
 
 ## Coverage
 
-The catalog contains all 37 normal maps available on 2026-08-24:
+The catalog contains all 37 normal maps available on 2026-08-25:
 
 ```text
 1-1 .. 1-6
@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-24:
 7-1 .. 7-5
 ```
 
-It normalizes 97 canonical strategy templates. A canonical template represents a different routing
+It normalizes 110 canonical strategy templates. A canonical template represents a different routing
 condition, phase, or gameplay objective; swapping one ship for another of the same accepted type
 does not create another template.
 
@@ -80,6 +80,21 @@ Notable overlays include:
 For boss objectives, maps ending in `-5` only expose routes marked `stableBoss` to automatic Top 3
 selection. The ranking pass first selects the best fleet from distinct route templates, then fills
 remaining slots with fleet variants only when fewer than three distinct legal routes exist.
+
+The 1-5 through 7-5 overlays were rechecked against the current per-map Kancolle Wiki and 艦娘百科
+guides on 2026-08-25. They replace the older vendored X-5 routes instead of being merged with them,
+so Top 3 cannot select a stale duplicate. Every non-leveling X-5 template retains both guide links
+in its metadata. Fixed compositions use exact ship-type counts; flexible compositions separately
+record their allowed types and minimum/maximum counts.
+
+For 1-5, the balanced objective is limited to the four-DE or DD/DE light fleets, while the
+one-BBV/two-CL/one-DD fleet remains available under boss clear. The 2-5 and 3-5 routes carry their
+reviewed route-specific air-power thresholds. The 4-5 catalog distinguishes the two-DD light fleet
+that goes through K from the three-DD fleet that goes directly from H to T and retains the Fast+
+night-carrier/torpedo-cruiser composition. The stable 5-5 north routes now use exact two-BB/two-CV
+cores, and the AO middle route records its H-node smoke-screen requirement. The 6-5 north route is
+the exact one-BB/two-CV/CA-class/CL-or-CLT/DD recommendation, with LBAS-adjusted air-power targets.
+The 7-5 catalog separately exposes P1, both M-node gimmick fleets, the fast CVL P2 fleet, and P3.
 
 Multi-phase maps expose a route/phase selector in Strategy Room. Selecting automatic comparison
 allows cross-route Top 3; selecting a route constrains the solver to that phase/template.

@@ -153,11 +153,14 @@ export const recommendationMessages = (
   const externallyConfiguredTags = [
     'anti-installation',
     'boss-support',
+    'drum-canister-required',
+    'elite-torpedo-squadron-command-facility',
     'historical-bonus',
     'lbas',
     'night-carrier',
     'pt',
     'rocket-barrage-required',
+    'smoke-screen',
     'special-attack',
   ].filter((tag) => route.tags.includes(tag))
   if (externallyConfiguredTags.length > 0) {

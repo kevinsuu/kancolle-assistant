@@ -60,6 +60,13 @@ const parseSourceConstraint = (value: unknown): FleetConstraint => {
       min: readNumber(value, 'value'),
     }
   }
+  if (type === 'ExactShipTypeCount') {
+    return {
+      kind: 'ship-type-count',
+      shipTypeIds: readNumberArray(value.stypes, 'stypes'),
+      exact: readNumber(value, 'value'),
+    }
+  }
   if (type === 'MaxShipTypeCount') {
     return {
       kind: 'ship-type-count',
@@ -179,11 +186,20 @@ const sourceRoutes = (sourceMapData as unknown[]).flatMap((mapValue) => {
   })
 })
 
+const replacedSourceMapIds = new Set(
+  (strategyOverlayData as unknown[]).flatMap((mapValue) => {
+    if (!isRecord(mapValue) || mapValue.replaceSourceRoutes !== true) return []
+    return [readString(mapValue, 'area')]
+  }),
+)
+
 const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
   if (!isRecord(mapValue) || !Array.isArray(mapValue.routes)) {
     throw new Error('normal map overlay data shape invalid')
   }
   const mapId = readString(mapValue, 'area')
+  const mapSources =
+    mapValue.sources === undefined ? [] : readStringArray(mapValue.sources, 'sources')
   return mapValue.routes.map((routeValue): RouteTemplate => {
     if (!isRecord(routeValue) || !Array.isArray(routeValue.fleet)) {
       throw new Error(`normal map overlay ${mapId}: route shape invalid`)
@@ -212,7 +228,9 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
       routeValue.sources === undefined
         ? [strategySource]
         : readStringArray(routeValue.sources, 'sources')
-    const sources = Array.from(new Set([mapGuideSource(mapId), ...providedSources]))
+    const sources = Array.from(new Set([mapGuideSource(mapId), ...mapSources, ...providedSources]))
+    const lastVerified =
+      typeof routeValue.lastVerified === 'string' ? routeValue.lastVerified : '2026-08-24'
     return {
       id: readString(routeValue, 'id'),
       mapId,
@@ -235,9 +253,8 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
       metadata: {
         source: sources,
         confidence: isNewMap ? 'experimental' : 'community',
-        lastVerified:
-          typeof routeValue.lastVerified === 'string' ? routeValue.lastVerified : '2026-08-24',
-        ruleVersion: isNewMap ? '2026.08.24-5-6' : '2026.08.24-overlay',
+        lastVerified,
+        ruleVersion: isNewMap ? '2026.08.24-5-6' : `${lastVerified.replace(/-/g, '.')}-overlay`,
       },
     }
   })
@@ -246,7 +263,7 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
 const routeIds = new Set<string>()
 export const NORMAL_MAP_ROUTES: readonly RouteTemplate[] = [
   ...overlayRoutes,
-  ...sourceRoutes,
+  ...sourceRoutes.filter((route) => !replacedSourceMapIds.has(route.mapId)),
 ].filter((route) => {
   if (routeIds.has(route.id)) throw new Error(`normal map duplicate route id: ${route.id}`)
   routeIds.add(route.id)

@@ -14,7 +14,7 @@ names continue to come from KC3, while map and route names come from the recomme
 ## Scope
 
 - Maps: all 37 currently available normal maps, including multi-phase maps and 5-6.
-- Routes: 97 canonical strategy templates.
+- Routes: 110 canonical strategy templates.
 - Objectives: balanced, boss clear, low cost, leveling, and resource farming.
 - Output: exact ship and equipment instance IDs, basic air power, Formula 33 LoS, estimated
   resource use, source links, reasons, and warnings.
@@ -64,9 +64,21 @@ The catalog is stored in:
 - `strategy-overlays.json`: curated boss, leveling, resource, X-5, and 5-6 strategies.
 
 Every normalized route includes source URLs, confidence, verification date, category, objectives,
-tags, and a rule version. Every one of the 97 templates links directly to its current per-map
+tags, and a rule version. Every one of the 110 templates links directly to its current per-map
 Kancolle Wiki guide in addition to any farming, leveling, or source-dataset reference. Invalid
 source or overlay shapes fail during module initialization.
+
+The X-5 boss and gimmick catalogs were rechecked against Kancolle Wiki and 艦娘百科 on 2026-08-25
+and explicitly replace the older vendored X-5 routes. Exact-count constraints prevent a minimum
+such as “one aviation battleship” from admitting additional battleships into a fixed composition.
+The balanced 1-5 selection uses only the four-DE and DD/DE light fleets; the exact
+one-BBV/two-CL/one-DD second-shelling fleet is available only when boss clear is selected. For 4-5,
+fleets that pass node K require Cn2 LoS 71 and air power 112/252 (minimum/recommended); routes that
+skip K use air power 92/207. The 5-5 north and middle constraints exclude compositions that take a
+different branch, and the AO route warns that its optimized version requires an H-node smoke
+screen. 6-5 stores route-specific air-power targets after LBAS, while 7-5 exposes P1, two M-node
+gimmick choices, both P2 recommended fleets, and P3 independently. Every non-leveling X-5 template
+also retains its direct 艦娘百科 guide link.
 
 Examples of calculated hard constraints:
 
@@ -79,8 +91,8 @@ minimum.
 
 ## Solver behavior
 
-The fleet solver ranks bounded candidates and uses deterministic beam search over generic min/max,
-ship-count, and named-ship constraints.
+The fleet solver ranks bounded candidates and uses deterministic beam search over exact/min/max
+ship-type, ship-count, and named-ship constraints.
 The equipment solver builds all ship slots as one resource-allocation problem. A piece of equipment
 can be assigned only once, must be owned by the account, and must be compatible according to the
 compatibility list captured from `KC3Master.equip_on_ship`.
