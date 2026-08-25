@@ -111,6 +111,7 @@ const parseExpeditionRequest = (request) => {
     request.fleetCount < 1 ||
     request.fleetCount > 3 ||
     typeof request.incomeModifier.greatSuccess !== 'boolean' ||
+    typeof request.considerBuckets !== 'boolean' ||
     !Number.isInteger(request.incomeModifier.daihatsuCount) ||
     request.incomeModifier.daihatsuCount < 0 ||
     request.incomeModifier.daihatsuCount > 4 ||
@@ -128,6 +129,7 @@ const parseExpeditionRequest = (request) => {
     afkMinutes: request.afkMinutes,
     fleetCount: request.fleetCount,
     candidateIds,
+    considerBuckets: request.considerBuckets,
     incomeModifier: {
       greatSuccess: request.incomeModifier.greatSuccess,
       daihatsuCount: request.incomeModifier.daihatsuCount,

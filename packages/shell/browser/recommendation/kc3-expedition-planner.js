@@ -91,7 +91,7 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
   const target = mapResources(request.target, (value) => value)
   const deficits = mapResources(target, (value, key) => Math.max(0, value - current[key]))
   const deficitKeys = resourceKeys.filter((key) => deficits[key] > 0)
-  if (deficitKeys.length === 0) {
+  if (deficitKeys.length === 0 && !request.considerBuckets) {
     return {
       status: 'no-solution',
       reason: '目前四項資源都已達到設定目標。',
@@ -383,7 +383,11 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
         requirementApi.requirementPackToObj(rawRequirementPack),
         master,
       )
-      const rawInfo = extended ? {} : expeditionInfo.findRawInfo(numericId) || {}
+      const rawInfo = expeditionInfo.findRawInfo(numericId) || {}
+      const bucketReward = [rawInfo.api_win_item1, rawInfo.api_win_item2].find(
+        (reward) => Array.isArray(reward) && Number(reward[0]) === 1,
+      )
+      const bucketMaxPerTrip = Number(bucketReward?.[1]) || 0
       return [
         {
           id: numericId,
@@ -394,6 +398,10 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
           baseIncome,
           netIncome,
           hourlyIncome,
+          bucketPotential: {
+            maxPerTrip: bucketMaxPerTrip,
+            hourly: (bucketMaxPerTrip * 60) / effectiveCycleMinutes,
+          },
           estimatedResupplyCost: {
             fuel: Number(resupplyCost.fuel || 0),
             ammo: Number(resupplyCost.ammo || 0),
@@ -527,22 +535,33 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
       (value) => (value * comparisonWindowMinutes) / 60,
     )
     const goalCoverage =
-      deficitKeys.reduce(
-        (sum, key) =>
-          sum + Math.min(Math.max(0, projectedIncome[key]), deficits[key]) / deficits[key],
-        0,
-      ) / deficitKeys.length
+      deficitKeys.length === 0
+        ? 1
+        : deficitKeys.reduce(
+            (sum, key) =>
+              sum + Math.min(Math.max(0, projectedIncome[key]), deficits[key]) / deficits[key],
+            0,
+          ) / deficitKeys.length
     const weightedHourlyIncome = resourceKeys.reduce(
       (sum, key) => sum + hourlyIncome[key] * resourceWeights[key],
       0,
     )
-    const estimatedHours = deficitKeys.every((key) => hourlyIncome[key] > 0)
-      ? Math.max(...deficitKeys.map((key) => deficits[key] / hourlyIncome[key]))
-      : null
+    const bucketPotentialHourly = expeditions.reduce(
+      (sum, expedition) => sum + expedition.bucketPotential.hourly,
+      0,
+    )
+    const estimatedHours =
+      deficitKeys.length === 0
+        ? 0
+        : deficitKeys.every((key) => hourlyIncome[key] > 0)
+          ? Math.max(...deficitKeys.map((key) => deficits[key] / hourlyIncome[key]))
+          : null
     const pairing = bestPairing(expeditions)
     return {
       goalCoverage,
       weightedHourlyIncome,
+      bucketPotentialHourly,
+      prioritizesBuckets: request.considerBuckets,
       comparisonWindowMinutes,
       projectedIncome,
       hourlyIncome,
@@ -559,6 +578,7 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
           baseIncome: expedition.baseIncome,
           netIncome: expedition.netIncome,
           hourlyIncome: expedition.hourlyIncome,
+          bucketPotential: expedition.bucketPotential,
           estimatedResupplyCost: expedition.estimatedResupplyCost,
           requirements: expedition.requirements,
           modifier: expedition.modifier,
@@ -569,14 +589,19 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
     }
   })
 
-  plans.sort(
-    (left, right) =>
+  plans.sort((left, right) => {
+    const bucketDifference = request.considerBuckets
+      ? right.bucketPotentialHourly - left.bucketPotentialHourly
+      : 0
+    return (
+      bucketDifference ||
       right.weightedHourlyIncome - left.weightedHourlyIncome ||
       (left.estimatedHoursToTarget ?? Number.POSITIVE_INFINITY) -
         (right.estimatedHoursToTarget ?? Number.POSITIVE_INFINITY) ||
       right.goalCoverage - left.goalCoverage ||
-      right.pairingScore - left.pairingScore,
-  )
+      right.pairingScore - left.pairingScore
+    )
+  })
 
   return {
     status: 'success',
@@ -592,6 +617,7 @@ const kc3ExpeditionPlannerMainWorld = (request) => {
       fleetCount: request.fleetCount,
       comparisonWindowMinutes,
       resourceWeights,
+      considerBuckets: request.considerBuckets,
       mode: request.afkMinutes === 0 ? 'online' : 'afk',
       incomeModifier: {
         greatSuccess: plannerModifier.gs,

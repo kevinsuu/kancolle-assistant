@@ -131,6 +131,8 @@ const styles = `
   body.dark .dep-button { background: #111; color: #ddd; }
   body:not(.dark) .dep-button { border-color: #9bbfd5; border-radius: 6px; background: #e6f3fa; color: #28637e; }
   .dep-button-primary { min-width: 168px; }
+  .dep-button-primary.is-loading:disabled { cursor: wait; opacity: .82; }
+  .dep-button-primary.is-loading::before { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -2px; animation: dep-route-spin .7s linear infinite; content: ''; }
   body.dark .dep-button-primary { border-color: #b68a00; color: #fc0; }
   body:not(.dark) .dep-button-primary { border-color: #407f9e; background: #d8edf7; color: #174f69; }
   .dep-page-title { min-height: 40px; }
@@ -166,6 +168,11 @@ const styles = `
   .dep-weight span { font-size: 12px; font-weight: bold; }
   .dep-weight output { font: bold 13px monospace; text-align: right; }
   .dep-weight input { width: 100%; min-width: 0; }
+  .dep-bucket-option { display: flex; grid-column: 1 / -1; align-items: center; gap: 8px; min-height: 38px; margin-top: 2px; padding: 6px 8px; border: 1px solid rgba(128,128,128,.35); cursor: pointer; }
+  .dep-bucket-option:has(input:checked) { border-color: #3b9d91; background: rgba(59,157,145,.14); }
+  .dep-bucket-option input { margin: 0; }
+  .dep-bucket-option strong { display: block; font-size: 12px; }
+  .dep-bucket-option small { display: block; color: #888; font-size: 10px; font-weight: normal; }
   .dep-schedule { display: grid; grid-template-columns: 1fr; gap: 9px; }
   .dep-time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .dep-time-inputs label { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; font-size: 11px; }
@@ -279,7 +286,11 @@ const styles = `
     .dep-actions { align-items: stretch; flex-direction: column; }
     .dep-income { grid-template-columns: repeat(2, 1fr); }
   }
-  @media (prefers-reduced-motion: reduce) { .dep-shortfall i { transition: none; } }
+  @keyframes dep-route-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .dep-shortfall i { transition: none; }
+    .dep-button-primary.is-loading::before { border-right-color: currentColor; animation: none; opacity: .55; }
+  }
 `
 
 const plannerMarkup = () => `
@@ -360,6 +371,10 @@ const plannerMarkup = () => `
               `,
             )
             .join('')}
+          <label class="dep-bucket-option">
+            <input id="dep-consider-buckets" type="checkbox" checked>
+            <span><strong>${t('expedition.considerBuckets')}</strong><small>${t('expedition.bucketHint')}</small></span>
+          </label>
         </div>
       </section>
       <section class="dep-setting-panel page_panel bscolor4 fcolor2" aria-labelledby="dep-schedule-title">
@@ -458,6 +473,7 @@ const scorerSettings = (root) => {
     fleetCount,
     candidateIds: selectedCandidateIds(root),
     resourceWeights,
+    considerBuckets: root.querySelector('#dep-consider-buckets')?.checked === true,
   }
 }
 
@@ -728,6 +744,11 @@ const renderPairing = ({ expedition, fleet }) => {
               `<span style="--dep-resource:${resource.color}"><strong>${resourceLabel(resource)}</strong>${formatSigned(expedition.netIncome[resource.key])}${t('expedition.perTrip')} · ${formatSigned(expedition.hourlyIncome[resource.key], 1)}${t('common.perHour')}</span>`,
           )
           .join('')}
+        ${
+          expedition.bucketPotential.maxPerTrip > 0
+            ? `<span style="--dep-resource:#3b9d91"><strong>${t('common.bucket')}</strong>${t('expedition.bucketPerTrip', { count: formatNumber(expedition.bucketPotential.maxPerTrip) })} · ${formatNumber(expedition.bucketPotential.hourly, 2)}${t('common.perHour')}</span>`
+            : ''
+        }
       </div>
       <details class="dep-fold page_panel bscolor4 fcolor2" ${failedConditions.length > 0 ? 'open' : ''}>
         <summary class="${failedConditions.length === 0 ? 'dep-fold-summary-ok' : 'dep-fold-summary-warn'}">${t('expedition.compositionCheck', { summary: compositionSummary })}</summary>
@@ -759,7 +780,7 @@ const renderPlan = (plan) => {
       <section class="dep-dispatch-board page_panel bscolor4 fcolor2">
         <div class="dep-dispatch-title">
           <h3>${t('expedition.bestPlan')}</h3>
-          <span>${escapeHtml(modifierText(plan.pairings[0].expedition.modifier))}</span>
+          <span>${escapeHtml(modifierText(plan.pairings[0].expedition.modifier))}${plan.prioritizesBuckets ? ` · ${t('expedition.bucketPlanSummary', { value: formatNumber(plan.bucketPotentialHourly, 2) })}` : ''}</span>
         </div>
         <div class="dep-dispatch-steps">${plan.pairings.map(renderDispatchStep).join('')}</div>
       </section>
@@ -919,15 +940,22 @@ const mountPanel = (invoke) => {
     }
     generateButton.disabled = true
     generateButton.textContent = t('expedition.generating')
-    let result
+    generateButton.classList.add('is-loading')
+    generateButton.setAttribute('aria-busy', 'true')
     try {
-      result = await invoke(EXPEDITION_PLAN_CHANNEL, { target, ...settings, incomeModifier })
-    } catch {
-      result = { status: 'error', error: { code: 'EXPEDITION_PLAN_CONNECTION_FAILED' } }
+      let result
+      try {
+        result = await invoke(EXPEDITION_PLAN_CHANNEL, { target, ...settings, incomeModifier })
+      } catch {
+        result = { status: 'error', error: { code: 'EXPEDITION_PLAN_CONNECTION_FAILED' } }
+      }
+      renderPlans(root, result)
+    } finally {
+      generateButton.disabled = false
+      generateButton.textContent = t('expedition.generate')
+      generateButton.classList.remove('is-loading')
+      generateButton.removeAttribute('aria-busy')
     }
-    renderPlans(root, result)
-    generateButton.disabled = false
-    generateButton.textContent = t('expedition.generate')
   })
   sync()
 }

@@ -36,6 +36,7 @@ Scorer:
 
 - checked expeditions in worlds 1–5 are the candidate pool;
 - **資源權重** supplies the fuel, ammunition, steel, and bauxite weights from -5 to 20;
+- **考慮水桶收益** is checked by default and prioritizes bucket acquisition potential;
 - **操作條件** supplies the offline time and selects one, two, or three expedition fleets;
 - **收益假設** selects normal or great success and zero to four Daihatsu-type equipment items.
 
@@ -45,6 +46,10 @@ ammunition and bauxite on the second row.
 The income assumption is deliberately visible beside the resource goals and is applied uniformly
 to every candidate. Normal success has a factor of 1.0, great success has a factor of 1.5, and each
 Daihatsu-type item adds 5% up to four items (20%):
+
+After the inputs pass validation, **產生最佳配對** changes to a disabled loading state with a
+route-calculation indicator while the planner runs. The normal label and enabled state are restored
+after either a result or a handled connection error.
 
 ```text
 success factor = great success ? 1.5 : 1.0
@@ -93,11 +98,20 @@ All candidate sets use the same comparison horizon: one hour for online mode or 
 duration for AFK mode. This prevents a long expedition from enlarging only its own comparison window
 and artificially increasing the projected income of the other fleets in that set.
 
-The primary ranking value follows the same weighted-resource approach as Expedition Scorer:
+The four-resource ranking value follows the same weighted-resource approach as Expedition Scorer:
 
 ```text
 weighted hourly efficiency = sum(net hourly resource income × resource priority)
 ```
+
+When **考慮水桶收益** is checked, the planner first maximizes the selected expeditions' combined
+bucket potential per effective hour, then applies weighted resource efficiency and the existing
+tie-breakers. Unchecking it restores the original four-resource ordering. Bucket rewards come from
+KC3's expedition master-data item slots. Since that data supplies the maximum item count but not a
+drop probability, the result deliberately labels bucket income as **up to** a count per return and
+does not present it as an expected value. Great Success and Daihatsu multipliers do not multiply
+item rewards. If all four resource targets are already met, keeping this option checked still
+allows the planner to return the best bucket-oriented pairing.
 
 Negative priorities penalize that resource, zero ignores it, and positive priorities reward it.
 Estimated time to fill all current target deficits, common-window goal coverage, and current-fleet
@@ -160,11 +174,11 @@ Two fixed IPC commands are accepted only from the currently loaded KC3 Strategy 
 - `recommendation:expedition-plan`
 
 The plan request accepts only integer targets from 0 to 350,000, integer resource priorities from
--5 to 20, an AFK duration from 0 to 2,880 minutes, one to three fleets, a boolean great-success
-assumption, a Daihatsu count from zero to four, and unique candidate IDs from 1 to 40 plus the
-internal IDs 100, 101, 102, and 110 for A1, A2, A3, and B1 respectively. The main process executes
-a fixed planner function in the KC3 page context; request data is validated before it crosses that
-boundary.
+-5 to 20, an AFK duration from 0 to 2,880 minutes, one to three fleets, boolean bucket-priority and
+great-success assumptions, a Daihatsu count from zero to four, and unique candidate IDs from 1 to
+40 plus the internal IDs 100, 101, 102, and 110 for A1, A2, A3, and B1 respectively. The main
+process executes a fixed planner function in the KC3 page context; request data is validated before
+it crosses that boundary.
 
 The income model follows the existing KC3 Scorer and Kancepts weighted-resource approach. Kancepts
 is available at <https://javran.github.io/kancepts/> and its source is at
