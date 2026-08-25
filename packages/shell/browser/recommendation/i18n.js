@@ -214,7 +214,7 @@ const en = {
   'message.EQUIPMENT_ASSIGNMENT_FAILED':
     'Owned equipment cannot simultaneously satisfy equipability, uniqueness, air power, and LoS.',
   'message.FLEET_SPEED_INSUFFICIENT':
-    'This route requires an all-fast fleet, but the candidates include slow ships, so the invalid plan was rejected.',
+    'The candidate fleet speed does not satisfy this route, so the invalid plan was rejected.',
   'message.RULE_NOT_FOUND': 'The requested map rule was not found.',
   'message.INVALID_REQUEST': 'The request format is invalid.',
   'message.KC3_UNAVAILABLE':
@@ -626,7 +626,7 @@ const tcn = {
   'message.EQUIPMENT_ASSIGNMENT_FAILED':
     '持有裝備無法同時滿足可裝備性、裝備唯一性、制空與索敵條件。',
   'message.FLEET_SPEED_INSUFFICIENT':
-    '此路線要求全艦高速，但目前候選包含低速艦；已拒絕輸出不符合帶路條件的方案。',
+    '目前候選艦隊的速度不符合路線帶路條件；已拒絕輸出不合法的方案。',
   'message.RULE_NOT_FOUND': '找不到指定關卡規則。',
   'message.INVALID_REQUEST': '請求格式不正確。',
   'message.KC3_UNAVAILABLE': 'KC3 資料尚未就緒，請回到母港同步後再試。',
@@ -1024,7 +1024,7 @@ const scn = {
   'message.EQUIPMENT_ASSIGNMENT_FAILED':
     '持有装备无法同时满足可装备性、装备唯一性、制空与索敌条件。',
   'message.FLEET_SPEED_INSUFFICIENT':
-    '此路线要求全舰高速，但当前候选包含低速舰；已拒绝输出不符合带路条件的方案。',
+    '当前候选舰队的速度不符合路线带路条件；已拒绝输出不合法的方案。',
   'message.RULE_NOT_FOUND': '找不到指定关卡规则。',
   'message.INVALID_REQUEST': '请求格式不正确。',
   'message.KC3_UNAVAILABLE': 'KC3 数据尚未就绪，请返回母港同步后重试。',
@@ -1428,7 +1428,7 @@ const jp = {
   'message.EQUIPMENT_ASSIGNMENT_FAILED':
     '所持装備では、装備可否・装備の重複禁止・制空・索敵を同時に満たせません。',
   'message.FLEET_SPEED_INSUFFICIENT':
-    'このルートは全艦高速が必要ですが、候補に低速艦が含まれるため無効な案を除外しました。',
+    '候補艦隊の速力がルート条件を満たさないため、無効な案を除外しました。',
   'message.RULE_NOT_FOUND': '指定海域のルールが見つかりません。',
   'message.INVALID_REQUEST': 'リクエスト形式が正しくありません。',
   'message.KC3_UNAVAILABLE': 'KC3データの準備ができていません。母港に戻って再同期してください。',

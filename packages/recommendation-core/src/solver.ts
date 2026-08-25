@@ -54,7 +54,10 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         const metrics = calculateFleetMetrics(builds, route, input.account.hqLevel)
         bestAirPower = Math.max(bestAirPower, metrics.airPower)
         bestLos = Math.max(bestLos, metrics.los33)
-        if (route.tags.includes('fast') && metrics.finalSpeedClass === 'slow') {
+        const wrongSpeed =
+          (route.tags.includes('fast') && metrics.finalSpeedClass === 'slow') ||
+          (route.tags.includes('slow') && metrics.finalSpeedClass !== 'slow')
+        if (wrongSpeed) {
           speedRequirementFailed = true
           return
         }
@@ -141,7 +144,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     if (speedRequirementFailed) {
       reasons.push({
         code: 'FLEET_SPEED_INSUFFICIENT',
-        message: '此路線要求全艦高速，但目前候選包含低速艦；已拒絕輸出不符合帶路條件的方案。',
+        message: '目前候選艦隊的速度不符合路線帶路條件；已拒絕輸出不合法的方案。',
       })
     }
     if (reasons.length === 0) {

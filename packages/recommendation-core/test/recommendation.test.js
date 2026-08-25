@@ -323,6 +323,39 @@ test('1-5 balanced recommendations stay on light ASW fleets', () => {
   })
 })
 
+test('slow-route recommendations reject an all-fast fleet', () => {
+  const raw = createRawSnapshot()
+  const shipTypeIds = [10, 5, 3, 3, 2, 2]
+  raw.hqLevel = 1
+  raw.equipment.forEach((gear) => {
+    gear.airPowerBySlotSize = { 0: 0, 1: 20 }
+  })
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+    ship.speedValue = index === 0 ? 5 : 10
+    ship.nakedLos = 100
+    ship.slotSizes = [1, 1, 1]
+  })
+
+  const valid = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-north',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(valid.status, 'success')
+
+  raw.ships[0].speedValue = 10
+  const invalid = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-north',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(invalid.status, 'no-solution')
+  assert.ok(invalid.analysis.reasons.some((reason) => reason.code === 'FLEET_SPEED_INSUFFICIENT'))
+})
+
 test('air-constrained cruiser routes assign owned seaplane fighters', () => {
   const raw = createRawSnapshot()
   const shipTypeIds = [6, 3, 2, 2, 2, 2]

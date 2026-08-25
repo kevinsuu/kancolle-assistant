@@ -100,9 +100,9 @@ minimum, compatible battleships and cruisers also allocate owned seaplane fighte
 assuming that only carriers can supply the required air power.
 
 Recommendations that fail minimum air power or LoS are discarded rather than penalized with a
-score. A route tagged as requiring a fast fleet also rejects a fleet containing a slow ship. If no
-legal result remains, the UI reports the observed missing ship type, air power, LoS, speed, or
-assignment constraint.
+score. Routes tagged as requiring a fast or slow fleet reject candidates with the wrong base fleet
+speed. If no legal result remains, the UI reports the observed missing ship type, air power, LoS,
+speed, or assignment constraint.
 
 Resource equipment is selected by actual ship compatibility. For normal resource nodes, Daihatsu
 and amphibious-tank categories are preferred, drum canisters are the fallback, and landing-craft
