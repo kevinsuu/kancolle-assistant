@@ -55,6 +55,10 @@ jobs:
         with:
           run: yarn test
 
-      - name: Run tests (Windows)
+      - name: Run recommendation tests (Windows)
         if: runner.os == 'Windows'
-        run: yarn test
+        run: yarn test:recommendation
+
+      - name: Run extension tests (Windows)
+        if: runner.os == 'Windows'
+        run: yarn test:extensions
