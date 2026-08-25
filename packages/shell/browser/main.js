@@ -11,20 +11,23 @@ import {
   globalShortcut,
   ipcMain,
   nativeTheme,
+  screen,
   dialog,
   autoUpdater,
   webFrameMain,
   protocol,
   shell,
+  safeStorage,
 } from 'electron'
 import { EventEmitter } from 'events'
 
 if (require('electron-squirrel-startup')) app.quit()
-app.setAppUserModelId('net.tsunkit.damecon')
+app.setName('KanColle Assistant')
+app.setAppUserModelId('io.github.kevinsuu.kancolle-assistant')
 
 import { updateElectronApp, UpdateSourceType } from 'update-electron-app'
 
-// damecon config
+// Application config
 import ConfigStore from 'configstore'
 import { configSchema, updateConfigDefaults, populateConfigDefaults } from './ui/config-utils.js'
 
@@ -35,6 +38,22 @@ const { installChromeWebStore, loadAllExtensions } = require('electron-chrome-we
 import { buildChromeContextMenu } from 'electron-chrome-context-menu'
 import setupMenu from './menu'
 import Tabs from './tabs'
+import {
+  captureStartupDisplayMetrics,
+  calculateGameAndSidebarWindowLayout,
+  constrainWindowSizeToDisplay,
+  fitGameTabOnce,
+  fitWindowForGameAndSidebar,
+} from './display/game-auto-fit'
+import {
+  DEVTOOLS_LOCALE_INFOBAR_DEFAULTS_VERSION,
+  estimateKc3SidebarWidth,
+  initializeDevToolsPreferences,
+  showKc3DevToolsPanel,
+} from './devtools/kc3-devtools'
+import { registerRecommendationIpc } from './recommendation/recommendation-ipc'
+import { createRecommendationWorkerService } from './recommendation/recommendation-worker-service'
+import { registerDmmCredentialVault } from './security/dmm-credential-vault'
 
 import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
@@ -43,8 +62,8 @@ import { debug, error } from 'console'
 import { isMatch } from 'matcher'
 
 // Updaters
-import './workers/worker-shim'
-import updateWorker from 'worker-loader!./workers/updater-worker.js'
+import { createNodeWorker } from './workers/worker-shim'
+import updateWorker from 'worker-loader?filename=updater.worker.js!./workers/updater-worker.js'
 
 // KCCP
 const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
@@ -67,7 +86,9 @@ import {
   updateKccpGitMod,
 } from './kccp-integration.js'
 
-const logSource = 'damecon-browser'
+const logSource = 'kancolle-assistant'
+const legacyAppName = 'Damecon'
+const legacyConfigId = 'damecon-browser'
 
 const homePath = app.getPath('home')
 const hideHome = function (filePath) {
@@ -93,8 +114,8 @@ if (!!appDirCheck) {
 }
 kccp.logger.log(logSource, `${isSquirrel ? 'Running' : 'Not running'} via Squirrel.`)
 
-// ~\AppData\Roaming in windows, or ~/.config in linux.
-const appDataDir = app.getPath('userData')
+// Preserve Damecon's storage locations so the rebrand does not hide existing user data.
+const appDataDir = path.join(app.getPath('appData'), legacyAppName)
 
 // store config.json in the app folder when running packaged.
 const cfgOpts = {}
@@ -118,7 +139,7 @@ if (preexisting) console.log('Detected preexisting userdata at current app locat
 
 updateConfigDefaults({ isSquirrel, preexisting })
 
-const configStore = new ConfigStore('damecon-browser', {}, cfgOpts)
+const configStore = new ConfigStore(legacyConfigId, {}, cfgOpts)
 
 const cfg = configStore.all
 kccp.logger.log(logSource, 'Populating defaults for config')
@@ -157,7 +178,7 @@ app.userAgentFallback = app.userAgentFallback.replace(' Electron/', ' Elec/')
 console.log('User-Agent:', app.userAgentFallback)
 
 // determine where the userdata/extensions folders should be stored
-const homeDataLocation = path.join(homePath, app.name)
+const homeDataLocation = path.join(homePath, legacyAppName)
 const dataLocation = cfg.app.data.location
 let dataPath = appDir
 switch (dataLocation) {
@@ -173,7 +194,7 @@ switch (dataLocation) {
 const userDataPath = path.join(dataPath, 'userdata')
 app.setPath('userData', userDataPath)
 
-if (process.execPath.match(/(damecon(-browser)?|chrome)/)) {
+if (process.execPath.match(/(kancolle-assistant|damecon(-browser)?|chrome)/)) {
   const currentPath = path.dirname(process.execPath)
   console.log('process.execPath', process.execPath)
   console.log('currentPath', currentPath)
@@ -201,15 +222,43 @@ const PATHS = {
   //KC3_EXTENSIONS: path.join(ROOT_DIR, 'ext_kc3kai'),
 }
 
+const recommendationWorkerPath = app.isPackaged
+  ? 'recommendation.worker.js'
+  : path.join(PATHS.WORKERS, 'recommendation-worker.js')
+
+const initializeKc3DevToolsDefaults = () => {
+  const localeInfobarDefaultsVersion =
+    configStore.get('kc3kai.startup.devtoolsLocaleInfobarDefaultsVersion') || 0
+
+  try {
+    const result = initializeDevToolsPreferences({
+      hideLocaleInfobar: localeInfobarDefaultsVersion < DEVTOOLS_LOCALE_INFOBAR_DEFAULTS_VERSION,
+      preferencesPath: path.join(PATHS.USERDATA, 'Preferences'),
+    })
+    if (result.changed) {
+      kccp.logger.log(logSource, 'Configured KC3 DevTools defaults.')
+    }
+    configStore.set(
+      'kc3kai.startup.devtoolsLocaleInfobarDefaultsVersion',
+      DEVTOOLS_LOCALE_INFOBAR_DEFAULTS_VERSION,
+    )
+  } catch (error) {
+    kccp.logger.error(logSource, 'Unable to configure KC3 DevTools defaults.', error)
+  }
+}
+
 kccp.logger.log(logSource, `Is packaged: ${app.isPackaged}`)
 console.log(`SHELL_ROOT_DIR: ${SHELL_ROOT_DIR}`)
 console.log(`ROOT_DIR: ${ROOT_DIR}`)
 console.log(`PATHS:`, PATHS)
 
 // only allow one instance to run for now
-if (!app.requestSingleInstanceLock()) {
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
+if (!hasSingleInstanceLock) {
   app.quit()
   console.log("!! shouldn't see me !!")
+} else {
+  initializeKc3DevToolsDefaults()
 }
 
 let webuiExtensionId
@@ -218,10 +267,18 @@ let webuiUrl
 let kc3ExtensionId
 let kc3StartPageUrl
 let DMMPageUrl
+const DMM_REGION_BLOCK_URL = 'https://special.dmm.com/not-available-in-your-region/'
 let newTabUrl
 let searchUrl
 let settingsUrl
 let confirmCloseUrls = []
+const isDmmRegionBlockUrl = (value) => {
+  try {
+    return new URL(value).href.startsWith(DMM_REGION_BLOCK_URL)
+  } catch {
+    return false
+  }
+}
 const manifestExists = async (dirPath) => {
   if (!dirPath) return false
   const manifestPath = path.join(dirPath, 'manifest.json')
@@ -259,8 +316,8 @@ if (isSquirrel) {
     kccp.logger.log(logSource, 'Checking for updates.')
     updateElectronApp({
       updateSource: {
-        type: UpdateSourceType.StaticStorage,
-        baseUrl: `https://tsunkit.net/damecon-browser/updates/${process.platform}/${process.arch}`,
+        type: UpdateSourceType.ElectronPublicUpdateService,
+        repo: 'kevinsuu/kancolle-assistant',
       },
       updateInterval: '6 hours',
       logger: { log: (msg) => kccp.logger.log('update-electron-app', msg) },
@@ -337,18 +394,93 @@ class TabbedBrowserWindow {
 
     this.tabs.on('tab-navigated', function onTabNavigated(tab, tabUrl) {
       //console.log(">> main.tabs.on('tab-navigated', tabsOpts)")
+      if (isDmmRegionBlockUrl(tabUrl)) {
+        self.showDmmRegionBlockDialog(tab).catch((error) => {
+          kccp.logger.error(logSource, 'Unable to show the DMM regional access warning.', error)
+        })
+        return
+      }
+      tab.dmmRegionBlockDialogShown = false
+
+      const isKc3StartPage = tabUrl === kc3StartPageUrl
+      const isDmmGamePage =
+        tabUrl === DMMPageUrl ||
+        tabUrl.startsWith(`${DMMPageUrl}?`) ||
+        tabUrl.startsWith(`${DMMPageUrl}/`)
+      const canOpenGameDevtools = isKc3StartPage || isDmmGamePage
+
       if (
-        (tabUrl === kc3StartPageUrl || tabUrl === DMMPageUrl) &&
+        isDmmGamePage &&
+        configStore.get('window.view.autoFitGameOnStartup') &&
         configStore.get('kc3kai.startup.openDevtools')
       ) {
-        //delaying opening of devtools on initial tab load
-        const startDevTools = async () => {
+        const plannedLayout = calculateGameAndSidebarWindowLayout({
+          displayMetrics: options.startupDisplayMetrics,
+          sidebarWidth: estimateKc3SidebarWidth(options.startupDisplayMetrics.workAreaSize.width),
+          topBarHeight: tab.view.getBounds().y || undefined,
+        })
+        if (plannedLayout.applied) {
+          tab.webContents.setZoomFactor(plannedLayout.zoomFactor)
+          tab.gamePlannedZoomFactor = plannedLayout.zoomFactor
+        }
+      }
+
+      if (
+        canOpenGameDevtools &&
+        configStore.get('kc3kai.startup.openDevtools') &&
+        !tab.gameDevtoolsPrepared
+      ) {
+        tab.gameDevtoolsPrepared = true
+        tab.gameDevtoolsReady = (async () => {
+          // delaying opening of devtools on initial tab load
           const delaySeconds = configStore.get('kc3kai.startup.openDevtoolsDelay') || 0
           await delay(delaySeconds * 1000)
-          tab.webContents.openDevTools({ activate: true })
+          if (!tab.webContents.isDevToolsOpened()) {
+            tab.webContents.openDevTools({ activate: true })
+          }
+          await delay(300)
+          if (tab.gameDevtoolsLayoutReady) await tab.gameDevtoolsLayoutReady
+        })().catch((error) => {
+          kccp.logger.error(logSource, 'Unable to open game DevTools.', error)
+        })
+      }
+
+      if (
+        isDmmGamePage &&
+        configStore.get('window.view.autoFitGameOnStartup') &&
+        !tab.gameAutoFitScheduled
+      ) {
+        tab.gameAutoFitScheduled = true
+        kccp.logger.log(logSource, 'display.game-auto-fit-scheduled', {
+          source: 'main-frame-navigation',
+          tabUrl,
+          webContentsId: tab.webContents.id,
+        })
+        const autoFitFromMainProcess = async () => {
+          if (tab.gameDevtoolsReady) await tab.gameDevtoolsReady
+          const devtoolsResult = tab.gameDevtoolsLayoutReady
+            ? await tab.gameDevtoolsLayoutReady
+            : null
+          if (devtoolsResult?.layout?.applied) {
+            const windowFit = fitWindowForGameAndSidebar({
+              tab,
+              displayMetrics: options.startupDisplayMetrics,
+              sidebarWidth: devtoolsResult.layout.sidebarWidth,
+            })
+            kccp.logger.log(logSource, 'display.game-window-layout', windowFit)
+            if (windowFit.applied) tab.webContents.setZoomFactor(windowFit.zoomFactor)
+          }
+          const result = await fitGameTabOnce({
+            tab,
+            displayMetrics: options.startupDisplayMetrics,
+            logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+          })
+          if (!result.applied) tab.gameAutoFitScheduled = false
         }
-        startDevTools()
-        //tab.webContents.openDevTools({ activate: true })
+        autoFitFromMainProcess().catch((error) => {
+          tab.gameAutoFitScheduled = false
+          kccp.logger.error(logSource, 'Unable to auto-fit game tab.', error)
+        })
       }
     })
 
@@ -366,6 +498,39 @@ class TabbedBrowserWindow {
         value: hidden,
       })
     })
+  }
+
+  async showDmmRegionBlockDialog(tab) {
+    if (tab.dmmRegionBlockDialogShown || this.window.isDestroyed()) return
+    tab.dmmRegionBlockDialogShown = true
+
+    kccp.logger.error(logSource, 'DMM blocked access based on the current network region.', {
+      url: tab.webContents.getURL(),
+      webContentsId: tab.webContents.id,
+    })
+
+    const result = await dialog.showMessageBox(this.window, {
+      type: 'warning',
+      buttons: ['Open Settings', 'Retry', 'Dismiss'],
+      defaultId: 0,
+      cancelId: 2,
+      title: 'DMM regional access blocked',
+      message: 'DMM determined that the current connection is outside its supported region.',
+      detail:
+        'If you are on a supported network, disable an unintended VPN or proxy. Otherwise, open the Proxy settings and configure All external with an authorized Japan HTTP/HTTPS proxy. KCCacheProxy alone does not change your public IP.',
+    })
+
+    if (this.window.isDestroyed() || tab.destroyed) return
+    if (result.response === 0) {
+      const existingSettingsTab = this.tabs.tabList.find(
+        (candidate) => candidate.webContents.getURL() === settingsUrl,
+      )
+      const settingsTab = existingSettingsTab || this.tabs.create({ initialUrl: settingsUrl })
+      this.tabs.select(settingsTab.id)
+    } else if (result.response === 1) {
+      tab.dmmRegionBlockDialogShown = false
+      await tab.loadURL(DMMPageUrl || 'https://play.games.dmm.com/game/kancolle')
+    }
   }
 
   destroy() {
@@ -396,6 +561,7 @@ class Browser extends EventEmitter {
   kccpModderIsUpdating = false
   isProxyEnabled = false
   session = null
+  startupDisplayMetrics = null
 
   urls = {
     newtab: 'about:blank',
@@ -461,9 +627,10 @@ class Browser extends EventEmitter {
     const method = proxyCfg.method
 
     const internal = mode === 'kccp-internal'
+    const allExternal = mode === 'all-external'
     const https = method === 'https-mitm'
 
-    if (this.isProxyEnabled && (internal || https)) {
+    if (this.isProxyEnabled && (internal || allExternal || https)) {
       let host, port
       if (internal) {
         const kccpConfig = await getKccpConfig(configStore)
@@ -471,28 +638,26 @@ class Browser extends EventEmitter {
         port = kccpConfig.config.httpsPort
       } else {
         host = proxyCfg.client.host
-        port = method === 'https-mitm' ? proxyCfg.client.httpsPort : proxyCfg.client.port
+        port = allExternal || https ? proxyCfg.client.httpsPort : proxyCfg.client.port
       }
 
       kccp.logger.log(logSource, 'Applying proxy settings:', this.isProxyEnabled, mode, host, port)
 
-      const pac = this.generatePac(host, port, mode)
-      const pacData =
-        'data:application/x-ns-proxy-autoconfig;base64,' +
-        Buffer.from(pac, 'utf8').toString('base64')
-      const proxyConfig = { mode: 'pac_script', pacScript: pacData }
+      const proxyConfig = allExternal
+        ? { mode: 'fixed_servers', proxyRules: `http://${host}:${port}` }
+        : this.createKancolleProxyConfig(host, port, mode)
       await this.session.setProxy(proxyConfig)
     } else {
       kccp.logger.log(logSource, 'Clearing proxy settings')
       await this.session.setProxy({ mode: 'system' })
     }
+
+    await this.session.forceReloadProxyConfig()
+    await this.session.closeAllConnections()
+    await this.retryDmmRegionBlockedTabs()
   }
 
-  generatePac(host, port, mode) {
-    if (mode.startsWith('all-')) {
-      return `function FindProxyForURL(url, host) {\n return "PROXY ${host}:${port}";\n }\n`
-    }
-
+  createKancolleProxyConfig(host, port) {
     // server letters, will expand to '00g|01y|02k' etc
     const servers = 'gyksmotlrsbtpbhpskish'
     const serversExp = [...servers].map((c, i) => String(i).padStart(2, '0') + c).join('|')
@@ -504,7 +669,23 @@ class Browser extends EventEmitter {
       '  return "DIRECT";\n' +
       '}\n'
 
-    return pac
+    const pacData =
+      'data:application/x-ns-proxy-autoconfig;base64,' + Buffer.from(pac, 'utf8').toString('base64')
+    return { mode: 'pac_script', pacScript: pacData }
+  }
+
+  async retryDmmRegionBlockedTabs() {
+    const retryUrl = DMMPageUrl || 'https://play.games.dmm.com/game/kancolle'
+    const blockedTabs = this.windows.flatMap((window) =>
+      window.tabs.tabList.filter((tab) => isDmmRegionBlockUrl(tab.webContents.getURL())),
+    )
+
+    await Promise.all(
+      blockedTabs.map((tab) => {
+        tab.dmmRegionBlockDialogShown = false
+        return tab.loadURL(retryUrl)
+      }),
+    )
   }
 
   getFocusedWindow() {
@@ -528,8 +709,22 @@ class Browser extends EventEmitter {
   }
 
   async init() {
+    this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
+    kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
+    registerDmmCredentialVault({ app, dialog, ipcMain, safeStorage })
     setupMenu(this)
+    this.recommendationService = createRecommendationWorkerService({
+      createWorker: () => createNodeWorker(recommendationWorkerPath),
+      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+    })
+    registerRecommendationIpc({
+      ipcMain,
+      getKc3ExtensionId: () => this.currentKc3ExtensionId,
+      recommend: (input) => this.recommendationService.recommend(input),
+      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+    })
+    app.once('will-quit', () => this.recommendationService.dispose())
 
     app.on('browser-window-focus', () => {
       const fWin = () => this.getFocusedWindow()
@@ -1384,14 +1579,32 @@ class Browser extends EventEmitter {
   createTabbedWindow(options) {
     //console.log('>> main.createWindow()')
     const windowConfig = configStore.get('window')
+    const savedWindowSize = constrainWindowSizeToDisplay(
+      {
+        width: windowConfig.state?.width || configSchema.window.state.width.default,
+        height: windowConfig.state?.height || configSchema.window.state.height.default,
+      },
+      this.startupDisplayMetrics,
+    )
+    const adaptiveWindowLayout =
+      windowConfig.view.autoFitGameOnStartup && configStore.get('kc3kai.startup.openDevtools')
+        ? calculateGameAndSidebarWindowLayout({
+            displayMetrics: this.startupDisplayMetrics,
+            sidebarWidth: estimateKc3SidebarWidth(this.startupDisplayMetrics.workAreaSize.width),
+          })
+        : null
+    const initialWindowSize = adaptiveWindowLayout?.applied
+      ? adaptiveWindowLayout.targetSize
+      : savedWindowSize
 
     const newTabbedWindow = new TabbedBrowserWindow({
       ...options,
       //urls: this.urls,
       extensions: this.extensions,
+      startupDisplayMetrics: this.startupDisplayMetrics,
       window: {
-        width: windowConfig.state?.width || configSchema.window.state.width.default,
-        height: windowConfig.state?.height || configSchema.window.state.height.default,
+        width: initialWindowSize.width,
+        height: initialWindowSize.height,
         frame: false,
         titleBarStyle: 'hidden',
         // remove the min/max/close buttons so we can theme them
@@ -1682,9 +1895,44 @@ class Browser extends EventEmitter {
     webContents.on('devtools-opened', (e) => {
       const devtools = webContents.devToolsWebContents
       kccp.logger.log(logSource, 'DevTools opened')
+      if (!devtools) return
+
       devtools.on('did-create-window', (window, details) => {
         kccp.logger.log(logSource, 'Window created', details)
       })
+
+      const inspectedUrl = webContents.getURL()
+      const isKc3GamePage =
+        inspectedUrl === kc3StartPageUrl ||
+        inspectedUrl === DMMPageUrl ||
+        inspectedUrl.startsWith(`${DMMPageUrl}?`) ||
+        inspectedUrl.startsWith(`${DMMPageUrl}/`)
+      if (!isKc3GamePage || !browser.currentKc3ExtensionId) return
+
+      const panelReady = showKc3DevToolsPanel({
+        devToolsWebContents: devtools,
+        extensionId: browser.currentKc3ExtensionId,
+      })
+      const tab = browser.windows
+        .flatMap((window) => window.tabs.tabList)
+        .find((candidate) => candidate.webContents === webContents)
+      if (tab) tab.gameDevtoolsLayoutReady = panelReady
+
+      void panelReady
+        .then((result) => {
+          if (result.found) {
+            kccp.logger.log(logSource, 'KanColle DevTools panel moved first and selected.')
+            kccp.logger.log(logSource, 'display.game-kc3-layout', result.layout)
+          } else {
+            kccp.logger.error(
+              logSource,
+              `Unable to find the KanColle DevTools panel: ${result.reason}.`,
+            )
+          }
+        })
+        .catch((error) => {
+          kccp.logger.error(logSource, 'Unable to activate the KanColle DevTools panel.', error)
+        })
     })
 
     //*
@@ -1904,8 +2152,6 @@ class Browser extends EventEmitter {
       return
     }
 
-    const kc3SrcPath = path.join(kc3Path, 'src')
-    if (fsSync.existsSync(kc3SrcPath)) kc3Path = kc3SrcPath
     kccp.logger.log(logSource, 'Searching for KC3Kai in', hideHome(kc3Path))
 
     // once we're updated and kc3 is loaded, remove the default new tab page
@@ -1919,6 +2165,9 @@ class Browser extends EventEmitter {
       )
       return
     }
+
+    const kc3SrcPath = path.join(kc3Path, 'src')
+    if (fsSync.existsSync(kc3SrcPath)) kc3Path = kc3SrcPath
 
     let kc3
     try {

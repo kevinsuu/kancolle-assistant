@@ -54,6 +54,11 @@ async function runElectronTests() {
 async function runMainProcessElectronTests() {
   let exe = require('electron')
   const runnerArgs = ['spec', ...unknownArgs.slice(2)]
+  const env = { ...process.env }
+
+  // The Electron binary must run as Electron even when the parent process is an Electron-based
+  // development tool that exports this variable.
+  delete env.ELECTRON_RUN_AS_NODE
 
   // Fix issue in CI
   // "The SUID sandbox helper binary was found, but is not configured correctly."
@@ -63,7 +68,7 @@ async function runMainProcessElectronTests() {
 
   const { status, signal } = childProcess.spawnSync(exe, runnerArgs, {
     cwd: path.resolve(__dirname, '..'),
-    env: process.env,
+    env,
     stdio: 'inherit',
   })
   if (status !== 0) {

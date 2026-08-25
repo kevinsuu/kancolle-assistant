@@ -4,6 +4,7 @@ extensions/*
 
 disabled/
 node_modules
+.pnpm-store/
 
 noncompliant.txt
 yarn-error.log

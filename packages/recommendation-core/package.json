@@ -1,0 +1,17 @@
+{
+  "name": "@kancolle-assistant/recommendation-core",
+  "version": "0.1.0",
+  "description": "Account-aware KanColle fleet and equipment recommendation core.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "private": true,
+  "scripts": {
+    "build": "node ../../scripts/clean.js && tsc --emitDeclarationOnly && node esbuild.config.js",
+    "test": "yarn build && node --test test/*.test.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.6",
+    "typescript": "^5.8.3"
+  }
+}

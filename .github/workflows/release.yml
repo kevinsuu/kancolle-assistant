@@ -1,0 +1,139 @@
+name: Release KanColle Assistant for Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_BRANCH: ${{ vars.RELEASE_BRANCH || vars.CUSTOM_BRANCH || 'main' }}
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20.x'
+          cache: yarn
+          cache-dependency-path: yarn.lock
+
+      - name: Verify tag and README versions
+        shell: pwsh
+        run: |
+          $version = (Get-Content packages/shell/package.json | ConvertFrom-Json).version
+          $expectedTag = "v$version"
+
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Tag '$env:GITHUB_REF_NAME' must match app version '$expectedTag'."
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') {
+            throw "Application version '$version' must be a semantic version."
+          }
+
+          $readmes = @(
+            'README.md',
+            'README.zh-TW.md',
+            'README.zh-CN.md',
+            'README.ja.md'
+          )
+
+          foreach ($readme in $readmes) {
+            if (-not (Select-String -Path $readme -SimpleMatch $expectedTag -Quiet)) {
+              throw "$readme must include current app version '$expectedTag'."
+            }
+          }
+
+          git fetch origin $env:RELEASE_BRANCH
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to fetch release branch '$env:RELEASE_BRANCH'."
+          }
+
+          $taggedCommit = (git rev-list -n 1 $env:GITHUB_REF_NAME).Trim()
+          git merge-base --is-ancestor $taggedCommit FETCH_HEAD
+          if ($LASTEXITCODE -ne 0) {
+            throw "Tagged commit '$taggedCommit' must belong to '$env:RELEASE_BRANCH'."
+          }
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build workspace dependencies
+        shell: pwsh
+        run: |
+          yarn build:recommendation
+          yarn build:context-menu
+          yarn build:chrome-web-store
+          yarn build:extensions
+
+      - name: Run release-blocking tests
+        run: yarn test
+
+      - name: Make Windows installer and portable archive
+        run: yarn --cwd ./packages/shell run make --platform win32 --arch x64
+
+      - name: Create GitHub Release and upload assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content packages/shell/package.json | ConvertFrom-Json).version
+          $squirrelDir = 'packages/shell/out/make/squirrel.windows/x64'
+          $zipDir = 'packages/shell/out/make/zip/win32/x64'
+
+          $assets = @(
+            Get-Item "$squirrelDir/RELEASES"
+            Get-ChildItem $squirrelDir -File -Filter '*.exe'
+            Get-ChildItem $squirrelDir -File -Filter '*-full.nupkg'
+            Get-ChildItem $zipDir -File -Filter '*.zip'
+          )
+
+          $expectedExtensions = @('.exe', '.nupkg', '.zip')
+          foreach ($extension in $expectedExtensions) {
+            if (-not ($assets | Where-Object Extension -eq $extension)) {
+              throw "Missing required $extension release asset."
+            }
+          }
+
+          if (-not ($assets | Where-Object Name -eq 'RELEASES')) {
+            throw 'Missing required Squirrel RELEASES manifest.'
+          }
+
+          $assetPaths = $assets | ForEach-Object FullName
+
+          gh release view $env:GITHUB_REF_NAME *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:GITHUB_REF_NAME @assetPaths --clobber
+            exit $LASTEXITCODE
+          }
+
+          $releaseFlags = @()
+          if ($version.Contains('-')) {
+            $releaseFlags += '--prerelease'
+          }
+
+          gh release create $env:GITHUB_REF_NAME @assetPaths `
+            --verify-tag `
+            --generate-notes `
+            --title "KanColle Assistant $env:GITHUB_REF_NAME" `
+            @releaseFlags
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to create GitHub Release for $env:GITHUB_REF_NAME."
+          }

@@ -1,8 +1,9 @@
 {
-  "name": "damecon-browser",
-  "productName": "Damecon",
-  "version": "0.11.3",
+  "name": "kancolle-assistant",
+  "productName": "KanColle Assistant",
+  "version": "1.0.0",
   "description": "A minimal browser designed for playing Kantai Collection via KC3Kai.",
+  "repository": "https://github.com/kevinsuu/kancolle-assistant",
   "main": ".webpack/main",
   "scripts": {
     "build": "npm run package",
@@ -15,6 +16,7 @@
   "author": "Chami <planetarian@users.noreply.github.com>",
   "private": true,
   "dependencies": {
+    "@kancolle-assistant/recommendation-core": "0.1.0",
     "adm-zip": "^0.5.16",
     "configstore": "7.0.0",
     "electron-chrome-context-menu": "^1.1.0",
@@ -35,7 +37,7 @@
     "@electron-forge/plugin-webpack": "^7.8.1",
     "copy-webpack-plugin": "^13.0.0",
     "cross-env": "^7.0.3",
-    "electron": "^25.0.0",
+    "electron": "25.9.8",
     "worker-loader": "^3.0.8"
   }
 }

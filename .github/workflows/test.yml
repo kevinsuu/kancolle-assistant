@@ -1,16 +1,30 @@
-name: Test electron-chrome-extensions
+name: CI
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'packages/**'
+      - 'extensions/**'
+      - 'scripts/**'
+      - '.gitmodules'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/test.yml'
   pull_request:
-    paths:
-      - 'packages/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    name: Test (${{ matrix.os }})
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
 
@@ -18,22 +32,26 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20.x'
+          cache: yarn
+          cache-dependency-path: yarn.lock
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --frozen-lockfile
 
       - name: Build
         run: yarn build
 
       - name: Run tests (Linux)
         if: runner.os == 'Linux'
-        uses: GabrielBB/xvfb-action@v1
+        uses: GabrielBB/xvfb-action@b706e4e27b14669b486812790492dc50ca16b465 # v1.7
         with:
           run: yarn test
 

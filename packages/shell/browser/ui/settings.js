@@ -22,14 +22,20 @@ ko.extenders.scrollFollow = function (target, selector) {
 }
 
 class Settings {
+  defaultAppIcon = 'assets/icons/logo.png'
+  appIcon = ko.observable(this.defaultAppIcon)
   theme = ko.observable('andra')
   brightness = ko.observable('system')
+  customColor = ko.observable('#6e35ae')
+  customThemeColorInput = ko.observable('#6e35ae')
+  themeColorError = ko.observable('')
+  iconUploadError = ko.observable('')
 
   configPages = [
     {
       id: 0,
-      name: 'Damecon',
-      img: 'assets/icons/damecon_icon_48.png',
+      name: 'KanColle Assistant',
+      img: this.appIcon,
     },
     {
       id: 1,
@@ -67,7 +73,7 @@ class Settings {
   kccpStatus = ko.observable({ busy: false, started: false })
   kccpTabs = { config: 0, mods: 1, log: 2 }
   kccpTab = ko.observable(0)
-  appTabs = { window: 0, kancolle: 1, application: 2, appLog: 3, advanced: 4 }
+  appTabs = { window: 0, kancolle: 1, application: 2, appLog: 3, advanced: 4, theme: 5 }
   appTab = ko.observable(this.appTabs.window)
   // TODO: Don't reference UI stuff in VM
   kccpLogRecent = ko.observableArray([]).extend({ scrollFollow: '#kccp-log-scroller' })
@@ -284,6 +290,87 @@ class Settings {
     this.selectedConfigPage(item.id)
   }
 
+  updateAppIcon(value) {
+    const icon = value || this.defaultAppIcon
+    this.appIcon(icon)
+    const favicon = document.getElementById('app-icon')
+    if (favicon) favicon.href = icon
+  }
+
+  selectCustomThemeColor(data, event) {
+    const color = normalizeThemeColor(event.target.value)
+    if (!color) return
+    this.previewCustomThemeColor(color)
+  }
+
+  commitSelectedCustomThemeColor(data, event) {
+    const color = normalizeThemeColor(event.target.value)
+    if (!color) return
+    this.persistCustomThemeColor(color)
+  }
+
+  previewCustomThemeColor(color) {
+    this.themeColorError('')
+    this.customThemeColorInput(color)
+    this.customColor(color)
+    this.theme('custom')
+  }
+
+  persistCustomThemeColor(color) {
+    this.previewCustomThemeColor(color)
+    const style = this.config.window.style
+    if (style.theme() !== 'custom') style.theme('custom')
+    if (style.customColor() !== color) style.customColor(color)
+  }
+
+  applyCustomThemeColor() {
+    const color = normalizeThemeColor(this.customThemeColorInput())
+    if (!color) {
+      this.themeColorError('Enter a six-digit hex color, for example #6e35ae.')
+      return
+    }
+    this.persistCustomThemeColor(color)
+  }
+
+  customThemeColorKeyDown(data, event) {
+    if (event.key !== 'Enter') return true
+    this.applyCustomThemeColor()
+    event.target.blur()
+    return false
+  }
+
+  uploadCustomIcon(data, event) {
+    const input = event.target
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      this.iconUploadError('Choose a PNG, JPEG, or WebP image.')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.iconUploadError('The image must be 2 MB or smaller.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      this.iconUploadError('')
+      this.config.window.style.customIcon(reader.result)
+      this.updateAppIcon(reader.result)
+    }
+    reader.onerror = () => this.iconUploadError('The selected image could not be read.')
+    reader.readAsDataURL(file)
+  }
+
+  resetCustomIcon() {
+    this.iconUploadError('')
+    this.config.window.style.customIcon('')
+    this.updateAppIcon('')
+  }
+
   async tryInvoke(asyncCallback, name) {
     let result
     let tries = 5
@@ -316,9 +403,20 @@ class Settings {
     })
 
     this.theme(this.config.window.style.theme())
-    this.config.window.style.theme.subscribe((newValue) => this.theme(newValue))
     this.brightness(this.config.window.style.brightness())
-    this.config.window.style.brightness.subscribe((newValue) => this.brightness(newValue))
+    this.customColor(this.config.window.style.customColor())
+    this.customThemeColorInput(this.config.window.style.customColor())
+    this.updateAppIcon(this.config.window.style.customIcon())
+    if (!this.appearanceSubscriptionsReady) {
+      this.config.window.style.theme.subscribe((newValue) => this.theme(newValue))
+      this.config.window.style.brightness.subscribe((newValue) => this.brightness(newValue))
+      this.config.window.style.customColor.subscribe((newValue) => {
+        this.customColor(newValue)
+        this.customThemeColorInput(newValue)
+      })
+      this.config.window.style.customIcon.subscribe((newValue) => this.updateAppIcon(newValue))
+      this.appearanceSubscriptionsReady = true
+    }
     return this.config
   }
 

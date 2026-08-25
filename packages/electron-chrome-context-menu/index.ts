@@ -176,7 +176,7 @@ takeScreenshot()`
     if (!canvas) return
     canvas.toBlob((blob) => {
     const a = document.createElement('a');
-    a.download = 'damecon_screenshot_' + new Date().toLocaleString("en-CA", {hour12: false, timeZone: "Asia/Tokyo"}).
+    a.download = 'kancolle_assistant_screenshot_' + new Date().toLocaleString("en-CA", {hour12: false, timeZone: "Asia/Tokyo"}).
         replace(/-/g, '_').
         replace(/, /g, '_').
         replace(/:/g, '_') + '.png';

@@ -1,0 +1,204 @@
+# <img src="./packages/shell/browser/ui/assets/icons/logo.png" alt="KanColle Assistant アイコン" width="48"> kancolle-assistant
+
+[English](./README.md) · [繁體中文](./README.zh-TW.md) · [简体中文](./README.zh-CN.md) ·
+**日本語**
+
+KanColle Assistant は『艦隊これくしょん』のプレイに特化したタブ式の軽量ブラウザーで、
+KC3Kai と KCCacheProxy を統合しています。
+
+本プロジェクトは、原作者 planetarian の [damecon-browser](https://github.com/planetarian/damecon-browser) を変更したフォークです。<br>
+オリジナル版 Damecon は Samuel Maddock の [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) を基にしています。
+
+## リリース状況
+
+| アプリバージョン | README 更新日 |
+| ---------------- | ------------- |
+| `v1.0.0`         | `2026-08-25`  |
+
+- **ダウンロード：** インストーラーとポータブル ZIP は
+  [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)から入手できます。
+- **バージョンごとの変更：**
+  [最新リリースノート](https://github.com/kevinsuu/kancolle-assistant/releases/latest)に、tag
+  間の自動生成された更新履歴を保存します。
+- **現在の累積機能：** [機能状況](#機能状況)に、対応済み、将来追加する可能性があるもの、対象外を分けて掲載します。
+- **機能の技術詳細：** 以下のプロジェクト固有機能から関連ドキュメントを参照できます。
+
+### プロジェクト固有の主な機能
+
+オリジナル版と比べ、現在のソースコードには次の機能が追加・改善されています。
+
+1. **[アカウントアクセスの改善](./docs/dmm-local-login-storage.md)** — 確認後に DMM のログイン情報を OS の安全なストレージで暗号化して保存できます。信頼できる外部フォワードプロキシ向けの全通信モードと、地域エラー時の案内も追加しました。
+2. **[ゲーム画面の自動フィット](./docs/display-auto-fit.md)** — 起動時に KC3 の実際の内容に合わせてパネル幅を調整し、画面の残り領域にウィンドウと艦これのキャンバスを一度だけ合わせます。その後も手動で変更できます。
+3. **[通常海域の艦隊提案](./docs/fleet-recommender.md)** — KC3 戦略室で、所持艦娘と装備を基に 1-1～7-5（5-6 を含む）の候補を最大 3 編成提示します。ゲーム状態は自動変更しません。
+4. **[遠征・資源目標プランナー](./docs/expedition-resource-planner.md)** — 戦略室の独立した**遠征推薦**ページが、現在の資源、目標、選択した遠征、第 2～4 艦隊の状態から最適な組み合わせを 1 件提案します。既存の Expedition Scorer は変更せず、遠征への自動派遣も行いません。
+5. **[資源センターと収支サマリー](./docs/resource-ledger-summary.md)** — KC3 戦略室の新しい**資源中心**ダッシュボードで、今日、昨日、直近 24 時間の現在資源、獲得、消費、純増減、時間別収支、入手元、消耗品を確認できます。
+6. **[KC3 DevTools 連携](./docs/kc3-devtools.md)** — ゲームの DevTools を開くと KC3 の `KanColle` パネルを先頭に並べて選択し、毎回の手動切り替えを減らします。
+7. **[戦略室のピン留めリンク](./docs/strategy-room-recent-tabs.md)** — 戦略室のタブを 5 つまで `常用連結` にピン留めできます。通常の移動では順序は変わらず、6 つ目を追加すると一番下のリンクが置き換わります。
+
+追加した戦略室UIはKC3で選択した言語に従い、英語、繁体字中国語、簡体字中国語、
+日本語に対応します。
+
+## ⚠️ 注意事項
+
+#### KanColle Assistant は一般用途のブラウザーではありません。
+
+KanColle Assistant は『艦隊これくしょん』をプレイする目的にのみ設計されています。
+
+KanColle Assistant は Electron を基盤としており、主要ブラウザーが備える多くの
+セキュリティ機能を持っていません。未発見の問題や技術的な制約が残っている可能性もあります。
+
+#### KanColle Assistant で機密情報を扱う場合は、利用者自身の責任で行ってください。
+
+## 使い方
+
+### Release ビルドを使う
+
+[Releases ページ](https://github.com/kevinsuu/kancolle-assistant/releases/latest)から、次の
+いずれかをダウンロードしてください。
+
+インストーラー：`kancolle-assistant-*.Setup.exe`
+
+- ダウンロードしたファイルを実行してインストールします。
+- KanColle Assistant の自動更新に対応しており、最も簡単な導入方法です。
+
+または ZIP ファイル：`kancolle-assistant-*.zip`
+
+- 空のフォルダーに展開し、中の `kancolle-assistant.exe` を実行します。
+- 特定のバージョンを保持できますが、自動更新には対応しません。
+
+### `yarn` でソースコードから起動する
+
+```bash
+# ソースコードを取得
+git clone --recurse-submodules https://github.com/kevinsuu/kancolle-assistant
+cd kancolle-assistant
+
+# インストールしてブラウザーを起動
+yarn
+yarn start
+```
+
+### 🔌 拡張機能をインストールする
+
+`./extensions` 内の展開済み拡張機能は自動的に読み込まれます。
+
+- Manifest V2 と V3 の両方に対応しています。
+- 未対応の拡張 API があるため、一部のプラグインは正常に動作しない、またはまったく動作しない場合があります。
+
+Release ビルドには、利便性のためいくつかのプラグインが同梱されています。不要な場合は `extensions` フォルダーから削除できます。
+
+### ⚙️ 設定
+
+初回起動時に設定ページが自動的に開きます。
+
+最新 Release の KC3Kai のダウンロードが始まり、完了すると KC3 のスタートページが開きます。
+
+ウィンドウ左上のアプリアイコンをクリックすると、いつでも KanColle Assistant の
+設定ページを開けます。
+
+### KC3Kai の更新設定
+
+設定ページの KC3Kai セクションで、KC3 の更新方法を選択できます。
+
+更新チャンネルは `release`、`master`、`develop` の 3 種類です。
+
+- 安定性を重視する場合は `release` チャンネルを推奨します。
+- `master` と `develop` には開発中のコードが含まれ、不安定な場合があります。
+  - この 2 チャンネルを初めて利用する際は、最初のダウンロードに数分かかることがあります。
+- 各チャンネルは別々に保存され、個別のプロファイルを使用します。
+  - いつでも切り替えられ、ダウンロード済みのチャンネルを再取得する必要はありません。
+  - 切り替えると、古いチャンネルの拡張機能を解除し、新しいチャンネルを読み込みます。
+  - チャンネルを削除するには、`./extensions` 内の対応する `kc3kai-*` フォルダーを削除してください。
+
+### プロキシ設定
+
+KanColle Assistant は KCCacheProxy と統合されているため、ProxySwitchy などの拡張機能は
+不要です。
+
+設定ページの `Proxy` セクションで KCCP のホストとポートを設定できます。
+
+`Enabled` をオンにすると、選択したモードで艦これ通信をプロキシ経由にします。オフにすると無効になります。
+
+`KCCP internal` と `KCCP external` は艦これゲームサーバーへの通信だけをプロキシします。DMM のログインや地域判定に使われるグローバル IP は変わりません。許可された HTTP/HTTPS 外部フォワードプロキシをブラウザーの全通信に使用する場合は、`all-external` を選び、ホストとフォワードプロキシのポートを入力して有効化してください。KanColle Assistant はプロキシ設定を適用し直し、既存の接続を閉じ、DMM の地域制限エラーページへ転送されたタブを再試行します。
+
+KanColle Assistant は公開プロキシを同梱・検索しません。信頼できないプロキシを通して DMM の認証情報を送らないでください。対応地域のネットワークで地域制限ページが表示される場合は、意図せず有効になっている VPN、プロキシ、Private Relay を無効にしてから再試行してください。
+
+## 機能状況
+
+### ✨ スクリーンショット
+
+資源センターでは、現在の資源と直近の獲得、消費、純増減をまとめて確認できます：
+
+![KC3 戦略室の資源センターダッシュボード。](./screenshots/resource-center.png)
+
+遠征推薦では資源目標を設定し、利用可能な艦隊へ最適な遠征を割り当てます：
+
+![KC3 戦略室の遠征推薦ページ。](./screenshots/expedition-recommendation.png)
+
+關卡推薦では、アカウントが保有する艦娘と装備を使った通常海域向け編成を提案します：
+
+![KC3 戦略室の關卡推薦ページ。](./screenshots/map-recommendation.png)
+
+### 🚀 現在の機能
+
+- [x] インストーラーとアプリの自動更新
+- [x] KC3Kai 統合
+- [x] KC3 の自動更新
+- [x] KC3 の安定版と開発版をサポート
+- [x] KC3 更新スケジュールの設定（毎日／毎週／常時／無効）
+- [x] KC3 スタートページ、DevTools、戦略室を自動で開く
+- [x] ゲームの DevTools を開いたとき KC3 `KanColle` パネルを優先して選択
+- [x] KCCacheProxy とプロキシクライアントの統合
+- [x] 許可された外部プロキシ向け全通信モードと DMM 地域エラー案内
+- [x] [プリセット／カスタムのブラウザーカラー、ライト／ダークテーマ、設定画面アイコンのアップロード](./docs/theme-personalization.md)
+- [x] Manifest V3 拡張機能
+- [x] Chrome ウェブストア拡張機能
+- [x] 新しいタブに一般的な艦これ関連サイトへのリンクを表示
+- [x] 新しいタブの動作設定
+  - KC3 起動ページ、DMM ゲームページ、戦略室を選択可能
+- [x] 複数ウィンドウ
+- [x] 独自 KC3 フォルダーを管理する `Custom` チャンネル
+- [x] 一般的なキーボードショートカット（F12、Ctrl+T、Ctrl+F4、Ctrl+Tab、Ctrl+D など）
+- [x] ワイルドカード対応のサイト別アドレスバー非表示
+- [x] 一般的なマウス操作（中クリックでタブを閉じる、タブのドラッグ、Ctrl+ホイールなど）
+- [x] ページ内検索（Ctrl+F）
+- [x] OS 暗号化を使用する DMM 専用ローカル認証情報保管庫
+- [x] 現在の画面に合わせた艦これキャンバスの 1 回限りの自動フィット
+- [x] 1-1～7-5 の通常海域向け所持艦隊提案
+- [x] 艦隊割り当てを含む遠征資源目標プランナー
+- [x] KC3 の固定期間向け資源収支サマリー
+- [x] KC3 戦略室で順序を維持する最大 5 件のピン留めリンク
+
+### 🤞 将来的に追加する可能性がある機能
+
+- [ ] KC3 更新のインストール前に確認する設定
+- [ ] リンクにカーソルを合わせたときの URL ツールチップ
+- [ ] 拡張機能の管理（有効化／無効化／アンインストール）
+- [ ] `.CRX` 拡張機能ローダー
+- [ ] より多くの一般的な [`chrome.*` 拡張 API](https://developer.chrome.com/extensions/devguide)
+- [ ] 拡張機能 manifest の権限を尊重する処理
+  - 繰り返しますが、本アプリは安全な一般用途ブラウザーではありません
+
+### ❌ 予定していない機能
+
+- 切り離し可能なタブ
+- Chrome／Edge などの一般用途ブラウザーにある高度な機能
+  - 一般用途のパスワードマネージャーやその他のセキュリティ機能を含む
+- あらゆる AI 統合（実装は歓迎します）
+
+## ライセンス
+
+GPL-3
+
+本リポジトリは、原作者 planetarian の [damecon-browser](https://github.com/planetarian/damecon-browser) を変更したフォークです。<br>
+オリジナル版 Damecon は Samuel Maddock の [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) を基にしています。
+
+以下は原プロジェクトの声明の参考訳です。正式なライセンス条件については、プロジェクトのライセンスファイルと英語の原文を参照してください。
+
+> electron-browser-shell をプロプライエタリ用途で使用する場合は、[Samuel Maddock に連絡](mailto:sam@samuelmaddock.com?subject=electron-browser-shell%20license)するか、適切なプランで GitHub の [Samuel Maddock スポンサー](https://github.com/sponsors/samuelmaddock/)となり、[プロプライエタリ用途ライセンス](https://github.com/samuelmaddock/electron-browser-shell/blob/master/LICENSE-PATRON.md)を取得してください。これらの支援は、開発と保守を持続可能にし、これまでの作業への評価を示すものです。
+
+### コントリビューターライセンス契約
+
+Pull Request を送信することで、electron-browser-shell の所有者および利用者に対し、提出した貢献とその派生物を複製、派生作品として作成、公開表示、公開実演、再許諾、配布するための、永続的、世界的、非独占的、無償、ロイヤリティフリーかつ取消不能な著作権ライセンスを付与するものとします。
+
+damecon-browser および electron-browser-shell プロジェクトの所有者には、提供されたソースコードとその派生物を再ライセンスする権利も付与されます。

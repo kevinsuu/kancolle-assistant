@@ -59,9 +59,7 @@ export const injectExtensionAPIs = () => {
     disconnect: () => void,
     callback: ConnectNativeCallback,
   ) => {
-    const connectionId = (contextBridge as any).executeInMainWorld({
-      func: () => crypto.randomUUID(),
-    })
+    const connectionId = crypto.randomUUID()
     invokeExtension(extensionId, 'runtime.connectNative', {}, connectionId, application)
     const onMessage = (_event: Electron.IpcRendererEvent, message: any) => {
       receive(message)

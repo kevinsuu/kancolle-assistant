@@ -43,14 +43,14 @@
     "electron-dl": "^4.0.0"
   },
   "devDependencies": {
-    "@types/chai": "^5.2.2",
-    "@types/chai-as-promised": "^8.0.2",
+    "@types/chai": "^4.3.20",
+    "@types/chai-as-promised": "^7.1.8",
     "@types/chrome": "^0.0.300",
     "@types/mocha": "^10.0.10",
-    "chai": "^5.2.1",
-    "chai-as-promised": "^8.0.1",
+    "chai": "^4.5.0",
+    "chai-as-promised": "^7.1.2",
     "colors": "^1.4.0",
-    "electron": "^25.0.0",
+    "electron": "25.9.8",
     "esbuild": "^0.25.6",
     "minimist": "^1.2.8",
     "mocha": "^11.7.1",
@@ -58,5 +58,7 @@
     "typescript": "^5.8.3",
     "walkdir": "^0.4.1"
   },
-  "peerDependencies": {}
+  "peerDependencies": {
+    "electron": "25.x"
+  }
 }

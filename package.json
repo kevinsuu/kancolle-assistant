@@ -1,28 +1,31 @@
 {
-  "name": "electron-browser-shell",
+  "name": "kancolle-assistant",
   "version": "1.0.0",
-  "description": "A minimal browser shell built on Electron.",
+  "description": "A KanColle-focused browser with KC3Kai and KCCacheProxy integration.",
   "private": true,
   "workspaces": [
     "packages/shell",
     "packages/electron-chrome-extensions",
     "packages/electron-chrome-context-menu",
     "packages/electron-chrome-web-store",
+    "packages/recommendation-core",
     "packages/kccacheproxy"
   ],
   "scripts": {
-    "build": "yarn run build:context-menu && yarn run build:chrome-web-store && yarn run build:extensions && yarn run build:shell",
+    "build": "yarn run build:recommendation && yarn run build:context-menu && yarn run build:chrome-web-store && yarn run build:extensions && yarn run build:shell",
+    "build:recommendation": "yarn --cwd ./packages/recommendation-core build",
     "build:chrome-web-store": "yarn --cwd ./packages/electron-chrome-web-store build",
     "build:context-menu": "yarn --cwd ./packages/electron-chrome-context-menu build",
     "build:extensions": "yarn --cwd ./packages/electron-chrome-extensions build",
     "build:shell": "yarn --cwd ./packages/shell build",
-    "start": "yarn build:context-menu && yarn build:extensions && yarn build:chrome-web-store && yarn --cwd ./packages/shell start",
+    "start": "yarn build:recommendation && yarn build:context-menu && yarn build:extensions && yarn build:chrome-web-store && yarn --cwd ./packages/shell start",
     "start:debug": "cross-env DEBUG='electron*' yarn start",
     "start:electron-dev": "cross-env ELECTRON_OVERRIDE_DIST_PATH=$(e show out --path) ELECTRON_ENABLE_LOGGING=1 yarn start",
     "start:electron-dev:debug": "cross-env DEBUG='electron*' yarn start:electron-dev",
     "start:electron-dev:trace": "cross-env ELECTRON_OVERRIDE_DIST_PATH=$(e show out --path) ELECTRON_ENABLE_LOGGING=1 yarn --cwd ./packages/shell start:trace",
     "start:skip-build": "cross-env SHELL_DEBUG=true DEBUG='electron-chrome-extensions*' yarn --cwd ./packages/shell start",
-    "test": "yarn test:extensions",
+    "test": "yarn test:recommendation && yarn test:extensions",
+    "test:recommendation": "yarn --cwd ./packages/recommendation-core test",
     "test:extensions": "yarn --cwd ./packages/electron-chrome-extensions test",
     "prepare": "husky",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css}\"",
@@ -32,12 +35,12 @@
   "author": "Samuel Maddock <sam@samuelmaddock.com>",
   "dependencies": {},
   "devDependencies": {
-    "electron": "^25.0.0",
+    "electron": "25.9.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2"
   },
-  "repository": "git@github.com:samuelmaddock/electron-browser-shell.git",
+  "repository": "https://github.com/kevinsuu/kancolle-assistant",
   "engines": {
     "node": "20 || >=22",
     "yarn": ">= 1.10.0 < 2.0.0"

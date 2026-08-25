@@ -1,0 +1,1020 @@
+[
+  {
+    "area": "1-3",
+    "routes": [
+      {
+        "id": "1-3-fuel-ao",
+        "name": "燃料回收・補給艦固定",
+        "category": "resource",
+        "objectives": ["resource-fuel"],
+        "nodes": ["A", "D", "B", "E"],
+        "stableBoss": false,
+        "tags": ["retreat-after-e", "landing-craft", "stable-resource"],
+        "desc": "補給艦1、駆逐4-5、潜水0-1。D燃料マス固定後、E戦闘完了で帰投。",
+        "sources": [
+          "https://en.kancollewiki.net/World_1/1-3",
+          "https://en.kancollewiki.net/Resource_Farming"
+        ],
+        "lastVerified": "2026-08-25",
+        "resourceProfile": {
+          "target": "fuel",
+          "reachRate": 1,
+          "averageBaseGain": 15,
+          "landingCraftBonus": 3,
+          "drumBonus": 2,
+          "fuelCostRate": 0.2,
+          "ammoCostRate": 0.2
+        },
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [22], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 4 },
+          { "type": "MaxShipTypeCount", "stypes": [13, 14], "value": 1 }
+        ]
+      },
+      {
+        "id": "1-3-fuel-av",
+        "name": "燃料回收・水母代用",
+        "category": "resource",
+        "objectives": ["resource-fuel"],
+        "nodes": ["A", "D", "B", "E"],
+        "stableBoss": false,
+        "tags": ["retreat-after-e", "landing-craft", "resource-routing-80pct"],
+        "desc": "水母1、駆逐4-5、潜水0-1。補給艦不足時の代用（D到達率約80%）。",
+        "sources": [
+          "https://en.kancollewiki.net/World_1/1-3",
+          "https://en.kancollewiki.net/Resource_Farming"
+        ],
+        "lastVerified": "2026-08-25",
+        "resourceProfile": {
+          "target": "fuel",
+          "reachRate": 0.8,
+          "averageBaseGain": 15,
+          "landingCraftBonus": 3,
+          "drumBonus": 2,
+          "fuelCostRate": 0.2,
+          "ammoCostRate": 0.2
+        },
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [16], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 4 },
+          { "type": "MaxShipTypeCount", "stypes": [13, 14], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "1-4",
+    "routes": [
+      {
+        "id": "1-4-steel-light",
+        "name": "鋼材回收・軽量艦隊",
+        "category": "resource",
+        "objectives": ["resource-steel"],
+        "nodes": ["B", "C", "F", "E", "H"],
+        "stableBoss": false,
+        "tags": ["landing-craft", "random-south-branch"],
+        "desc": "水母0-1、軽空母1-2、駆逐3、潜水1。Cで燃料・鋼材を回収。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [13, 14], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [16], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "1-5",
+    "routes": [
+      {
+        "id": "1-5-boss-de",
+        "name": "海防艦最軽量",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "D", "E", "J"],
+        "stableBoss": true,
+        "tags": ["oasw", "fixed-route", "low-cost"],
+        "desc": "海防艦4。最も低燃費で固定進王。",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [1], "value": 4 }
+        ]
+      },
+      {
+        "id": "1-5-boss-light",
+        "name": "軽巡駆逐対潜",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "D", "F", "G", "J"],
+        "stableBoss": true,
+        "tags": ["oasw", "fixed-route"],
+        "desc": "軽巡/練巡0-2、駆逐/海防2-4、計4隻。",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [1, 2], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [3, 21], "value": 2 }
+        ]
+      },
+      {
+        "id": "1-5-boss-heavy",
+        "name": "航戦二巡対潜",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "D", "F", "G", "J"],
+        "stableBoss": true,
+        "tags": ["oasw", "second-shelling"],
+        "desc": "航戦1、軽空母0-1、軽巡/駆逐/海防2-3、計4隻。",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [1, 2, 3], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [7], "value": 1 }
+        ]
+      },
+      {
+        "id": "1-5-leveling-asw",
+        "name": "対潜レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["A", "D", "F", "G", "J"],
+        "stableBoss": false,
+        "tags": ["oasw", "sparkle"],
+        "desc": "先制対潜可能な軽巡/駆逐/海防を旗艦にして対潜育成。",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [1, 2, 3, 21], "value": 3 },
+          { "type": "MaxShipTypeCount", "stypes": [7, 10], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "1-6",
+    "routes": [
+      {
+        "id": "1-6-monthly-resource",
+        "name": "月常資源回収",
+        "category": "resource",
+        "objectives": ["resource-fuel", "resource-ammo", "resource-steel", "resource-bauxite"],
+        "nodes": ["A", "E", "G", "F", "B", "N"],
+        "stableBoss": false,
+        "tags": ["monthly-seven-runs", "landing-craft"],
+        "desc": "軽巡1駆逐5。月7回の終点資源を低燃費で回収。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 5 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "2-1",
+    "routes": [
+      {
+        "id": "2-1-leveling-heavy",
+        "name": "初期重量艦育成",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["C", "E", "D", "H"],
+        "stableBoss": false,
+        "tags": ["submarine-tank", "carrier-opening"],
+        "desc": "空母2、戦艦/重巡1-2、軽巡/雷巡0-1、駆逐2。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [5, 6, 8, 9, 10, 12], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "2-2",
+    "routes": [
+      {
+        "id": "2-2-bauxite-carrier",
+        "name": "鋁土輸送艦狩り",
+        "category": "resource",
+        "objectives": ["resource-bauxite", "resource-steel"],
+        "nodes": ["C", "B", "A"],
+        "stableBoss": false,
+        "tags": ["transport-kills", "carrier-opening", "landing-craft"],
+        "desc": "軽空母3、航巡/軽巡3。A鋁土回收並兼顧輸送艦。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [3, 4, 6], "value": 3 }
+        ]
+      },
+      {
+        "id": "2-2-leveling-carrier",
+        "name": "空母系低疲労レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["C", "B"],
+        "stableBoss": false,
+        "tags": ["retreat-after-b", "carrier-opening", "bauxite-offset"],
+        "desc": "空母系3-4、育成艦1、軽巡/駆逐1-2。B戦後撤退。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [2, 3, 4], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "2-4",
+    "routes": [
+      {
+        "id": "2-4-bucket",
+        "name": "高速修復材回収",
+        "category": "resource",
+        "objectives": ["resource-bucket"],
+        "nodes": ["B", "C", "F", "A"],
+        "stableBoss": false,
+        "tags": ["resource-routing-50pct", "landing-craft", "surface-radar"],
+        "desc": "正規空母3、重巡/航巡/軽巡/潜水2-3、駆逐0-1。A水桶はC分岐50%。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [3, 5, 6, 13, 14], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [2], "value": 1 }
+        ]
+      },
+      {
+        "id": "2-4-devmat",
+        "name": "開發資材回収",
+        "category": "resource",
+        "objectives": ["resource-devmat"],
+        "nodes": ["B", "G", "H", "I"],
+        "stableBoss": false,
+        "tags": ["resource-routing-variable", "surface-radar"],
+        "desc": "補給艦1、軽空母2、軽巡/雷巡3。G開發資材へ進む構成。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [22], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3, 4], "value": 3 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "2-5",
+    "routes": [
+      {
+        "id": "2-5-north-middle",
+        "name": "北中央軽量固定",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["B", "F", "E", "I", "O"],
+        "stableBoss": true,
+        "tags": ["los-cn1-34", "spb-spf"],
+        "desc": "重巡/航巡1、軽巡1、駆逐4。制空可能艦推奨。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 4 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 1, "minimum": 34 }]
+      }
+    ]
+  },
+  {
+    "area": "3-2",
+    "routes": [
+      {
+        "id": "3-2-ammo-dd",
+        "name": "彈藥回収・駆逐単艦",
+        "category": "resource",
+        "objectives": ["resource-ammo"],
+        "nodes": ["A", "B"],
+        "stableBoss": false,
+        "tags": ["throwaway-option", "landing-craft", "damage-control"],
+        "desc": "駆逐1。A戦後B彈藥回收。応急要員運用は要注意。",
+        "fleet": [
+          { "type": "ShipCount", "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 1 }
+        ]
+      },
+      {
+        "id": "3-2-ammo-submarine",
+        "name": "彈藥回収・潜水艦隊",
+        "category": "resource",
+        "objectives": ["resource-ammo"],
+        "nodes": ["A", "B"],
+        "stableBoss": false,
+        "tags": ["higher-risk", "amphibious-tank"],
+        "desc": "潜水/潜母3-6。高回収だが敗北・被害リスクあり。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [13, 14], "value": 3 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "3-4",
+    "routes": [
+      {
+        "id": "3-4-leveling-carrier",
+        "name": "空母系戦果レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["D", "H", "L", "J", "P"],
+        "stableBoss": false,
+        "tags": ["carrier-opening", "ranking", "high-bauxite"],
+        "desc": "正規空母2、軽空母2、軽巡1、水母1。開幕航空重視。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [16], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "3-5",
+    "routes": [
+      {
+        "id": "3-5-true-south",
+        "name": "真下固定",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["F", "G", "K"],
+        "stableBoss": true,
+        "tags": ["los-cn4-28", "fixed-route"],
+        "desc": "軽巡/水母1、駆逐5。最強の固定下路構成。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 5 },
+          { "type": "ShipTypeCount", "stypes": [3, 16], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+      },
+      {
+        "id": "3-5-upper-heavy",
+        "name": "上路重量",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "D", "H", "K"],
+        "stableBoss": true,
+        "tags": ["upper-route", "installation", "los"],
+        "desc": "空母2以上、戦艦+空母4以下。北方棲姫経由。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 4 }
+        ]
+      },
+      {
+        "id": "3-5-leveling-subtank",
+        "name": "B點潜水坦レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["B"],
+        "stableBoss": false,
+        "tags": ["retreat-after-b", "submarine-tank", "carrier-opening"],
+        "desc": "育成艦1、空母系4、潜水1。B戦後撤退。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [13, 14], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "4-3",
+    "routes": [
+      {
+        "id": "4-3-bauxite",
+        "name": "鋁土回収",
+        "category": "resource",
+        "objectives": ["resource-bauxite", "resource-fuel"],
+        "nodes": ["A", "B", "G", "J"],
+        "stableBoss": false,
+        "tags": ["fast", "midget-submarine", "landing-craft"],
+        "desc": "水母/補給1、軽巡1、駆逐2、雷巡2。J鋁土50-100。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [16, 22], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [4], "value": 2 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "4-5",
+    "routes": [
+      {
+        "id": "4-5-fast-plus",
+        "name": "高速＋中央最短",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["fast+", "anti-installation", "fixed-route"],
+        "desc": "戦艦/空母4以下、重巡/航巡/水母2。全艦高速＋。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
+          { "type": "MaxShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 4 },
+          { "type": "ShipTypeCount", "stypes": [5, 6, 16], "value": 2 }
+        ]
+      },
+      {
+        "id": "4-5-fast-plus-night-carrier",
+        "name": "高速＋夜戦空母周回",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["fast+", "night-carrier", "anti-installation", "fixed-route"],
+        "desc": "正規/装甲空母2（夜戦空母1以上推奨）、軽空母1、雷巡2、航戦1。全艦高速＋。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [4], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [10], "value": 1 }
+        ]
+      },
+      {
+        "id": "4-5-fast-plus-nelson",
+        "name": "高速＋Nelson特攻",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["fast+", "special-attack", "anti-installation", "fixed-route"],
+        "desc": "Nelson1、正規/装甲空母3、重巡1、雷巡1。全艦高速＋、HでNelson Touch。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ContainsShipName", "names": ["Nelson"], "count": 1 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [5], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [4], "value": 1 }
+        ]
+      },
+      {
+        "id": "4-5-light-shortest",
+        "name": "夜戦軽空母・小型最短",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced", "boss-clear"],
+        "nodes": ["C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["night-carrier", "oasw", "anti-installation", "fixed-route"],
+        "desc": "軽空母2（夜戦空母1推奨）、軽巡1、駆逐3。軽巡1駆逐3条件で中央最短。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 3 }
+        ]
+      },
+      {
+        "id": "4-5-quest-shortest",
+        "name": "任務向け小型最短",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": ["quest-friendly", "anti-installation", "fixed-route"],
+        "desc": "正規/装甲空母2、軽巡1、駆逐3。軽巡1駆逐3条件で中央最短。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 3 }
+        ]
+      },
+      {
+        "id": "4-5-detour-chipping",
+        "name": "削り向け迂回",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "E/F", "M/I", "N/J/H", "T"],
+        "stableBoss": true,
+        "tags": ["fast", "route-varies", "chipping-only", "anti-installation"],
+        "desc": "戦艦1、正規/装甲空母2、軽巡1、駆逐2。初手によりA-B-E-M-R-N-TまたはC-F-I-J-H-T、削り向け。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ]
+      },
+      {
+        "id": "4-5-light",
+        "name": "軽巡駆逐軽量",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced"],
+        "nodes": ["A", "B", "E", "M", "N", "T"],
+        "stableBoss": true,
+        "tags": ["fast", "anti-installation", "quest-friendly"],
+        "desc": "高速戦艦1、軽空母2、軽巡1、駆逐2。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ]
+      },
+      {
+        "id": "4-5-leveling-asw",
+        "name": "初手対潜レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["D"],
+        "stableBoss": false,
+        "tags": ["retreat-after-d", "oasw"],
+        "desc": "先制対潜3-4、育成艦2-3。D潜水戦後撤退。",
+        "sources": [
+          "https://wikiwiki.jp/kancolle/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+          "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"
+        ],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [1, 2, 3, 7, 10, 21], "value": 3 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "5-2",
+    "routes": [
+      {
+        "id": "5-2-leveling-air-raid",
+        "name": "C空襲レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["C"],
+        "stableBoss": false,
+        "tags": ["retreat-after-c", "rocket-barrage-required", "risk-free"],
+        "desc": "航空艦/潜水1-6。噴進砲改二による対空噴進弾幕前提。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [6, 7, 10, 11, 13, 14, 16, 18], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "5-3",
+    "routes": [
+      {
+        "id": "5-3-leveling-p",
+        "name": "P夜戦レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["D", "G", "I", "P"],
+        "stableBoss": false,
+        "tags": ["retreat-after-p", "night-battle", "no-carrier"],
+        "desc": "育成艦1、軽巡0-1、駆逐4-5。P夜戦後撤退。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 4 },
+          { "type": "MaxShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [7, 10, 11, 18], "value": 0 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "5-5",
+    "routes": [
+      {
+        "id": "5-5-upper-four-heavy",
+        "name": "北方主力路線",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "K", "P", "S"],
+        "stableBoss": true,
+        "tags": ["los-cn2-81", "air-power", "fixed-route"],
+        "desc": "戦艦2、正規/装甲空母2、重巡/航巡2。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 175, "recommended": 392 },
+          { "kind": "los", "coefficient": 2, "minimum": 81 }
+        ]
+      },
+      {
+        "id": "5-5-middle-fast-plus",
+        "name": "中央高速＋",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+        "stableBoss": true,
+        "tags": ["fast+", "los-cn2-67", "late-game"],
+        "desc": "戦艦2、正規空母1、航巡1、駆逐2。全艦高速＋。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 175, "recommended": 392 },
+          { "kind": "los", "coefficient": 2, "minimum": 67 }
+        ]
+      },
+      {
+        "id": "5-5-middle-ao",
+        "name": "中央補給艦",
+        "category": "boss",
+        "objectives": ["balanced", "low-cost"],
+        "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+        "stableBoss": true,
+        "tags": ["oiler", "los-cn2-67", "any-speed"],
+        "desc": "戦艦/空母3、補給艦1、駆逐2。高速＋不要。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [22], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 2, "minimum": 67 }]
+      },
+      {
+        "id": "5-5-leveling-asw",
+        "name": "B対潜レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["B"],
+        "stableBoss": false,
+        "tags": ["retreat-after-b", "oasw"],
+        "desc": "先制対潜4-5、育成艦1-2。B潜水戦後撤退。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [1, 2, 3, 7, 10, 21], "value": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "5-6",
+    "name": "ラバウル方面海域",
+    "routes": [
+      {
+        "id": "5-6-p1-transport",
+        "name": "第一輸送・駆逐4",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P1",
+        "nodes": ["A", "C2", "D", "E", "G"],
+        "stableBoss": true,
+        "tags": ["transport", "pt", "aaci", "new-map"],
+        "desc": "航巡1、水母1、駆逐4。輸送・PT・防空を両立。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [16], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 4 }
+        ]
+      },
+      {
+        "id": "5-6-p1-torpedo-squadron",
+        "name": "第一輸送・水雷戦隊",
+        "category": "boss",
+        "objectives": ["low-cost", "balanced"],
+        "phase": "P1",
+        "nodes": ["A", "C2", "D", "E", "G"],
+        "stableBoss": true,
+        "tags": ["transport", "torpedo-squadron", "new-map"],
+        "desc": "軽巡旗艦1、駆逐5。精鋭水雷司令部向け。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 5 }
+        ]
+      },
+      {
+        "id": "5-6-p2-surface",
+        "name": "第二戦力・水上",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P2",
+        "nodes": ["I", "J", "K", "L", "N"],
+        "stableBoss": true,
+        "tags": ["los", "air-power-521", "new-map"],
+        "desc": "空母2、航巡1、軽巡1、駆逐2。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 252, "recommended": 521 }]
+      },
+      {
+        "id": "5-6-p2-submarine",
+        "name": "第二戦力・潜水6",
+        "category": "boss",
+        "objectives": ["low-cost"],
+        "phase": "P2",
+        "nodes": ["I", "J", "K1", "K", "K2", "L", "N"],
+        "stableBoss": true,
+        "tags": ["slow-clear", "extra-battles", "new-map"],
+        "desc": "潜水/潜母6。時間と敗北数を許容する低資源案。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [13, 14], "value": 6 }
+        ]
+      },
+      {
+        "id": "5-6-p3-fast-plus-cv3",
+        "name": "第三戦力・高速＋空母3",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P3",
+        "nodes": ["I", "O", "Q", "W", "X", "Z"],
+        "stableBoss": true,
+        "tags": ["fast+", "boss-support", "new-map"],
+        "desc": "戦艦2、空母系3、航巡1。道中安定と夜戦火力を両立。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [6], "value": 1 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 312, "recommended": 688 }]
+      },
+      {
+        "id": "5-6-p3-fast-plus-cv4",
+        "name": "第三戦力・高速＋空母4",
+        "category": "boss",
+        "objectives": ["balanced"],
+        "phase": "P3",
+        "nodes": ["I", "O", "Q", "W", "X", "Z"],
+        "stableBoss": true,
+        "tags": ["fast+", "boss-support", "low-night-power", "new-map"],
+        "desc": "戦艦2、空母系4。道中最安定だが夜戦火力不足に注意。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 4 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 312, "recommended": 688 }]
+      },
+      {
+        "id": "5-6-p3-fast-night",
+        "name": "第三戦力・高速夜戦",
+        "category": "boss",
+        "objectives": ["boss-clear"],
+        "phase": "P3",
+        "nodes": ["I", "O", "Q", "U", "X", "Z"],
+        "stableBoss": true,
+        "tags": ["fast", "boss-support", "last-dance", "new-map"],
+        "desc": "戦艦2、空母1、軽巡1、駆逐2。道中増加と引換に夜戦最強。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 312, "recommended": 343 }]
+      }
+    ]
+  },
+  {
+    "area": "6-3",
+    "routes": [
+      {
+        "id": "6-3-devmat",
+        "name": "航空偵察・開發資材",
+        "category": "resource",
+        "objectives": ["resource-devmat", "resource-ammo", "resource-bauxite"],
+        "nodes": ["A", "C", "E", "G", "H", "J"],
+        "stableBoss": false,
+        "tags": ["aerial-recon", "boss-b-rank-required", "high-risk"],
+        "desc": "水母1、軽巡1、駆逐4。大型飛行艇・水偵で偵察報酬増加。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [16], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "6-5",
+    "routes": [
+      {
+        "id": "6-5-south",
+        "name": "南路",
+        "category": "boss",
+        "objectives": ["balanced", "low-cost", "boss-clear"],
+        "nodes": ["B", "F", "I", "J", "M"],
+        "stableBoss": true,
+        "tags": ["los-cn3-35", "lbas", "night-battle"],
+        "desc": "戦艦2、重巡/航巡/軽巡1、軽巡1、駆逐2。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 35 }]
+      },
+      {
+        "id": "6-5-south-north",
+        "name": "南北重量",
+        "category": "boss",
+        "objectives": ["boss-clear", "balanced"],
+        "nodes": ["B", "C", "D", "G", "M"],
+        "stableBoss": true,
+        "tags": ["los-cn3-50", "lbas", "heavy-fleet"],
+        "desc": "戦艦3、重巡/航巡/軽巡1、軽巡1、駆逐1。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 3 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 50 }]
+      },
+      {
+        "id": "6-5-north",
+        "name": "北路空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "C", "D", "G", "M"],
+        "stableBoss": true,
+        "tags": ["los-cn3-50", "lbas", "ammo-penalty"],
+        "desc": "戦艦0-2、空母1-2、重巡/軽巡/駆逐1、駆逐1-2。戦艦+空母3以下。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 50 }]
+      },
+      {
+        "id": "6-5-leveling-asw",
+        "name": "初手対潜・基地熟練",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["B"],
+        "stableBoss": false,
+        "tags": ["retreat-after-b", "oasw", "lbas-proficiency"],
+        "desc": "軽巡1、先制対潜4、育成1。空母/雷巡不可。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [1, 2, 3, 21], "value": 4 },
+          { "type": "MaxShipTypeCount", "stypes": [4, 7, 11, 18], "value": 0 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "7-4",
+    "routes": [
+      {
+        "id": "7-4-resource-submarine",
+        "name": "O港燃料鋁土",
+        "category": "resource",
+        "objectives": ["resource-fuel", "resource-bauxite", "leveling"],
+        "nodes": ["C", "D", "F", "J", "K", "M", "O"],
+        "stableBoss": false,
+        "tags": ["submarine", "risk-free", "lbas-proficiency", "los-cn3-32"],
+        "desc": "潜水/潜母1-6。O港で燃料・鋁土回收。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [13, 14], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 32 }]
+      }
+    ]
+  },
+  {
+    "area": "7-5",
+    "routes": [
+      {
+        "id": "7-5-p3-light",
+        "name": "第三戦力・軽量最短",
+        "category": "boss",
+        "objectives": ["balanced", "low-cost"],
+        "phase": "P3",
+        "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
+        "stableBoss": true,
+        "tags": ["los-cn3-55", "historical-bonus"],
+        "desc": "戦艦0-1、重巡/航巡1-2、軽巡1、駆逐2-3。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "MaxShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
+      },
+      {
+        "id": "7-5-p3-medium-fast",
+        "name": "第三戦力・中量高速",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "phase": "P3",
+        "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
+        "stableBoss": true,
+        "tags": ["fast", "los-cn3-55", "historical-bonus"],
+        "desc": "戦艦/軽空1、重巡/航巡1、雷巡/水母1、軽巡1、駆逐2。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [7, 8, 9, 10, 12], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [4, 16], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
+      },
+      {
+        "id": "7-5-p3-heavy",
+        "name": "第三戦力・重量",
+        "category": "boss",
+        "objectives": ["boss-clear"],
+        "phase": "P3",
+        "nodes": ["A", "B", "D", "F", "J", "O", "P", "R", "T"],
+        "stableBoss": true,
+        "tags": ["extra-battle", "los-cn3-55", "historical-bonus"],
+        "desc": "戦艦1-2、軽空母0-1、軽巡1、駆逐2-3。R追加戦と引換に高火力。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "MaxShipTypeCount", "stypes": [7], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 55 }]
+      },
+      {
+        "id": "7-5-leveling-air-raid",
+        "name": "A空襲レベリング",
+        "category": "leveling",
+        "objectives": ["leveling"],
+        "nodes": ["A"],
+        "stableBoss": false,
+        "tags": ["retreat-after-a", "rocket-barrage-required", "risk-free"],
+        "desc": "航空艦/潜水1-6。噴進砲改二による対空噴進弾幕前提。",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ShipTypeCount", "stypes": [6, 7, 10, 11, 13, 14, 16, 18], "value": 1 }
+        ]
+      }
+    ]
+  }
+]

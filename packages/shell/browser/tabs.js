@@ -5,7 +5,7 @@ class Tabs extends EventEmitter {
   tabList = []
   selected = null
 
-  // damecon customizations
+  // KanColle Assistant customizations
   newTabPageUrl = null
   searchPageUrl = null
   hidden = false
@@ -13,7 +13,7 @@ class Tabs extends EventEmitter {
   constructor(browserWindow, options) {
     super()
     this.window = browserWindow
-    // damecon customizations
+    // KanColle Assistant customizations
     this.newTabPageUrl = options.newTabPageUrl ?? 'about:blank'
     this.searchPageUrl = options.searchPageUrl ?? 'about:blank'
     this.hidden = options?.hidden ?? false
@@ -44,8 +44,8 @@ class Tabs extends EventEmitter {
     //tab.show() // must be attached to window
     const url = webContentsViewOptions?.initialUrl ?? this.newTabPageUrl
     //console.log('>> creating tab', url, webContentsViewOptions)
-    tab.webContents.on('did-navigate', (origin, targets) => {
-      this.emit('tab-navigated', tab, url)
+    tab.webContents.on('did-navigate', (event, targetUrl) => {
+      this.emit('tab-navigated', tab, targetUrl)
     })
     tab.webContents.loadURL(url)
 

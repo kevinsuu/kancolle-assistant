@@ -18,6 +18,7 @@ async function createSEA() {
 
   await exec('node --experimental-sea-config sea-config.json', { cwd: outDir })
   await fs.cp(process.execPath, path.join(outDir, exeName))
+  await fs.chmod(path.join(outDir, exeName), 0o755)
 
   if (process.platform === 'darwin') {
     await exec(`codesign --remove-signature ${exeName}`, { cwd: outDir })

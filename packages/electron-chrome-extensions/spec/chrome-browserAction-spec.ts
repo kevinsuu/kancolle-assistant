@@ -1,6 +1,6 @@
 import * as path from 'node:path'
 import { expect } from 'chai'
-import { BrowserView, Extension, ipcMain, session, WebContents, WebContentsView } from 'electron'
+import { BrowserView, Extension, ipcMain, session, WebContents } from 'electron'
 
 import { emittedOnce } from './events-helpers'
 import { uuid } from './spec-helpers'
@@ -43,15 +43,7 @@ describe('chrome.browserAction', () => {
 
     it('supports cross-session communication', async () => {
       const otherSession = session.fromPartition(`persist:crx-${uuid()}`)
-
-      if ('registerPreloadScript' in otherSession) {
-        browser.session.getPreloadScripts().forEach((script: any) => {
-          otherSession.registerPreloadScript(script)
-        })
-      } else {
-        // @ts-expect-error Deprecated electron@<35
-        otherSession.setPreloads(browser.session.getPreloads())
-      }
+      otherSession.setPreloads(browser.session.getPreloads())
 
       const view = new BrowserView({
         webPreferences: { session: otherSession, nodeIntegration: false, contextIsolation: true },
@@ -270,15 +262,13 @@ describe('chrome.browserAction', () => {
       const extensionsPartition = browser.partition
       const otherSession = session.fromPartition(`persist:crx-${uuid()}`)
       ElectronChromeExtensions.handleCRXProtocol(otherSession)
+      otherSession.setPreloads(browser.session.getPreloads())
 
-      browser.session.getPreloadScripts().forEach((script) => {
-        otherSession.registerPreloadScript(script)
-      })
-
-      const view = new WebContentsView({
+      const view = new BrowserView({
         webPreferences: { session: otherSession, nodeIntegration: false, contextIsolation: true },
       })
-      browser.window.contentView.addChildView(view)
+      browser.window.addBrowserView(view)
+
       await view.webContents.loadURL(server.getUrl())
 
       const result = await view.webContents.executeJavaScript(
