@@ -95,7 +95,9 @@ The fleet solver ranks bounded candidates and uses deterministic beam search ove
 ship-type, ship-count, and named-ship constraints.
 The equipment solver builds all ship slots as one resource-allocation problem. A piece of equipment
 can be assigned only once, must be owned by the account, and must be compatible according to the
-compatibility list captured from `KC3Master.equip_on_ship`.
+compatibility list captured from `KC3Master.equip_on_ship`. On routes with a reviewed air-power
+minimum, compatible battleships and cruisers also allocate owned seaplane fighters instead of
+assuming that only carriers can supply the required air power.
 
 Recommendations that fail minimum air power or LoS are discarded rather than penalized with a
 score. A route tagged as requiring a fast fleet also rejects a fleet containing a slow ship. If no

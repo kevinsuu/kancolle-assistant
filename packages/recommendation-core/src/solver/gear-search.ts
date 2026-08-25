@@ -53,16 +53,28 @@ const gearSignature = (state: GearSearchState): string =>
 const requirementsForMember = (
   member: FleetMember,
   shipIndex: number,
+  assignAirSeaplanes: boolean,
 ): readonly GearRequirement[] => {
   const slotCount = member.ship.slotSizes.length
   const requirementKinds: GearRequirementKind[] = []
 
   if (member.role === 'main-battleship') {
-    requirementKinds.push('big-gun', 'big-gun', 'recon', 'ap-shell')
-    while (requirementKinds.length < slotCount) requirementKinds.push('radar')
+    if (assignAirSeaplanes) {
+      requirementKinds.push('big-gun', 'big-gun', 'seaplane')
+      while (requirementKinds.length < slotCount - 1) requirementKinds.push('seaplane')
+      if (requirementKinds.length < slotCount) requirementKinds.push('ap-shell')
+    } else {
+      requirementKinds.push('big-gun', 'big-gun', 'recon', 'ap-shell')
+      while (requirementKinds.length < slotCount) requirementKinds.push('radar')
+    }
   } else if (member.role === 'utility-cruiser') {
-    requirementKinds.push('main-gun', 'main-gun', 'recon', 'radar')
-    while (requirementKinds.length < slotCount) requirementKinds.push('torpedo')
+    requirementKinds.push('main-gun', 'main-gun')
+    if (assignAirSeaplanes) {
+      while (requirementKinds.length < slotCount) requirementKinds.push('seaplane')
+    } else {
+      requirementKinds.push('recon', 'radar')
+      while (requirementKinds.length < slotCount) requirementKinds.push('torpedo')
+    }
   } else if (member.role === 'carrier-air-superiority') {
     const orderedSlots = member.ship.slotSizes
       .map((slotSize, slotIndex) => ({ slotSize, slotIndex }))
@@ -152,7 +164,12 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
       if (isDrumCanister(gear)) return 45 + improvement
       return -20
     case 'seaplane':
-      return stats.los * 4 + stats.bombing * 3 + stats.antiAir * 2
+      return (
+        (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0) * 4 +
+        stats.los * 4 +
+        stats.bombing * 3 +
+        stats.antiAir * 2
+      )
     case 'general':
       return (
         stats.firepower * 2 +
@@ -194,8 +211,19 @@ export const buildGearSolutions = (
   fleet: FleetSearchState,
   account: AccountSnapshot,
   avoidCurrentFleetEquipment: boolean,
+  airPowerRequired = false,
 ): readonly RecommendedShipBuild[][] => {
-  const requirements = fleet.members.flatMap(requirementsForMember)
+  const requirements = fleet.members.flatMap((member, shipIndex) => {
+    const assignAirSeaplanes =
+      airPowerRequired &&
+      account.equipment.some(
+        (gear) =>
+          [10, 11].includes(gear.typeId) &&
+          member.ship.regularEquipableMasterIds.includes(gear.masterId) &&
+          Object.values(gear.airPowerBySlotSize).some((power) => power > 0),
+      )
+    return requirementsForMember(member, shipIndex, assignAirSeaplanes)
+  })
   const requirementCounts = new Map<GearRequirementKind, number>()
   requirements.forEach((requirement) => {
     requirementCounts.set(requirement.kind, (requirementCounts.get(requirement.kind) ?? 0) + 1)

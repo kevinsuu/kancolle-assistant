@@ -48,6 +48,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         fleet,
         input.account,
         input.preferences?.avoidCurrentFleetEquipment ?? false,
+        route.calculatedConstraints.some((constraint) => constraint.kind === 'air-power'),
       )
       gearSolutions.forEach((builds, gearIndex) => {
         const metrics = calculateFleetMetrics(builds, route, input.account.hqLevel)

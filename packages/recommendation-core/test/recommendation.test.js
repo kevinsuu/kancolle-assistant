@@ -323,6 +323,35 @@ test('1-5 balanced recommendations stay on light ASW fleets', () => {
   })
 })
 
+test('air-constrained cruiser routes assign owned seaplane fighters', () => {
+  const raw = createRawSnapshot()
+  const shipTypeIds = [6, 3, 2, 2, 2, 2]
+  raw.hqLevel = 1
+  raw.equipment[0].typeId = 11
+  raw.equipment[0].type = '11'
+  raw.equipment[0].airPowerBySlotSize = { 0: 0, 4: 20 }
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+    ship.nakedLos = 100
+  })
+  raw.ships[0].slotSizes = [4, 4, 4, 4]
+
+  const result = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-north-middle',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success')
+  assert.ok(result.recommendations[0].metrics.airPower >= 19)
+  assert.ok(
+    result.recommendations[0].ships.some((build) =>
+      build.equipment.some((gear) => gear?.typeId === 11),
+    ),
+  )
+})
+
 test('solver is deterministic and only returns account-owned unique instances', () => {
   const account = parseKC3AccountSnapshot(createRawSnapshot())
   const input = { mapId: '1-1', objective: 'balanced', account }
