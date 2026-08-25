@@ -55,23 +55,14 @@ jobs:
         with:
           run: yarn test
 
-      - name: Run recommendation tests (Windows)
+      - name: Rebuild recommendation package (Windows)
         if: runner.os == 'Windows'
-        run: yarn test:recommendation
+        run: yarn build:recommendation
+
+      - name: Run recommendation unit tests (Windows)
+        if: runner.os == 'Windows'
+        run: node --test packages/recommendation-core/test/*.test.js
 
       - name: Run extension tests (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Continue'
-          $PSNativeCommandUseErrorActionPreference = $false
-
-          yarn test:extensions 2>&1 | Tee-Object -FilePath extension-tests.log
-          $exitCode = $LASTEXITCODE
-
-          if ($exitCode -ne 0) {
-            $tail = Get-Content extension-tests.log -Tail 80 | Out-String
-            $escaped = $tail.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-            Write-Output "::error title=Windows extension tests failed::$escaped"
-            exit $exitCode
-          }
+        run: yarn test:extensions
