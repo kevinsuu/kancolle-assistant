@@ -40,8 +40,9 @@ const validateExtensionUrl = (url: string, extension: Electron.Extension) => {
     throw new Error('Invalid URL')
   }
 
-  // Prevent creating chrome://kill or other debug commands
-  if (url.startsWith('javascript:')) {
+  // Prevent extensions from navigating to debug commands such as chrome://kill. The built-in
+  // WebUI extension retains access to the internal chrome: pages it owns.
+  if (url.startsWith('javascript:') || (url.startsWith('chrome:') && extension.name !== 'WebUI')) {
     throw new Error('Invalid URL')
   }
 

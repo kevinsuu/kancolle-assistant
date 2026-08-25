@@ -183,10 +183,10 @@ describe('chrome.tabs', () => {
       const initialUrl = browser.window.webContents.getURL()
       const targetUrl = `${server.getUrl()}foo`
       await browser.window.webContents.loadURL(targetUrl)
-      expect(browser.window.webContents.navigationHistory.canGoBack()).to.be.true
-      browser.window.webContents.navigationHistory.goBack()
+      expect(browser.window.webContents.canGoBack()).to.be.true
+      browser.window.webContents.goBack()
       await emittedOnce(browser.window.webContents, 'did-navigate')
-      expect(browser.window.webContents.navigationHistory.canGoForward()).to.be.true
+      expect(browser.window.webContents.canGoForward()).to.be.true
       expect(browser.window.webContents.getURL()).to.equal(initialUrl)
       const navigatePromise = emittedOnce(browser.window.webContents, 'did-navigate')
       browser.crx.exec('tabs.goForward')
@@ -199,10 +199,10 @@ describe('chrome.tabs', () => {
       const initialUrl = browser.window.webContents.getURL()
       const targetUrl = `${server.getUrl()}foo`
       await browser.window.webContents.loadURL(targetUrl)
-      expect(browser.window.webContents.navigationHistory.canGoBack()).to.be.true
-      browser.window.webContents.navigationHistory.goBack()
+      expect(browser.window.webContents.canGoBack()).to.be.true
+      browser.window.webContents.goBack()
       await emittedOnce(browser.window.webContents, 'did-navigate')
-      expect(browser.window.webContents.navigationHistory.canGoForward()).to.be.true
+      expect(browser.window.webContents.canGoForward()).to.be.true
       expect(browser.window.webContents.getURL()).to.equal(initialUrl)
       const navigatePromise = emittedOnce(browser.window.webContents, 'did-navigate')
       browser.crx.exec('tabs.goForward', tabId)
@@ -215,7 +215,7 @@ describe('chrome.tabs', () => {
     it('navigates the active tab back', async () => {
       const initialUrl = browser.window.webContents.getURL()
       await browser.window.webContents.loadURL(`${server.getUrl()}foo`)
-      expect(browser.window.webContents.navigationHistory.canGoBack()).to.be.true
+      expect(browser.window.webContents.canGoBack()).to.be.true
       const navigatePromise = emittedOnce(browser.window.webContents, 'did-navigate')
       browser.crx.exec('tabs.goBack')
       await navigatePromise

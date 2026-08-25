@@ -25,8 +25,8 @@ import { resolvePartition } from './partition'
 
 function checkVersion() {
   const electronVersion = process.versions.electron
-  if (electronVersion && parseInt(electronVersion.split('.')[0], 10) < 35) {
-    console.warn('electron-chrome-extensions requires electron@>=35.0.0')
+  if (electronVersion && parseInt(electronVersion.split('.')[0], 10) !== 25) {
+    console.warn(`electron-chrome-extensions targets electron@25.x (current: ${electronVersion})`)
   }
 }
 
