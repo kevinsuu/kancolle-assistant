@@ -1,4 +1,4 @@
-const kc3ResourceLedgerMainWorld = async (request) => {
+export const kc3ResourceLedgerMainWorld = async (request) => {
   const hourMs = 60 * 60 * 1000
   const jstOffsetMs = 9 * hourMs
   const resourceKeys = ['fuel', 'ammo', 'steel', 'bauxite', 'torch', 'bucket', 'devmat', 'screws']

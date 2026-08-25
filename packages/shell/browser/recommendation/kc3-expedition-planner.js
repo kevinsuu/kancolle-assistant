@@ -1,4 +1,4 @@
-const kc3ExpeditionPlannerMainWorld = (request) => {
+export const kc3ExpeditionPlannerMainWorld = (request) => {
   const resourceKeys = ['fuel', 'ammo', 'steel', 'bauxite']
   const emptyResources = () => ({ fuel: 0, ammo: 0, steel: 0, bauxite: 0 })
   const mapResources = (resource, transform) =>
