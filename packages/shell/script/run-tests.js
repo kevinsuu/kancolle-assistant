@@ -15,6 +15,12 @@ try {
     platform: 'node',
     format: 'cjs',
     target: 'node20',
+    alias: {
+      '@kancolle-assistant/recommendation-core': path.resolve(
+        __dirname,
+        '../../recommendation-core/src/index.ts',
+      ),
+    },
     external: ['electron', 'node:*'],
     logLevel: 'silent',
   })

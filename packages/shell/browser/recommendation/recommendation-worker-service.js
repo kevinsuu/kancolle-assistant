@@ -54,7 +54,7 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
     return nextWorker
   }
 
-  const recommend = (input) =>
+  const run = (operation, input) =>
     new Promise((resolve, reject) => {
       const requestId = nextRequestId
       nextRequestId += 1
@@ -72,7 +72,7 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
       }, requestTimeoutMs)
       pending.set(requestId, { resolve, reject, timer })
       try {
-        targetWorker.postMessage({ type: 'recommendation:run', id: requestId, input })
+        targetWorker.postMessage({ type: 'recommendation:run', id: requestId, operation, input })
       } catch (error) {
         discardWorker(asError(error, 'Recommendation worker unavailable'), targetWorker)
       }
@@ -83,5 +83,12 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
     if (worker) discardWorker(new Error('Recommendation worker service disposed'), worker)
   }
 
-  return { recommend, dispose }
+  const recommendFleet = (input) => run('fleet', input)
+  return {
+    recommend: recommendFleet,
+    recommendFleet,
+    planExpeditions: (input) => run('expedition', input),
+    summarizeResourceLedger: (input) => run('resource-ledger', input),
+    dispose,
+  }
 }

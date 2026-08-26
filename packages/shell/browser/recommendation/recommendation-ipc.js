@@ -137,7 +137,14 @@ const parseExpeditionRequest = (request) => {
   }
 }
 
-export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, recommend, logger }) => {
+export const registerRecommendationIpc = ({
+  ipcMain,
+  getKc3ExtensionId,
+  recommend,
+  planExpeditions: planExpeditionsInWorker,
+  summarizeResourceLedger: summarizeResourceLedgerInWorker,
+  logger,
+}) => {
   ipcMain.handle(MAP_OPTIONS_CHANNEL, async (event) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
@@ -183,7 +190,7 @@ export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, recommen
     const parsedRequest = parseExpeditionRequest(request)
     if (!parsedRequest) return errorResult('INVALID_REQUEST', '遠征目標或配對條件格式不正確。')
     try {
-      const result = await planKC3Expeditions(event.sender, parsedRequest)
+      const result = await planKC3Expeditions(event.sender, parsedRequest, planExpeditionsInWorker)
       logger('expedition-planner.completed', {
         fleetCount: parsedRequest.fleetCount,
         candidateCount: parsedRequest.candidateIds.length,
@@ -206,7 +213,11 @@ export const registerRecommendationIpc = ({ ipcMain, getKc3ExtensionId, recommen
     try {
       return {
         status: 'success',
-        ...(await readKC3ResourceLedgerSummary(event.sender, { range: request.range })),
+        ...(await readKC3ResourceLedgerSummary(
+          event.sender,
+          { range: request.range },
+          summarizeResourceLedgerInWorker,
+        )),
       }
     } catch (error) {
       logger('resource-ledger.failed', { message: error?.message || String(error) })

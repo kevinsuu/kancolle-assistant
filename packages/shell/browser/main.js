@@ -722,6 +722,8 @@ class Browser extends EventEmitter {
       ipcMain,
       getKc3ExtensionId: () => this.currentKc3ExtensionId,
       recommend: (input) => this.recommendationService.recommend(input),
+      planExpeditions: (input) => this.recommendationService.planExpeditions(input),
+      summarizeResourceLedger: (input) => this.recommendationService.summarizeResourceLedger(input),
       logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
     })
     app.once('will-quit', () => this.recommendationService.dispose())
