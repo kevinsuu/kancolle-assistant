@@ -5,7 +5,13 @@ import { en } from '../browser/recommendation/i18n/en.js'
 import { jp } from '../browser/recommendation/i18n/jp.js'
 import { scn } from '../browser/recommendation/i18n/scn.js'
 import { tcn } from '../browser/recommendation/i18n/tcn.js'
-import { applyDefaultDailyImprovementFilter } from '../browser/recommendation/daily-improvement-ui.js'
+import {
+  applyDailyImprovementCategoryFilter,
+  applyDefaultDailyImprovementFilter,
+  collectDailyImprovementCategories,
+  getDailyImprovementEquipmentType,
+  isDailyImprovementEquipmentAvailable,
+} from '../browser/recommendation/daily-improvement-ui.js'
 import {
   createStrategyRoomI18n,
   getStrategyRoomLanguage,
@@ -186,4 +192,56 @@ test('daily improvement filter waits for KC3 to render filterable equipment', ()
 
   assert.equal(applyDefaultDailyImprovementFilter(root), false)
   assert.equal(clickCount, 0)
+})
+
+test('daily improvement category filter combines with KC3 row visibility classes', () => {
+  const createEquipment = (type) => {
+    const classes = new Set(['equipment', 'disabled'])
+    return {
+      classList: {
+        contains: (name) => classes.has(name),
+        toggle: (name, active) => (active ? classes.add(name) : classes.delete(name)),
+      },
+      querySelector: () => ({ dataset: { item_type3: type } }),
+    }
+  }
+  const mainGun = createEquipment('1')
+  const torpedo = createEquipment('5')
+
+  applyDailyImprovementCategoryFilter([mainGun, torpedo], '1')
+
+  assert.equal(getDailyImprovementEquipmentType(mainGun), '1')
+  assert.equal(mainGun.classList.contains('kca-equipment-category-hidden'), false)
+  assert.equal(mainGun.classList.contains('disabled'), true)
+  assert.equal(torpedo.classList.contains('kca-equipment-category-hidden'), true)
+
+  applyDailyImprovementCategoryFilter([mainGun, torpedo], 'all')
+  assert.equal(torpedo.classList.contains('kca-equipment-category-hidden'), false)
+})
+
+test('daily improvement category filter ignores rows without a numeric KC3 icon type', () => {
+  const equipment = {
+    querySelector: () => ({ dataset: { item_type3: 'unknown' } }),
+  }
+
+  assert.equal(getDailyImprovementEquipmentType(equipment), null)
+})
+
+test('daily improvement categories only include rows KC3 marks as improvable', () => {
+  const createEquipment = (type, unavailable = false) => ({
+    matches: () => unavailable,
+    querySelector: (selector) =>
+      selector === '.eq_name'
+        ? { dataset: { item_type3: type }, textContent: `Equipment ${type}` }
+        : { getAttribute: () => `/items/${type}.png` },
+  })
+  const categories = collectDailyImprovementCategories([
+    createEquipment('1'),
+    createEquipment('5', true),
+    createEquipment('1'),
+    createEquipment('8', true),
+  ])
+
+  assert.equal(isDailyImprovementEquipmentAvailable(createEquipment('5', true)), false)
+  assert.deepEqual(categories, [{ type: '1', name: 'Equipment 1', icon: '/items/1.png', count: 2 }])
 })
