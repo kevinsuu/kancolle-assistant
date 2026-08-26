@@ -109,6 +109,12 @@ export const scn = {
   'fleet.emptySlot': '— 空槽 —',
   'fleet.slotAircraft': '{count} 机',
   'fleet.slot': '插槽 {index}',
+  'fleet.baseSpeed': '基础{speed}',
+  'fleet.fleetSpeed': '舰队速度：{speed}',
+  'fleet.speed.slow': '低速',
+  'fleet.speed.fast': '高速',
+  'fleet.speed.fast+': '高速＋',
+  'fleet.speed.fastest': '最速',
   'fleet.reasons': '推荐理由',
   'fleet.warnings': '出击前注意',
   'fleet.sources': '数据来源',
@@ -129,6 +135,7 @@ export const scn = {
   'fleet.role.anti-submarine': '先制对潜',
   'fleet.role.submarine': '潜水艇',
   'fleet.role.resource-carrier': '资源运输',
+  'fleet.role.torpedo-cruiser': '雷巡',
   'fleet.role.wildcard': '自由位',
   'fleet.confidence.verified': '已核对',
   'fleet.confidence.community': '社区数据',
@@ -166,8 +173,6 @@ export const scn = {
   'message.COMBAT_THRESHOLDS_UNVERIFIED':
     '此模板已核对路线与舰种，但尚未建入完整制空／索敌硬性门槛；出击前请打开攻略来源核对。',
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED': '此路线还需手动设置：{tags}；求解器尚未验证这些条件。',
-  'message.FAST_PLUS_NOT_VERIFIED':
-    '高速＋需要根据舰娘实际装备提速；当前只显示候选舰队，未验证每艘都已达到高速＋。',
   'message.HEURISTIC_COMBAT_SCORE':
     '适配度是规则与装备的启发式比较，不是胜率或通关保证；损伤、士气、交战形态与随机分歧仍会影响结果。',
   'message.MISSING_SPECIFIC_SHIP': '此路线需要 {names}，当前账号缺少可用舰。',
@@ -178,6 +183,8 @@ export const scn = {
     '持有装备无法同时满足可装备性、装备唯一性、制空与索敌条件。',
   'message.FLEET_SPEED_INSUFFICIENT':
     '当前候选舰队的速度不符合路线带路条件；已拒绝输出不合法的方案。',
+  'message.NIGHT_CARRIER_UNAVAILABLE':
+    '当前候选航母没有夜战特性，也无法以拥有且兼容的装备组成夜战航母配置。',
   'message.RULE_NOT_FOUND': '找不到指定关卡规则。',
   'message.INVALID_REQUEST': '请求格式不正确。',
   'message.KC3_UNAVAILABLE': 'KC3 数据尚未就绪，请返回母港同步后重试。',

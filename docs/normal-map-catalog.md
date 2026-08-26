@@ -101,8 +101,10 @@ allows cross-route Top 3; selecting a route constrains the solver to that phase/
 
 ## Known limitations
 
-- Fast+ and Fastest tags are recorded, but final equipment-dependent speed validation is not yet
-  implemented for every map.
+- Fast+ routes reserve exact account-owned speed equipment, include compatible opened expansion
+  slots, and hard-validate the finished fleet speed. Fastest remains a catalog-only tag where used.
+- Night-carrier routes require a KC3-recognized inherent ship capability or an assignable owned
+  night-aircraft setup before they can produce a recommendation.
 - Numeric air-power and Formula 33 limits are hard constraints only where the source supplied a
   reviewed value.
 - LBAS requirements are notes/tags and are not assigned by the current gear solver.

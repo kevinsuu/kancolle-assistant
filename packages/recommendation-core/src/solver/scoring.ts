@@ -75,17 +75,17 @@ export const scoreFleet = (
   metrics: FleetMetrics,
   objective: RecommendationObjective,
 ): RecommendationScore => {
-  const totalShipFirepower = builds.reduce(
-    (total, build) =>
-      total +
-      build.ship.stats.firepower +
-      build.equipment.reduce(
-        (equipmentTotal, gear) =>
-          equipmentTotal + (gear?.stats.firepower ?? 0) + (gear?.stats.bombing ?? 0),
-        0,
-      ),
-    0,
-  )
+  const totalShipFirepower = builds.reduce((total, build) => {
+    const equipmentFirepower = build.equipment.reduce(
+      (equipmentTotal, gear) =>
+        equipmentTotal + (gear?.stats.firepower ?? 0) + (gear?.stats.bombing ?? 0),
+      0,
+    )
+    const mainGunCount = build.equipment.filter((gear) => gear?.typeId === 3).length
+    const incompleteBattleshipPenalty =
+      build.role === 'main-battleship' ? Math.max(0, 2 - mainGunCount) * 120 : 0
+    return total + build.ship.stats.firepower + equipmentFirepower - incompleteBattleshipPenalty
+  }, 0)
   const totalSurvival = builds.reduce(
     (total, build) =>
       total + build.ship.stats.hp + build.ship.stats.armor + build.ship.stats.evasion * 0.5,
@@ -94,7 +94,7 @@ export const scoreFleet = (
   const movedEquipmentCount = builds.reduce(
     (total, build) =>
       total +
-      build.equipment.filter(
+      [...build.equipment, build.expansionSlot].filter(
         (gear) => gear?.currentlyEquippedBy && gear.currentlyEquippedBy !== build.ship.id,
       ).length,
     0,

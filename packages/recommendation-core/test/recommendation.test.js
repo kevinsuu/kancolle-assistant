@@ -29,6 +29,105 @@ const withoutTiming = (result) => {
   return copy
 }
 
+const createFastPlusSnapshot = ({
+  boilerCount = 6,
+  nightCarrierRoute = false,
+  nightCarrierSetup = false,
+} = {}) => {
+  const raw = createRawSnapshot()
+  let equipmentId = 5000
+  const createGear = (masterId, typeId, stats = {}, airPower = 0, iconTypeId = typeId) => ({
+    id: equipmentId++,
+    masterId,
+    name: `Fast+ fixture gear ${equipmentId}`,
+    typeId,
+    iconTypeId,
+    type: String(typeId),
+    improvement: 0,
+    proficiency: -1,
+    locked: true,
+    currentlyEquippedBy: 0,
+    stats: {
+      firepower: 0,
+      torpedo: 0,
+      antiAir: 0,
+      armor: 0,
+      asw: 0,
+      los: 0,
+      bombing: 0,
+      accuracy: 0,
+      evasion: 0,
+      ...stats,
+    },
+    losImprovement: 0,
+    airPowerBySlotSize: { 20: airPower },
+  })
+  const turbines = Array.from({ length: 6 }, () => createGear(33, 17))
+  const boilers = Array.from({ length: boilerCount }, () => createGear(34, 17))
+  const bigGuns = Array.from({ length: 4 }, () =>
+    createGear(100, 3, { firepower: 20, accuracy: 2 }),
+  )
+  const recon = Array.from({ length: 2 }, () => createGear(101, 9, { los: 8, accuracy: 2 }))
+  const carrierAttackers = Array.from({ length: 4 }, () =>
+    createGear(102, 8, { torpedo: 12, antiAir: 3 }, 20),
+  )
+  const fighters = Array.from({ length: 2 }, () => createGear(103, 6, { antiAir: 12 }, 60))
+  const midgetSubmarines = Array.from({ length: 2 }, () => createGear(104, 22, { torpedo: 12 }))
+  const cruiserGuns = Array.from({ length: 4 }, () =>
+    createGear(105, 2, { firepower: 10, accuracy: 2 }),
+  )
+  const unfitCruiserGuns = Array.from({ length: 2 }, () =>
+    createGear(356, 2, { firepower: 30, accuracy: 10 }),
+  )
+  const nightCarrierGear = nightCarrierSetup
+    ? [createGear(200, 8, { torpedo: 10 }, 30, 45), createGear(258, 35)]
+    : []
+  raw.equipment = [
+    ...turbines,
+    ...boilers,
+    ...bigGuns,
+    ...recon,
+    ...carrierAttackers,
+    ...fighters,
+    ...midgetSubmarines,
+    ...cruiserGuns,
+    ...unfitCruiserGuns,
+    ...nightCarrierGear,
+  ]
+  const equipableMasterIds = [...new Set(raw.equipment.map((gear) => gear.masterId))]
+  const shipTypeIds = nightCarrierRoute ? [10, 11, 11, 7, 4, 4] : [8, 8, 11, 11, 4, 4]
+  raw.hqLevel = 1
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+    ship.speedValue = 10
+    ship.nakedLos = 100
+    ship.slotSizes = [20, 20, 20, 20]
+    ship.equippedItemIds = [0, 0, 0, 0]
+    ship.expansionSlotUnlocked = true
+    ship.expansionEquipableEquipmentIds = turbines.map((gear) => gear.id)
+    ship.regularEquipableMasterIds = equipableMasterIds
+    ship.fastPlusPatterns = [
+      {
+        turbineCount: 1,
+        enhancedBoilerCount: 1,
+        newModelBoilerBelow7Count: 0,
+        newModelBoilerAtLeast7Count: 0,
+      },
+    ]
+    ship.nightCarrierPatterns = []
+  })
+  if (nightCarrierSetup) {
+    raw.ships[1].nightCarrierPatterns = [
+      {
+        nightAircraftCount: 1,
+        nightOperationsPersonnelCount: 1,
+        swordfishCount: 0,
+      },
+    ]
+  }
+  return raw
+}
+
 test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs', () => {
   const raw = createRawSnapshot()
   const account = parseKC3AccountSnapshot(raw)
@@ -356,6 +455,161 @@ test('slow-route recommendations reject an all-fast fleet', () => {
   assert.ok(invalid.analysis.reasons.some((reason) => reason.code === 'FLEET_SPEED_INSUFFICIENT'))
 })
 
+test('Fast+ routes allocate unique speed gear through open expansion slots', () => {
+  const account = parseKC3AccountSnapshot(createFastPlusSnapshot())
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-heavy',
+    objective: 'boss-clear',
+    account,
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    assert.equal(recommendation.metrics.finalSpeedClass, 'fast+')
+    assert.ok(recommendation.ships.every((build) => build.expansionSlot?.masterId === 33))
+    assert.ok(
+      recommendation.ships.every((build) => build.equipment.some((gear) => gear?.masterId === 34)),
+    )
+    recommendation.ships
+      .filter((build) => build.ship.shipTypeId === 4)
+      .forEach((build) => {
+        assert.equal(build.role, 'torpedo-cruiser')
+        assert.ok(build.equipment.some((gear) => gear?.typeId === 22))
+        assert.ok(
+          build.equipment
+            .filter((gear) => gear !== null && gear.masterId !== 34)
+            .every((gear) => [2, 22].includes(gear.typeId)),
+        )
+      })
+  })
+})
+
+test('Fast+ routes rank post-conversion combat capacity ahead of naked firepower', () => {
+  const raw = createFastPlusSnapshot({ boilerCount: 7 })
+  raw.ships[0].name = 'High-firepower slow battleship'
+  raw.ships[0].speedValue = 5
+  raw.ships[0].stats.firepower = 220
+  raw.ships[0].expansionSlotUnlocked = false
+  raw.ships[0].expansionEquipableEquipmentIds = []
+  raw.ships[0].fastPlusPatterns = [
+    {
+      turbineCount: 1,
+      enhancedBoilerCount: 2,
+      newModelBoilerBelow7Count: 0,
+      newModelBoilerAtLeast7Count: 0,
+    },
+  ]
+  raw.ships[1].name = 'Fast battleship 1'
+  raw.ships[1].stats.firepower = 110
+  raw.ships.push(
+    {
+      ...structuredClone(raw.ships[1]),
+      id: 901,
+      masterId: 1901,
+      name: 'Fast battleship 2',
+    },
+    {
+      ...structuredClone(raw.ships[1]),
+      id: 902,
+      masterId: 1902,
+      name: 'Fast battleship 3',
+    },
+  )
+
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-heavy',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success')
+  assert.equal(result.recommendations.length, 3)
+  result.recommendations.forEach((recommendation) => {
+    assert.equal(recommendation.metrics.finalSpeedClass, 'fast+')
+    assert.equal(
+      recommendation.ships.some((build) => build.ship.name === 'High-firepower slow battleship'),
+      false,
+    )
+  })
+})
+
+test('Fast+ routes reject fleets when owned speed gear cannot cover every ship', () => {
+  const account = parseKC3AccountSnapshot(createFastPlusSnapshot({ boilerCount: 5 }))
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-heavy',
+    objective: 'boss-clear',
+    account,
+  })
+
+  assert.equal(result.status, 'no-solution')
+  assert.ok(result.analysis.reasons.some((reason) => reason.code === 'FLEET_SPEED_INSUFFICIENT'))
+})
+
+test('night-carrier routes require and reserve a valid ship trait or equipment setup', () => {
+  const account = parseKC3AccountSnapshot(
+    createFastPlusSnapshot({ nightCarrierRoute: true, nightCarrierSetup: true }),
+  )
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-night-carrier',
+    objective: 'boss-clear',
+    account,
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    assert.ok(
+      recommendation.ships.some((build) => {
+        const equipment = [...build.equipment, build.expansionSlot].filter(Boolean)
+        return (
+          [7, 11, 18].includes(build.ship.shipTypeId) &&
+          equipment.some((gear) => gear.iconTypeId === 45) &&
+          equipment.some((gear) => gear.masterId === 258)
+        )
+      }),
+    )
+    recommendation.ships
+      .filter((build) => build.ship.shipTypeId === 4)
+      .forEach((build) => {
+        assert.ok(build.equipment.some((gear) => gear?.typeId === 22))
+        assert.ok(build.equipment.every((gear) => gear?.masterId !== 356))
+      })
+  })
+
+  const unavailable = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-night-carrier',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(createFastPlusSnapshot({ nightCarrierRoute: true })),
+  })
+  assert.equal(unavailable.status, 'no-solution')
+  assert.ok(
+    unavailable.analysis.reasons.some((reason) => reason.code === 'NIGHT_CARRIER_UNAVAILABLE'),
+  )
+  assert.ok(
+    unavailable.analysis.reasons.every((reason) => reason.code !== 'FLEET_SPEED_INSUFFICIENT'),
+  )
+
+  const nativeRaw = createFastPlusSnapshot({ nightCarrierRoute: true })
+  nativeRaw.ships[1].nightCarrierPatterns = [
+    {
+      nightAircraftCount: 0,
+      nightOperationsPersonnelCount: 0,
+      swordfishCount: 0,
+    },
+  ]
+  const native = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-night-carrier',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(nativeRaw),
+  })
+  assert.equal(native.status, 'success')
+})
+
 test('air-constrained cruiser routes assign owned seaplane fighters', () => {
   const raw = createRawSnapshot()
   const shipTypeIds = [6, 3, 2, 2, 2, 2]
@@ -409,6 +663,36 @@ test('solver is deterministic and only returns account-owned unique instances', 
     assert.equal(new Set(equipmentIds).size, equipmentIds.length)
     assert.ok(equipmentIds.every((id) => ownedEquipmentIds.has(id)))
   })
+})
+
+test('large unrelated equipment inventories do not change recommendations', () => {
+  const baseRaw = createRawSnapshot()
+  const largeRaw = structuredClone(baseRaw)
+  const prototype = largeRaw.equipment[0]
+  largeRaw.equipment.push(
+    ...Array.from({ length: 1000 }, (_, index) => ({
+      ...prototype,
+      id: 10000 + index,
+      masterId: 20000 + index,
+      name: `Unrelated fixture gear ${index + 1}`,
+      typeId: 99,
+      iconTypeId: 99,
+      type: '99',
+    })),
+  )
+
+  const base = recommendFleet({
+    mapId: '1-1',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(baseRaw),
+  })
+  const large = recommendFleet({
+    mapId: '1-1',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(largeRaw),
+  })
+
+  assert.deepEqual(withoutTiming(large), withoutTiming(base))
 })
 
 test('solver returns no-solution when the account cannot meet fleet size', () => {

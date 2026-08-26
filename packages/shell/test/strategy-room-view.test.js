@@ -122,3 +122,17 @@ test('strategy room i18n preserves aliases, fallback, interpolation, and KC3 loc
     globalThis.document = originalDocument
   }
 })
+
+test('fleet speed and torpedo-cruiser labels exist in all supported languages', () => {
+  Object.values(catalogs).forEach((catalog) => {
+    ;[
+      'fleet.baseSpeed',
+      'fleet.fleetSpeed',
+      'fleet.speed.slow',
+      'fleet.speed.fast',
+      'fleet.speed.fast+',
+      'fleet.speed.fastest',
+      'fleet.role.torpedo-cruiser',
+    ].forEach((key) => assert.equal(typeof catalog[key], 'string', key))
+  })
+})

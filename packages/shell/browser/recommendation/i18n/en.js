@@ -118,6 +118,12 @@ export const en = {
   'fleet.emptySlot': '— Empty —',
   'fleet.slotAircraft': '{count} planes',
   'fleet.slot': 'Slot {index}',
+  'fleet.baseSpeed': 'Base {speed}',
+  'fleet.fleetSpeed': 'Fleet speed: {speed}',
+  'fleet.speed.slow': 'Slow',
+  'fleet.speed.fast': 'Fast',
+  'fleet.speed.fast+': 'Fast+',
+  'fleet.speed.fastest': 'Fastest',
   'fleet.reasons': 'Why this plan',
   'fleet.warnings': 'Before sortie',
   'fleet.sources': 'Sources',
@@ -138,6 +144,7 @@ export const en = {
   'fleet.role.anti-submarine': 'Opening ASW',
   'fleet.role.submarine': 'Submarine',
   'fleet.role.resource-carrier': 'Resource Transport',
+  'fleet.role.torpedo-cruiser': 'Torpedo Cruiser',
   'fleet.role.wildcard': 'Flexible Slot',
   'fleet.confidence.verified': 'Verified',
   'fleet.confidence.community': 'Community',
@@ -183,8 +190,6 @@ export const en = {
     'The route and ship types are verified, but complete air-power or LoS minimums are not modeled. Check the source before sortieing.',
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED':
     'Manual configuration is still required: {tags}. The solver has not verified these conditions.',
-  'message.FAST_PLUS_NOT_VERIFIED':
-    'Fast+ requires speed equipment on each ship. The candidate fleet is shown without verifying every ship reaches Fast+.',
   'message.HEURISTIC_COMBAT_SCORE':
     'Fit is a heuristic comparison of rules and equipment, not a win-rate or clear guarantee. Damage, morale, engagement, and random routing still affect results.',
   'message.MISSING_SPECIFIC_SHIP':
@@ -199,6 +204,8 @@ export const en = {
     'Owned equipment cannot simultaneously satisfy equipability, uniqueness, air power, and LoS.',
   'message.FLEET_SPEED_INSUFFICIENT':
     'The candidate fleet speed does not satisfy this route, so the invalid plan was rejected.',
+  'message.NIGHT_CARRIER_UNAVAILABLE':
+    'No candidate carrier has an inherent night capability or an owned, compatible night-carrier equipment setup.',
   'message.RULE_NOT_FOUND': 'The requested map rule was not found.',
   'message.INVALID_REQUEST': 'The request format is invalid.',
   'message.KC3_UNAVAILABLE':

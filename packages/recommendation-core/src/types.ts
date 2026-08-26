@@ -23,6 +23,7 @@ export type RecommendationObjective = (typeof RECOMMENDATION_OBJECTIVES)[number]
 export type FleetRole =
   | 'main-battleship'
   | 'carrier-air-superiority'
+  | 'torpedo-cruiser'
   | 'utility-cruiser'
   | 'escort-destroyer'
   | 'anti-submarine'
@@ -70,12 +71,28 @@ export interface OwnedShip {
   readonly equippedItemIds: readonly (EquipmentInstanceId | null)[]
   readonly expansionSlotItemId: EquipmentInstanceId | null
   readonly expansionSlotUnlocked: boolean
+  readonly expansionEquipableEquipmentIds: readonly EquipmentInstanceId[]
   readonly regularEquipableMasterIds: readonly EquipmentMasterId[]
+  readonly fastPlusPatterns: readonly FastPlusPattern[]
+  readonly nightCarrierPatterns: readonly NightCarrierPattern[]
   readonly locked: boolean
   readonly morale?: number
   readonly eventTag?: number | null
   readonly fuelCost: number
   readonly ammoCost: number
+}
+
+export interface FastPlusPattern {
+  readonly turbineCount: number
+  readonly enhancedBoilerCount: number
+  readonly newModelBoilerBelow7Count: number
+  readonly newModelBoilerAtLeast7Count: number
+}
+
+export interface NightCarrierPattern {
+  readonly nightAircraftCount: number
+  readonly nightOperationsPersonnelCount: number
+  readonly swordfishCount: number
 }
 
 export interface OwnedEquipment {

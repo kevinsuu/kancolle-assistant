@@ -114,6 +114,12 @@ export const jp = {
   'fleet.emptySlot': '— 空き —',
   'fleet.slotAircraft': '{count} 機',
   'fleet.slot': 'スロット {index}',
+  'fleet.baseSpeed': '基礎{speed}',
+  'fleet.fleetSpeed': '艦隊速力：{speed}',
+  'fleet.speed.slow': '低速',
+  'fleet.speed.fast': '高速',
+  'fleet.speed.fast+': '高速＋',
+  'fleet.speed.fastest': '最速',
   'fleet.reasons': '提案理由',
   'fleet.warnings': '出撃前の注意',
   'fleet.sources': '情報源',
@@ -134,6 +140,7 @@ export const jp = {
   'fleet.role.anti-submarine': '先制対潜',
   'fleet.role.submarine': '潜水艦',
   'fleet.role.resource-carrier': '資源輸送',
+  'fleet.role.torpedo-cruiser': '雷巡',
   'fleet.role.wildcard': '自由枠',
   'fleet.confidence.verified': '検証済み',
   'fleet.confidence.community': 'コミュニティ',
@@ -175,8 +182,6 @@ export const jp = {
     'ルートと艦種は確認済みですが、制空・索敵の必須値は未整備です。出撃前に情報源を確認してください。',
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED':
     '手動設定が必要です：{tags}。これらの条件はソルバーで検証していません。',
-  'message.FAST_PLUS_NOT_VERIFIED':
-    '高速＋には各艦の装備による高速化が必要です。候補艦隊のみ表示し、全艦の高速＋到達は検証していません。',
   'message.HEURISTIC_COMBAT_SCORE':
     '適合度はルールと装備のヒューリスティック比較で、勝率や攻略を保証しません。損傷、疲労、交戦形態、ランダム分岐も結果に影響します。',
   'message.MISSING_SPECIFIC_SHIP': 'このルートには{names}が必要ですが、使用可能な艦がいません。',
@@ -187,6 +192,8 @@ export const jp = {
     '所持装備では、装備可否・装備の重複禁止・制空・索敵を同時に満たせません。',
   'message.FLEET_SPEED_INSUFFICIENT':
     '候補艦隊の速力がルート条件を満たさないため、無効な案を除外しました。',
+  'message.NIGHT_CARRIER_UNAVAILABLE':
+    '候補空母に固有の夜戦能力がなく、所持する互換装備でも夜戦空母編成を成立させられません。',
   'message.RULE_NOT_FOUND': '指定海域のルールが見つかりません。',
   'message.INVALID_REQUEST': 'リクエスト形式が正しくありません。',
   'message.KC3_UNAVAILABLE': 'KC3データの準備ができていません。母港に戻って再同期してください。',

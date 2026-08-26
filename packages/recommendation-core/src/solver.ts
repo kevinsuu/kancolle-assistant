@@ -2,7 +2,7 @@ import { calculateFleetMetrics, satisfiesCalculatedConstraints } from './metrics
 import { getRouteTemplates } from './rules'
 import { recommendationMessages, recommendationTitle } from './solver/explanations'
 import { analyzeFleetAvailability, generateFleetCandidates } from './solver/fleet-search'
-import { buildGearSolutions } from './solver/gear-search'
+import { buildGearSolutions, createGearSearchContext } from './solver/gear-search'
 import { scoreFleet } from './solver/scoring'
 import type {
   FleetRecommendation,
@@ -13,7 +13,9 @@ import type {
 
 export const SOLVER_VERSION = '0.1.0'
 
-const FLEETS_TO_EQUIP = 18
+const MIN_FLEETS_TO_EQUIP = 6
+const MAX_FLEETS_TO_EQUIP = 18
+const SUCCESSFUL_FLEETS_PER_ROUTE = 3
 
 export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult => {
   const startedAt = Date.now()
@@ -40,21 +42,45 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   let bestAirPower = 0
   let bestLos = Number.NEGATIVE_INFINITY
   let speedRequirementFailed = false
+  let nightCarrierRequirementFailed = false
+  const avoidCurrentFleetEquipment = input.preferences?.avoidCurrentFleetEquipment ?? false
+  const gearSearchContext = createGearSearchContext(input.account, avoidCurrentFleetEquipment)
 
   availableRoutes.forEach(({ route }, routeIndex) => {
     const fleetCandidates = generateFleetCandidates(input.account, route, input.objective)
-    fleetCandidates.slice(0, FLEETS_TO_EQUIP).forEach((fleet, fleetIndex) => {
+    const airPowerRequired = route.calculatedConstraints.some(
+      (constraint) => constraint.kind === 'air-power',
+    )
+    const fastPlusRequired = route.tags.includes('fast+')
+    const antiInstallationRequired = route.tags.includes('anti-installation')
+    const nightCarrierRequired = route.tags.includes('night-carrier')
+    const failedSpecialFleets = []
+    let successfulFleetCount = 0
+
+    for (
+      let fleetIndex = 0;
+      fleetIndex < Math.min(fleetCandidates.length, MAX_FLEETS_TO_EQUIP);
+      fleetIndex += 1
+    ) {
+      const fleet = fleetCandidates[fleetIndex]
       const gearSolutions = buildGearSolutions(
         fleet,
-        input.account,
-        input.preferences?.avoidCurrentFleetEquipment ?? false,
-        route.calculatedConstraints.some((constraint) => constraint.kind === 'air-power'),
+        gearSearchContext,
+        airPowerRequired,
+        fastPlusRequired,
+        antiInstallationRequired,
+        nightCarrierRequired,
       )
+      if (gearSolutions.length === 0 && (fastPlusRequired || nightCarrierRequired)) {
+        failedSpecialFleets.push(fleet)
+      }
+      let fleetAccepted = false
       gearSolutions.forEach((builds, gearIndex) => {
         const metrics = calculateFleetMetrics(builds, route, input.account.hqLevel)
         bestAirPower = Math.max(bestAirPower, metrics.airPower)
         bestLos = Math.max(bestLos, metrics.los33)
         const wrongSpeed =
+          (fastPlusRequired && !['fast+', 'fastest'].includes(metrics.finalSpeedClass)) ||
           (route.tags.includes('fast') && metrics.finalSpeedClass === 'slow') ||
           (route.tags.includes('slow') && metrics.finalSpeedClass !== 'slow')
         if (wrongSpeed) {
@@ -64,6 +90,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         if (!satisfiesCalculatedConstraints(metrics)) return
         const score = scoreFleet(builds, metrics, input.objective)
         const messages = recommendationMessages(builds, metrics, route)
+        fleetAccepted = true
         recommendationCandidates.push({
           id: `${route.id}-${routeIndex}-${fleetIndex}-${gearIndex}`,
           title: '',
@@ -76,7 +103,35 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           warnings: messages.warnings,
         })
       })
-    })
+      if (fleetAccepted) successfulFleetCount += 1
+      if (
+        fleetIndex + 1 >= MIN_FLEETS_TO_EQUIP &&
+        successfulFleetCount >= SUCCESSFUL_FLEETS_PER_ROUTE
+      ) {
+        break
+      }
+    }
+
+    if (successfulFleetCount === 0 && failedSpecialFleets.length > 0) {
+      if (fastPlusRequired && nightCarrierRequired) {
+        const speedOnlyAvailable = failedSpecialFleets.some(
+          (fleet) =>
+            buildGearSolutions(
+              fleet,
+              gearSearchContext,
+              airPowerRequired,
+              true,
+              antiInstallationRequired,
+              false,
+            ).length > 0,
+        )
+        if (speedOnlyAvailable) nightCarrierRequirementFailed = true
+        else speedRequirementFailed = true
+      } else {
+        if (fastPlusRequired) speedRequirementFailed = true
+        if (nightCarrierRequired) nightCarrierRequirementFailed = true
+      }
+    }
   })
 
   const seenFleets = new Set<string>()
@@ -145,6 +200,12 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       reasons.push({
         code: 'FLEET_SPEED_INSUFFICIENT',
         message: '目前候選艦隊的速度不符合路線帶路條件；已拒絕輸出不合法的方案。',
+      })
+    }
+    if (nightCarrierRequirementFailed) {
+      reasons.push({
+        code: 'NIGHT_CARRIER_UNAVAILABLE',
+        message: '目前候選空母沒有可成立的夜戰特性或帳號持有裝備組合。',
       })
     }
     if (reasons.length === 0) {

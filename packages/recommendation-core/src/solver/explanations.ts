@@ -86,7 +86,7 @@ export const recommendationMessages = (
   const movedEquipmentCount = builds.reduce(
     (total, build) =>
       total +
-      build.equipment.filter(
+      [...build.equipment, build.expansionSlot].filter(
         (gear) => gear?.currentlyEquippedBy && gear.currentlyEquippedBy !== build.ship.id,
       ).length,
     0,
@@ -157,7 +157,6 @@ export const recommendationMessages = (
     'elite-torpedo-squadron-command-facility',
     'historical-bonus',
     'lbas',
-    'night-carrier',
     'pt',
     'rocket-barrage-required',
     'smoke-screen',
@@ -168,12 +167,6 @@ export const recommendationMessages = (
       code: 'EXTERNAL_COMBAT_SETUP_REQUIRED',
       message: `此路線另需人工設定：${externallyConfiguredTags.join('、')}；求解器尚未驗證這些條件。`,
       values: { tags: externallyConfiguredTags.join(', ') },
-    })
-  }
-  if (route.tags.includes('fast+')) {
-    warnings.push({
-      code: 'FAST_PLUS_NOT_VERIFIED',
-      message: '高速＋需要依艦娘實際裝備提速；目前只顯示候選艦隊，未驗證每艘都已達高速＋。',
     })
   }
   warnings.push({

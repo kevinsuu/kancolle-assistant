@@ -21,9 +21,8 @@ names continue to come from KC3, while map and route names come from the recomme
 - Optional preference: leave equipment used by current fleets out of the recommendation pool.
 
 Event maps, quest-specific compositions, combined fleets, land-based air squadron assignment,
-support fleets, and automatic equipment changes remain out of scope. Routes requiring Fast+ or
-special equipment are present but retain explicit tags and warnings until the gear-dependent speed
-validator is complete.
+support fleets, and automatic equipment changes remain out of scope. Routes requiring other
+special equipment retain explicit tags and warnings until the corresponding validator is complete.
 
 ## Architecture
 
@@ -39,15 +38,16 @@ only from the currently loaded KC3 Strategy Room origin:
 - `recommendation:recommend`
 
 The preload adds a localized recommendation item to the Strategy Room fleet menu and renders the
-result. The map selector opens on 1-1. Account inventory stays behind the main-process boundary. Fleet and
-equipment search runs in a lazy worker thread with request correlation, crash recovery, and a
-30-second defensive timeout. Before a successful result crosses IPC, it is reduced to the route,
-ship, equipment, metric, score, reason, and warning fields used by the Strategy Room UI.
+result. The map selector opens on 1-1. Account inventory stays behind the main-process boundary.
+Fleet and equipment search runs in a lazy worker thread with request correlation, crash recovery,
+and a 30-second defensive timeout. Before a successful result crosses IPC, it is reduced to the
+route, ship, equipment, metric, score, reason, and warning fields used by the Strategy Room UI.
 
-Every account snapshot reloads KC3's persisted ship, equipment, HQ, and fleet data before reading
-the managers. The `重新同步` action therefore reflects changes made after Strategy Room opened and
-invalidates any recommendation produced from the previous snapshot; the user must generate a new
-recommendation after the refresh completes.
+The first account snapshot reloads KC3's persisted ship, equipment, HQ, and fleet data before
+reading the managers. Its normalized result is retained while the same Strategy Room page remains
+open, so returning to the recommender and generating a result do not repeat the full extraction.
+The `重新同步` action explicitly reloads and replaces that snapshot, reflects subsequent account
+changes, and invalidates any recommendation produced from the previous snapshot.
 
 The page reuses KC3 Strategy Room's native page title, help panel, section, control, theme color,
 and dense fleet-row conventions. Both the dark and legacy themes are driven by KC3's existing
@@ -99,10 +99,39 @@ compatibility list captured from `KC3Master.equip_on_ship`. On routes with a rev
 minimum, compatible battleships and cruisers also allocate owned seaplane fighters instead of
 assuming that only carriers can supply the required air power.
 
+Each recommendation request indexes owned equipment by compatibility and requirement once, then
+reuses ranked options across overlapping fleet candidates and routes. Fast+ and night-carrier
+reservation searches also collapse equivalent equipment-order states before applying their beam
+limits. This keeps large KC3 inventories bounded without changing equipment uniqueness or route
+validation.
+
+Fleet candidates are equipped in stages. The solver first evaluates six candidates for a route and
+stops after three distinct fleets succeed; it expands toward the previous 18-candidate ceiling only
+when early candidates fail legal equipment or calculated constraints. This avoids fully solving
+lower-ranked fleets that cannot appear in the three-result response.
+
 Recommendations that fail minimum air power or LoS are discarded rather than penalized with a
 score. Routes tagged as requiring a fast or slow fleet reject candidates with the wrong base fleet
-speed. If no legal result remains, the UI reports the observed missing ship type, air power, LoS,
-speed, or assignment constraint.
+speed. Fast+ routes use KC3's current ship-specific speed rules to reserve exact owned turbine and
+boiler instances for every ship. Compatible opened expansion slots are included in the assignment,
+and a ship is excluded before fleet search when none of its patterns can be fulfilled by the owned
+compatible equipment. Candidate ranking subtracts the regular-slot cost of the conversion; for a
+battleship, losing the two-main-gun combat structure is penalized again after equipment assignment.
+The finished loadout is rejected unless every ship actually reaches Fast+. The UI shows both each
+ship's base speed and the equipped fleet's final speed. If no legal result remains, it reports the
+observed missing ship type, air power, LoS, speed, or assignment constraint.
+
+Torpedo cruisers receive a coherent combat loadout instead of independent per-slot scoring: a
+midget submarine is mandatory, followed by torpedoes for ordinary routes or main guns for
+anti-installation routes. This prevents ships such as Kitakami from being filled with unrelated
+radars while omitting their defining opening-torpedo equipment. The 8inch Mk.9 variants are also
+excluded from torpedo-cruiser gun choices because of their documented light-cruiser fit concern.
+
+Night-carrier routes require at least one carrier that KC3 identifies as able to attack at night.
+An inherent ship trait can satisfy the condition without reserved equipment; otherwise the solver
+must assign an owned and compatible night aircraft/personnel or ship-specific aircraft pattern.
+Those items share the same global slot and instance allocation as speed and combat equipment, so a
+route is not shown when the complete loadout cannot coexist.
 
 Resource equipment is selected by actual ship compatibility. For normal resource nodes, Daihatsu
 and amphibious-tank categories are preferred, drum canisters are the fallback, and landing-craft
@@ -118,7 +147,7 @@ resource routes without a complete per-node model are explicitly marked as cost-
 Air power delegates per-slot calculations to KC3 when the snapshot is captured. Formula 33 LoS
 uses KC3's documented coefficients and naked ship LoS values. Combat score and resource use are
 heuristics and are labelled as such in every recommendation. The displayed `/100` value is named
-`適配度`; it is not presented as a win probability. Routes with unmodeled Fast+, LBAS, support,
+`適配度`; it is not presented as a win probability. Routes with unmodeled LBAS, support,
 anti-installation, historical-bonus, or other special setup requirements show an execution warning
 and the source/verification date beside the route.
 

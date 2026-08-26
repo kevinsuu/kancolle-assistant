@@ -111,6 +111,12 @@ export const tcn = {
   'fleet.emptySlot': '— 空槽 —',
   'fleet.slotAircraft': '{count} 機',
   'fleet.slot': '插槽 {index}',
+  'fleet.baseSpeed': '基礎{speed}',
+  'fleet.fleetSpeed': '艦隊速度：{speed}',
+  'fleet.speed.slow': '低速',
+  'fleet.speed.fast': '高速',
+  'fleet.speed.fast+': '高速＋',
+  'fleet.speed.fastest': '最速',
   'fleet.reasons': '推薦理由',
   'fleet.warnings': '出擊前注意',
   'fleet.sources': '資料來源',
@@ -131,6 +137,7 @@ export const tcn = {
   'fleet.role.anti-submarine': '先制對潛',
   'fleet.role.submarine': '潛水艦',
   'fleet.role.resource-carrier': '資源運輸',
+  'fleet.role.torpedo-cruiser': '雷巡',
   'fleet.role.wildcard': '自由枠',
   'fleet.confidence.verified': '已核對',
   'fleet.confidence.community': '社群資料',
@@ -168,8 +175,6 @@ export const tcn = {
   'message.COMBAT_THRESHOLDS_UNVERIFIED':
     '此模板已核對路線與艦種，但尚未建入完整制空／索敵硬門檻；出擊前請開啟攻略來源核對。',
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED': '此路線另需人工設定：{tags}；求解器尚未驗證這些條件。',
-  'message.FAST_PLUS_NOT_VERIFIED':
-    '高速＋需要依艦娘實際裝備提速；目前只顯示候選艦隊，未驗證每艘都已達高速＋。',
   'message.HEURISTIC_COMBAT_SCORE':
     '適配度是規則與裝備的啟發式比較，不是勝率或通關保證；損傷、士氣、交戰形態與隨機分歧仍會影響結果。',
   'message.MISSING_SPECIFIC_SHIP': '此路線需要 {names}，目前帳號缺少可用艦。',
@@ -180,6 +185,8 @@ export const tcn = {
     '持有裝備無法同時滿足可裝備性、裝備唯一性、制空與索敵條件。',
   'message.FLEET_SPEED_INSUFFICIENT':
     '目前候選艦隊的速度不符合路線帶路條件；已拒絕輸出不合法的方案。',
+  'message.NIGHT_CARRIER_UNAVAILABLE':
+    '目前候選空母沒有夜戰特性，也無法以持有且相容的裝備成立夜戰空母配置。',
   'message.RULE_NOT_FOUND': '找不到指定關卡規則。',
   'message.INVALID_REQUEST': '請求格式不正確。',
   'message.KC3_UNAVAILABLE': 'KC3 資料尚未就緒，請回到母港同步後再試。',

@@ -12,6 +12,22 @@ import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
 
 const FLEET_BEAM_WIDTH = 400
 const FLEET_CANDIDATES_PER_ROLE = 14
+const SPEED_GEAR_MASTER_IDS = new Set([33, 34, 87])
+
+interface FastPlusCandidateProfile {
+  readonly regularSlotsUsed: number
+}
+
+interface RankedShipCandidate {
+  readonly ship: OwnedShip
+  readonly role: FleetRole
+  readonly score: number
+}
+
+const fastPlusProfileCache = new WeakMap<
+  AccountSnapshot,
+  Map<number, FastPlusCandidateProfile | null>
+>()
 
 const shipSignature = (members: readonly FleetMember[]): string =>
   members.map((member) => member.ship.id).join('-')
@@ -24,11 +40,103 @@ const resourceGearKindsForShip = (ship: OwnedShip, account: AccountSnapshot): Re
       .map((gear) => (isNormalResourceLandingCraft(gear) ? 'landing-craft' : 'drum')),
   )
 
+const fastPlusProfileForShip = (
+  ship: OwnedShip,
+  account: AccountSnapshot,
+): FastPlusCandidateProfile | null => {
+  let accountCache = fastPlusProfileCache.get(account)
+  if (!accountCache) {
+    accountCache = new Map<number, FastPlusCandidateProfile | null>()
+    fastPlusProfileCache.set(account, accountCache)
+  }
+  if (accountCache.has(ship.id)) return accountCache.get(ship.id) ?? null
+  const regularMasterIds = new Set(ship.regularEquipableMasterIds)
+  const expansionEquipmentIds = new Set(ship.expansionEquipableEquipmentIds)
+  const compatibleSpeedGear = account.equipment.filter(
+    (gear) =>
+      SPEED_GEAR_MASTER_IDS.has(gear.masterId) &&
+      (regularMasterIds.has(gear.masterId) || expansionEquipmentIds.has(gear.id)),
+  )
+  const profiles = ship.fastPlusPatterns.flatMap((pattern) => {
+    const requirements = [
+      {
+        count: pattern.turbineCount,
+        matches: (gear: (typeof compatibleSpeedGear)[number]) => gear.masterId === 33,
+      },
+      {
+        count: pattern.enhancedBoilerCount,
+        matches: (gear: (typeof compatibleSpeedGear)[number]) => gear.masterId === 34,
+      },
+      {
+        count: pattern.newModelBoilerBelow7Count,
+        matches: (gear: (typeof compatibleSpeedGear)[number]) =>
+          gear.masterId === 87 && gear.improvement < 7,
+      },
+      {
+        count: pattern.newModelBoilerAtLeast7Count,
+        matches: (gear: (typeof compatibleSpeedGear)[number]) =>
+          gear.masterId === 87 && gear.improvement >= 7,
+      },
+    ]
+    const availability = requirements.map(({ count, matches }) => ({
+      count,
+      compatibleCount: compatibleSpeedGear.filter(matches).length,
+      regularCount: compatibleSpeedGear.filter(
+        (gear) => regularMasterIds.has(gear.masterId) && matches(gear),
+      ).length,
+      expansionCount: compatibleSpeedGear.filter(
+        (gear) => expansionEquipmentIds.has(gear.id) && matches(gear),
+      ).length,
+    }))
+    if (availability.some(({ count, compatibleCount }) => count > compatibleCount)) {
+      return []
+    }
+    const requiredExpansionSlots = availability.reduce(
+      (total, { count, regularCount }) => total + Math.max(0, count - regularCount),
+      0,
+    )
+    if (requiredExpansionSlots > 1) return []
+    const totalGearCount = requirements.reduce((total, requirement) => total + requirement.count, 0)
+    const expansionAvailable = availability.some(
+      ({ count, regularCount, expansionCount }) =>
+        count > 0 && regularCount >= count - 1 && expansionCount > 0,
+    )
+    const regularSlotsUsed = totalGearCount - Number(expansionAvailable)
+    return regularSlotsUsed <= ship.slotSizes.length ? [{ regularSlotsUsed }] : []
+  })
+  const profile =
+    profiles.sort((left, right) => left.regularSlotsUsed - right.regularSlotsUsed)[0] ?? null
+  accountCache.set(ship.id, profile)
+  return profile
+}
+
+const fastPlusBurdenPenalty = (
+  ship: OwnedShip,
+  role: FleetRole,
+  profile: FastPlusCandidateProfile | null,
+): number => {
+  if (!profile) return 0
+  const remainingSlots = Math.max(0, ship.slotSizes.length - profile.regularSlotsUsed)
+  if (role === 'main-battleship') {
+    const mainGunShortage = Math.max(0, 2 - remainingSlots)
+    return profile.regularSlotsUsed * 70 + mainGunShortage * 500
+  }
+  if (role === 'carrier-air-superiority') {
+    const lostAirCapacity = [...ship.slotSizes]
+      .sort((left, right) => left - right)
+      .slice(0, profile.regularSlotsUsed)
+      .reduce((total, slotSize) => total + Math.sqrt(slotSize) * 8, 0)
+    return profile.regularSlotsUsed * 45 + lostAirCapacity
+  }
+  return profile.regularSlotsUsed * 45 + Math.max(0, 2 - remainingSlots) * 180
+}
+
 const candidateShipScore = (
   ship: OwnedShip,
   role: FleetRole,
   objective: RecommendationObjective,
   account: AccountSnapshot,
+  fastPlusProfile: FastPlusCandidateProfile | null,
 ): number => {
   const level = Math.min(ship.level, 180) / 1.8
   const survival = ship.stats.hp * 0.8 + ship.stats.armor + ship.stats.evasion * 0.45
@@ -44,12 +152,17 @@ const candidateShipScore = (
     roleFit = ship.stats.los * 0.8 + ship.stats.torpedo * 0.7 + ship.stats.luck * 0.35
   }
 
-  if (objective === 'boss-clear') return roleFit * 0.55 + offense * 0.3 + survival * 0.1 + level
+  const speedBurden = fastPlusBurdenPenalty(ship, role, fastPlusProfile)
+  if (objective === 'boss-clear') {
+    return roleFit * 0.55 + offense * 0.3 + survival * 0.1 + level - speedBurden
+  }
   if (objective === 'low-cost') {
-    return roleFit * 0.4 + survival * 0.25 + level - (ship.fuelCost + ship.ammoCost) * 0.65
+    return (
+      roleFit * 0.4 + survival * 0.25 + level - (ship.fuelCost + ship.ammoCost) * 0.65 - speedBurden
+    )
   }
   if (objective === 'leveling') {
-    return roleFit * 0.2 + survival * 0.1 + (180 - Math.min(ship.level, 180)) * 1.5
+    return roleFit * 0.2 + survival * 0.1 + (180 - Math.min(ship.level, 180)) * 1.5 - speedBurden
   }
   if (objective.startsWith('resource-')) {
     const resourceGearKinds = new Set(
@@ -63,10 +176,15 @@ const candidateShipScore = (
           ? -1000
           : 0
     return (
-      roleFit * 0.15 + survival * 0.1 + transportFit + 180 - (ship.fuelCost + ship.ammoCost) * 1.4
+      roleFit * 0.15 +
+      survival * 0.1 +
+      transportFit +
+      180 -
+      (ship.fuelCost + ship.ammoCost) * 1.4 -
+      speedBurden
     )
   }
-  return roleFit * 0.45 + survival * 0.25 + offense * 0.15 + level
+  return roleFit * 0.45 + survival * 0.25 + offense * 0.15 + level - speedBurden
 }
 
 const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
@@ -84,6 +202,7 @@ const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
   }
   if ([8, 9, 10, 12].includes(ship.shipTypeId)) return 'main-battleship'
   if ([7, 11, 18].includes(ship.shipTypeId)) return 'carrier-air-superiority'
+  if (ship.shipTypeId === 4) return 'torpedo-cruiser'
   if ([13, 14].includes(ship.shipTypeId)) return 'submarine'
   if ([1, 2].includes(ship.shipTypeId)) return 'escort-destroyer'
   if ([3, 4, 5, 6, 16, 20, 21, 22].includes(ship.shipTypeId)) return 'utility-cruiser'
@@ -154,16 +273,23 @@ const genericCandidatePool = (
   account: AccountSnapshot,
   route: RouteTemplate,
   objective: RecommendationObjective,
-): readonly OwnedShip[] => {
+): readonly RankedShipCandidate[] => {
+  const fastPlusRequired = route.tags.includes('fast+')
   const ranked = account.ships
-    .map((ship) => ({ ship, role: roleForShip(ship, route) }))
-    .filter(
-      ({ ship, role }) =>
-        role !== 'resource-carrier' || resourceGearKindsForShip(ship, account).size > 0,
-    )
-    .map(({ ship, role }) => ({
+    .map((ship) => ({
       ship,
-      score: candidateShipScore(ship, role, objective, account),
+      role: roleForShip(ship, route),
+      fastPlusProfile: fastPlusRequired ? fastPlusProfileForShip(ship, account) : null,
+    }))
+    .filter(
+      ({ ship, role, fastPlusProfile }) =>
+        (!fastPlusRequired || fastPlusProfile !== null) &&
+        (role !== 'resource-carrier' || resourceGearKindsForShip(ship, account).size > 0),
+    )
+    .map(({ ship, role, fastPlusProfile }) => ({
+      ship,
+      role,
+      score: candidateShipScore(ship, role, objective, account, fastPlusProfile),
     }))
     .sort((left, right) => right.score - left.score || left.ship.id - right.ship.id)
   const byType = new Map<number, number>()
@@ -178,7 +304,7 @@ const genericCandidatePool = (
     byType.set(ship.shipTypeId, count + 1)
     return true
   })
-  return selected.slice(0, 180).map(({ ship }) => ship)
+  return selected.slice(0, 180)
 }
 
 export const generateFleetCandidates = (
@@ -200,10 +326,10 @@ export const generateFleetCandidates = (
   for (let depth = 0; depth < targetShipCount; depth += 1) {
     const nextStates: FleetSearchState[] = []
     states.forEach((state) => {
-      candidates.forEach((ship, candidateIndex) => {
+      candidates.forEach((candidate, candidateIndex) => {
+        const { ship, role, score } = candidate
         if (candidateIndex <= state.lastCandidateIndex) return
         if (state.usedShipIds.has(ship.id)) return
-        const role = roleForShip(ship, route)
         const members = [...state.members, { ship, role }]
         if (violatesMaximumConstraints(members, route)) return
         const usedShipIds = new Set(state.usedShipIds)
@@ -211,10 +337,7 @@ export const generateFleetCandidates = (
         nextStates.push({
           members,
           usedShipIds,
-          score:
-            state.score +
-            candidateShipScore(ship, role, objective, account) +
-            requiredConstraintBonus(ship, state.members, route),
+          score: state.score + score + requiredConstraintBonus(ship, state.members, route),
           lastCandidateIndex: candidateIndex,
         })
       })

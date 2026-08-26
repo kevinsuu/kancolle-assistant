@@ -93,6 +93,42 @@ const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
     (id) => (id > 0 ? (id as EquipmentInstanceId) : null),
   )
   const expansionSlotItemId = optionalNumber(record.expansionSlotItemId, 0)
+  const fastPlusPatterns = asArray(record.fastPlusPatterns, `${path}.fastPlusPatterns`).map(
+    (value, patternIndex) => {
+      const patternPath = `${path}.fastPlusPatterns[${patternIndex}]`
+      const pattern = asRecord(value, patternPath)
+      return {
+        turbineCount: asNumber(pattern.turbineCount, `${patternPath}.turbineCount`),
+        enhancedBoilerCount: asNumber(
+          pattern.enhancedBoilerCount,
+          `${patternPath}.enhancedBoilerCount`,
+        ),
+        newModelBoilerBelow7Count: asNumber(
+          pattern.newModelBoilerBelow7Count,
+          `${patternPath}.newModelBoilerBelow7Count`,
+        ),
+        newModelBoilerAtLeast7Count: asNumber(
+          pattern.newModelBoilerAtLeast7Count,
+          `${patternPath}.newModelBoilerAtLeast7Count`,
+        ),
+      }
+    },
+  )
+  const nightCarrierPatterns = asArray(
+    record.nightCarrierPatterns,
+    `${path}.nightCarrierPatterns`,
+  ).map((value, patternIndex) => {
+    const patternPath = `${path}.nightCarrierPatterns[${patternIndex}]`
+    const pattern = asRecord(value, patternPath)
+    return {
+      nightAircraftCount: asNumber(pattern.nightAircraftCount, `${patternPath}.nightAircraftCount`),
+      nightOperationsPersonnelCount: asNumber(
+        pattern.nightOperationsPersonnelCount,
+        `${patternPath}.nightOperationsPersonnelCount`,
+      ),
+      swordfishCount: asNumber(pattern.swordfishCount, `${patternPath}.swordfishCount`),
+    }
+  })
 
   return {
     id: asNumber(record.id, `${path}.id`) as ShipInstanceId,
@@ -110,10 +146,16 @@ const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
     expansionSlotItemId:
       expansionSlotItemId > 0 ? (expansionSlotItemId as EquipmentInstanceId) : null,
     expansionSlotUnlocked: asBoolean(record.expansionSlotUnlocked, `${path}.expansionSlotUnlocked`),
+    expansionEquipableEquipmentIds: numberArray(
+      record.expansionEquipableEquipmentIds,
+      `${path}.expansionEquipableEquipmentIds`,
+    ).map((id) => id as EquipmentInstanceId),
     regularEquipableMasterIds: numberArray(
       record.regularEquipableMasterIds,
       `${path}.regularEquipableMasterIds`,
     ).map((id) => id as EquipmentMasterId),
+    fastPlusPatterns,
+    nightCarrierPatterns,
     locked: asBoolean(record.locked, `${path}.locked`),
     morale: optionalNumber(record.morale),
     eventTag: optionalNumber(record.eventTag) || null,

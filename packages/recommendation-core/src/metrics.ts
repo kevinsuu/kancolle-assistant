@@ -76,11 +76,36 @@ const calculateNightCutInCandidates = (builds: readonly RecommendedShipBuild[]):
     return torpedoCount >= 2 && build.ship.stats.luck >= 30
   }).length
 
+const calculateBuildSpeed = (build: RecommendedShipBuild): ShipSpeed => {
+  if (build.ship.speedValue >= 20) return 'fastest'
+  if (build.ship.speedValue >= 15) return 'fast+'
+  const speedEquipment = [...build.equipment, build.expansionSlot].filter((gear) => gear !== null)
+  const counts = {
+    turbineCount: speedEquipment.filter((gear) => gear.masterId === 33).length,
+    enhancedBoilerCount: speedEquipment.filter((gear) => gear.masterId === 34).length,
+    newModelBoilerBelow7Count: speedEquipment.filter(
+      (gear) => gear.masterId === 87 && gear.improvement < 7,
+    ).length,
+    newModelBoilerAtLeast7Count: speedEquipment.filter(
+      (gear) => gear.masterId === 87 && gear.improvement >= 7,
+    ).length,
+  }
+  const reachesFastPlus = build.ship.fastPlusPatterns.some(
+    (pattern) =>
+      pattern.turbineCount === counts.turbineCount &&
+      pattern.enhancedBoilerCount === counts.enhancedBoilerCount &&
+      pattern.newModelBoilerBelow7Count === counts.newModelBoilerBelow7Count &&
+      pattern.newModelBoilerAtLeast7Count === counts.newModelBoilerAtLeast7Count,
+  )
+  return reachesFastPlus ? 'fast+' : build.ship.speed
+}
+
 const calculateFinalSpeed = (builds: readonly RecommendedShipBuild[]): ShipSpeed =>
   builds.reduce<ShipSpeed>((slowest, build) => {
-    const currentIndex = speedOrder.indexOf(build.ship.speed)
+    const buildSpeed = calculateBuildSpeed(build)
+    const currentIndex = speedOrder.indexOf(buildSpeed)
     const slowestIndex = speedOrder.indexOf(slowest)
-    return currentIndex < slowestIndex ? build.ship.speed : slowest
+    return currentIndex < slowestIndex ? buildSpeed : slowest
   }, 'fastest')
 
 export const calculateFleetMetrics = (
