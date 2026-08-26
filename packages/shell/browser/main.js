@@ -30,6 +30,7 @@ import { updateElectronApp, UpdateSourceType } from 'update-electron-app'
 // Application config
 import ConfigStore from 'configstore'
 import { configSchema, updateConfigDefaults, populateConfigDefaults } from './ui/config-utils.js'
+import { createRuntimeConfigStore } from './config/runtime-config'
 
 // These two break if using import syntax...?
 const { ElectronChromeExtensions } = require('electron-chrome-extensions')
@@ -121,9 +122,9 @@ if (preexisting) console.log('Detected preexisting userdata at current app locat
 
 updateConfigDefaults({ isSquirrel, preexisting })
 
-const configStore = new ConfigStore(legacyConfigId, {}, cfgOpts)
+const persistentConfigStore = new ConfigStore(legacyConfigId, {}, cfgOpts)
 
-const cfg = configStore.all
+const cfg = persistentConfigStore.all
 kccp.logger.log(logSource, 'Populating defaults for config')
 const configModified = populateConfigDefaults(cfg, configSchema, (...input) =>
   kccp.logger.log(logSource, ...input),
@@ -135,7 +136,8 @@ if (typeof cfg.proxy.client.enable !== 'undefined') {
   cfg.proxy.enable = cfg.proxy.client.enable
   delete cfg.proxy.client.enable
 }
-configStore.all = cfg // save with updated defaults
+persistentConfigStore.all = cfg // save with updated defaults
+const configStore = createRuntimeConfigStore(persistentConfigStore, cfg)
 
 if (!configStore.get('window.behavior.occlusion'))
   app.commandLine.appendSwitch('disable-renderer-backgrounding')
@@ -1317,9 +1319,12 @@ class Browser extends EventEmitter {
     })
 
     const resizeFitDelayMs = 50
+    const windowStateSaveDelayMs = 400
     let resizeFitTimer = null
     let resizeFitRunning = false
     let resizeFitPending = false
+    let windowStateSaveTimer = null
+    let pendingWindowSize = null
     const refitSelectedGameTab = async () => {
       if (resizeFitRunning) {
         resizeFitPending = true
@@ -1357,6 +1362,22 @@ class Browser extends EventEmitter {
         void refitSelectedGameTab()
       }, resizeFitDelayMs)
     }
+    const persistWindowSize = () => {
+      if (!pendingWindowSize) return
+      configStore.set({
+        'window.state.width': pendingWindowSize[0],
+        'window.state.height': pendingWindowSize[1],
+      })
+      pendingWindowSize = null
+    }
+    const scheduleWindowSizePersistence = (size) => {
+      pendingWindowSize = size
+      if (windowStateSaveTimer) clearTimeout(windowStateSaveTimer)
+      windowStateSaveTimer = setTimeout(() => {
+        windowStateSaveTimer = null
+        persistWindowSize()
+      }, windowStateSaveDelayMs)
+    }
 
     newTabbedWindow.window.on('close', (ev) => {
       ev.preventDefault()
@@ -1371,6 +1392,8 @@ class Browser extends EventEmitter {
       }
 
       if (resizeFitTimer) clearTimeout(resizeFitTimer)
+      if (windowStateSaveTimer) clearTimeout(windowStateSaveTimer)
+      persistWindowSize()
       this.windows.splice(idx, 1)
       newTabbedWindow.destroy()
     })
@@ -1380,10 +1403,8 @@ class Browser extends EventEmitter {
       })
       scheduleSelectedGameTabRefit()
       if (newTabbedWindow.window.isMaximized()) return
-      const size = newTabbedWindow.window.getSize()
       try {
-        configStore.set('window.state.width', size[0])
-        configStore.set('window.state.height', size[1])
+        scheduleWindowSizePersistence(newTabbedWindow.window.getSize())
       } catch (error) {
         kccp.logger.error(logSource, 'Failed to set window.state values during resize.')
       }
