@@ -7,10 +7,11 @@
   "main": ".webpack/main",
   "scripts": {
     "build": "npm run package",
-    "start": "electron-forge start",
-    "start:trace": "electron-forge start -- --trace-startup=\"*\" --trace-startup-file=\"$HOME/Desktop/trace.json\"",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
+    "start": "yarn --cwd ../recommendation-core build && electron-forge start",
+    "start:skip-build": "electron-forge start",
+    "start:trace": "yarn --cwd ../recommendation-core build && electron-forge start -- --trace-startup=\"*\" --trace-startup-file=\"$HOME/Desktop/trace.json\"",
+    "package": "yarn --cwd ../recommendation-core build && electron-forge package",
+    "make": "yarn --cwd ../recommendation-core build && electron-forge make",
     "test": "node ./script/run-tests.js"
   },
   "license": "MIT",
