@@ -11,8 +11,10 @@ Use one release commit for the app version and its user-facing documentation:
 1. Update `packages/shell/package.json` to the new semantic version.
 2. Update the visible version, date, and completed user-facing highlights in `README.md`,
    `README.zh-TW.md`, `README.zh-CN.md`, and `README.ja.md`.
-3. Keep the four README files structurally aligned. Do not list planned or incomplete features as
-   released.
+3. Keep the four README files structurally aligned and retain highlight sections for only the five
+   most recent released app versions, including the new release. Remove the oldest section when
+   adding a sixth; GitHub Releases retain the full history. Do not list planned or incomplete
+   features as released.
 4. Run the relevant tests and build before committing.
 5. Commit with a Conventional Commit such as `chore(release): v0.12.0`.
 

@@ -11,6 +11,8 @@
   added, removed, completed, or materially changed.
 - Do not list planned, experimental, or incomplete behavior as a completed feature.
 - Keep `README.md`, `README.zh-TW.md`, `README.zh-CN.md`, and `README.ja.md` structurally aligned.
+- Keep highlight sections for only the five most recent released app versions in all four README
+  files. When adding a sixth, remove the oldest section; GitHub Releases retain the full history.
 - Use `skip-release-notes` only for changes with no user-facing or operator-facing value.
 - Change the version in `packages/shell/package.json` only while preparing a release. The same
   release change must update the displayed version, date, and source highlights in all four
