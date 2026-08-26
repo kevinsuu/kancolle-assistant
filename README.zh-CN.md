@@ -13,7 +13,7 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 
 | 应用程序版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.0.1`     | `2026-08-26`    |
+| `v1.0.2`     | `2026-08-26`    |
 
 - **下载版本：** 安装程序和便携式压缩包可从
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下载。
@@ -21,6 +21,11 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
   会保存每个 tag 之间自动生成的更新内容。
 - **当前累积能力：** [功能状态](#功能状态)分别列出当前支持、将来可能加入和不在计划内的项目。
 - **功能技术细节：** 下方项目功能重点会链接至对应文档。
+
+### v1.0.2 更新重点（相比 v1.0.1）
+
+- Release tag 不再重复启动普通 CI；推荐核心测试改用明确的跨平台路径，使 Windows release
+  验证能够找到所有测试文件。
 
 ### v1.0.1 更新重点（相比 v1.0.0）
 

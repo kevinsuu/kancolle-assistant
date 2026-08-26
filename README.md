@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.1`    | `2026-08-26`   |
+| `v1.0.2`    | `2026-08-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.2 highlights (since v1.0.1)
+
+- Release tags no longer start a duplicate general CI run, and recommendation-core tests use
+  explicit cross-platform paths so Windows release validation discovers every test file.
 
 ### v1.0.1 highlights (since v1.0.0)
 
