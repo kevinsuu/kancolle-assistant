@@ -2920,13 +2920,6 @@ electron-packager@^17.1.2:
     semver "^7.1.3"
     yargs-parser "^21.1.1"
 
-electron-progressbar@^2.2.1:
-  version "2.2.1"
-  resolved "https://registry.npmjs.org/electron-progressbar/-/electron-progressbar-2.2.1.tgz"
-  integrity sha512-LQ9bxM3Tf5PG/1QngY8ywvht7IKvQ8tEIra8uh3RkLASqN/GYvr4r0uU9qz38r0Zn72UcouYzumKDfLwoI/rsw==
-  dependencies:
-    extend "^3.0.1"
-
 electron-squirrel-startup@^1.0.0, electron-squirrel-startup@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/electron-squirrel-startup/-/electron-squirrel-startup-1.0.1.tgz"
@@ -3393,11 +3386,6 @@ ext-name@^5.0.0:
   dependencies:
     ext-list "^2.0.0"
     sort-keys-length "^1.0.0"
-
-extend@^3.0.1:
-  version "3.0.2"
-  resolved "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz"
-  integrity sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==
 
 extract-zip@^1.0.3:
   version "1.7.0"

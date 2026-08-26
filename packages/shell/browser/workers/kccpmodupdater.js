@@ -1,9 +1,7 @@
 import ProcessTracker from './processtracker'
 import { onUpdateStarted, onUpdateProgress, onUpdateCompleted } from './updater-utils.js'
-import { reloadKccpModCache, updateKccpMod } from '../kccacheproxy-api'
+import { updateKccpMod } from '../kccacheproxy-worker-api'
 import path from 'path'
-
-let self
 
 class KCCPModUpdater {
   processOpts = {
@@ -11,21 +9,17 @@ class KCCPModUpdater {
     processProgress: onUpdateProgress,
     processCompleted: onUpdateCompleted,
   }
-  constructor(options) {
-    self = this
-  }
-
   newProcess(name) {
-    return new ProcessTracker(name, self.processOpts)
+    return new ProcessTracker(name, this.processOpts)
   }
 
   async update(config) {
-    const updateProcess = self.newProcess('KCCP Mod Update')
+    const updateProcess = this.newProcess('KCCP Mod Update')
     let modCount = 0
     try {
       if (!config.autoUpdateGitMods) return
 
-      modCount = config.mods?.length
+      modCount = config.mods?.length ?? 0
       if (modCount == 0) return
 
       for (let i = 0; i < modCount; i++) {
@@ -37,13 +31,9 @@ class KCCPModUpdater {
         })
         if (mod.git) {
           try {
-            const updateResult = await updateKccpMod(mod.path, mod.git)
-            if (updateResult && global.mainWindow) {
-              global.mainWindow.webContents.send('gitModUpdated', updateResult)
-              reloadKccpModCache()
-            }
+            await updateKccpMod(mod.path, mod.git)
           } catch (error) {
-            ipc.error(logSource, `Failed to update Git mod ${mod.git}:`, error)
+            console.error(`Failed to update Git mod ${mod.git}:`, error)
           }
         }
       }
