@@ -80,7 +80,7 @@ class Tabs extends EventEmitter {
     const tabs = this.tabList.filter((tab) =>
       tab.webContents.getURL().startsWith(`chrome-extension://${extensionId}/`),
     )
-    tabs.forEach((tab) => tab.destroy())
+    tabs.forEach((tab) => this.remove(tab.id))
   }
 
   select(tabId) {

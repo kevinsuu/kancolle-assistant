@@ -1830,7 +1830,9 @@ class Browser extends EventEmitter {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
     const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
 
-    tab.setFindInPageVisible(visible)
+    void tab.setFindInPageVisible(visible).catch((error) => {
+      kccp.logger.error(logSource, 'Unable to update find-in-page visibility.', error)
+    })
   }
   startFindInPage(tabId, searchInput) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
