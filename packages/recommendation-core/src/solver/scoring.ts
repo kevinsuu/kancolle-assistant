@@ -3,6 +3,7 @@ import type {
   RecommendationObjective,
   RecommendationScore,
   RecommendedShipBuild,
+  RouteTemplate,
   ScoreDimension,
 } from '../types'
 
@@ -67,6 +68,7 @@ const OBJECTIVE_WEIGHTS: Readonly<
   'resource-steel': RESOURCE_WEIGHTS,
   'resource-bauxite': RESOURCE_WEIGHTS,
   'resource-bucket': RESOURCE_WEIGHTS,
+  'resource-burner': RESOURCE_WEIGHTS,
   'resource-devmat': RESOURCE_WEIGHTS,
 }
 
@@ -74,8 +76,33 @@ export const scoreFleet = (
   builds: readonly RecommendedShipBuild[],
   metrics: FleetMetrics,
   objective: RecommendationObjective,
+  route?: RouteTemplate,
 ): RecommendationScore => {
+  const hasExactCombatEvaluation = builds.every((build) => build.combat !== undefined)
+  const routeTargetsInstallations = route?.tags.includes('anti-installation') ?? false
+  const routeTargetsSubmarines =
+    route?.tags.includes('oasw') ||
+    route?.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw') ||
+    false
   const totalShipFirepower = builds.reduce((total, build) => {
+    if (build.combat) {
+      if (routeTargetsInstallations) {
+        return (
+          total +
+          build.combat.antiInstallationDayPower +
+          build.combat.antiInstallationNightPower * 0.35
+        )
+      }
+      if (routeTargetsSubmarines && build.combat.antiSubmarinePower > 0) {
+        return total + build.combat.antiSubmarinePower
+      }
+      const accuracyModifier = clamp(build.combat.shellingAccuracy / 100, 0.5, 1.15)
+      return (
+        total +
+        build.combat.daySurfacePower * accuracyModifier +
+        build.combat.nightSurfacePower * 0.25
+      )
+    }
     const equipmentFirepower = build.equipment.reduce(
       (equipmentTotal, gear) =>
         equipmentTotal + (gear?.stats.firepower ?? 0) + (gear?.stats.bombing ?? 0),
@@ -88,7 +115,10 @@ export const scoreFleet = (
   }, 0)
   const totalSurvival = builds.reduce(
     (total, build) =>
-      total + build.ship.stats.hp + build.ship.stats.armor + build.ship.stats.evasion * 0.5,
+      total +
+      build.ship.stats.hp +
+      (build.combat?.effectiveStats.armor ?? build.ship.stats.armor) +
+      (build.combat?.effectiveStats.evasion ?? build.ship.stats.evasion) * 0.5,
     0,
   )
   const movedEquipmentCount = builds.reduce(
@@ -100,7 +130,9 @@ export const scoreFleet = (
     0,
   )
   const dimensions: Readonly<Record<ScoreDimension, number>> = {
-    bossDamage: clamp((totalShipFirepower - 300) / 4),
+    bossDamage: hasExactCombatEvaluation
+      ? clamp((totalShipFirepower - 300) / 6)
+      : clamp((totalShipFirepower - 300) / 4),
     survival: clamp((totalSurvival - 500) / 4),
     airPowerMargin: metrics.airPowerRequired
       ? clamp(
@@ -111,10 +143,21 @@ export const scoreFleet = (
         )
       : 50,
     nightBattle: clamp(
-      builds.reduce(
-        (total, build) => total + build.ship.stats.torpedo + build.ship.stats.luck * 0.5,
-        0,
-      ) / 3,
+      hasExactCombatEvaluation
+        ? builds.reduce(
+            (total, build) =>
+              total +
+              (routeTargetsInstallations
+                ? (build.combat?.antiInstallationNightPower ?? 0)
+                : routeTargetsSubmarines
+                  ? 0
+                  : (build.combat?.nightSurfacePower ?? 0)),
+            0,
+          ) / 8
+        : builds.reduce(
+            (total, build) => total + build.ship.stats.torpedo + build.ship.stats.luck * 0.5,
+            0,
+          ) / 3,
     ),
     openingAsw: clamp(metrics.openingAswCount * 35),
     resourceCost:

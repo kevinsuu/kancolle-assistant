@@ -10,6 +10,7 @@ const {
   isAutomaticRouteReady,
   parseKC3AccountSnapshot,
   recommendFleet,
+  scoreFleet,
 } = require('../dist/index.js')
 const { createRawSnapshot, createResourceRawSnapshot } = require('./fixtures.js')
 
@@ -69,16 +70,25 @@ const createFastPlusSnapshot = ({
     createGear(100, 3, { firepower: 20, accuracy: 2 }),
   )
   const recon = Array.from({ length: 2 }, () => createGear(101, 9, { los: 8, accuracy: 2 }))
-  const carrierAttackers = Array.from({ length: 4 }, () =>
+  const carrierAttackers = Array.from({ length: 8 }, () =>
     createGear(102, 8, { torpedo: 12, antiAir: 3 }, 20),
   )
-  const fighters = Array.from({ length: 2 }, () => createGear(103, 6, { antiAir: 12 }, 60))
+  carrierAttackers.forEach((gear) => {
+    gear.antiInstallationAircraft = true
+  })
+  const fighters = Array.from({ length: 8 }, () => createGear(103, 6, { antiAir: 12 }, 60))
   const midgetSubmarines = Array.from({ length: 2 }, () => createGear(104, 22, { torpedo: 12 }))
   const cruiserGuns = Array.from({ length: 4 }, () =>
     createGear(105, 2, { firepower: 10, accuracy: 2 }),
   )
+  const type3Shells = Array.from({ length: 2 }, (_, index) =>
+    createGear(index === 0 ? 35 : 317, 18, { firepower: 1 }),
+  )
   const unfitCruiserGuns = Array.from({ length: 2 }, () =>
     createGear(356, 2, { firepower: 30, accuracy: 10 }),
+  )
+  const genericFillers = Array.from({ length: 20 }, () =>
+    createGear(106, 12, { antiAir: 2, los: 3, accuracy: 2 }),
   )
   const nightCarrierGear = nightCarrierSetup
     ? [createGear(200, 8, { torpedo: 10 }, 30, 45), createGear(258, 35)]
@@ -92,7 +102,9 @@ const createFastPlusSnapshot = ({
     ...fighters,
     ...midgetSubmarines,
     ...cruiserGuns,
+    ...type3Shells,
     ...unfitCruiserGuns,
+    ...genericFillers,
     ...nightCarrierGear,
   ]
   const equipableMasterIds = [...new Set(raw.equipment.map((gear) => gear.masterId))]
@@ -142,6 +154,38 @@ const createClDdHeavySnapshot = () => {
   destroyers.forEach((ship) => {
     ship.shipTypeId = 2
   })
+  const sourceGear = raw.equipment[0]
+  const antiInstallationAircraft = raw.equipment.filter((gear) => gear.typeId === 8)
+  antiInstallationAircraft.forEach((gear) => {
+    gear.antiInstallationAircraft = true
+  })
+  const type3Shell = {
+    ...structuredClone(sourceGear),
+    id: 8900,
+    masterId: 35,
+    name: 'Fixture Type 3 Shell',
+    typeId: 18,
+    iconTypeId: 18,
+    type: '18',
+    airPowerBySlotSize: {},
+  }
+  const seaplaneFighters = Array.from({ length: 2 }, (_, index) => ({
+    ...structuredClone(sourceGear),
+    id: 8901 + index,
+    masterId: 891 + index,
+    name: `Fixture seaplane fighter ${index + 1}`,
+    typeId: 45,
+    iconTypeId: 45,
+    type: '45',
+    airPowerBySlotSize: { 20: 200 },
+  }))
+  raw.equipment.push(type3Shell, ...seaplaneFighters)
+  raw.ships.forEach((ship) => {
+    ship.regularEquipableMasterIds.push(
+      type3Shell.masterId,
+      ...seaplaneFighters.map((gear) => gear.masterId),
+    )
+  })
   const extraBattleships = Array.from({ length: 13 }, (_, index) => ({
     ...structuredClone(battleship),
     id: 900 + index,
@@ -155,6 +199,7 @@ const createClDdHeavySnapshot = () => {
 
 const create45Type3ShellSnapshot = ({ shellCount = 3 } = {}) => {
   const raw = createFastPlusSnapshot()
+  raw.equipment = raw.equipment.filter((gear) => ![35, 317, 483].includes(gear.masterId))
   const shipTypeIds = [8, 11, 11, 7, 5, 6]
   raw.ships.forEach((ship, index) => {
     ship.shipTypeId = shipTypeIds[index]
@@ -193,6 +238,49 @@ const create45Type3ShellSnapshot = ({ shellCount = 3 } = {}) => {
   return raw
 }
 
+const create45FastPlusCarrierAntiInstallationSnapshot = ({ shellCount = 3 } = {}) => {
+  const raw = createFastPlusSnapshot()
+  raw.equipment = raw.equipment.filter((gear) => ![35, 317, 483].includes(gear.masterId))
+  const shipTypeIds = [11, 11, 11, 5, 6, 6]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+  })
+  let equipmentId = 7600
+  const sourceAttacker = raw.equipment.find((gear) => gear.typeId === 8)
+  const sourceOther = raw.equipment[0]
+  const ordinaryDiveBomber = {
+    ...structuredClone(sourceAttacker),
+    id: equipmentId++,
+    masterId: 990,
+    name: 'Fixture ordinary dive bomber',
+    typeId: 7,
+    iconTypeId: 7,
+    antiInstallationAircraft: false,
+    stats: { ...sourceAttacker.stats, bombing: 99 },
+  }
+  const shellMasterIds = [35, 317, 483].slice(0, shellCount)
+  raw.equipment.push(
+    ordinaryDiveBomber,
+    ...shellMasterIds.map((masterId) => ({
+      ...structuredClone(sourceOther),
+      id: equipmentId++,
+      masterId,
+      name: `Fixture Type 3 Shell ${masterId}`,
+      typeId: 18,
+      iconTypeId: 18,
+      type: '18',
+      antiInstallationAircraft: false,
+      airPowerBySlotSize: {},
+    })),
+  )
+  raw.ships.forEach((ship) => ship.regularEquipableMasterIds.push(990))
+  ;[3, 4, 5].forEach((shipIndex) => {
+    raw.ships[shipIndex].regularEquipableMasterIds.push(...shellMasterIds)
+  })
+  raw.currentFleetShipIds = []
+  return raw
+}
+
 const createOaswSnapshot = () => {
   const raw = createRawSnapshot()
   raw.equipment.forEach((gear, index) => {
@@ -203,6 +291,124 @@ const createOaswSnapshot = () => {
     gear.stats.asw = 20
   })
   return raw
+}
+
+const createAllNormalMapsSnapshot = () => {
+  let equipmentId = 10000
+  const equipmentTypes = [1, 2, 3, 5, 6, 8, 10, 11, 12, 14, 15, 18, 19, 22, 24, 30, 32, 45]
+  const equipment = equipmentTypes.flatMap((typeId) =>
+    Array.from({ length: 40 }, (_, index) => ({
+      id: equipmentId++,
+      masterId: 20000 + typeId * 100 + index,
+      name: `All-map fixture gear ${typeId}-${index}`,
+      typeId,
+      iconTypeId: typeId,
+      type: String(typeId),
+      improvement: 10,
+      proficiency: 7,
+      locked: true,
+      currentlyEquippedBy: 0,
+      antiInstallationAircraft: typeId === 8,
+      stats: {
+        firepower: [1, 2, 3, 18, 19].includes(typeId) ? 30 : 0,
+        torpedo: [5, 8, 22, 32].includes(typeId) ? 30 : 0,
+        antiAir: [6, 8, 11, 45].includes(typeId) ? 30 : 5,
+        armor: 5,
+        asw: [14, 15].includes(typeId) ? 30 : 5,
+        los: [10, 11, 12, 45].includes(typeId) ? 30 : 5,
+        bombing: [8, 11].includes(typeId) ? 30 : 0,
+        accuracy: 10,
+        evasion: 5,
+      },
+      losImprovement: 10,
+      airPowerBySlotSize: {
+        0: 0,
+        20: [6, 8, 11, 45].includes(typeId) ? 200 : 0,
+      },
+    })),
+  )
+  const speedGear = [33, 34].flatMap((masterId) =>
+    Array.from({ length: 20 }, (_, index) => ({
+      ...structuredClone(equipment[0]),
+      id: equipmentId++,
+      masterId,
+      name: `All-map fixture speed gear ${masterId}-${index}`,
+      typeId: 17,
+      iconTypeId: 17,
+      type: '17',
+      airPowerBySlotSize: { 0: 0, 20: 0 },
+    })),
+  )
+  equipment.push(...speedGear)
+  const equipableMasterIds = [...new Set(equipment.map((gear) => gear.masterId))]
+  const expansionEquipmentIds = equipment.map((gear) => gear.id)
+  const shipTypeIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 21, 22]
+  let shipId = 1000
+  const ships = shipTypeIds.flatMap((shipTypeId) =>
+    Array.from({ length: 8 }, (_, index) => ({
+      id: shipId++,
+      masterId: 30000 + shipTypeId * 100 + index,
+      name:
+        shipTypeId === 5 && index === 0
+          ? '羽黒改二'
+          : shipTypeId === 5 && index === 1
+            ? '足柄改二'
+            : shipTypeId === 8 && index === 0
+              ? '長門改二'
+              : shipTypeId === 8 && index === 1
+                ? '陸奥改二'
+                : `All-map fixture ship ${shipTypeId}-${index}`,
+      level: 180 - index,
+      shipTypeId,
+      shipType: String(shipTypeId),
+      speedValue: 10,
+      stats: {
+        hp: 100,
+        firepower: 150,
+        torpedo: 150,
+        antiAir: 150,
+        armor: 150,
+        evasion: 150,
+        asw: 150,
+        los: 150,
+        luck: 100,
+      },
+      nakedLos: 150,
+      slotSizes: [20, 20, 20, 20],
+      equippedItemIds: [0, 0, 0, 0],
+      expansionSlotItemId: 0,
+      expansionSlotUnlocked: true,
+      expansionEquipableEquipmentIds: expansionEquipmentIds,
+      regularEquipableMasterIds: equipableMasterIds,
+      fastPlusPatterns: [
+        {
+          turbineCount: 1,
+          enhancedBoilerCount: 1,
+          newModelBoilerBelow7Count: 0,
+          newModelBoilerAtLeast7Count: 0,
+        },
+      ],
+      nightCarrierPatterns: [],
+      locked: true,
+      morale: 49,
+      eventTag: 0,
+      fuelCost: 20,
+      ammoCost: 20,
+    })),
+  )
+  return {
+    generatedAt: '2026-08-26T00:00:00.000Z',
+    hqLevel: 120,
+    ships,
+    equipment,
+    currentFleetShipIds: [],
+    capabilities: {
+      accountShips: true,
+      accountEquipment: true,
+      masterData: true,
+      currentFleet: true,
+    },
+  }
 }
 
 test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs', () => {
@@ -222,7 +428,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 109)
+  assert.equal(NORMAL_MAP_ROUTES.length, 112)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
 
   const routeIds = new Set()
@@ -274,7 +480,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   const verifiedGuideRoutes = NORMAL_MAP_ROUTES.filter((route) =>
     route.tags.includes('verified-guide'),
   )
-  assert.equal(verifiedGuideRoutes.length, 32)
+  assert.equal(verifiedGuideRoutes.length, 33)
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
     assert.equal(route.metadata.lastVerified, '2026-08-26')
@@ -285,10 +491,10 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     )
   })
 
-  assert.deepEqual(getRouteTemplates('1-1', 'balanced'), [])
-  assert.deepEqual(getRouteTemplates('2-3', 'balanced'), [])
+  assert.equal(getRouteTemplates('1-1', 'balanced')[0].id, '1-1-guide-dd4')
+  assert.equal(getRouteTemplates('2-3', 'balanced')[0].id, '2-3-guide-ca5-cl')
   assert.equal(getRouteTemplates('2-3', 'balanced', '2-3-guide-ca5-cl').length, 1)
-  assert.deepEqual(getRouteTemplates('4-3', 'balanced'), [])
+  assert.equal(getRouteTemplates('4-3', 'balanced')[0].id, '4-3-guide-cv2-ca2-dd2')
   assert.equal(getRouteTemplates('1-1', 'balanced', '1-1-guide-dd4').length, 1)
   assert.equal(getRouteTemplates('4-3', 'balanced', '4-3-guide-cv2-ca2-dd2').length, 1)
 
@@ -448,6 +654,11 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       [[5, 6], 2],
     ],
   )
+  assert.equal(isAutomaticRouteReady(getRouteTemplates('5-5', 'balanced', '5-5-middle')[0]), true)
+  assert.equal(
+    isAutomaticRouteReady(getRouteTemplates('5-5', 'balanced', '5-5-middle-fast-plus')[0]),
+    true,
+  )
 
   const north65 = getRouteTemplates('6-5', 'balanced', '6-5-north')[0]
   assert.deepEqual(
@@ -472,6 +683,141 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   const gimmick75 = getRouteTemplates('7-5', 'balanced', '7-5-gimmick-m-p1')[0]
   assert.deepEqual(gimmick75.nodes, ['A', 'B', 'D', 'F', 'G', 'H', 'I', 'M'])
   assert.ok(getRouteTemplates('7-5', 'balanced', '7-5-p2-fast-carrier')[0])
+})
+
+test('every normal map can build its primary balanced route with a capable account', () => {
+  const account = parseKC3AccountSnapshot(createAllNormalMapsSnapshot())
+  getMapOptions().forEach((map) => {
+    const route = NORMAL_MAP_ROUTES.find(
+      (candidate) => candidate.mapId === map.id && candidate.objectives.includes('balanced'),
+    )
+    assert.ok(route, `${map.id} has no balanced route`)
+    const result = recommendFleet({
+      mapId: map.id,
+      routeId: route.id,
+      objective: 'balanced',
+      account,
+      candidateLimit: 1,
+    })
+    assert.equal(result.status, 'success', `${map.id}/${route.id}: ${JSON.stringify(result)}`)
+  })
+})
+
+test('5-5 modeled special attacks select the pair, order the fleet, and explain formation', () => {
+  const raw = createFastPlusSnapshot()
+  const shipTypeIds = [8, 8, 11, 6, 2, 2]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+  })
+  raw.ships[0].name = '長門改二'
+  raw.ships[1].name = '陸奥改二'
+  raw.equipment.forEach((gear) => {
+    if (gear.typeId === 6 || gear.typeId === 8) gear.airPowerBySlotSize = { 20: 200 }
+  })
+
+  const result = recommendFleet({
+    mapId: '5-5',
+    routeId: '5-5-middle-fast-plus',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    assert.match(recommendation.ships[0].ship.name, /(?:長門|陸奥)改二/)
+    assert.ok([8, 9, 10, 12].includes(recommendation.ships[1].ship.shipTypeId))
+    assert.equal(recommendation.metrics.finalSpeedClass, 'fast+')
+    assert.ok(recommendation.reasons.some((reason) => reason.code === 'SPECIAL_ATTACK_READY'))
+    assert.ok(
+      recommendation.warnings.some((warning) => warning.code === 'SPECIAL_ATTACK_SORTIE_CHECK'),
+    )
+    assert.equal(
+      recommendation.warnings.some((warning) => warning.code === 'EXTERNAL_COMBAT_SETUP_REQUIRED'),
+      false,
+    )
+  })
+})
+
+test('5-5 modeled special attacks explain when the account has no valid activator', () => {
+  const raw = createFastPlusSnapshot()
+  const shipTypeIds = [8, 8, 11, 6, 2, 2]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+  })
+
+  const result = recommendFleet({
+    mapId: '5-5',
+    routeId: '5-5-middle-fast-plus',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'no-solution')
+  assert.ok(result.analysis.reasons.some((reason) => reason.code === 'SPECIAL_ATTACK_UNAVAILABLE'))
+})
+
+test('ordinary battleship AP-shell slots never consume Type 3 Shell-family equipment', () => {
+  const raw = createFastPlusSnapshot()
+  const shipTypeIds = [8, 8, 6, 4, 2, 2]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+  })
+  raw.ships[0].name = '長門改二'
+  raw.ships[1].name = '陸奥改二'
+  const sourceGear = raw.equipment[0]
+  const shells = [
+    { masterId: 900, name: 'Fixture AP shell 1', firepower: 0, typeId: 19 },
+    { masterId: 901, name: 'Fixture AP shell 2', firepower: 0, typeId: 19 },
+    { masterId: 35, name: 'Fixture Type 3 Shell', firepower: 100, typeId: 18 },
+    { masterId: 317, name: 'Fixture Type 3 Shell Kai', firepower: 100, typeId: 18 },
+  ].map((shell, index) => ({
+    ...structuredClone(sourceGear),
+    id: 9200 + index,
+    masterId: shell.masterId,
+    name: shell.name,
+    typeId: shell.typeId,
+    iconTypeId: shell.typeId,
+    type: String(shell.typeId),
+    stats: { ...sourceGear.stats, firepower: shell.firepower },
+    airPowerBySlotSize: {},
+  }))
+  const seaplaneFighters = Array.from({ length: 2 }, (_, index) => ({
+    ...structuredClone(sourceGear),
+    id: 9210 + index,
+    masterId: 910 + index,
+    name: `Fixture seaplane fighter ${index + 1}`,
+    typeId: 45,
+    iconTypeId: 45,
+    type: '45',
+    airPowerBySlotSize: { 20: 100 },
+  }))
+  raw.equipment.push(...shells, ...seaplaneFighters)
+  raw.ships.forEach((ship) => {
+    ship.regularEquipableMasterIds.push(
+      ...shells.map((gear) => gear.masterId),
+      ...seaplaneFighters.map((gear) => gear.masterId),
+    )
+  })
+
+  const result = recommendFleet({
+    mapId: '5-5',
+    routeId: '5-5-middle',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    recommendation.ships
+      .filter((build) => [8, 9, 10, 12].includes(build.ship.shipTypeId))
+      .forEach((build) => {
+        assert.ok(build.equipment.some((gear) => [900, 901].includes(gear?.masterId)))
+        assert.equal(
+          build.equipment.some((gear) => [35, 317, 483].includes(gear?.masterId)),
+          false,
+        )
+      })
+  })
 })
 
 test('every route links to its current per-map guide', () => {
@@ -511,6 +857,147 @@ test('fleet metrics apply air-power and Formula 33 hard constraints', () => {
   assert.equal(metrics.estimatedAmmoCost, 33)
   assert.equal(metrics.estimatedResourceGain, null)
   assert.equal(metrics.estimatedNetResourceGain, null)
+})
+
+test('KC3 combat evaluations override naked-stat heuristics for every route target type', () => {
+  const result = recommendFleet({
+    mapId: '1-1',
+    routeId: '1-1-guide-dd4',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(createRawSnapshot()),
+  })
+  assert.equal(result.status, 'success')
+  const recommendation = result.recommendations[0]
+  const evaluatedBuilds = (power) =>
+    recommendation.ships.map((build) => ({
+      ...build,
+      combat: {
+        effectiveStats: {
+          firepower: power,
+          torpedo: 0,
+          antiAir: 0,
+          armor: build.ship.stats.armor,
+          asw: 0,
+          los: 0,
+          bombing: 0,
+          accuracy: 0,
+          evasion: build.ship.stats.evasion,
+        },
+        equipmentBonus: {
+          firepower: 0,
+          torpedo: 0,
+          antiAir: 0,
+          armor: 0,
+          asw: 0,
+          los: 0,
+          bombing: 0,
+          accuracy: 0,
+          evasion: 0,
+        },
+        daySurfacePower: power,
+        nightSurfacePower: power,
+        antiInstallationDayPower: power,
+        antiInstallationNightPower: power,
+        antiSubmarinePower: power,
+        shellingAccuracy: 100,
+      },
+    }))
+  const targetRoutes = [
+    recommendation.route,
+    { ...recommendation.route, tags: [...recommendation.route.tags, 'anti-installation'] },
+    { ...recommendation.route, tags: [...recommendation.route.tags, 'oasw'] },
+  ]
+  targetRoutes.forEach((route) => {
+    const low = scoreFleet(evaluatedBuilds(40), recommendation.metrics, 'boss-clear', route)
+    const high = scoreFleet(evaluatedBuilds(180), recommendation.metrics, 'boss-clear', route)
+    assert.ok(high.dimensions.bossDamage > low.dimensions.bossDamage)
+    assert.ok(high.total > low.total)
+  })
+})
+
+test('2-1 uses KC3 seaplane fighters, falls back to carriers, and exposes burner farming', () => {
+  const lightRaw = createFastPlusSnapshot()
+  const lightShipTypeIds = [3, 2, 2, 2, 2, 16]
+  lightRaw.ships.forEach((ship, index) => {
+    ship.shipTypeId = lightShipTypeIds[index]
+  })
+  const sourceFighter = lightRaw.equipment.find((gear) => gear.typeId === 6)
+  const seaplaneFighters = Array.from({ length: 4 }, (_, index) => ({
+    ...structuredClone(sourceFighter),
+    id: 9400 + index,
+    masterId: 9500 + index,
+    name: `Fixture KC3 type 45 seaplane fighter ${index + 1}`,
+    typeId: 45,
+    iconTypeId: 45,
+    type: '45',
+    airPowerBySlotSize: { 20: 100 },
+  }))
+  lightRaw.equipment.push(...seaplaneFighters)
+  lightRaw.ships.forEach((ship) => {
+    ship.regularEquipableMasterIds.push(...seaplaneFighters.map((gear) => gear.masterId))
+  })
+
+  const light = recommendFleet({
+    mapId: '2-1',
+    routeId: '2-1-guide-cl-dd4-av',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(lightRaw),
+  })
+  assert.equal(light.status, 'success')
+  assert.ok(light.recommendations[0].metrics.airPower >= 81)
+  assert.ok(
+    light.recommendations[0].ships.some((build) =>
+      build.equipment.some((gear) => gear?.typeId === 45),
+    ),
+  )
+
+  const carrierRaw = createFastPlusSnapshot()
+  const carrierShipTypeIds = [11, 7, 5, 5, 3, 3]
+  carrierRaw.ships.forEach((ship, index) => {
+    ship.shipTypeId = carrierShipTypeIds[index]
+  })
+  const carrier = recommendFleet({
+    mapId: '2-1',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(carrierRaw),
+  })
+  assert.equal(carrier.status, 'success')
+  assert.equal(carrier.recommendations[0].route.id, '2-1-guide-carrier-cruisers')
+  assert.ok(carrier.recommendations[0].metrics.airPower >= 81)
+
+  const burnerRaw = createFastPlusSnapshot()
+  const burnerShipTypeIds = [7, 7, 13, 13, 14, 16]
+  burnerRaw.ships.forEach((ship, index) => {
+    ship.shipTypeId = burnerShipTypeIds[index]
+  })
+  const sourceTorpedo = burnerRaw.equipment.find((gear) => gear.typeId === 22)
+  const submarineTorpedoes = Array.from({ length: 12 }, (_, index) => ({
+    ...structuredClone(sourceTorpedo),
+    id: 9600 + index,
+    masterId: 9700 + index,
+    name: `Fixture submarine torpedo ${index + 1}`,
+    typeId: 32,
+    iconTypeId: 5,
+    type: '32',
+  }))
+  burnerRaw.equipment.push(...submarineTorpedoes)
+  burnerRaw.ships.forEach((ship) => {
+    ship.regularEquipableMasterIds.push(...submarineTorpedoes.map((gear) => gear.masterId))
+  })
+  const burner = recommendFleet({
+    mapId: '2-1',
+    objective: 'resource-burner',
+    account: parseKC3AccountSnapshot(burnerRaw),
+  })
+  assert.equal(burner.status, 'success')
+  assert.equal(burner.recommendations[0].route.id, '2-1-burner-cvl-submarine')
+  assert.equal(burner.recommendations[0].route.nodes.at(-1), 'E')
+  assert.equal(
+    getMapOptions()
+      .find((map) => map.id === '2-1')
+      .objectives.includes('resource-burner'),
+    true,
+  )
 })
 
 test('1-3 fuel farming fills effective landing craft and calculates net fuel', () => {
@@ -564,21 +1051,52 @@ test('automatic route comparison keeps three distinct legal light ASW fleets', (
   })
 })
 
-test('automatic recommendations reject routes with unresolved manual setup', () => {
-  const account = parseKC3AccountSnapshot(createRawSnapshot())
-  const result = recommendFleet({ mapId: '2-3', objective: 'balanced', account })
+test('automatic recommendations fall back to calculable routes with explicit setup warnings', () => {
+  const account = parseKC3AccountSnapshot(createAllNormalMapsSnapshot())
+  const fallbackMapIds = getMapOptions()
+    .filter((map) => {
+      const balancedRoutes = map.routes.filter((route) => route.objectives.includes('balanced'))
+      return balancedRoutes.length > 0 && balancedRoutes.every((route) => !route.automaticReady)
+    })
+    .map((map) => map.id)
 
-  assert.equal(result.status, 'error')
-  assert.equal(result.error.code, 'NO_AUTOMATED_ROUTE')
-  assert.equal(getMapOptions().find((map) => map.id === '2-3').routes[0].automaticReady, false)
+  assert.ok(fallbackMapIds.includes('7-4'))
+  fallbackMapIds.forEach((mapId) => {
+    const fallback = recommendFleet({ mapId, objective: 'balanced', account })
+    assert.equal(fallback.status, 'success', `${mapId}: ${JSON.stringify(fallback)}`)
+  })
+
+  const result = recommendFleet({ mapId: '7-4', objective: 'balanced', account })
+  assert.equal(result.status, 'success')
+  assert.equal(result.recommendations[0].route.id, '7-4-guide-bbv-cruisers-escort')
+  assert.ok(
+    result.recommendations[0].warnings.some(
+      (warning) => warning.code === 'EXTERNAL_COMBAT_SETUP_REQUIRED',
+    ),
+  )
+  assert.equal(
+    getMapOptions()
+      .find((map) => map.id === '7-4')
+      .routes.find((route) => route.id === '7-4-guide-bbv-cruisers-escort').automaticReady,
+    false,
+  )
 })
 
-test('4-5 automatic routes require and assign three unique Type 3 Shell-family items', () => {
+test('4-5 automatic routes expose only modeled anti-installation setups', () => {
   const automatic45RouteIds = getRouteTemplates('4-5', 'balanced').map((route) => route.id)
-  assert.deepEqual(automatic45RouteIds.sort(), ['4-5-standard-battleship', '4-5-standard-carrier'])
+  assert.deepEqual(automatic45RouteIds.sort(), [
+    '4-5-cl-dd-heavy',
+    '4-5-fast-plus-battleship-carrier',
+    '4-5-fast-plus-carrier',
+    '4-5-fast-plus-heavy',
+    '4-5-standard-balanced',
+    '4-5-standard-battleship',
+    '4-5-standard-carrier',
+    '4-5-standard-carrier-heavy',
+  ])
   assert.equal(
     isAutomaticRouteReady(NORMAL_MAP_ROUTES.find((route) => route.id === '4-5-standard-balanced')),
-    false,
+    true,
   )
 
   const result = recommendFleet({
@@ -620,8 +1138,65 @@ test('4-5 automatic recommendation explains when Type 3 Shell-family items are i
   )
 })
 
-test('slow-route recommendations reject an all-fast fleet', () => {
+test('4-5 Fast+ carrier route keeps every carrier anti-installation capable', () => {
+  const account = parseKC3AccountSnapshot(create45FastPlusCarrierAntiInstallationSnapshot())
+  const route = getRouteTemplates('4-5', 'balanced', '4-5-fast-plus-carrier')[0]
+  assert.equal(isAutomaticRouteReady(route), true)
+
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-carrier',
+    objective: 'boss-clear',
+    account,
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    assert.equal(recommendation.metrics.finalSpeedClass, 'fast+')
+    const carriers = recommendation.ships.filter((build) =>
+      [11, 18].includes(build.ship.shipTypeId),
+    )
+    assert.equal(carriers.length, 3)
+    carriers.forEach((build) => {
+      assert.ok(build.equipment.some((gear) => gear?.antiInstallationAircraft))
+      assert.equal(
+        build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
+        false,
+      )
+    })
+    assert.ok(
+      recommendation.reasons.some((reason) => reason.code === 'ANTI_INSTALLATION_CARRIER_READY'),
+    )
+    assert.equal(
+      recommendation.warnings.some((warning) => warning.code === 'EXTERNAL_COMBAT_SETUP_REQUIRED'),
+      false,
+    )
+  })
+})
+
+test('4-5 Fast+ carrier route reports missing mixed anti-installation equipment', () => {
+  const account = parseKC3AccountSnapshot(
+    create45FastPlusCarrierAntiInstallationSnapshot({ shellCount: 2 }),
+  )
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-fast-plus-carrier',
+    objective: 'boss-clear',
+    account,
+  })
+
+  assert.equal(result.status, 'no-solution')
+  assert.ok(
+    result.analysis.reasons.some(
+      (reason) => reason.code === 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
+    ),
+  )
+})
+
+test('2-5 north fills regular slots, reserves two drum carriers, and rejects an all-fast fleet', () => {
   const raw = createRawSnapshot()
+  const route = getRouteTemplates('2-5', 'boss-clear', '2-5-north')[0]
+  assert.equal(isAutomaticRouteReady(route), true)
   const shipTypeIds = [10, 5, 3, 3, 2, 2]
   raw.hqLevel = 1
   raw.equipment.forEach((gear) => {
@@ -634,6 +1209,34 @@ test('slow-route recommendations reject an all-fast fleet', () => {
     ship.slotSizes = [1, 1, 1]
   })
 
+  const missingDrums = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-north',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(missingDrums.status, 'no-solution')
+  assert.ok(
+    missingDrums.analysis.reasons.some(
+      (reason) => reason.code === 'DRUM_CANISTER_EQUIPMENT_INSUFFICIENT',
+    ),
+  )
+
+  const drums = raw.equipment.slice(0, 2).map((gear, index) => ({
+    ...gear,
+    id: 9001 + index,
+    masterId: 9101 + index,
+    name: `Fixture drum ${index + 1}`,
+    typeId: 30,
+    iconTypeId: 30,
+    type: '30',
+    airPowerBySlotSize: { 0: 0, 1: 0 },
+  }))
+  raw.equipment.push(...drums)
+  raw.ships.forEach((ship) => {
+    ship.regularEquipableMasterIds.push(...drums.map((gear) => gear.masterId))
+  })
+
   const valid = recommendFleet({
     mapId: '2-5',
     routeId: '2-5-north',
@@ -641,6 +1244,27 @@ test('slow-route recommendations reject an all-fast fleet', () => {
     account: parseKC3AccountSnapshot(raw),
   })
   assert.equal(valid.status, 'success')
+  assert.equal(valid.recommendations[0].metrics.drumCount, 2)
+  assert.equal(
+    valid.recommendations[0].ships.filter((build) =>
+      build.equipment.some((gear) => gear?.typeId === 30),
+    ).length,
+    2,
+  )
+  assert.ok(
+    valid.recommendations[0].ships.every((build) => build.equipment.every((gear) => gear !== null)),
+  )
+  assert.ok(
+    valid.recommendations[0].reasons.some(
+      (reason) => reason.code === 'DRUM_CANISTER_REQUIREMENT_PASSED',
+    ),
+  )
+  assert.equal(
+    valid.recommendations[0].warnings.some(
+      (warning) => warning.code === 'EXTERNAL_COMBAT_SETUP_REQUIRED',
+    ),
+    false,
+  )
 
   raw.ships[0].speedValue = 10
   const invalid = recommendFleet({
@@ -683,6 +1307,38 @@ test('Fast+ routes allocate unique speed gear through open expansion slots', () 
   })
 })
 
+test('4-5 one-battleship three-carrier Fast+ route validates its complete anti-land setup', () => {
+  const raw = createFastPlusSnapshot()
+  const shipTypeIds = [8, 11, 11, 11, 5, 6]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+  })
+  const route = getRouteTemplates('4-5', 'boss-clear', '4-5-fast-plus-battleship-carrier')[0]
+  assert.equal(isAutomaticRouteReady(route), true)
+
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: route.id,
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    assert.equal(
+      recommendation.ships
+        .flatMap((build) => build.equipment)
+        .filter((gear) => gear && [35, 317, 483].includes(gear.masterId)).length,
+      2,
+    )
+    recommendation.ships
+      .filter((build) => [11, 18].includes(build.ship.shipTypeId))
+      .forEach((build) => {
+        assert.ok(build.equipment.some((gear) => gear?.antiInstallationAircraft))
+      })
+  })
+})
+
 test('4-5 CL/DD shortest route searches an air-control carrier composition', () => {
   const result = recommendFleet({
     mapId: '4-5',
@@ -694,8 +1350,32 @@ test('4-5 CL/DD shortest route searches an air-control carrier composition', () 
   assert.equal(result.status, 'success')
   assert.ok(result.recommendations.length > 0)
   result.recommendations.forEach((recommendation) => {
-    assert.ok(recommendation.ships.some((build) => [7, 11, 18].includes(build.ship.shipTypeId)))
+    const battleship = recommendation.ships.find((build) =>
+      [8, 9, 10, 12].includes(build.ship.shipTypeId),
+    )
+    const carrier = recommendation.ships.find((build) =>
+      [7, 11, 18].includes(build.ship.shipTypeId),
+    )
+    const lightCruiser = recommendation.ships.find((build) => build.ship.shipTypeId === 3)
+    assert.ok(battleship?.equipment.some((gear) => gear?.masterId === 35))
+    assert.ok(carrier?.equipment.some((gear) => gear?.antiInstallationAircraft))
+    assert.equal(
+      lightCruiser?.equipment.some((gear) => [11, 45].includes(gear?.typeId)),
+      false,
+    )
     assert.ok(recommendation.metrics.airPower >= 92)
+    assert.ok(
+      recommendation.reasons.some(
+        (reason) => reason.code === 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
+      ),
+    )
+    assert.ok(
+      recommendation.reasons.some((reason) => reason.code === 'ANTI_INSTALLATION_CARRIER_READY'),
+    )
+    assert.equal(
+      recommendation.warnings.some((warning) => warning.code === 'EXTERNAL_COMBAT_SETUP_REQUIRED'),
+      false,
+    )
   })
 })
 
@@ -854,8 +1534,9 @@ test('air-constrained cruiser routes assign owned seaplane fighters', () => {
   const raw = createRawSnapshot()
   const shipTypeIds = [6, 3, 2, 2, 2, 2]
   raw.hqLevel = 1
-  raw.equipment[0].typeId = 11
-  raw.equipment[0].type = '11'
+  raw.equipment[0].typeId = 45
+  raw.equipment[0].iconTypeId = 45
+  raw.equipment[0].type = '45'
   raw.equipment[0].airPowerBySlotSize = { 0: 0, 4: 20 }
   raw.ships.forEach((ship, index) => {
     ship.shipTypeId = shipTypeIds[index]
@@ -874,7 +1555,7 @@ test('air-constrained cruiser routes assign owned seaplane fighters', () => {
   assert.ok(result.recommendations[0].metrics.airPower >= 19)
   assert.ok(
     result.recommendations[0].ships.some((build) =>
-      build.equipment.some((gear) => gear?.typeId === 11),
+      build.equipment.some((gear) => gear?.typeId === 45),
     ),
   )
 })
@@ -907,16 +1588,21 @@ test('solver is deterministic and only returns account-owned unique instances', 
     )
     assert.equal(new Set(equipmentIds).size, equipmentIds.length)
     assert.ok(equipmentIds.every((id) => ownedEquipmentIds.has(id)))
+    assert.ok(recommendation.ships.every((build) => build.equipment.every((gear) => gear !== null)))
   })
 })
 
-test('automatic recommendation refuses maps without a boss-fixed route', () => {
-  const account = parseKC3AccountSnapshot(createRawSnapshot())
+test('automatic recommendation returns warned fleets for maps without a boss-fixed route', () => {
+  const account = parseKC3AccountSnapshot(createAllNormalMapsSnapshot())
 
   ;['1-1', '4-3'].forEach((mapId) => {
     const result = recommendFleet({ mapId, objective: 'balanced', account })
-    assert.equal(result.status, 'error')
-    assert.equal(result.error.code, 'NO_STABLE_ROUTE')
+    assert.equal(result.status, 'success', `${mapId}: ${JSON.stringify(result)}`)
+    assert.ok(
+      result.recommendations.every((recommendation) =>
+        recommendation.warnings.some((warning) => warning.code === 'ROUTE_NOT_GUARANTEED'),
+      ),
+    )
   })
 })
 

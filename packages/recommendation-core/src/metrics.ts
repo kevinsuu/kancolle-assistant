@@ -84,7 +84,7 @@ const calculateNightCutInCandidates = (builds: readonly RecommendedShipBuild[]):
     return torpedoCount >= 2 && build.ship.stats.luck >= 30
   }).length
 
-const calculateBuildSpeed = (build: RecommendedShipBuild): ShipSpeed => {
+export const calculateBuildSpeed = (build: RecommendedShipBuild): ShipSpeed => {
   if (build.ship.speedValue >= 20) return 'fastest'
   if (build.ship.speedValue >= 15) return 'fast+'
   const speedEquipment = [...build.equipment, build.expansionSlot].filter((gear) => gear !== null)

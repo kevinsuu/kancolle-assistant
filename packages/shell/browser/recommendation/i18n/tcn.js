@@ -79,7 +79,7 @@ export const tcn = {
   'fleet.failedFallback': '請確認 KC3 已同步後再試。',
   'fleet.routeSummary': '符合 {routeCount} 條路線 · 穩定進王 {stableCount} 條',
   'fleet.routeOption': '{name} · {nodes} · {confidence}',
-  'fleet.autoRoutes': '自動比較可用路線（Top 3）',
+  'fleet.autoRoutes': '自動選擇最佳可計算路線（Top 3）',
   'fleet.stable': '穩定',
   'fleet.manualSetup': '需手動確認',
   'fleet.source': '來源 {index}',
@@ -113,6 +113,7 @@ export const tcn = {
   'fleet.slotAircraft': '{count} 機',
   'fleet.slot': '插槽 {index}',
   'fleet.baseSpeed': '基礎{speed}',
+  'fleet.speedTransition': '基礎{base} → {final}',
   'fleet.fleetSpeed': '艦隊速度：{speed}',
   'fleet.speed.slow': '低速',
   'fleet.speed.fast': '高速',
@@ -130,6 +131,7 @@ export const tcn = {
   'fleet.objective.resource-steel': '撈鋼',
   'fleet.objective.resource-bauxite': '撈鋁',
   'fleet.objective.resource-bucket': '撈水桶',
+  'fleet.objective.resource-burner': '撈高速建造材',
   'fleet.objective.resource-devmat': '撈開發資材',
   'fleet.role.main-battleship': '主力戰艦',
   'fleet.role.carrier-air-superiority': '制空空母',
@@ -172,14 +174,23 @@ export const tcn = {
   'message.OASW_NOT_READY': '此路線依賴先制對潛，但目前方案沒有符合艦種門檻且已裝聲納的艦娘。',
   'message.OASW_REQUIREMENT_PASSED': '先制對潛可成立 {count} 艘，已達最低 {minimum} 艘。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
-    '已為 {minimum} 艘戰艦／重巡級配置三式彈系裝備，符合此 4-5 路線的對地配置模型。',
+    '已為 {minimum} 艘戰艦／重巡級配置三式彈系裝備，符合此路線的對陸配置模型。',
+  'message.KC3_COMBAT_EVALUATION_APPLIED':
+    '已由 KC3 依完整配裝複算艦娘別／組合裝備加成、改修、適重命中與目標別有效火力，再重新排序候選方案。',
+  'message.ANTI_INSTALLATION_CARRIER_READY':
+    '已讓 {count} 艘空母保有對陸攻擊能力，且未配置會阻止攻擊陸上型的普通艦爆。',
+  'message.DRUM_CANISTER_REQUIREMENT_PASSED':
+    '已為 {count} 艘不同艦娘各配置一個運輸桶，符合此路線的分歧條件。',
+  'message.SPECIAL_ATTACK_READY': '已依「{name}」排好艦隊站位；預定發動節點請選{formation}。',
+  'message.SPECIAL_ATTACK_SORTIE_CHECK':
+    '出擊中只需確認：特殊砲擊尚未使用、參與艦未超過可發動損傷，並在預定節點選{formation}。',
   'message.ROUTE_NOT_GUARANTEED': '此方案含機率分歧，結果頁已保留資料來源標記。',
   'message.EXPERIMENTAL_ROUTE': '此路線仍屬新海域／實驗資料，出擊前請再次核對最新攻略。',
   'message.COMBAT_THRESHOLDS_UNVERIFIED':
     '此模板已核對路線與艦種，但尚未建入完整制空／索敵硬門檻；出擊前請開啟攻略來源核對。',
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED': '此路線另需人工設定：{tags}；求解器尚未驗證這些條件。',
   'message.HEURISTIC_COMBAT_SCORE':
-    '適配度是規則與裝備的啟發式比較，不是勝率或通關保證；損傷、士氣、交戰形態與隨機分歧仍會影響結果。',
+    '適配度不是勝率或通關保證；損傷、士氣、交戰形態與隨機分歧仍會影響結果。',
   'message.MISSING_SPECIFIC_SHIP': '此路線需要 {names}，目前帳號缺少可用艦。',
   'message.INSUFFICIENT_SHIP_TYPE': '符合艦種條件的艦娘只有 {count} 艘，需要 {minimum} 艘。',
   'message.AIR_POWER_INSUFFICIENT': '目前搜尋到的最高制空值為 {best}，最低需要 {minimum}。',
@@ -192,6 +203,12 @@ export const tcn = {
     '目前候選空母沒有夜戰特性，也無法以持有且相容的裝備成立夜戰空母配置。',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
     '目前無法為 {minimum} 艘可用的戰艦／重巡級各配置一件三式彈系裝備。',
+  'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
+    '目前無法讓路線要求的所有空母同時保有對陸攻擊能力與制空配置。',
+  'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
+    '目前無法為 {minimum} 艘可用艦娘各配置一個運輸桶，無法保證路線分歧。',
+  'message.SPECIAL_ATTACK_UNAVAILABLE':
+    '目前沒有可成立的特殊砲擊組合；需要大和改二／重＋武藏改二、長門／陸奧改二＋戰艦，或 Nelson／Rodney 改與兩艘可參與艦。',
   'message.RULE_NOT_FOUND': '找不到指定關卡規則。',
   'message.NO_STABLE_ROUTE': '此關卡沒有可保證固定進王的已驗證編成，請手動選擇隨機路線。',
   'message.NO_AUTOMATED_ROUTE':

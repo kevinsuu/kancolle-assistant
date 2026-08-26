@@ -1,6 +1,6 @@
 import { parseKC3AccountSnapshot } from '@kancolle-assistant/recommendation-core'
 
-const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
+const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
   if (
     !window.KC3ShipManager ||
     !window.KC3GearManager ||
@@ -10,8 +10,11 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
     throw new Error('KC3 account managers are not ready')
   }
 
+  const yieldToRenderer = () => new Promise((resolve) => window.setTimeout(resolve, 0))
   window.KC3ShipManager.load()
+  await yieldToRenderer()
   window.KC3GearManager.load()
+  await yieldToRenderer()
   if (window.PlayerManager) {
     if (window.PlayerManager.hq && typeof window.PlayerManager.hq.load === 'function') {
       window.PlayerManager.hq.load()
@@ -20,6 +23,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
       window.PlayerManager.loadFleets()
     }
   }
+  await yieldToRenderer()
 
   const shipList = Object.values(window.KC3ShipManager.list || {})
   const gearList = Object.values(window.KC3GearManager.list || {})
@@ -32,6 +36,23 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
 
   if (!shipList.length || !gearList.length || hqLevel <= 0) {
     throw new Error('KC3 has not synchronized port data yet')
+  }
+
+  const RENDERER_SLICE_MS = 8
+  const mapResponsively = async (items, mapItem) => {
+    const results = []
+    let sliceStartedAt = window.performance.now()
+    for (let index = 0; index < items.length; index += 1) {
+      results.push(mapItem(items[index], index))
+      if (
+        index < items.length - 1 &&
+        window.performance.now() - sliceStartedAt >= RENDERER_SLICE_MS
+      ) {
+        await yieldToRenderer()
+        sliceStartedAt = window.performance.now()
+      }
+    }
+    return results
   }
 
   const gearMasterIds = [...new Set(gearList.map((gear) => Number(gear.masterId)))]
@@ -302,7 +323,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
     return patterns
   }
 
-  const ships = shipList.map((ship) => {
+  const ships = await mapResponsively(shipList, (ship) => {
     const master = window.KC3Master.ship(ship.masterId)
     if (!master) throw new Error('Missing KC3 ship master: ' + ship.masterId)
     const slotnum = Number(ship.slotnum) || 0
@@ -365,7 +386,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
   })
 
   const airPowerByGearConfiguration = new Map()
-  const equipment = gearList.map((gear) => {
+  const equipment = await mapResponsively(gearList, (gear) => {
     const master = window.KC3Master.slotitem(gear.masterId)
     if (!master) throw new Error('Missing KC3 equipment master: ' + gear.masterId)
     const airPowerCacheKey = [gear.masterId, Number(gear.stars || 0), Number(gear.ace ?? -1)].join(':')
@@ -388,6 +409,11 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(() => {
       proficiency: Number(gear.ace ?? -1),
       locked: Boolean(gear.lock),
       currentlyEquippedBy: holderByGearId.get(Number(gear.itemId)) || 0,
+      antiInstallationAircraft:
+        Number(master.api_type && master.api_type[2]) === 8 ||
+        (Number(master.api_type && master.api_type[2]) === 7 &&
+          Array.isArray(window.KC3GearManager?.antiLandDiveBomberIds) &&
+          window.KC3GearManager.antiLandDiveBomberIds.includes(Number(gear.masterId))),
       stats: {
         firepower: Number(master.api_houg || 0),
         torpedo: Number(master.api_raig || 0),
@@ -425,3 +451,223 @@ export const readKC3AccountSnapshot = async (webContents) => {
   const rawSnapshot = await webContents.executeJavaScript(KC3_ACCOUNT_SNAPSHOT_SCRIPT, true)
   return parseKC3AccountSnapshot(rawSnapshot)
 }
+
+const combatEvaluationMode = (recommendation) => {
+  if (recommendation.route.tags.includes('anti-installation')) return 'anti-installation'
+  if (
+    recommendation.route.tags.includes('oasw') ||
+    recommendation.route.calculatedConstraints?.some(
+      (constraint) => constraint.kind === 'opening-asw',
+    )
+  ) {
+    return 'anti-submarine'
+  }
+  return 'surface'
+}
+
+const antiInstallationTargetIds = (recommendation) => {
+  if (!recommendation.route.tags.includes('anti-installation')) return []
+  if (recommendation.mapId === '6-4') return [1665, 1668, 1656]
+  if (recommendation.mapId === '7-5') return [1573, 1665, 1668, 1656, 1699]
+  return [1573]
+}
+
+const gearEvaluationKey = (gear) =>
+  gear ? `${gear.masterId}:${gear.improvement}:${gear.proficiency}` : '0'
+
+const combatEvaluationPayload = (recommendations, snapshotKey) => {
+  const uniqueBuilds = []
+  const buildIndexes = new Map()
+  const payloadRecommendations = recommendations.map((recommendation) => {
+    const mode = combatEvaluationMode(recommendation)
+    const targetIds = antiInstallationTargetIds(recommendation)
+    return {
+      id: recommendation.id,
+      buildIndexes: recommendation.ships.map((build) => {
+        const cacheKey = [
+          build.ship.id,
+          build.ship.level,
+          build.ship.stats.hp,
+          build.ship.stats.firepower,
+          build.ship.stats.torpedo,
+          build.ship.stats.armor,
+          build.ship.stats.evasion,
+          build.ship.stats.asw,
+          build.ship.slotSizes.join(','),
+          build.equipment.map(gearEvaluationKey).join(','),
+          gearEvaluationKey(build.expansionSlot),
+          mode,
+          targetIds.join(','),
+        ].join('|')
+        const cachedIndex = buildIndexes.get(cacheKey)
+        if (cachedIndex !== undefined) return cachedIndex
+        const buildIndex = uniqueBuilds.length
+        buildIndexes.set(cacheKey, buildIndex)
+        uniqueBuilds.push({
+          cacheKey,
+          mode,
+          targetIds,
+          shipId: Number(build.ship.id),
+          equipmentIds: build.equipment.map((gear) => Number(gear?.id || 0)),
+          expansionSlotId: Number(build.expansionSlot?.id || 0),
+          slotSizes: build.ship.slotSizes.map(Number),
+        })
+        return buildIndex
+      }),
+    }
+  })
+  return { snapshotKey, uniqueBuilds, recommendations: payloadRecommendations }
+}
+
+const combatEvaluationScript = (recommendations, snapshotKey) => {
+  const payload = JSON.stringify(combatEvaluationPayload(recommendations, snapshotKey)).replaceAll(
+    '<',
+    '\\u003c',
+  )
+
+  return `(() => {
+    if (!window.KC3ShipManager || !window.KC3GearManager || !window.KC3Ship) {
+      throw new Error('KC3 combat calculators are not ready')
+    }
+    const payload = ${payload}
+    const finite = (value) => Number.isFinite(Number(value)) ? Number(value) : 0
+    const emptyStats = () => ({
+      firepower: 0, torpedo: 0, antiAir: 0, armor: 0, asw: 0,
+      los: 0, bombing: 0, accuracy: 0, evasion: 0,
+    })
+    const statSpecs = {
+      firepower: ['fp', 'houg'], torpedo: ['tp', 'raig'], antiAir: ['aa', 'tyku'],
+      armor: ['ar', 'souk'], asw: ['as', 'tais'], los: ['ls', 'saku'],
+      accuracy: ['ht', 'houm'], evasion: ['ev', 'houk'],
+    }
+    const capPower = (ship, power, time, warfareType) => {
+      try { return finite(ship.applyPowerCap(power, time, warfareType).power) }
+      catch (_) { return finite(power) }
+    }
+    const antiLandPower = (ship, night, targetShipMasterId) => {
+      try {
+        if (night ? !ship.canDoNightAttack(targetShipMasterId)
+          : !ship.canDoDayShellingAttack(targetShipMasterId)) return 0
+        const basic = night
+          ? (ship.isCarrier() && ship.canCarrierNightAirAttack()
+            ? ship.nightAirAttackPower(0, true)
+            : ship.nightBattlePower(0, true))
+          : ship.shellingFirePower(0, true)
+        const preconditions = night
+          ? ['Shelling', 1, undefined, ['SingleAttack', 0], false, false, targetShipMasterId]
+          : ['Shelling', 1, undefined, undefined, false, false, targetShipMasterId]
+        const precap = ship.applyPrecapModifiers(basic, ...preconditions).power
+        const capped = ship.applyPowerCap(precap, night ? 'Night' : 'Day', 'Shelling').power
+        const postconditions = night
+          ? ['Shelling', [], 0, false, false, 0, false, targetShipMasterId]
+          : ['Shelling', undefined, 0, false, false, 0, false, targetShipMasterId]
+        return finite(ship.applyPostcapModifiers(capped, ...postconditions).power)
+      } catch (_) { return 0 }
+    }
+    const evaluateBuild = (build) => {
+      const source = window.KC3ShipManager.get(build.shipId)
+      if (!source || !source.masterId) throw new Error('Missing KC3 ship: ' + build.shipId)
+      const probe = new window.KC3Ship(source, true)
+      const regularIds = build.equipmentIds.slice()
+      while (regularIds.length < Math.max(Number(probe.slotnum) || 0, 5)) regularIds.push(-1)
+      probe.items = regularIds.map((id) => id > 0 ? id : -1)
+      probe.ex_item = build.expansionSlotId > 0 ? build.expansionSlotId : 0
+      probe.slots = build.slotSizes.slice()
+      probe.slotsMax = build.slotSizes.slice()
+      probe.GearManager = window.KC3GearManager
+      probe.statsCache = {}
+      const maximumHp = Math.max(finite((source.hp || [1, 1])[1]), 1)
+      probe.hp = [maximumHp, maximumHp]
+      probe.afterHp = [maximumHp, maximumHp]
+      probe.morale = 49
+
+      const effectiveStats = emptyStats()
+      const equipmentBonus = emptyStats()
+      Object.entries(statSpecs).forEach(([name, [attr, apiName]]) => {
+        const naked = typeof source.estimateNakedStats === 'function'
+          ? finite(source.estimateNakedStats(attr))
+          : finite((source[attr] || [0])[0])
+        const equipmentStats = probe.equipmentTotalStats(apiName, true, true, 'both')
+        const equipmentTotal = Array.isArray(equipmentStats)
+          ? finite(equipmentStats[0])
+          : finite(equipmentStats)
+        const value = naked + equipmentTotal
+        effectiveStats[name] = value
+        equipmentBonus[name] = Array.isArray(equipmentStats) ? finite(equipmentStats[1]) : 0
+        probe[attr] = [value, finite((source[attr] || [value, value])[1]) || value]
+      })
+      probe.statsCache = {}
+
+      let daySurfacePower = 0
+      if (build.mode === 'surface' && probe.canDoDayShellingAttack()) {
+        daySurfacePower = capPower(probe, probe.shellingFirePower(), 'Day', 'Shelling')
+      }
+      let nightSurfacePower = 0
+      if (build.mode === 'surface' && probe.canDoNightAttack()) {
+        const nightPower = probe.isCarrier() && probe.canCarrierNightAirAttack()
+          ? probe.nightAirAttackPower()
+          : probe.nightBattlePower()
+        nightSurfacePower = capPower(probe, nightPower, 'Night', 'Shelling')
+      }
+      let antiSubmarinePower = 0
+      try {
+        if (build.mode === 'anti-submarine' && probe.canDoASW()) {
+          antiSubmarinePower = capPower(
+            probe,
+            probe.antiSubWarfarePower(),
+            'Day',
+            'Antisub',
+          )
+        }
+      } catch (_) {}
+      let shellingAccuracy = 0
+      try {
+        if (build.mode === 'surface') {
+          shellingAccuracy = finite(
+            probe.shellingAccuracy(1, true, 0, true, false, probe.isCarrier()).accuracy,
+          )
+        }
+      } catch (_) {}
+      const averageAntiLandPower = (night) => build.targetIds.length === 0
+        ? 0
+        : build.targetIds
+          .map((targetShipMasterId) => antiLandPower(probe, night, targetShipMasterId))
+          .reduce((total, power) => total + power, 0) / build.targetIds.length
+      return {
+        effectiveStats,
+        equipmentBonus,
+        daySurfacePower,
+        nightSurfacePower,
+        antiInstallationDayPower:
+          build.mode === 'anti-installation' ? averageAntiLandPower(false) : 0,
+        antiInstallationNightPower:
+          build.mode === 'anti-installation' ? averageAntiLandPower(true) : 0,
+        antiSubmarinePower,
+        shellingAccuracy,
+      }
+    }
+    const previousCache = window.__dameconCombatEvaluationCache
+    const evaluationCache = previousCache?.snapshotKey === payload.snapshotKey
+      ? previousCache
+      : { snapshotKey: payload.snapshotKey, entries: new Map() }
+    if (!(evaluationCache.entries instanceof Map) || evaluationCache.entries.size > 1000) {
+      evaluationCache.entries = new Map()
+    }
+    const evaluations = payload.uniqueBuilds.map((build) => {
+      if (evaluationCache.entries.has(build.cacheKey)) {
+        return evaluationCache.entries.get(build.cacheKey)
+      }
+      const evaluation = evaluateBuild(build)
+      evaluationCache.entries.set(build.cacheKey, evaluation)
+      return evaluation
+    })
+    window.__dameconCombatEvaluationCache = evaluationCache
+    return payload.recommendations.map((recommendation) => ({
+      id: recommendation.id,
+      ships: recommendation.buildIndexes.map((buildIndex) => evaluations[buildIndex]),
+    }))
+  })()`
+}
+
+export const readKC3CombatEvaluations = async (webContents, recommendations, snapshotKey = '') =>
+  webContents.executeJavaScript(combatEvaluationScript(recommendations, snapshotKey), true)

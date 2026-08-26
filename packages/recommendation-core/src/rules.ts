@@ -34,7 +34,9 @@ export const EXTERNALLY_CONFIGURED_ROUTE_TAGS = [
 const MODELED_EXTERNAL_ROUTE_TAGS: Readonly<
   Partial<Record<(typeof EXTERNALLY_CONFIGURED_ROUTE_TAGS)[number], string>>
 > = {
-  'anti-installation': 'anti-installation-type3-shells-3',
+  'anti-installation': 'anti-installation-modeled',
+  'drum-canister-required': 'drum-canister-modeled',
+  'special-attack': 'special-attack-modeled',
 }
 
 export const unresolvedExternalRouteTags = (route: RouteTemplate): readonly string[] =>
@@ -365,7 +367,8 @@ export const getRouteTemplates = (
   )
   if (routeId) return matching
   const eligible = matching.filter(isAutomaticRouteReady)
-  return [...eligible].sort((left, right) => guidePriority(left) - guidePriority(right))
+  const comparable = eligible.length > 0 ? eligible : matching
+  return [...comparable].sort((left, right) => guidePriority(left) - guidePriority(right))
 }
 
 export const getRouteTemplate = (

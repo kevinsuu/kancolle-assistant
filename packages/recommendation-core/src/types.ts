@@ -17,6 +17,7 @@ export const RECOMMENDATION_OBJECTIVES = [
   'resource-steel',
   'resource-bauxite',
   'resource-bucket',
+  'resource-burner',
   'resource-devmat',
 ] as const
 export type RecommendationObjective = (typeof RECOMMENDATION_OBJECTIVES)[number]
@@ -106,6 +107,7 @@ export interface OwnedEquipment {
   readonly proficiency: number
   readonly locked: boolean
   readonly currentlyEquippedBy: ShipInstanceId | null
+  readonly antiInstallationAircraft: boolean
   readonly stats: EquipmentStats
   readonly losImprovement: number
   readonly airPowerBySlotSize: Readonly<Record<string, number>>
@@ -208,6 +210,19 @@ export interface RecommendFleetInput {
   readonly objective: RecommendationObjective
   readonly account: AccountSnapshot
   readonly preferences?: RecommendationPreferences
+  /** Internal candidate-pool size used before KC3 performs exact combat reranking. */
+  readonly candidateLimit?: number
+}
+
+export interface BuildCombatEvaluation {
+  readonly effectiveStats: EquipmentStats
+  readonly equipmentBonus: EquipmentStats
+  readonly daySurfacePower: number
+  readonly nightSurfacePower: number
+  readonly antiInstallationDayPower: number
+  readonly antiInstallationNightPower: number
+  readonly antiSubmarinePower: number
+  readonly shellingAccuracy: number
 }
 
 export interface RecommendedShipBuild {
@@ -215,6 +230,7 @@ export interface RecommendedShipBuild {
   readonly role: FleetRole
   readonly equipment: readonly (OwnedEquipment | null)[]
   readonly expansionSlot: OwnedEquipment | null
+  readonly combat?: BuildCombatEvaluation
 }
 
 export interface FleetMetrics {

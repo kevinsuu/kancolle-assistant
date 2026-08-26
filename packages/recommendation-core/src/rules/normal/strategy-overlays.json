@@ -201,6 +201,27 @@
           { "type": "ShipTypeCount", "stypes": [2], "value": 2 },
           { "type": "ShipTypeCount", "stypes": [5, 6, 8, 9, 10, 12], "value": 1 }
         ]
+      },
+      {
+        "id": "2-1-burner-cvl-submarine",
+        "name": "高速建造材固定回收",
+        "category": "resource",
+        "objectives": ["resource-burner"],
+        "nodes": ["C", "E"],
+        "stableBoss": false,
+        "tags": ["retreat-after-e", "stable-resource", "carrier-opening", "burner-node-fixed"],
+        "desc": "軽空母2、潜水3、水母1。C戦後にE高速建造材を回収して帰投。",
+        "sources": [
+          "https://zekamashi.net/kancolle-kouryaku/2-1/",
+          "https://wikiwiki.jp/kancolle/%E5%8D%97%E8%A5%BF%E8%AB%B8%E5%B3%B6%E6%B5%B7%E5%9F%9F/2-1"
+        ],
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [13, 14], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 }
+        ]
       }
     ]
   },
@@ -312,8 +333,14 @@
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "F", "J", "O"],
-        "stableBoss": false,
-        "tags": ["slow", "los-cn1-49", "drum-canister-required"],
+        "stableBoss": true,
+        "tags": [
+          "slow",
+          "los-cn1-49",
+          "drum-canister-required",
+          "drum-canister-modeled",
+          "drum-canister-carriers-2"
+        ],
         "desc": "航戦1-2、重巡/航巡1-5、軽巡/雷巡0-4、駆逐0-2。低速艦隊、2隻にドラム缶1個ずつ必須。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -656,7 +683,13 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "K", "T"],
         "stableBoss": true,
-        "tags": ["los-cn2-71", "anti-installation", "heavy-fleet"],
+        "tags": [
+          "los-cn2-71",
+          "anti-installation",
+          "anti-installation-modeled",
+          "anti-installation-type3-shells-3",
+          "heavy-fleet"
+        ],
         "desc": "戦艦/空母3、重巡/航巡/水母3。K経由の通常速度編成。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -679,6 +712,7 @@
         "tags": [
           "los-cn2-71",
           "anti-installation",
+          "anti-installation-modeled",
           "anti-installation-type3-shells-3",
           "heavy-fleet"
         ],
@@ -706,6 +740,7 @@
         "tags": [
           "los-cn2-71",
           "anti-installation",
+          "anti-installation-modeled",
           "anti-installation-type3-shells-3",
           "carrier-opening"
         ],
@@ -775,7 +810,14 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "K", "T"],
         "stableBoss": true,
-        "tags": ["los-cn2-71", "anti-installation", "carrier-opening"],
+        "tags": [
+          "los-cn2-71",
+          "anti-installation",
+          "anti-installation-modeled",
+          "anti-installation-type3-shells-2",
+          "anti-installation-carriers-3",
+          "carrier-opening"
+        ],
         "desc": "正規/装甲空母1-2、軽空母2、重巡/航巡/雷巡2-3。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -794,13 +836,20 @@
       },
       {
         "id": "4-5-fast-plus-heavy",
-        "name": "高速＋戦艦空母",
+        "name": "高速＋戦艦2空母2",
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "T"],
         "stableBoss": true,
-        "tags": ["fast+", "anti-installation", "fixed-route"],
-        "desc": "戦艦1-2、正規/装甲空母2-3、重巡/航巡/水母/雷巡2。全艦高速＋。",
+        "tags": [
+          "fast+",
+          "anti-installation",
+          "anti-installation-modeled",
+          "anti-installation-type3-shells-2",
+          "anti-installation-carriers-2",
+          "fixed-route"
+        ],
+        "desc": "戦艦2、正規/装甲空母2、重巡/航巡/水母/雷巡2。全艦高速＋。",
         "lastVerified": "2026-08-25",
         "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
         "fleet": [
@@ -810,10 +859,39 @@
             "stypes": [4, 5, 6, 8, 9, 10, 11, 12, 16, 18],
             "value": 6
           },
-          { "type": "ShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
-          { "type": "MaxShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
-          { "type": "ShipTypeCount", "stypes": [11, 18], "value": 2 },
-          { "type": "MaxShipTypeCount", "stypes": [11, 18], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [4, 5, 6, 16], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
+      },
+      {
+        "id": "4-5-fast-plus-battleship-carrier",
+        "name": "高速＋戦艦1空母3",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/C", "D", "H", "T"],
+        "stableBoss": true,
+        "tags": [
+          "fast+",
+          "anti-installation",
+          "anti-installation-modeled",
+          "anti-installation-type3-shells-2",
+          "anti-installation-carriers-3",
+          "fixed-route"
+        ],
+        "desc": "戦艦1、正規/装甲空母3、重巡/航巡/水母/雷巡2。全艦高速＋。",
+        "lastVerified": "2026-08-25",
+        "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          {
+            "type": "ExactShipTypeCount",
+            "stypes": [4, 5, 6, 8, 9, 10, 11, 12, 16, 18],
+            "value": 6
+          },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
           { "type": "ExactShipTypeCount", "stypes": [4, 5, 6, 16], "value": 2 }
         ],
         "calculated": [{ "kind": "air-power", "minimum": 92, "recommended": 207 }]
@@ -825,7 +903,15 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "T"],
         "stableBoss": true,
-        "tags": ["fast+", "anti-installation", "fixed-route", "carrier-opening"],
+        "tags": [
+          "fast+",
+          "anti-installation",
+          "anti-installation-modeled",
+          "anti-installation-type3-shells-3",
+          "anti-installation-carriers-3",
+          "fixed-route",
+          "carrier-opening"
+        ],
         "desc": "正規/装甲空母3、重巡/航巡/水母3。全艦高速＋。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -869,7 +955,14 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "T"],
         "stableBoss": true,
-        "tags": ["anti-installation", "fixed-route", "quest-friendly"],
+        "tags": [
+          "anti-installation",
+          "anti-installation-modeled",
+          "anti-installation-type3-shells-1",
+          "anti-installation-carriers-1",
+          "fixed-route",
+          "quest-friendly"
+        ],
         "desc": "空母1以上を含む戦艦/空母2、軽巡1、駆逐3。Kを回避し、ボス制空を維持する小型艦条件。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -973,7 +1066,7 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "F", "D", "H", "N", "O", "S"],
         "stableBoss": true,
-        "tags": ["los-cn2-67", "air-power", "special-attack"],
+        "tags": ["los-cn2-67", "air-power", "special-attack", "special-attack-modeled"],
         "desc": "戦艦2、重巡/航巡/軽巡1、重巡/航巡/雷巡1、駆逐2。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -997,7 +1090,7 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "F", "D", "H", "N", "O", "S"],
         "stableBoss": true,
-        "tags": ["fast+", "los-cn2-67", "late-game", "special-attack"],
+        "tags": ["fast+", "los-cn2-67", "late-game", "special-attack", "special-attack-modeled"],
         "desc": "戦艦2、正規空母1、航巡1、駆逐2。全艦高速＋。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -1041,7 +1134,13 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "K", "P", "S"],
         "stableBoss": true,
-        "tags": ["los-cn2-81", "air-power", "heavy-fleet", "special-attack"],
+        "tags": [
+          "los-cn2-81",
+          "air-power",
+          "heavy-fleet",
+          "special-attack",
+          "special-attack-modeled"
+        ],
         "desc": "戦艦2、正規/装甲空母2、重巡/航巡2。逸れを避ける北方重量編成。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -1062,7 +1161,7 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "F", "J", "P", "S"],
         "stableBoss": true,
-        "tags": ["los-cn2-81", "air-power", "special-attack"],
+        "tags": ["los-cn2-81", "air-power", "special-attack", "special-attack-modeled"],
         "desc": "戦艦2、正規/装甲空母2、駆逐2。B-F-Jを固定する北方中量編成。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -1083,7 +1182,7 @@
         "objectives": ["low-cost", "balanced", "boss-clear"],
         "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
         "stableBoss": true,
-        "tags": ["los-cn2-67", "night-battle", "special-attack"],
+        "tags": ["los-cn2-67", "night-battle", "special-attack", "special-attack-modeled"],
         "desc": "戦艦/空母2、駆逐4。ボーキ消費を抑える南路。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -1103,7 +1202,15 @@
         "objectives": ["low-cost", "balanced", "boss-clear"],
         "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
         "stableBoss": false,
-        "tags": ["los-cn2-67", "night-battle", "drum-canister-required", "special-attack"],
+        "tags": [
+          "los-cn2-67",
+          "night-battle",
+          "drum-canister-required",
+          "drum-canister-modeled",
+          "drum-canister-carriers-4",
+          "special-attack",
+          "special-attack-modeled"
+        ],
         "desc": "戦艦/空母2、駆逐2、自由枠2。4隻にドラム缶を搭載して南路固定。",
         "lastVerified": "2026-08-25",
         "fleet": [

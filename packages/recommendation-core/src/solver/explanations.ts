@@ -6,6 +6,7 @@ import type {
   RouteTemplate,
 } from '../types'
 import { unresolvedExternalRouteTags } from '../rules'
+import { specialAttackSetupForOrderedFleet } from './special-attack'
 
 const RECOMMENDATION_TITLES: Readonly<Record<RecommendationObjective, readonly string[]>> = {
   balanced: ['均衡主案', '穩定替案', '調度替案'],
@@ -17,6 +18,7 @@ const RECOMMENDATION_TITLES: Readonly<Record<RecommendationObjective, readonly s
   'resource-steel': ['鋼材主案', '鋼材替案', '低耗替案'],
   'resource-bauxite': ['鋁土主案', '鋁土替案', '低耗替案'],
   'resource-bucket': ['水桶主案', '水桶替案', '兼收替案'],
+  'resource-burner': ['高速建造材主案', '高速建造材替案', '低耗替案'],
   'resource-devmat': ['開發主案', '開發替案', '兼收替案'],
 }
 
@@ -90,12 +92,57 @@ export const recommendationMessages = (
       values: { count: metrics.openingAswCount, minimum: metrics.openingAswMinimum },
     })
   }
-  if (route.tags.includes('anti-installation-type3-shells-3')) {
+  const antiInstallationShellTag = route.tags.find((tag) =>
+    tag.startsWith('anti-installation-type3-shells-'),
+  )
+  const antiInstallationShellCount = antiInstallationShellTag
+    ? Number(antiInstallationShellTag.match(/(\d+)$/)?.[1] ?? 0)
+    : 0
+  const antiInstallationCarrierTag = route.tags.find((tag) =>
+    tag.startsWith('anti-installation-carriers-'),
+  )
+  const antiInstallationCarrierCount = antiInstallationCarrierTag
+    ? Number(antiInstallationCarrierTag.match(/(\d+)$/)?.[1] ?? 0)
+    : 0
+  if (antiInstallationShellCount > 0) {
     reasons.push({
       code: 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
-      message: '已為 3 艘戰艦／重巡級配置三式彈系裝備，符合此 4-5 路線的對地配置模型。',
-      values: { minimum: 3 },
+      message: `已為 ${antiInstallationShellCount} 艘戰艦／重巡級配置三式彈系裝備，符合此路線的對陸配置模型。`,
+      values: { minimum: antiInstallationShellCount },
     })
+  }
+  if (antiInstallationCarrierCount > 0) {
+    reasons.push({
+      code: 'ANTI_INSTALLATION_CARRIER_READY',
+      message: `已讓 ${antiInstallationCarrierCount} 艘空母保有對陸攻擊能力，且未配置會阻止攻擊陸上型的普通艦爆。`,
+      values: { count: antiInstallationCarrierCount },
+    })
+  }
+  const drumCanisterCarrierTag = route.tags.find((tag) => tag.startsWith('drum-canister-carriers-'))
+  const drumCanisterCarrierCount = drumCanisterCarrierTag
+    ? Number(drumCanisterCarrierTag.match(/(\d+)$/)?.[1] ?? 0)
+    : 0
+  if (drumCanisterCarrierCount > 0) {
+    reasons.push({
+      code: 'DRUM_CANISTER_REQUIREMENT_PASSED',
+      message: `已為 ${drumCanisterCarrierCount} 艘不同艦娘各配置一個運輸桶，符合此路線的分歧條件。`,
+      values: { count: drumCanisterCarrierCount },
+    })
+  }
+  if (route.tags.includes('special-attack-modeled')) {
+    const setup = specialAttackSetupForOrderedFleet(builds)
+    if (setup) {
+      reasons.push({
+        code: 'SPECIAL_ATTACK_READY',
+        message: `已依「${setup.name}」排好艦隊站位；預定發動節點請選${setup.formation}。`,
+        values: { name: setup.name, formation: setup.formation },
+      })
+      warnings.push({
+        code: 'SPECIAL_ATTACK_SORTIE_CHECK',
+        message: `出擊中只需確認：特殊砲擊尚未使用、參與艦未超過可發動損傷，並在預定節點選${setup.formation}。`,
+        values: { formation: setup.formation },
+      })
+    }
   }
 
   const movedEquipmentCount = builds.reduce(

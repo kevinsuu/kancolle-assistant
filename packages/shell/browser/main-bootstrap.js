@@ -31,6 +31,13 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
       summarizeResourceLedger: (input) => recommendationService.summarizeResourceLedger(input),
       logger,
     })
+    try {
+      recommendationService.warmUp()
+    } catch (error) {
+      logger('recommendation.worker-warmup-failed', {
+        message: error?.message || String(error),
+      })
+    }
   }
 
   const registerWebUi = ({ ipcMain, getWebUiExtensionId, routerDependencies }) => {

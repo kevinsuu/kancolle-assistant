@@ -78,7 +78,7 @@ export const scn = {
   'fleet.noSolutionFallback': '当前持有的舰娘与装备无法满足此路线。',
   'fleet.failedFallback': '请确认 KC3 已同步后重试。',
   'fleet.routeSummary': '符合 {routeCount} 条路线 · 稳定进王 {stableCount} 条',
-  'fleet.autoRoutes': '自动比较可用路线（前 3）',
+  'fleet.autoRoutes': '自动选择最佳可计算路线（前 3）',
   'fleet.stable': '稳定',
   'fleet.manualSetup': '需手动确认',
   'fleet.source': '来源 {index}',
@@ -111,6 +111,7 @@ export const scn = {
   'fleet.slotAircraft': '{count} 机',
   'fleet.slot': '插槽 {index}',
   'fleet.baseSpeed': '基础{speed}',
+  'fleet.speedTransition': '基础{base} → {final}',
   'fleet.fleetSpeed': '舰队速度：{speed}',
   'fleet.speed.slow': '低速',
   'fleet.speed.fast': '高速',
@@ -128,6 +129,7 @@ export const scn = {
   'fleet.objective.resource-steel': '捞钢',
   'fleet.objective.resource-bauxite': '捞铝',
   'fleet.objective.resource-bucket': '捞水桶',
+  'fleet.objective.resource-burner': '捞高速建造材',
   'fleet.objective.resource-devmat': '捞开发资材',
   'fleet.role.main-battleship': '主力战舰',
   'fleet.role.carrier-air-superiority': '制空空母',
@@ -170,14 +172,23 @@ export const scn = {
   'message.OASW_NOT_READY': '此路线依赖先制对潜，但当前方案没有符合舰种门槛且已装备声呐的舰娘。',
   'message.OASW_REQUIREMENT_PASSED': '可成立先制对潜 {count} 艘，已达到最低 {minimum} 艘。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
-    '已为 {minimum} 艘战舰／重巡级配置三式弹系装备，符合此 4-5 路线的对地配置模型。',
+    '已为 {minimum} 艘战舰／重巡级配置三式弹系装备，符合此路线的对陆配置模型。',
+  'message.KC3_COMBAT_EVALUATION_APPLIED':
+    '已由 KC3 按完整配装复算舰娘别／组合装备加成、改修、适重命中与目标别有效火力，再重新排序候选方案。',
+  'message.ANTI_INSTALLATION_CARRIER_READY':
+    '已让 {count} 艘航母保有对陆攻击能力，且未配置会阻止攻击陆上型的普通舰爆。',
+  'message.DRUM_CANISTER_REQUIREMENT_PASSED':
+    '已为 {count} 艘不同舰娘各配置一个运输桶，符合此路线的分歧条件。',
+  'message.SPECIAL_ATTACK_READY': '已按“{name}”排好舰队站位；预定发动节点请选择{formation}。',
+  'message.SPECIAL_ATTACK_SORTIE_CHECK':
+    '出击中只需确认：特殊炮击尚未使用、参与舰未超过可发动损伤，并在预定节点选择{formation}。',
   'message.ROUTE_NOT_GUARANTEED': '此方案包含概率分歧，结果页已保留数据来源标记。',
   'message.EXPERIMENTAL_ROUTE': '此路线仍属新海域／实验数据，出击前请再次核对最新攻略。',
   'message.COMBAT_THRESHOLDS_UNVERIFIED':
     '此模板已核对路线与舰种，但尚未建入完整制空／索敌硬性门槛；出击前请打开攻略来源核对。',
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED': '此路线还需手动设置：{tags}；求解器尚未验证这些条件。',
   'message.HEURISTIC_COMBAT_SCORE':
-    '适配度是规则与装备的启发式比较，不是胜率或通关保证；损伤、士气、交战形态与随机分歧仍会影响结果。',
+    '适配度不是胜率或通关保证；损伤、士气、交战形态与随机分歧仍会影响结果。',
   'message.MISSING_SPECIFIC_SHIP': '此路线需要 {names}，当前账号缺少可用舰。',
   'message.INSUFFICIENT_SHIP_TYPE': '符合舰种条件的舰娘只有 {count} 艘，需要 {minimum} 艘。',
   'message.AIR_POWER_INSUFFICIENT': '当前搜索到的最高制空值为 {best}，最低需要 {minimum}。',
@@ -190,6 +201,12 @@ export const scn = {
     '当前候选航母没有夜战特性，也无法以拥有且兼容的装备组成夜战航母配置。',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
     '目前无法为 {minimum} 艘可用的战舰／重巡级各配置一件三式弹系装备。',
+  'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
+    '目前无法让路线要求的所有航母同时保有对陆攻击能力与制空配置。',
+  'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
+    '目前无法为 {minimum} 艘可用舰娘各配置一个运输桶，无法保证路线分歧。',
+  'message.SPECIAL_ATTACK_UNAVAILABLE':
+    '目前没有可成立的特殊炮击组合；需要大和改二／重＋武藏改二、长门／陆奥改二＋战舰，或 Nelson／Rodney 改与两艘可参与舰。',
   'message.RULE_NOT_FOUND': '找不到指定关卡规则。',
   'message.NO_STABLE_ROUTE': '此关卡没有可保证固定进王的已验证编成，请手动选择随机路线。',
   'message.NO_AUTOMATED_ROUTE':

@@ -82,7 +82,7 @@ export const jp = {
   'fleet.noSolutionFallback': '所持艦娘と装備ではこのルートの条件を満たせません。',
   'fleet.failedFallback': 'KC3の同期完了後に再試行してください。',
   'fleet.routeSummary': '該当ルート {routeCount} 件 · ボス固定 {stableCount} 件',
-  'fleet.autoRoutes': '利用可能なルートを自動比較（上位3件）',
+  'fleet.autoRoutes': '計算可能な最適ルートを自動選択（上位3件）',
   'fleet.stable': '安定',
   'fleet.manualSetup': '手動確認が必要',
   'fleet.source': '情報源 {index}',
@@ -116,6 +116,7 @@ export const jp = {
   'fleet.slotAircraft': '{count} 機',
   'fleet.slot': 'スロット {index}',
   'fleet.baseSpeed': '基礎{speed}',
+  'fleet.speedTransition': '基礎{base} → {final}',
   'fleet.fleetSpeed': '艦隊速力：{speed}',
   'fleet.speed.slow': '低速',
   'fleet.speed.fast': '高速',
@@ -133,6 +134,7 @@ export const jp = {
   'fleet.objective.resource-steel': '鋼材回収',
   'fleet.objective.resource-bauxite': 'ボーキ回収',
   'fleet.objective.resource-bucket': 'バケツ回収',
+  'fleet.objective.resource-burner': '高速建造材回収',
   'fleet.objective.resource-devmat': '開発資材回収',
   'fleet.role.main-battleship': '主力戦艦',
   'fleet.role.carrier-air-superiority': '制空空母',
@@ -179,7 +181,17 @@ export const jp = {
   'message.OASW_REQUIREMENT_PASSED':
     '先制対潜可能艦は{count}隻で、最低{minimum}隻を満たしています。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
-    '戦艦／重巡級 {minimum} 隻に三式弾系装備を割り当て、4-5 の対地装備モデルを満たしています。',
+    '戦艦／重巡級 {minimum} 隻に三式弾系装備を割り当て、このルートの対地装備モデルを満たしています。',
+  'message.KC3_COMBAT_EVALUATION_APPLIED':
+    'KC3 が完成装備から艦娘別／組み合わせ装備ボーナス、改修、フィット命中、目標別の実効火力を再計算し、候補を並べ直しました。',
+  'message.ANTI_INSTALLATION_CARRIER_READY':
+    '空母 {count} 隻が対地攻撃可能で、陸上型への攻撃を妨げる通常艦爆は装備していません。',
+  'message.DRUM_CANISTER_REQUIREMENT_PASSED':
+    '異なる {count} 隻にドラム缶を1個ずつ装備し、このルートの分岐条件を満たしています。',
+  'message.SPECIAL_ATTACK_READY':
+    '「{name}」用の艦隊順を設定済みです。発動予定マスでは{formation}を選択してください。',
+  'message.SPECIAL_ATTACK_SORTIE_CHECK':
+    '出撃中は、特殊砲撃が未使用であること、参加艦が発動可能な損傷内であること、発動予定マスで{formation}を選ぶことだけ確認してください。',
   'message.ROUTE_NOT_GUARANTEED':
     'この案にはランダム分岐があります。結果には情報源を表示しています。',
   'message.EXPERIMENTAL_ROUTE': '新海域または実験データです。出撃前に最新攻略を確認してください。',
@@ -188,7 +200,7 @@ export const jp = {
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED':
     '手動設定が必要です：{tags}。これらの条件はソルバーで検証していません。',
   'message.HEURISTIC_COMBAT_SCORE':
-    '適合度はルールと装備のヒューリスティック比較で、勝率や攻略を保証しません。損傷、疲労、交戦形態、ランダム分岐も結果に影響します。',
+    '適合度は勝率や攻略を保証しません。損傷、疲労、交戦形態、ランダム分岐も結果に影響します。',
   'message.MISSING_SPECIFIC_SHIP': 'このルートには{names}が必要ですが、使用可能な艦がいません。',
   'message.INSUFFICIENT_SHIP_TYPE': '条件に合う艦は{count}隻のみで、{minimum}隻以上必要です。',
   'message.AIR_POWER_INSUFFICIENT': '確認できた最高制空値は{best}で、最低{minimum}必要です。',
@@ -201,6 +213,12 @@ export const jp = {
     '候補空母に固有の夜戦能力がなく、所持する互換装備でも夜戦空母編成を成立させられません。',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
     '使用可能な戦艦／重巡級 {minimum} 隻に三式弾系装備を 1 個ずつ割り当てられません。',
+  'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
+    '必要な全空母で、対地攻撃能力と制空条件を同時に満たせません。',
+  'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
+    '使用可能な {minimum} 隻にドラム缶を1個ずつ装備できず、ルート分岐を固定できません。',
+  'message.SPECIAL_ATTACK_UNAVAILABLE':
+    '成立する特殊砲撃編成がありません。大和改二／重＋武蔵改二、長門／陸奥改二＋戦艦、または Nelson／Rodney 改＋参加可能艦2隻が必要です。',
   'message.RULE_NOT_FOUND': '指定海域のルールが見つかりません。',
   'message.NO_STABLE_ROUTE':
     'この海域にはボス到達を固定できる検証済み編成がありません。ランダムルートを手動選択してください。',

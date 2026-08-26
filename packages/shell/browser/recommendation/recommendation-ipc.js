@@ -1,4 +1,4 @@
-import { getMapOptions } from '@kancolle-assistant/recommendation-core'
+import { getMapOptions, scoreFleet } from '@kancolle-assistant/recommendation-core'
 import {
   ACCOUNT_CHANNEL,
   EXPEDITION_PLAN_CHANNEL,
@@ -7,12 +7,75 @@ import {
   RECOMMEND_CHANNEL,
   RESOURCE_LEDGER_SUMMARY_CHANNEL,
 } from './channels'
-import { readKC3AccountSnapshot } from './kc3-bridge'
+import { readKC3AccountSnapshot, readKC3CombatEvaluations } from './kc3-bridge'
 import { planKC3Expeditions, readKC3ExpeditionSummary } from './kc3-expedition-planner'
 import { readKC3ResourceLedgerSummary } from './kc3-resource-ledger'
 import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
+const EXACT_COMBAT_CANDIDATE_LIMIT = 18
+
+const guidePriority = (recommendation) =>
+  recommendation.route.tags.includes('guide-primary')
+    ? 0
+    : recommendation.route.tags.includes('guide-alternative')
+      ? 1
+      : 2
+
+const applyCombatEvaluations = (result, evaluations, objective) => {
+  if (!Array.isArray(evaluations)) throw new Error('KC3 combat evaluation result is invalid')
+  const evaluationsById = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation]))
+  const enriched = result.recommendations.map((recommendation) => {
+    const evaluation = evaluationsById.get(recommendation.id)
+    if (!evaluation || evaluation.ships.length !== recommendation.ships.length) {
+      throw new Error(`KC3 combat evaluation is incomplete: ${recommendation.id}`)
+    }
+    const ships = recommendation.ships.map((build, index) => ({
+      ...build,
+      combat: evaluation?.ships[index],
+    }))
+    return {
+      ...recommendation,
+      ships,
+      score: scoreFleet(ships, recommendation.metrics, objective, recommendation.route),
+      reasons: [
+        ...recommendation.reasons,
+        {
+          code: 'KC3_COMBAT_EVALUATION_APPLIED',
+          message: 'KC3 已依完整配裝複算裝備加成與有效戰鬥力。',
+        },
+      ],
+    }
+  })
+  const seenFleets = new Set()
+  const ranked = enriched
+    .sort(
+      (left, right) =>
+        guidePriority(left) - guidePriority(right) ||
+        right.score.total - left.score.total ||
+        left.id.localeCompare(right.id),
+    )
+    .filter((recommendation) => {
+      const signature = `${recommendation.route.id}:${recommendation.ships
+        .map((build) => build.ship.id)
+        .join('-')}`
+      if (seenFleets.has(signature)) return false
+      seenFleets.add(signature)
+      return true
+    })
+  const selected = []
+  const selectedRouteIds = new Set()
+  ranked.forEach((recommendation) => {
+    if (selected.length >= 3 || selectedRouteIds.has(recommendation.route.id)) return
+    selected.push(recommendation)
+    selectedRouteIds.add(recommendation.route.id)
+  })
+  ranked.forEach((recommendation) => {
+    if (selected.length >= 3 || selected.includes(recommendation)) return
+    selected.push(recommendation)
+  })
+  return { ...result, recommendations: selected }
+}
 
 const isAllowedStrategyRoomSender = (event, extensionId) => {
   if (!extensionId) return false
@@ -141,6 +204,7 @@ export const registerRecommendationIpc = ({
   summarizeResourceLedger: summarizeResourceLedgerInWorker,
   logger,
   readAccountSnapshot = readKC3AccountSnapshot,
+  readCombatEvaluations = readKC3CombatEvaluations,
 }) => {
   const accountSummary = (snapshot) => ({
     shipCount: snapshot.ships.length,
@@ -149,12 +213,16 @@ export const registerRecommendationIpc = ({
     capabilities: snapshot.metadata.capabilities,
   })
   const accountSnapshots = new WeakMap()
+  const recommendationResults = new WeakMap()
   const readCachedAccount = async (event, forceRefresh = false) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
     }
     const sender = event.sender
-    if (forceRefresh) accountSnapshots.delete(sender)
+    if (forceRefresh) {
+      accountSnapshots.delete(sender)
+      recommendationResults.delete(sender)
+    }
     if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
     const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot)
     if (snapshot.status !== 'error') accountSnapshots.set(sender, snapshot)
@@ -243,12 +311,43 @@ export const registerRecommendationIpc = ({
     const parsedRequest = parseRequest(request)
     if (!parsedRequest) return errorResult('INVALID_REQUEST', '推薦條件格式不正確。')
 
-    const snapshot = await readCachedAccount(event, true)
+    const snapshot = await readCachedAccount(event)
     if (snapshot.status === 'error') return snapshot
+    const cacheKey = JSON.stringify(parsedRequest)
+    const cachedResults = recommendationResults.get(event.sender)
+    if (cachedResults?.snapshot === snapshot && cachedResults.results.has(cacheKey)) {
+      return {
+        ...cachedResults.results.get(cacheKey),
+        account: accountSummary(snapshot),
+      }
+    }
 
     let result
+    const requestStartedAt = Date.now()
+    let exactCombatElapsedMs = 0
     try {
-      result = await recommend({ ...parsedRequest, account: snapshot })
+      result = await recommend({
+        ...parsedRequest,
+        account: snapshot,
+        candidateLimit: EXACT_COMBAT_CANDIDATE_LIMIT,
+      })
+      if (result.status === 'success') {
+        try {
+          const exactCombatStartedAt = Date.now()
+          const evaluations = await readCombatEvaluations(
+            event.sender,
+            result.recommendations,
+            snapshot.generatedAt,
+          )
+          exactCombatElapsedMs = Date.now() - exactCombatStartedAt
+          result = applyCombatEvaluations(result, evaluations, parsedRequest.objective)
+        } catch (error) {
+          logger('recommendation.combat-evaluation-failed', {
+            message: error?.message || String(error),
+          })
+          result = { ...result, recommendations: result.recommendations.slice(0, 3) }
+        }
+      }
     } catch (error) {
       logger('recommendation.failed', {
         mapId: parsedRequest.mapId,
@@ -274,11 +373,20 @@ export const registerRecommendationIpc = ({
         routeCount,
         status: result.status,
         elapsedMs: result.elapsedMs,
+        exactCombatElapsedMs,
+        totalElapsedMs: Date.now() - requestStartedAt,
         recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
       })
     }
+    const rendererResult = toRecommendationRendererResult(result)
+    if (result.status !== 'error') {
+      const cache =
+        cachedResults?.snapshot === snapshot ? cachedResults : { snapshot, results: new Map() }
+      cache.results.set(cacheKey, rendererResult)
+      recommendationResults.set(event.sender, cache)
+    }
     return {
-      ...toRecommendationRendererResult(result),
+      ...rendererResult,
       account: accountSummary(snapshot),
     }
   })

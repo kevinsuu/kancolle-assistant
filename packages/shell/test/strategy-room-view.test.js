@@ -132,16 +132,18 @@ test('strategy room i18n preserves aliases, fallback, interpolation, and KC3 loc
   }
 })
 
-test('fleet speed and torpedo-cruiser labels exist in all supported languages', () => {
+test('fleet recommendation labels exist in all supported languages', () => {
   Object.values(catalogs).forEach((catalog) => {
     ;[
       'fleet.baseSpeed',
+      'fleet.speedTransition',
       'fleet.fleetSpeed',
       'fleet.speed.slow',
       'fleet.speed.fast',
       'fleet.speed.fast+',
       'fleet.speed.fastest',
       'fleet.role.torpedo-cruiser',
+      'fleet.objective.resource-burner',
       'fleet.manualSetup',
       'message.NO_AUTOMATED_ROUTE',
       'message.NO_STABLE_ROUTE',
@@ -149,6 +151,14 @@ test('fleet speed and torpedo-cruiser labels exist in all supported languages', 
       'message.OASW_REQUIREMENT_PASSED',
       'message.ANTI_INSTALLATION_REQUIREMENT_PASSED',
       'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
+      'message.ANTI_INSTALLATION_CARRIER_READY',
+      'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT',
+      'message.DRUM_CANISTER_REQUIREMENT_PASSED',
+      'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT',
+      'message.KC3_COMBAT_EVALUATION_APPLIED',
+      'message.SPECIAL_ATTACK_READY',
+      'message.SPECIAL_ATTACK_SORTIE_CHECK',
+      'message.SPECIAL_ATTACK_UNAVAILABLE',
     ].forEach((key) => assert.equal(typeof catalog[key], 'string', key))
   })
 })

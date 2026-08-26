@@ -24,6 +24,14 @@ const formatEquipment = (gear) => {
   return `<span class="dfr-gear">${icon}<span class="dfr-gear-copy">${escapeHtml(gear.name)}${improvement}${proficiency} <small>#${gear.id}</small></span></span>`
 }
 
+const formatBuildSpeed = (ship) => {
+  const base = t(`fleet.speed.${ship.speed}`)
+  const final = t(`fleet.speed.${ship.finalSpeed}`)
+  return ship.finalSpeed === ship.speed
+    ? t('fleet.baseSpeed', { speed: base })
+    : t('fleet.speedTransition', { base, final })
+}
+
 const renderRecommendation = (recommendation, planIndex) => {
   const metrics = recommendation.metrics
   const sourceMarkup = recommendation.route.sources
@@ -48,7 +56,7 @@ const renderRecommendation = (recommendation, planIndex) => {
         <article class="dfr-ship bscolor3 fcolor2">
           <div class="dfr-ship-head">
             <h3>${escapeHtml(build.ship.name)} <span>Lv.${build.ship.level}</span></h3>
-            <span class="dfr-role">${escapeHtml(t(`fleet.role.${build.role}`))} · ${escapeHtml(t('fleet.baseSpeed', { speed: t(`fleet.speed.${build.ship.speed}`) }))}</span>
+            <span class="dfr-role">${escapeHtml(t(`fleet.role.${build.role}`))} · ${escapeHtml(formatBuildSpeed(build.ship))}</span>
           </div>
           <ol class="dfr-gear-list">
             ${build.equipment
@@ -164,13 +172,14 @@ const mountPanel = (invoke) => {
   const mapSummary = contentHtml.querySelector('#dfr-map-summary')
   const output = contentHtml.querySelector('#dfr-output')
   let accountReady = false
+  let accountSyncing = true
   let mapOptionsReady = false
   let mapOptions = []
   let busyOperationCount = 0
 
   const updateBusy = () => {
     const busy = busyOperationCount > 0
-    syncButton.disabled = busy
+    syncButton.disabled = busy || accountSyncing
     mapSelect.disabled = busy || !mapOptionsReady
     routeSelect.disabled = busy || !mapOptionsReady
     generateButton.disabled = busy || !accountReady || !mapOptionsReady
@@ -231,7 +240,7 @@ const mountPanel = (invoke) => {
   }
 
   const loadMapOptions = async () => {
-    beginBusy()
+    updateBusy()
     try {
       const result = cachedMapOptionsResult ?? (await invoke(MAP_OPTIONS_CHANNEL))
       if (result.status !== 'success') {
@@ -250,13 +259,19 @@ const mountPanel = (invoke) => {
       mapOptionsReady = true
       renderMapObjectives()
     } finally {
-      endBusy()
+      updateBusy()
     }
   }
 
-  const syncAccount = async ({ invalidateResults = false, forceRefresh = false } = {}) => {
+  const syncAccount = async ({
+    invalidateResults = false,
+    forceRefresh = false,
+    blockControls = true,
+  } = {}) => {
     if (forceRefresh) cachedAccountResult = null
-    beginBusy()
+    accountSyncing = true
+    if (blockControls) beginBusy()
+    else updateBusy()
     title.textContent = t('fleet.account.loading')
     detail.textContent = t('fleet.account.validating')
     if (invalidateResults) {
@@ -298,7 +313,9 @@ const mountPanel = (invoke) => {
         renderError(output, t('fleet.resyncIncomplete'), [detail.textContent])
       }
     } finally {
-      endBusy()
+      accountSyncing = false
+      if (blockControls) endBusy()
+      else updateBusy()
     }
   }
 
@@ -348,17 +365,27 @@ const mountPanel = (invoke) => {
     }
   })
 
-  syncAccount().catch(() => {
-    accountReady = false
-    title.textContent = t('fleet.account.unavailable')
-    detail.textContent = t('fleet.account.syncFirst')
-    updateBusy()
-  })
-  loadMapOptions().catch(() => {
-    mapSummary.textContent = t('fleet.mapUnavailableDetail')
-    mapOptionsReady = false
-    updateBusy()
-  })
+  const loadInitialData = async () => {
+    try {
+      await loadMapOptions()
+    } catch {
+      mapSummary.textContent = t('fleet.mapUnavailableDetail')
+      mapOptionsReady = false
+      updateBusy()
+    }
+
+    await waitForNextPaint()
+    try {
+      await syncAccount({ blockControls: false })
+    } catch {
+      accountReady = false
+      title.textContent = t('fleet.account.unavailable')
+      detail.textContent = t('fleet.account.syncFirst')
+      updateBusy()
+    }
+  }
+
+  loadInitialData()
 }
 
 export const injectFleetRecommender = (invoke) => {

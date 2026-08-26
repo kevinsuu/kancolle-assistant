@@ -85,7 +85,7 @@ export const en = {
   'fleet.failedFallback': 'Try again after KC3 has finished synchronizing.',
   'fleet.routeSummary': '{routeCount} matching routes · {stableCount} stable boss routes',
   'fleet.routeOption': '{name} · {nodes} · {confidence}',
-  'fleet.autoRoutes': 'Automatically compare available routes (Top 3)',
+  'fleet.autoRoutes': 'Automatically select the best calculable routes (Top 3)',
   'fleet.stable': 'Stable',
   'fleet.manualSetup': 'Manual check required',
   'fleet.source': 'Source {index}',
@@ -120,6 +120,7 @@ export const en = {
   'fleet.slotAircraft': '{count} planes',
   'fleet.slot': 'Slot {index}',
   'fleet.baseSpeed': 'Base {speed}',
+  'fleet.speedTransition': 'Base {base} → {final}',
   'fleet.fleetSpeed': 'Fleet speed: {speed}',
   'fleet.speed.slow': 'Slow',
   'fleet.speed.fast': 'Fast',
@@ -137,6 +138,7 @@ export const en = {
   'fleet.objective.resource-steel': 'Farm Steel',
   'fleet.objective.resource-bauxite': 'Farm Bauxite',
   'fleet.objective.resource-bucket': 'Farm Buckets',
+  'fleet.objective.resource-burner': 'Farm Instant Construction Materials',
   'fleet.objective.resource-devmat': 'Farm Development Materials',
   'fleet.role.main-battleship': 'Main Battleship',
   'fleet.role.carrier-air-superiority': 'Air-Superiority Carrier',
@@ -186,7 +188,17 @@ export const en = {
   'message.OASW_REQUIREMENT_PASSED':
     '{count} ships qualify for opening ASW, meeting the minimum of {minimum}.',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
-    '{minimum} battleships or heavy cruisers equip Type 3 Shell-family items, satisfying this 4-5 anti-installation model.',
+    '{minimum} battleships or heavy cruisers equip Type 3 Shell-family items, satisfying this route’s anti-installation model.',
+  'message.KC3_COMBAT_EVALUATION_APPLIED':
+    'KC3 recalculated ship-specific and combination equipment bonuses, improvements, gun-fit accuracy, and target-specific effective power for each complete loadout before reranking candidates.',
+  'message.ANTI_INSTALLATION_CARRIER_READY':
+    '{count} carriers retain anti-installation attacks, with no regular dive bomber that would block attacks against land installations.',
+  'message.DRUM_CANISTER_REQUIREMENT_PASSED':
+    '{count} different ships each equip one drum canister, satisfying this route condition.',
+  'message.SPECIAL_ATTACK_READY':
+    'Fleet order is ready for {name}; select {formation} at the intended activation node.',
+  'message.SPECIAL_ATTACK_SORTIE_CHECK':
+    'During the sortie, only confirm that the special attack is unused, participating ships remain within the damage limit, and {formation} is selected at the intended node.',
   'message.ROUTE_NOT_GUARANTEED':
     'This plan contains random routing; source markers are retained on the result.',
   'message.EXPERIMENTAL_ROUTE':
@@ -196,7 +208,7 @@ export const en = {
   'message.EXTERNAL_COMBAT_SETUP_REQUIRED':
     'Manual configuration is still required: {tags}. The solver has not verified these conditions.',
   'message.HEURISTIC_COMBAT_SCORE':
-    'Fit is a heuristic comparison of rules and equipment, not a win-rate or clear guarantee. Damage, morale, engagement, and random routing still affect results.',
+    'Fit is not a win-rate or clear guarantee. Damage, morale, engagement, and random routing still affect results.',
   'message.MISSING_SPECIFIC_SHIP':
     'This route requires {names}, but the account has no available matching ship.',
   'message.INSUFFICIENT_SHIP_TYPE':
@@ -213,6 +225,12 @@ export const en = {
     'No candidate carrier has an inherent night capability or an owned, compatible night-carrier equipment setup.',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
     'The account cannot equip {minimum} available battleships or heavy cruisers with one Type 3 Shell-family item each.',
+  'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
+    'The required carriers cannot all retain anti-installation attacks while satisfying air-power requirements.',
+  'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
+    'The account cannot equip {minimum} available ships with one drum canister each, so routing cannot be guaranteed.',
+  'message.SPECIAL_ATTACK_UNAVAILABLE':
+    'No supported special-attack fleet is available. Use Yamato Kai Ni/Juu with Musashi Kai Ni, Nagato/Mutsu Kai Ni with a battleship, or Nelson/Rodney Kai with two eligible helpers.',
   'message.RULE_NOT_FOUND': 'The requested map rule was not found.',
   'message.NO_STABLE_ROUTE':
     'No verified fleet can guarantee the boss route on this map. Select a random route manually.',

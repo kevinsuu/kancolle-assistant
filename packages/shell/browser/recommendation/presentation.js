@@ -1,3 +1,5 @@
+import { calculateBuildSpeed } from '@kancolle-assistant/recommendation-core'
+
 const summarizeEquipment = (gear) =>
   gear
     ? {
@@ -28,6 +30,7 @@ const summarizeRecommendation = (recommendation) => ({
       name: build.ship.name,
       level: build.ship.level,
       speed: build.ship.speed,
+      finalSpeed: calculateBuildSpeed(build),
       slotSizes: build.ship.slotSizes,
     },
     equipment: build.equipment.map(summarizeEquipment),

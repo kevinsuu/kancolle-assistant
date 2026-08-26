@@ -13,10 +13,10 @@ import type {
 
 export const SOLVER_VERSION = '0.1.0'
 
-const MIN_FLEETS_TO_EQUIP = 6
+const MIN_FLEETS_TO_EQUIP = 3
 const MAX_FLEETS_TO_EQUIP = 18
 const SUCCESSFUL_FLEETS_PER_ROUTE = 3
-const AUTO_COMPARE_MIN_FLEETS_TO_EQUIP = 2
+const AUTO_COMPARE_MIN_FLEETS_TO_EQUIP = 1
 const AUTO_COMPARE_MAX_FLEETS_TO_EQUIP = 6
 const AUTO_COMPARE_SUCCESSFUL_FLEETS_PER_ROUTE = 1
 
@@ -26,6 +26,11 @@ const guidePriority = (recommendation: FleetRecommendation): number =>
     : recommendation.route.tags.includes('guide-alternative')
       ? 1
       : 2
+
+const routeTagCount = (tags: readonly string[], prefix: string): number => {
+  const tag = tags.find((candidate) => candidate.startsWith(prefix))
+  return tag ? Number(tag.slice(prefix.length)) || 0 : 0
+}
 
 export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult => {
   const startedAt = Date.now()
@@ -78,31 +83,52 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   let speedRequirementFailed = false
   let nightCarrierRequirementFailed = false
   let antiInstallationRequirementFailed = false
+  let antiInstallationShellMinimum = Number.POSITIVE_INFINITY
+  let antiInstallationCarrierRequirementFailed = false
+  let drumCanisterRequirementFailed = false
+  let drumCanisterCarrierMinimum = Number.POSITIVE_INFINITY
+  let specialAttackRequirementFailed = false
   const avoidCurrentFleetEquipment = input.preferences?.avoidCurrentFleetEquipment ?? false
   const gearSearchContext = createGearSearchContext(input.account, avoidCurrentFleetEquipment)
+  const successfulFleetSignatures = new Set<string>()
 
   const searchRoutes = ({
     minimumFleetCount,
     maximumFleetCount,
     successfulFleetTarget,
     diagnoseSpecialFailures,
+    globalSuccessfulFleetTarget,
   }: {
     minimumFleetCount: number
     maximumFleetCount: number
     successfulFleetTarget: number
     diagnoseSpecialFailures: boolean
+    globalSuccessfulFleetTarget?: number
   }): void => {
-    availableRoutes.forEach(({ route }, routeIndex) => {
+    for (const [routeIndex, { route }] of availableRoutes.entries()) {
+      if (
+        globalSuccessfulFleetTarget !== undefined &&
+        successfulFleetSignatures.size >= globalSuccessfulFleetTarget
+      ) {
+        break
+      }
       const fleetCandidates = generateFleetCandidates(input.account, route, input.objective)
+      if (route.tags.includes('special-attack-modeled') && fleetCandidates.length === 0) {
+        specialAttackRequirementFailed = true
+      }
       const airPowerRequired = route.calculatedConstraints.some(
         (constraint) => constraint.kind === 'air-power',
       )
       const fastPlusRequired = route.tags.includes('fast+')
-      const antiInstallationShellCount = route.tags.includes('anti-installation-type3-shells-3')
-        ? 3
-        : 0
+      const antiInstallationShellCount = routeTagCount(
+        route.tags,
+        'anti-installation-type3-shells-',
+      )
+      const antiInstallationCarrierCount = routeTagCount(route.tags, 'anti-installation-carriers-')
+      const drumCanisterCarrierCount = routeTagCount(route.tags, 'drum-canister-carriers-')
       const nightCarrierRequired = route.tags.includes('night-carrier')
       const failedSpecialFleets = []
+      const failedGearFleets = []
       let successfulFleetCount = 0
 
       for (
@@ -118,10 +144,10 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           fastPlusRequired,
           antiInstallationShellCount,
           nightCarrierRequired,
+          antiInstallationCarrierCount,
+          drumCanisterCarrierCount,
         )
-        if (gearSolutions.length === 0 && antiInstallationShellCount > 0) {
-          antiInstallationRequirementFailed = true
-        }
+        if (gearSolutions.length === 0) failedGearFleets.push(fleet)
         if (gearSolutions.length === 0 && (fastPlusRequired || nightCarrierRequired)) {
           failedSpecialFleets.push(fleet)
         }
@@ -146,7 +172,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             return
           }
           if (!satisfiesCalculatedConstraints(metrics)) return
-          const score = scoreFleet(builds, metrics, input.objective)
+          const score = scoreFleet(builds, metrics, input.objective, route)
           const messages = recommendationMessages(builds, metrics, route)
           fleetAccepted = true
           recommendationCandidates.push({
@@ -161,7 +187,12 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             warnings: messages.warnings,
           })
         })
-        if (fleetAccepted) successfulFleetCount += 1
+        if (fleetAccepted) {
+          successfulFleetCount += 1
+          successfulFleetSignatures.add(
+            `${route.id}:${fleet.members.map(({ ship }) => ship.id).join('-')}`,
+          )
+        }
         if (fleetIndex + 1 >= minimumFleetCount && successfulFleetCount >= successfulFleetTarget) {
           break
         }
@@ -178,6 +209,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
                 true,
                 antiInstallationShellCount,
                 false,
+                antiInstallationCarrierCount,
+                drumCanisterCarrierCount,
               ).length > 0,
           )
           if (speedOnlyAvailable) nightCarrierRequirementFailed = true
@@ -187,7 +220,76 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           if (nightCarrierRequired) nightCarrierRequirementFailed = true
         }
       }
-    })
+      if (
+        diagnoseSpecialFailures &&
+        successfulFleetCount === 0 &&
+        failedGearFleets.length > 0 &&
+        (antiInstallationShellCount > 0 || antiInstallationCarrierCount > 0)
+      ) {
+        const canBuildWithoutAntiInstallation = failedGearFleets.some(
+          (fleet) =>
+            buildGearSolutions(
+              fleet,
+              gearSearchContext,
+              airPowerRequired,
+              fastPlusRequired,
+              0,
+              nightCarrierRequired,
+              0,
+              drumCanisterCarrierCount,
+            ).length > 0,
+        )
+        const canBuildShellSetup = failedGearFleets.some(
+          (fleet) =>
+            buildGearSolutions(
+              fleet,
+              gearSearchContext,
+              airPowerRequired,
+              fastPlusRequired,
+              antiInstallationShellCount,
+              nightCarrierRequired,
+              0,
+              drumCanisterCarrierCount,
+            ).length > 0,
+        )
+        if (
+          antiInstallationShellCount > 0 &&
+          canBuildWithoutAntiInstallation &&
+          !canBuildShellSetup
+        ) {
+          antiInstallationRequirementFailed = true
+          antiInstallationShellMinimum = Math.min(
+            antiInstallationShellMinimum,
+            antiInstallationShellCount,
+          )
+        }
+        if (antiInstallationCarrierCount > 0 && canBuildShellSetup) {
+          antiInstallationCarrierRequirementFailed = true
+        }
+      }
+      if (
+        diagnoseSpecialFailures &&
+        successfulFleetCount === 0 &&
+        failedGearFleets.length > 0 &&
+        drumCanisterCarrierCount > 0 &&
+        failedGearFleets.some(
+          (fleet) =>
+            buildGearSolutions(
+              fleet,
+              gearSearchContext,
+              airPowerRequired,
+              fastPlusRequired,
+              antiInstallationShellCount,
+              nightCarrierRequired,
+              antiInstallationCarrierCount,
+              0,
+            ).length > 0,
+        )
+      ) {
+        drumCanisterRequirementFailed = true
+        drumCanisterCarrierMinimum = Math.min(drumCanisterCarrierMinimum, drumCanisterCarrierCount)
+      }
+    }
   }
 
   const autoComparingRoutes = input.routeId === undefined && availableRoutes.length > 1
@@ -198,26 +300,13 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       successfulFleetTarget: AUTO_COMPARE_SUCCESSFUL_FLEETS_PER_ROUTE,
       diagnoseSpecialFailures: false,
     })
-    const distinctFleetCount = new Set(
-      recommendationCandidates.map(
-        (recommendation) =>
-          `${recommendation.route.id}:${recommendation.ships
-            .map((build) => build.ship.id)
-            .join('-')}`,
-      ),
-    ).size
-    if (distinctFleetCount < 3) {
-      recommendationCandidates.length = 0
-      bestAirPower = 0
-      bestLos = Number.NEGATIVE_INFINITY
-      speedRequirementFailed = false
-      nightCarrierRequirementFailed = false
-      antiInstallationRequirementFailed = false
+    if (successfulFleetSignatures.size < 3) {
       searchRoutes({
         minimumFleetCount: MIN_FLEETS_TO_EQUIP,
         maximumFleetCount: MAX_FLEETS_TO_EQUIP,
         successfulFleetTarget: SUCCESSFUL_FLEETS_PER_ROUTE,
         diagnoseSpecialFailures: true,
+        globalSuccessfulFleetTarget: 3,
       })
     }
   } else {
@@ -229,6 +318,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     })
   }
 
+  const candidateLimit = Math.min(Math.max(Math.trunc(input.candidateLimit ?? 3), 3), 24)
+  const keepGearVariants = candidateLimit > 3
   const seenFleets = new Set<string>()
   const rankedRecommendations = recommendationCandidates
     .sort(
@@ -242,7 +333,11 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     )
     .filter((recommendation) => {
       const signature = `${recommendation.route.id}:${recommendation.ships
-        .map((build) => build.ship.id)
+        .map((build) =>
+          keepGearVariants
+            ? `${build.ship.id}[${build.equipment.map((gear) => gear?.id ?? 0).join(',')};${build.expansionSlot?.id ?? 0}]`
+            : build.ship.id,
+        )
         .join('-')}`
       if (seenFleets.has(signature)) return false
       seenFleets.add(signature)
@@ -251,12 +346,20 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   const selectedRecommendations: FleetRecommendation[] = []
   const selectedRouteIds = new Set<string>()
   rankedRecommendations.forEach((recommendation) => {
-    if (selectedRecommendations.length >= 3 || selectedRouteIds.has(recommendation.route.id)) return
+    if (
+      selectedRecommendations.length >= Math.min(3, candidateLimit) ||
+      selectedRouteIds.has(recommendation.route.id)
+    ) {
+      return
+    }
     selectedRecommendations.push(recommendation)
     selectedRouteIds.add(recommendation.route.id)
   })
   rankedRecommendations.forEach((recommendation) => {
-    if (selectedRecommendations.length >= 3 || selectedRecommendations.includes(recommendation)) {
+    if (
+      selectedRecommendations.length >= candidateLimit ||
+      selectedRecommendations.includes(recommendation)
+    ) {
       return
     }
     selectedRecommendations.push(recommendation)
@@ -318,10 +421,34 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       })
     }
     if (antiInstallationRequirementFailed) {
+      const minimum = Number.isFinite(antiInstallationShellMinimum)
+        ? antiInstallationShellMinimum
+        : 3
       reasons.push({
         code: 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
-        message: '目前無法為 3 艘可用的戰艦／重巡級各配置一件三式彈系裝備。',
-        values: { minimum: 3 },
+        message: `目前無法為 ${minimum} 艘可用的戰艦／重巡級各配置一件三式彈系裝備。`,
+        values: { minimum },
+      })
+    }
+    if (antiInstallationCarrierRequirementFailed) {
+      reasons.push({
+        code: 'ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT',
+        message: '目前無法讓路線要求的所有空母同時保有對陸攻擊能力與制空配置。',
+      })
+    }
+    if (drumCanisterRequirementFailed) {
+      const minimum = Number.isFinite(drumCanisterCarrierMinimum) ? drumCanisterCarrierMinimum : 2
+      reasons.push({
+        code: 'DRUM_CANISTER_EQUIPMENT_INSUFFICIENT',
+        message: `目前無法為 ${minimum} 艘可用艦娘各配置一個運輸桶，無法保證路線分歧。`,
+        values: { minimum },
+      })
+    }
+    if (specialAttackRequirementFailed) {
+      reasons.push({
+        code: 'SPECIAL_ATTACK_UNAVAILABLE',
+        message:
+          '目前沒有可成立的特殊砲擊組合；需要大和改二／重＋武藏改二、長門／陸奧改二＋戰艦，或 Nelson／Rodney 改與兩艘可參與艦。',
       })
     }
     if (reasons.length === 0) {

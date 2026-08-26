@@ -85,6 +85,9 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
 
   const recommendFleet = (input) => run('fleet', input)
   return {
+    warmUp: () => {
+      getWorker()
+    },
     recommend: recommendFleet,
     recommendFleet,
     planExpeditions: (input) => run('expedition', input),

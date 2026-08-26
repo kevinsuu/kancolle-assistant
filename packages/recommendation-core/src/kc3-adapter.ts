@@ -187,6 +187,10 @@ const parseOwnedEquipment = (value: unknown, index: number): OwnedEquipment => {
     proficiency: optionalNumber(record.proficiency, -1),
     locked: asBoolean(record.locked, `${path}.locked`),
     currentlyEquippedBy: holder > 0 ? (holder as ShipInstanceId) : null,
+    antiInstallationAircraft:
+      typeof record.antiInstallationAircraft === 'boolean'
+        ? record.antiInstallationAircraft
+        : asNumber(record.typeId, `${path}.typeId`) === 8,
     stats: parseEquipmentStats(record.stats, `${path}.stats`),
     losImprovement: optionalNumber(record.losImprovement),
     airPowerBySlotSize,

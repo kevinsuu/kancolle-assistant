@@ -9,6 +9,7 @@ import type {
 } from '../types'
 import type { FleetMember, FleetSearchState } from './internal-types'
 import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
+import { arrangeSpecialAttack } from './special-attack'
 
 const FLEET_BEAM_WIDTH = 400
 const FLEET_CANDIDATES_PER_ROLE = 14
@@ -269,6 +270,38 @@ const requiredConstraintBonus = (
 const fleetShipCount = (route: RouteTemplate): number =>
   route.fleetConstraints.find((constraint) => constraint.kind === 'ship-count')?.exact ?? 6
 
+const canStillSatisfyFleetConstraints = (
+  members: readonly FleetMember[],
+  candidates: readonly RankedShipCandidate[],
+  lastCandidateIndex: number,
+  remainingSlots: number,
+  route: RouteTemplate,
+): boolean => {
+  const remainingCandidates = candidates.slice(lastCandidateIndex + 1)
+  if (remainingCandidates.length < remainingSlots) return false
+  return route.fleetConstraints.every((constraint) => {
+    if (constraint.kind === 'ship-count') return true
+    if (constraint.kind === 'specific-ship-name') {
+      const current = members.filter((member) =>
+        constraint.names.some((name) => member.ship.name.includes(name)),
+      ).length
+      const available = remainingCandidates.filter(({ ship }) =>
+        constraint.names.some((name) => ship.name.includes(name)),
+      ).length
+      return current + Math.min(remainingSlots, available) >= constraint.min
+    }
+    const minimum = constraint.exact ?? constraint.min
+    if (minimum === undefined) return true
+    const current = members.filter((member) =>
+      constraint.shipTypeIds.includes(member.ship.shipTypeId),
+    ).length
+    const available = remainingCandidates.filter(({ ship }) =>
+      constraint.shipTypeIds.includes(ship.shipTypeId),
+    ).length
+    return current + Math.min(remainingSlots, available) >= minimum
+  })
+}
+
 const genericCandidatePool = (
   account: AccountSnapshot,
   route: RouteTemplate,
@@ -332,6 +365,18 @@ export const generateFleetCandidates = (
         if (state.usedShipIds.has(ship.id)) return
         const members = [...state.members, { ship, role }]
         if (violatesMaximumConstraints(members, route)) return
+        const remainingSlots = targetShipCount - members.length
+        if (
+          !canStillSatisfyFleetConstraints(
+            members,
+            candidates,
+            candidateIndex,
+            remainingSlots,
+            route,
+          )
+        ) {
+          return
+        }
         const usedShipIds = new Set(state.usedShipIds)
         usedShipIds.add(ship.id)
         nextStates.push({
@@ -351,7 +396,13 @@ export const generateFleetCandidates = (
       .slice(0, FLEET_BEAM_WIDTH)
   }
 
-  return states.filter((state) => satisfiesFleetConstraints(state.members, route))
+  return states
+    .filter((state) => satisfiesFleetConstraints(state.members, route))
+    .flatMap((state) => {
+      if (!route.tags.includes('special-attack-modeled')) return [state]
+      const setup = arrangeSpecialAttack(state.members)
+      return setup ? [{ ...state, members: setup.members }] : []
+    })
 }
 
 export const analyzeFleetAvailability = (

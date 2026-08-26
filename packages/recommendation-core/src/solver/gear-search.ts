@@ -25,8 +25,13 @@ const NIGHT_AIRCRAFT_ICON_TYPE_IDS = new Set([45, 46, 58])
 const NIGHT_OPERATIONS_PERSONNEL_MASTER_IDS = new Set([258, 259])
 const SWORDFISH_MASTER_IDS = new Set([242, 243, 244])
 const TORPEDO_CRUISER_UNFIT_GUN_MASTER_IDS = new Set([356, 357])
-const ANTI_INSTALLATION_SHELL_MASTER_IDS = new Set([35, 317, 483])
 const ANTI_INSTALLATION_SHELL_SHIP_TYPE_IDS = new Set([5, 6, 8, 9, 10, 12])
+const SEAPLANE_TYPE_IDS = new Set([10, 11, 45])
+const ANTI_AIR_AIRCRAFT_TYPE_IDS = new Set([6, 7, 8, 11, 45, 56, 57, 58, 91])
+const ATTACK_AIRCRAFT_TYPE_IDS = new Set([7, 8, 11, 41, 57, 58, 91])
+const CARRIER_AIRCRAFT_TYPE_IDS = new Set([6, 7, 8, 9, 56, 57, 58, 59, 91])
+
+const isAntiInstallationShell = (gear: OwnedEquipment): boolean => gear.typeId === 18
 
 type GearRequirementKind =
   | 'big-gun'
@@ -34,6 +39,8 @@ type GearRequirementKind =
   | 'recon'
   | 'ap-shell'
   | 'anti-installation-shell'
+  | 'anti-installation-aircraft'
+  | 'anti-installation-safe-aircraft'
   | 'fighter'
   | 'attack-aircraft'
   | 'radar'
@@ -42,6 +49,7 @@ type GearRequirementKind =
   | 'sonar'
   | 'depth-charge'
   | 'midget-submarine'
+  | 'drum-canister'
   | 'landing-craft'
   | 'seaplane'
   | 'expansion'
@@ -81,6 +89,15 @@ export interface GearSearchContext {
 const compareSignatures = (left: string, right: string): number =>
   left < right ? -1 : left > right ? 1 : 0
 
+const isMandatoryRequirementKind = (kind: GearRequirementKind): boolean =>
+  [
+    'midget-submarine',
+    'drum-canister',
+    'anti-installation-shell',
+    'anti-installation-aircraft',
+    'anti-installation-safe-aircraft',
+  ].includes(kind)
+
 const rankStates = (
   states: readonly GearSearchState[],
   limit: number,
@@ -104,12 +121,14 @@ const requirementsForMember = (
   shipIndex: number,
   assignAirSeaplanes: boolean,
   assignAntiInstallationShell: boolean,
+  assignAntiInstallationAircraft: boolean,
+  assignDrumCanister: boolean,
 ): readonly GearRequirement[] => {
   const slotCount = member.ship.slotSizes.length
   const requirementKinds: GearRequirementKind[] = []
 
   if (member.role === 'main-battleship') {
-    if (assignAirSeaplanes) {
+    if (assignAirSeaplanes && member.ship.shipTypeId === 10) {
       requirementKinds.push('big-gun', 'big-gun', 'seaplane')
       while (requirementKinds.length < slotCount - 1) requirementKinds.push('seaplane')
       if (requirementKinds.length < slotCount) requirementKinds.push('ap-shell')
@@ -119,7 +138,7 @@ const requirementsForMember = (
     }
   } else if (member.role === 'utility-cruiser') {
     requirementKinds.push('main-gun', 'main-gun')
-    if (assignAirSeaplanes) {
+    if (assignAirSeaplanes && [6, 16].includes(member.ship.shipTypeId)) {
       while (requirementKinds.length < slotCount) requirementKinds.push('seaplane')
     } else {
       requirementKinds.push('recon', 'radar')
@@ -130,12 +149,19 @@ const requirementsForMember = (
       .map((slotSize, slotIndex) => ({ slotSize, slotIndex }))
       .sort((left, right) => right.slotSize - left.slotSize || left.slotIndex - right.slotIndex)
     const attackSlotIndexes = new Set(orderedSlots.slice(0, 2).map(({ slotIndex }) => slotIndex))
+    const primaryAttackSlotIndex = orderedSlots[0]?.slotIndex
     return member.ship.slotSizes.map((slotSize, slotIndex) => ({
       key: `${shipIndex}:${slotIndex}`,
       shipIndex,
       slotIndex,
       slotSize,
-      kind: attackSlotIndexes.has(slotIndex) ? 'attack-aircraft' : 'fighter',
+      kind: attackSlotIndexes.has(slotIndex)
+        ? assignAntiInstallationAircraft
+          ? slotIndex === primaryAttackSlotIndex
+            ? 'anti-installation-aircraft'
+            : 'anti-installation-safe-aircraft'
+          : 'attack-aircraft'
+        : 'fighter',
     }))
   } else if (member.role === 'torpedo-cruiser') {
     requirementKinds.push('midget-submarine', 'torpedo', 'torpedo')
@@ -154,6 +180,9 @@ const requirementsForMember = (
     while (requirementKinds.length < slotCount) requirementKinds.push('general')
   }
 
+  if (assignDrumCanister && slotCount > 0) {
+    requirementKinds[Math.min(slotCount, requirementKinds.length) - 1] = 'drum-canister'
+  }
   if (assignAntiInstallationShell && slotCount > 0) {
     requirementKinds[Math.min(slotCount, requirementKinds.length) - 1] = 'anti-installation-shell'
   }
@@ -171,26 +200,35 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
   if (kind === 'landing-craft') {
     return isNormalResourceLandingCraft(gear) || isDrumCanister(gear)
   }
+  if (kind === 'drum-canister') return isDrumCanister(gear)
   if (kind === 'anti-installation-shell') {
-    return ANTI_INSTALLATION_SHELL_MASTER_IDS.has(gear.masterId)
+    return isAntiInstallationShell(gear)
   }
+  if (kind === 'ap-shell') {
+    return gear.typeId === 19
+  }
+  if (kind === 'anti-installation-aircraft') return gear.antiInstallationAircraft
+  if (kind === 'anti-installation-safe-aircraft') return gear.antiInstallationAircraft
   if (SPEED_GEAR_MASTER_IDS.has(gear.masterId)) return false
   const acceptedTypes: Readonly<Record<GearRequirementKind, readonly number[]>> = {
     'big-gun': [3],
     'main-gun': [2, 3],
     recon: [9, 10],
-    'ap-shell': [18],
+    'ap-shell': [19],
     'anti-installation-shell': [],
-    fighter: [6],
-    'attack-aircraft': [7, 8],
+    'anti-installation-aircraft': [],
+    'anti-installation-safe-aircraft': [],
+    fighter: [...ANTI_AIR_AIRCRAFT_TYPE_IDS],
+    'attack-aircraft': [...ATTACK_AIRCRAFT_TYPE_IDS],
     radar: [12, 13, 93],
-    torpedo: [5],
+    torpedo: [5, 32],
     'small-gun': [1],
     sonar: [14, 40],
     'depth-charge': [15],
     'midget-submarine': [22],
+    'drum-canister': [],
     'landing-craft': [],
-    seaplane: [10, 11],
+    seaplane: [...SEAPLANE_TYPE_IDS],
     expansion: [],
     general: [],
   }
@@ -229,6 +267,8 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
     case 'fighter':
       return (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0) * 4 + stats.evasion
     case 'attack-aircraft':
+    case 'anti-installation-aircraft':
+    case 'anti-installation-safe-aircraft':
       return stats.torpedo * 4 + stats.bombing * 4 + stats.antiAir * 1.5 + stats.accuracy
     case 'recon':
       return stats.los * 6 + stats.accuracy * 2 + improvement
@@ -249,6 +289,8 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
       return stats.asw * 6 + stats.accuracy + improvement
     case 'midget-submarine':
       return stats.torpedo * 5 + stats.accuracy * 2 + improvement
+    case 'drum-canister':
+      return 80 + improvement
     case 'landing-craft':
       if (isNormalResourceLandingCraft(gear)) {
         return 80 + stats.firepower + stats.armor + improvement
@@ -275,6 +317,31 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
         improvement
       )
   }
+}
+
+const isSafeRegularFallback = (
+  gear: OwnedEquipment,
+  member: FleetMember,
+  requirement: GearRequirement,
+): boolean => {
+  if (isAntiInstallationShell(gear) || isDrumCanister(gear) || isNormalResourceLandingCraft(gear)) {
+    return false
+  }
+  if (member.role === 'carrier-air-superiority') {
+    return CARRIER_AIRCRAFT_TYPE_IDS.has(gear.typeId)
+  }
+  if (member.role === 'torpedo-cruiser') {
+    return (
+      [2, 5, 12, 13, 22].includes(gear.typeId) &&
+      !TORPEDO_CRUISER_UNFIT_GUN_MASTER_IDS.has(gear.masterId)
+    )
+  }
+  if (member.role === 'main-battleship') {
+    if (requirement.kind === 'seaplane') return SEAPLANE_TYPE_IDS.has(gear.typeId)
+    return ![6, 7, 8, 11, 22, 45].includes(gear.typeId)
+  }
+  if (![6, 16].includes(member.ship.shipTypeId) && [11, 45].includes(gear.typeId)) return false
+  return ![6, 7, 8].includes(gear.typeId)
 }
 
 type SpeedGearCategory =
@@ -396,6 +463,7 @@ const reserveSpeedSelection = (
   state: GearSearchState,
   member: FleetMember,
   shipIndex: number,
+  protectedRegularSlotIndexes: ReadonlySet<number>,
 ): GearSearchState | null => {
   const ship = member.ship
   const expansionCandidates = ship.expansionSlotUnlocked
@@ -418,8 +486,10 @@ const reserveSpeedSelection = (
     if (!regularGears.every((gear) => ship.regularEquipableMasterIds.includes(gear.masterId))) {
       continue
     }
+    if (regularGears.length > ship.slotSizes.length - protectedRegularSlotIndexes.size) continue
     const regularSlotIndexes = ship.slotSizes
       .map((slotSize, slotIndex) => ({ slotSize, slotIndex }))
+      .filter(({ slotIndex }) => !protectedRegularSlotIndexes.has(slotIndex))
       .sort((left, right) => left.slotSize - right.slotSize || right.slotIndex - left.slotIndex)
       .slice(0, regularGears.length)
       .map(({ slotIndex }) => slotIndex)
@@ -443,6 +513,7 @@ const reserveSpeedSelection = (
 const buildFastPlusReservationStates = (
   fleet: FleetSearchState,
   context: GearSearchContext,
+  protectedRegularSlotIndexesByShip: ReadonlyMap<number, ReadonlySet<number>>,
 ): readonly GearSearchState[] => {
   let states: readonly GearSearchState[] = [
     {
@@ -459,7 +530,13 @@ const buildFastPlusReservationStates = (
     states.forEach((state) => {
       member.ship.fastPlusPatterns.forEach((pattern) => {
         speedSelectionsForPattern(pattern, member, context, state).forEach((selection) => {
-          const reserved = reserveSpeedSelection(selection, state, member, shipIndex)
+          const reserved = reserveSpeedSelection(
+            selection,
+            state,
+            member,
+            shipIndex,
+            protectedRegularSlotIndexesByShip.get(shipIndex) ?? new Set<number>(),
+          )
           if (reserved) nextStates.push(reserved)
         })
       })
@@ -660,18 +737,18 @@ export const buildGearSolutions = (
   fastPlusRequired = false,
   antiInstallationShellCount = 0,
   nightCarrierRequired = false,
+  antiInstallationCarrierCount = 0,
+  drumCanisterCarrierCount = 0,
 ): readonly RecommendedShipBuild[][] => {
   const solutionCacheKey = `${fleet.members
     .map((member) => `${member.ship.id}:${member.role}`)
     .join('-')}:${Number(airPowerRequired)}:${Number(fastPlusRequired)}:${Number(
     antiInstallationShellCount,
-  )}:${Number(nightCarrierRequired)}`
+  )}:${Number(nightCarrierRequired)}:${antiInstallationCarrierCount}:${drumCanisterCarrierCount}`
   const cachedSolution = context.solutionCache.get(solutionCacheKey)
   if (cachedSolution) return cachedSolution
   const availableAntiInstallationShellMasterIds = new Set(
-    context.availableEquipment
-      .filter((gear) => ANTI_INSTALLATION_SHELL_MASTER_IDS.has(gear.masterId))
-      .map((gear) => gear.masterId),
+    context.availableEquipment.filter(isAntiInstallationShell).map((gear) => gear.masterId),
   )
   const antiInstallationMemberIndexes = new Set(
     fleet.members
@@ -689,12 +766,55 @@ export const buildGearSolutions = (
     context.solutionCache.set(solutionCacheKey, [])
     return []
   }
+  const antiInstallationCarrierIndexes = new Set(
+    fleet.members
+      .map((member, shipIndex) => ({ member, shipIndex }))
+      .filter(({ member }) => [7, 11, 18].includes(member.ship.shipTypeId))
+      .filter(({ member }) =>
+        context.availableEquipment.some(
+          (gear) =>
+            gear.antiInstallationAircraft &&
+            member.ship.regularEquipableMasterIds.includes(gear.masterId),
+        ),
+      )
+      .slice(0, antiInstallationCarrierCount)
+      .map(({ shipIndex }) => shipIndex),
+  )
+  if (antiInstallationCarrierIndexes.size < antiInstallationCarrierCount) {
+    context.solutionCache.set(solutionCacheKey, [])
+    return []
+  }
+  const availableDrumCanisters = context.availableEquipment.filter(isDrumCanister)
+  const drumCanisterCarrierIndexes = new Set(
+    fleet.members
+      .map((member, shipIndex) => ({ member, shipIndex }))
+      .filter(({ member }) => member.ship.slotSizes.length > 0)
+      .filter(({ member }) =>
+        availableDrumCanisters.some((gear) =>
+          member.ship.regularEquipableMasterIds.includes(gear.masterId),
+        ),
+      )
+      .sort(
+        (left, right) =>
+          Number(left.member.role === 'main-battleship') -
+            Number(right.member.role === 'main-battleship') || left.shipIndex - right.shipIndex,
+      )
+      .slice(0, drumCanisterCarrierCount)
+      .map(({ shipIndex }) => shipIndex),
+  )
+  if (
+    availableDrumCanisters.length < drumCanisterCarrierCount ||
+    drumCanisterCarrierIndexes.size < drumCanisterCarrierCount
+  ) {
+    context.solutionCache.set(solutionCacheKey, [])
+    return []
+  }
   const regularRequirements = fleet.members.flatMap((member, shipIndex) => {
     const assignAirSeaplanes =
       airPowerRequired &&
       context.availableEquipment.some(
         (gear) =>
-          [10, 11].includes(gear.typeId) &&
+          SEAPLANE_TYPE_IDS.has(gear.typeId) &&
           context.regularMasterIdsByShip.get(member.ship.id)?.has(gear.masterId) &&
           Object.values(gear.airPowerBySlotSize).some((power) => power > 0),
       )
@@ -703,6 +823,8 @@ export const buildGearSolutions = (
       shipIndex,
       assignAirSeaplanes,
       antiInstallationMemberIndexes.has(shipIndex),
+      antiInstallationCarrierIndexes.has(shipIndex),
+      drumCanisterCarrierIndexes.has(shipIndex),
     )
   })
   const expansionRequirements: readonly GearRequirement[] = fleet.members.flatMap(
@@ -725,23 +847,66 @@ export const buildGearSolutions = (
     requirementCounts.set(requirement.kind, (requirementCounts.get(requirement.kind) ?? 0) + 1)
   })
   const requirementsWithOptions = requirements
-    .map((requirement) => ({
-      requirement,
-      options: optionsForRequirement(
+    .map((requirement) => {
+      const candidateLimit = Math.max(
+        MIN_GEAR_CANDIDATES_PER_SLOT,
+        (requirementCounts.get(requirement.kind) ?? 0) + 6,
+      )
+      const primaryOptions = optionsForRequirement(
         requirement,
         fleet.members,
         context,
-        Math.max(MIN_GEAR_CANDIDATES_PER_SLOT, (requirementCounts.get(requirement.kind) ?? 0) + 6),
-      ),
-    }))
+        candidateLimit,
+      )
+      if (requirement.kind === 'expansion' || isMandatoryRequirementKind(requirement.kind)) {
+        return { requirement, options: primaryOptions }
+      }
+      const primaryIds = new Set(primaryOptions.map(({ gear }) => gear.id))
+      const fallbackCandidateLimit = Math.max(candidateLimit, regularRequirements.length + 6)
+      const fallbackOptions = optionsForRequirement(
+        { ...requirement, kind: 'general' },
+        fleet.members,
+        context,
+        context.availableEquipment.length,
+      )
+        .filter(({ gear }) => !primaryIds.has(gear.id))
+        .filter(({ gear }) =>
+          isSafeRegularFallback(gear, fleet.members[requirement.shipIndex], requirement),
+        )
+        .map((option) => ({ ...option, score: option.score - 200 }))
+        .slice(0, fallbackCandidateLimit)
+      return {
+        requirement,
+        options: [...primaryOptions, ...fallbackOptions].slice(0, fallbackCandidateLimit),
+      }
+    })
     .sort(
       (left, right) =>
         left.options.length - right.options.length ||
+        Number(isMandatoryRequirementKind(right.requirement.kind)) -
+          Number(isMandatoryRequirementKind(left.requirement.kind)) ||
         left.requirement.key.localeCompare(right.requirement.key),
     )
 
+  const protectedRegularSlotIndexesByShip = new Map<number, ReadonlySet<number>>()
+  regularRequirements.forEach((requirement) => {
+    if (
+      typeof requirement.slotIndex !== 'number' ||
+      ![
+        'anti-installation-shell',
+        'anti-installation-aircraft',
+        'anti-installation-safe-aircraft',
+        'drum-canister',
+      ].includes(requirement.kind)
+    ) {
+      return
+    }
+    const indexes = new Set(protectedRegularSlotIndexesByShip.get(requirement.shipIndex) ?? [])
+    indexes.add(requirement.slotIndex)
+    protectedRegularSlotIndexesByShip.set(requirement.shipIndex, indexes)
+  })
   let states: readonly GearSearchState[] = fastPlusRequired
-    ? buildFastPlusReservationStates(fleet, context)
+    ? buildFastPlusReservationStates(fleet, context, protectedRegularSlotIndexesByShip)
     : [
         {
           assignments: new Map<string, OwnedEquipment | null>(),
@@ -766,7 +931,7 @@ export const buildGearSolutions = (
       }
       const availableOptions = options.filter(({ gear }) => !state.usedEquipmentIds.has(gear.id))
       const candidates: readonly (GearOption | null)[] =
-        requirement.kind === 'midget-submarine' ? availableOptions : [...availableOptions, null]
+        requirement.kind === 'expansion' ? [...availableOptions, null] : availableOptions
       candidates.forEach((option) => {
         const assignments = new Map(state.assignments)
         const expansionAssignments = new Map(state.expansionAssignments)
@@ -791,29 +956,43 @@ export const buildGearSolutions = (
 
   const requiredEquipmentRequirements = requirements.filter(
     (requirement) =>
-      requirement.kind === 'midget-submarine' || requirement.kind === 'anti-installation-shell',
+      requirement.kind === 'midget-submarine' ||
+      requirement.kind === 'drum-canister' ||
+      requirement.kind === 'anti-installation-shell' ||
+      requirement.kind === 'anti-installation-aircraft',
   )
-  const solutions = states
-    .filter((state) =>
-      requiredEquipmentRequirements.every((requirement) => {
-        const gear = state.assignments.get(requirement.key)
-        if (!gear) return false
-        return requirement.kind === 'midget-submarine'
-          ? gear.typeId === 22
-          : ANTI_INSTALLATION_SHELL_MASTER_IDS.has(gear.masterId)
-      }),
-    )
-    .slice(0, 6)
-    .map((state) =>
-      fleet.members.map((member, shipIndex) => ({
-        ship: member.ship,
-        role: member.role,
-        equipment: member.ship.slotSizes.map(
-          (_, slotIndex) => state.assignments.get(`${shipIndex}:${slotIndex}`) ?? null,
-        ),
-        expansionSlot: state.expansionAssignments.get(shipIndex) ?? null,
-      })),
-    )
+  const requiredStates = states.filter((state) =>
+    requiredEquipmentRequirements.every((requirement) => {
+      const gear = state.assignments.get(requirement.key)
+      if (!gear) return false
+      if (requirement.kind === 'midget-submarine') return gear.typeId === 22
+      if (requirement.kind === 'drum-canister') return isDrumCanister(gear)
+      if (requirement.kind === 'anti-installation-aircraft') {
+        return gear.antiInstallationAircraft
+      }
+      return isAntiInstallationShell(gear)
+    }),
+  )
+  const carrierStates = requiredStates.filter((state) =>
+    [...antiInstallationCarrierIndexes].every((shipIndex) =>
+      regularRequirements.some(
+        (requirement) =>
+          requirement.shipIndex === shipIndex &&
+          requirement.kind === 'anti-installation-aircraft' &&
+          Boolean(state.assignments.get(requirement.key)?.antiInstallationAircraft),
+      ),
+    ),
+  )
+  const solutions = carrierStates.slice(0, 6).map((state) =>
+    fleet.members.map((member, shipIndex) => ({
+      ship: member.ship,
+      role: member.role,
+      equipment: member.ship.slotSizes.map(
+        (_, slotIndex) => state.assignments.get(`${shipIndex}:${slotIndex}`) ?? null,
+      ),
+      expansionSlot: state.expansionAssignments.get(shipIndex) ?? null,
+    })),
+  )
   context.solutionCache.set(solutionCacheKey, solutions)
   return solutions
 }

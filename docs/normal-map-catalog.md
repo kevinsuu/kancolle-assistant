@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-26:
 7-1 .. 7-5
 ```
 
-It normalizes 109 canonical strategy templates. A canonical template represents a different routing
+It normalizes 112 canonical strategy templates. A canonical template represents a different routing
 condition, phase, or gameplay objective; swapping one ship for another of the same accepted type
 does not create another template.
 
@@ -22,7 +22,8 @@ The recommendation-core test suite locks the current map and route counts, rejec
 IDs and normalized semantic duplicates, and validates every objective and fleet constraint before
 solver refactors are accepted. It also requires every template to retain the direct Kancolle Wiki
 page for its map, so the UI can expose the current routing reference rather than an untraceable
-composition.
+composition. A capable-account regression also generates the primary balanced route for every one
+of the 37 maps, preventing a valid multi-constraint fleet from being lost to bounded search.
 
 ## Sources
 
@@ -64,6 +65,7 @@ resource-ammo
 resource-steel
 resource-bauxite
 resource-bucket
+resource-burner
 resource-devmat
 ```
 
@@ -71,6 +73,7 @@ Notable overlays include:
 
 - 1-3 fuel farming with AO or AV.
 - 1-4 steel farming.
+- 2-1 fixed instant-construction-material farming with two CVL, three SS/SSV, and one AV.
 - 2-2 carrier leveling and bauxite farming.
 - 2-4 bucket and development-material farming.
 - 3-2 ammunition farming.
@@ -80,11 +83,13 @@ Notable overlays include:
 
 ## Extra Operations
 
-For basic boss objectives, every normal map only exposes routes marked `stableBoss` to automatic
-Top 3 selection. Inherently random maps such as 1-1 and 4-3 return no stable automatic plan instead
-of presenting a probability as a guarantee; their reviewed routes remain manually selectable. The
-ranking pass first selects the best fleet from distinct route templates, then fills
-remaining slots with fleet variants only when fewer than three distinct legal routes exist.
+For basic boss objectives, automatic Top 3 first compares routes that pass the complete solver-ready
+audit. If a map has none, it falls back to its calculable reviewed templates instead of requiring a
+manual route selection. Inherently random maps such as 1-1 and 4-3 therefore return a fleet with a
+probability warning rather than presenting the route as guaranteed; routes with unresolved LBAS,
+smoke, or other sortie setup similarly retain explicit warnings. The ranking pass first selects the
+best fleet from distinct route templates, then fills remaining slots with fleet variants only when
+fewer than three distinct legal routes exist.
 
 The 1-5 through 7-5 overlays were rechecked against the current per-map Kancolle Wiki and 艦娘百科
 guides on 2026-08-25. They replace the older vendored X-5 routes instead of being merged with them,
@@ -99,10 +104,16 @@ regular/armored carriers, one CAV, and two SS/SSV, with air power 410 and Cn4 Lo
 the former rule that allowed one battleship plus two carriers was removed. The 4-5 catalog
 distinguishes the two-DD light fleet
 that goes through K from the three-DD fleet that goes directly from H to T and retains the Fast+
-night-carrier/torpedo-cruiser composition. The stable 5-5 north routes now use exact two-BB/two-CV
-cores, and the AO middle route records its H-node smoke-screen requirement. The 6-5 north route is
-the exact one-BB/two-CV/CA-class/CL-or-CLT/DD recommendation, with LBAS-adjusted air-power targets.
-The 7-5 catalog separately exposes P1, both M-node gimmick fleets, the fast CVL P2 fleet, and P3.
+night-carrier/torpedo-cruiser composition. Its modeled heavy and carrier routes validate unique
+Type 3 Shell assignments; carrier-heavy variants also exclude ordinary dive bombers that would
+prevent attacks against land installations. The former flexible Fast+ battleship/carrier entry is
+split into exact one-BB/three-CV and two-BB/two-CV templates, each with two Type 3 Shell attackers
+and every carrier kept able to attack installations. The three-DD shortest route now validates one
+Type 3 Shell battleship plus one anti-installation-capable carrier instead of returning a generic
+manual-check loadout. The stable 5-5 north routes now use exact two-BB/two-CV cores, and the AO
+middle route records its H-node smoke-screen requirement. The 6-5 north route is the exact
+one-BB/two-CV/CA-class/CL-or-CLT/DD recommendation, with LBAS-adjusted air-power targets. The 7-5
+catalog separately exposes P1, both M-node gimmick fleets, the fast CVL P2 fleet, and P3.
 
 Multi-phase maps expose a route/phase selector in Strategy Room. Selecting automatic comparison
 allows cross-route Top 3; selecting a route constrains the solver to that phase/template.
