@@ -51,9 +51,7 @@ import {
   initializeDevToolsPreferences,
   showKc3DevToolsPanel,
 } from './devtools/kc3-devtools'
-import { registerRecommendationIpc } from './recommendation/recommendation-ipc'
-import { createRecommendationWorkerService } from './recommendation/recommendation-worker-service'
-import { registerDmmCredentialVault } from './security/dmm-credential-vault'
+import { createMainBootstrap } from './main-bootstrap'
 
 import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
@@ -65,9 +63,8 @@ import { isMatch } from 'matcher'
 import { createNodeWorker } from './workers/worker-shim'
 import updateWorker from 'worker-loader?filename=updater.worker.js!./workers/updater-worker.js'
 
-import { createKccpService } from './kccp-integration.js'
-
-const kccpService = createKccpService()
+const mainBootstrap = createMainBootstrap()
+const kccpService = mainBootstrap.kccpService
 const kccp = { logger: kccpService.logger, kccpLogSource: kccpService.logSource }
 
 const logSource = 'kancolle-assistant'
@@ -696,21 +693,17 @@ class Browser extends EventEmitter {
     this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
     kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
-    registerDmmCredentialVault({ app, dialog, ipcMain, safeStorage })
     setupMenu(this)
-    this.recommendationService = createRecommendationWorkerService({
-      createWorker: () => createNodeWorker(recommendationWorkerPath),
-      logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
-    })
-    registerRecommendationIpc({
-      ipcMain,
+    mainBootstrap.registerCoreServices({
+      app,
+      createRecommendationWorker: () => createNodeWorker(recommendationWorkerPath),
+      dialog,
       getKc3ExtensionId: () => this.currentKc3ExtensionId,
-      recommend: (input) => this.recommendationService.recommend(input),
-      planExpeditions: (input) => this.recommendationService.planExpeditions(input),
-      summarizeResourceLedger: (input) => this.recommendationService.summarizeResourceLedger(input),
+      ipcMain,
       logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+      safeStorage,
     })
-    app.once('will-quit', () => this.recommendationService.dispose())
+    app.once('will-quit', () => mainBootstrap.dispose())
 
     app.on('browser-window-focus', () => {
       const fWin = () => this.getFocusedWindow()
@@ -938,325 +931,29 @@ class Browser extends EventEmitter {
       hideAddressBarFor: [settingsUrl],
     })
 
-    // Messages from webui/settings
-    ipcMain.handle('webui-message', async (ev, meta, data) => {
-      let result
-      let kccpConfig, cachePath, source, target // reusables
-      switch (meta.type) {
-        case 'get-damecon-info':
-          result = {
-            version: `${app.getName()} v${app.getVersion()}`,
-            paths: {
-              home: homeDataLocation,
-              app: appDir,
-              appData: appDataDir,
-            },
-            kccpStatus: kccpService.getStatus(),
-          }
-          break
-        case 'get-damecon-version':
-          result = `${app.getName()} v${app.getVersion()}`
-          break
-        case 'get-config-item':
-          result = configStore.get(data.key)
-          break
-        case 'get-config':
-          result = configStore.all
-          break
-        case 'set-config-item':
-          result = configStore.set(data.key, data.value)
-          if (data.key.startsWith('proxy.')) {
-            if (
-              ((data.key == 'proxy.enable' &&
-                data.value == true &&
-                configStore.get('proxy.mode') == 'kccp-internal') ||
-                (data.key == 'proxy.mode' &&
-                  data.value == 'kccp-internal' &&
-                  configStore.get('proxy.enable') == true)) &&
-              (await kccpService.getConfig(configStore))?.config?.autoUpdateGitMods
-            ) {
-              await this.updateKccpMods()
-            } else {
-              await kccpService.startStop(configStore)
-              await this.applyProxy()
-            }
-          } else if (data.key == 'kc3kai.update.channel') {
-            if (kc3ExtensionId) this.session.removeExtension(kc3ExtensionId)
-            await this.updateKc3IfScheduled()
-          } else if (data.key === 'window.style.brightness') {
-            nativeTheme.themeSource = data.value
-          } else if (data.key.startsWith('kc3kai.custom')) {
-            const kc3Path = this.getKc3Path()
-            await this.checkStartKc3(kc3Path)
-          } else if (data.key == 'kancolle.forceCookieHack' && data.value == true) {
-            this.applyCookieHack()
-          }
-          this.sendToAllWindows('config-saved', configStore.all)
-          break
-        case 'get-should-hide-addressbar':
-          if (data.url === settingsUrl) {
-            result = true
-          } else {
-            const sites = configStore
-              .get('window.view.hideAddressBarSites')
-              .map((site) =>
-                site.replace('{{kc3-extension}}', `chrome-extension://${kc3ExtensionId}`),
-              )
-            result = isMatch(data.url, sites)
-          }
-          break
-        case 'clear-cache':
-          await this.session.clearCache()
-          if (
-            configStore.get('proxy.enable') &&
-            configStore.get('proxy.mode') === 'kccp-internal'
-          ) {
-            const kccpCfg = await kccpService.getConfig(configStore)
-            const cachePath = kccpService.getCachePath(kccpCfg.config)
-            const mainjsPath = path.join(cachePath, 'kcs2', 'js', 'main.js')
-            if (fsSync.existsSync(mainjsPath)) {
-              kccp.logger.log(logSource, 'Deleting main.js from internal KCCacheProxy cache.')
-              try {
-                fsSync.rmSync(mainjsPath)
-              } catch (error) {
-                kccp.logger.error(logSource, 'Failed to delete main.js from', hideHome(mainjsPath))
-                kccp.logger.error(logSource, error)
-              }
-            }
-          }
-
-          kccp.logger.log(logSource, 'Cache cleared.')
-          break
-        case 'start-find-in-page':
-          this.startFindInPage(data.tabId, data.searchInput)
-          break
-        case 'close-find-in-page':
-          this.setFindInPageVisible(data.tabId, false)
-          break
-        case 'kc3-doupdate':
-          await this.updateKc3(configStore.get('kc3kai.update.channel'))
-          break
-        case 'kccp-modder-doupdate':
-          await this.updateKccpMods()
-          break
-        case 'kc3-get-isupdating':
-          result = { isUpdating: this.kc3IsUpdating, channel: this.kc3UpdatingChannel }
-          break
-        case 'kccp-modder-get-isupdating':
-          result = { isUpdating: this.kccpModderIsUpdating }
-          break
-        case 'kc3-select-custom-location':
-        case 'select-custom-data-location':
-        case 'select-custom-kccp-location':
-          const { canceled, filePaths } = await dialog.showOpenDialog({
-            properties: ['openDirectory'],
-          })
-          result = { canceled, filePaths }
-          break
-        case 'webui-init-complete':
-          let initWin = this.windows.find((w) => w.window.id === meta.windowId)
-          initWin.resolveReady()
-          break
-        case 'webui-zoom-changed':
-          //kccp.logger.log(logSource, 'zoom changed', data)
-          let zoomWin = this.windows.find((w) => w.window.id === meta.windowId)
-          zoomWin?.tabs.updateLayout(data.height)
-          break
-        case 'webui-display-mode-changed':
-          let modeWin = this.windows.find((w) => w.window.id === meta.windowId)
-          modeWin?.tabs.updateLayout(data.height)
-          break
-        case 'webui-close-tab':
-          //kccp.logger.log(logSource, 'clicked tab X', data)
-          this.confirmCloseTab(data.tabId)
-          break
-        case 'kccp-get-status':
-          result = kccpService.getStatus()
-          break
-        case 'kccp-get-config':
-          result = await kccpService.getConfig(configStore)
-          break
-        case 'kccp-save-config':
-          const newConfig = data
-          await kccpService.setConfig(newConfig)
-          if (configStore.get('proxy.enable') && newConfig.autoUpdateGitMods) {
-            await this.updateKccpMods()
-          } else {
-            await kccpService.startStop(configStore)
-            await this.applyProxy()
-          }
-          break
-        case 'kccp-import-cache':
-          let location = 'unknown'
-          try {
-            if (data?.builtIn) {
-              location = path.join(ROOT_DIR, 'resources/minimum-cache.zip')
-              await kccpService.mergeCache(location)
-            } else {
-              const response = await dialog.showOpenDialog({
-                title: 'Select cache dump .zip file',
-                filters: [
-                  {
-                    name: '.zip files',
-                    extensions: ['zip'],
-                  },
-                ],
-                properties: ['openFile'],
-              })
-              if (!response.canceled) {
-                location = response.filePaths[0]
-                await kccpService.mergeCache(location)
-              }
-            }
-          } catch (error) {
-            kccp.logger.error(logSource, "Couldn't load cache dump.", error)
-          }
-          break
-        case 'kccp-verify-cache':
-          const verifyResponse = dialog.showMessageBoxSync({
-            type: 'question',
-            title: 'Delete invalid files?',
-            buttons: ['Cancel', 'Delete', 'Keep'],
-            message: 'Delete invalid files?',
-            detail:
-              'Cached files created in an old version might count as invalid and will be deleted.',
-            defaultId: 0,
-            cancelId: 1,
-          })
-          if (verifyResponse === 0) return
-          await kccpService.verifyCache(verifyResponse === 1)
-          break
-        case 'kccp-extract-spritesheet':
-          kccpConfig = await kccpService.getConfig(configStore)
-          cachePath = kccpService.getKcs2CachePath(kccpConfig.config)
-          source = await dialog.showOpenDialog({
-            title: 'Select a spritesheet',
-            defaultPath: cachePath,
-            filters: [
-              {
-                name: 'Spritesheet image',
-                extensions: ['png'],
-              },
-            ],
-            properties: ['openFile'],
-          })
-          if (source.canceled) return
-
-          target = await dialog.showOpenDialog({
-            title: 'Select a folder to extract to',
-            defaultPath: kccpService.getModPath(kccpConfig.config),
-            properties: ['openDirectory'],
-          })
-          if (target.canceled) return
-          await kccpService.extractSplit(source.filePaths[0], target.filePaths[0])
-          break
-        case 'kccp-make-outlines':
-          kccpConfig = await kccpService.getConfig(configStore)
-          cachePath = kccpService.getKcs2CachePath(kccpConfig.config)
-          source = await dialog.showOpenDialog({
-            title: 'Select a spritesheet',
-            defaultPath: cachePath,
-            filters: [
-              {
-                name: 'Spritesheet image',
-                extensions: ['png'],
-              },
-            ],
-            properties: ['openFile'],
-          })
-          if (source.canceled) return
-
-          target = await dialog.showSaveDialog({
-            title: 'Select a location to save outlines to',
-            defaultPath: kccpService.getModPath(kccpConfig.config),
-            filters: [
-              {
-                name: 'Images',
-                extensions: ['png'],
-              },
-            ],
-          })
-          if (target.canceled) return
-
-          await kccpService.makeOutlines(source.filePaths[0], target.filePath)
-          break
-        case 'kccp-convert-poi':
-          kccpConfig = await kccpService.getConfig(configStore)
-          source = await dialog.showOpenDialog({
-            title: 'Select cache folder to import from',
-            defaultPath: getModPath(kccpConfig.config),
-            properties: ['openDirectory'],
-          })
-          if (source.canceled) return
-
-          target = await dialog.showOpenDialog({
-            title: 'Select a folder to export to',
-            defaultPath: getModPath(kccpConfig.config),
-            properties: ['openDirectory'],
-          })
-          if (target.canceled) return
-
-          await kccpService.importExternalMod(source.filePaths[0], target.filePaths[0])
-          break
-        case 'kccp-add-mod':
-          kccpConfig = await kccpService.getConfig(configStore)
-          const addModResponse = await dialog.showOpenDialog({
-            title: 'Select a mod metadata file',
-            filters: [
-              {
-                name: 'Mod metadata',
-                defaultPath: kccpService.getModPath(kccpConfig.config),
-                extensions: ['mod.json'],
-              },
-            ],
-            properties: ['openFile'],
-          })
-          if (addModResponse.canceled) return
-          if (kccpConfig.config.mods.map((m) => m.path).includes(addModResponse.filePaths[0])) {
-            kccp.logger.error(logSource, 'Mod already added')
-            return
-          }
-          kccpConfig.config.mods.push({ path: addModResponse.filePaths[0] })
-          await kccpService.setConfig(kccpConfig.config)
-          //await kccpService.startStop(configStore)
-          // will automatically start when fetching the config and checking for updates
-          await this.applyProxy()
-          break
-        case 'kccp-add-git-mod':
-          const { url } = data
-          if (!url) return
-          kccp.logger.log(logSource, 'Adding KCCP git mod')
-          await kccpService.installGitMod(configStore, url)
-          break
-        case 'kccp-update-git-mod':
-          const modToUpdate = data.mod
-          if (!path) return
-          kccp.logger.log(logSource, 'Updating KCCP git mod', modToUpdate.path)
-          await kccpService.updateGitMod(modToUpdate)
-          await kccpService.startStop(configStore)
-          break
-        case 'kccp-open-mod-folder':
-          const modToOpen = data.mod
-          kccpConfig = await kccpService.getConfig(configStore)
-          const modPath = this.getModPath(kccpConfig.config)
-          if (modPath) shell.openPath(modPath)
-          break
-        case 'kccp-log-get-recent':
-          kccp.logger.sendRecent()
-          break
-        case 'kccp-reload-mods':
-          await kccpService.reloadModCache()
-          break
-        case 'kccp-reload-cache':
-          kccpService.reloadCache()
-          break
-        case 'kccp-prepatch':
-          await kccpService.prepatch()
-          break
-        case 'kccp-check-mitm-cert':
-          await kccpService.checkTrustMitmCert()
-      }
-      return result
+    mainBootstrap.registerWebUi({
+      ipcMain,
+      getWebUiExtensionId: () => webuiExtensionId,
+      routerDependencies: {
+        app,
+        appDataDir,
+        appDir,
+        browser: this,
+        configStore,
+        dialog,
+        fs: fsSync,
+        getKc3ExtensionId: () => kc3ExtensionId,
+        hideHome,
+        homeDataLocation,
+        isMatch,
+        logger: kccp.logger,
+        logSource,
+        nativeTheme,
+        path,
+        rootDir: ROOT_DIR,
+        settingsUrl,
+        shell,
+      },
     })
 
     await initialWindow.ready

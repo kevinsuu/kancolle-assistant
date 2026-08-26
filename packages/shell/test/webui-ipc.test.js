@@ -1,0 +1,132 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { createWebUiCommandRouter } from '../browser/ui/webui-command-router.js'
+import {
+  isAllowedWebUiSender,
+  registerWebUiIpc,
+  WEBUI_ALLOWED_PATHS,
+} from '../browser/ui/webui-ipc.js'
+
+const extensionId = 'fixture-webui-extension'
+const eventFor = (url) => ({ senderFrame: { url }, sender: { getURL: () => url } })
+
+test('webui IPC accepts only the current extension and five local pages', () => {
+  for (const pagePath of WEBUI_ALLOWED_PATHS) {
+    assert.equal(
+      isAllowedWebUiSender(
+        eventFor(`chrome-extension://${extensionId}${pagePath}?fixture=1`),
+        extensionId,
+      ),
+      true,
+    )
+  }
+  assert.equal(
+    isAllowedWebUiSender(eventFor(`chrome-extension://another/settings.html`), extensionId),
+    false,
+  )
+  assert.equal(
+    isAllowedWebUiSender(eventFor(`chrome-extension://${extensionId}/other.html`), extensionId),
+    false,
+  )
+  assert.equal(
+    isAllowedWebUiSender(eventFor('https://example.com/settings.html'), extensionId),
+    false,
+  )
+})
+
+test('registerWebUiIpc preserves the meta/data call shape and rejects unsupported senders', async () => {
+  let handler
+  const calls = []
+  registerWebUiIpc({
+    ipcMain: { handle: (channel, callback) => ((handler = callback), calls.push(channel)) },
+    getWebUiExtensionId: () => extensionId,
+    route: (...args) => args,
+  })
+  const event = eventFor(`chrome-extension://${extensionId}/webui.html`)
+  const meta = { type: 'get-config', windowId: 2 }
+  const data = { untouched: true }
+  assert.deepEqual(await handler(event, meta, data), [event, meta, data])
+  assert.deepEqual(calls, ['webui-message'])
+
+  await assert.rejects(
+    handler(eventFor('chrome-extension://another/webui.html'), meta, data),
+    /unsupported sender/,
+  )
+})
+
+const createRouterFixture = () => {
+  const order = []
+  const values = new Map([
+    ['proxy.mode', 'kccp-internal'],
+    ['proxy.enable', true],
+    ['window.view.hideAddressBarSites', []],
+  ])
+  const configStore = {
+    get: (key) => values.get(key),
+    set: (key, value) => {
+      order.push(`config:${key}`)
+      values.set(key, value)
+      return 'saved'
+    },
+    all: { fixture: true },
+  }
+  const browser = {
+    session: { clearCache: async () => order.push('clear-cache') },
+    windows: [],
+    sendToAllWindows: () => order.push('broadcast'),
+    updateKccpMods: async () => order.push('update-mods'),
+    startFindInPage: () => {},
+    setFindInPageVisible: () => {},
+    updateKc3: async () => {},
+    applyProxy: async () => order.push('apply-proxy'),
+  }
+  const kccpService = {
+    getStatus: () => ({ started: false }),
+    getConfig: async () => ({ config: { autoUpdateGitMods: false } }),
+    startStop: async () => order.push('start-stop'),
+  }
+  const nativeTheme = { themeSource: 'system' }
+  const route = createWebUiCommandRouter({
+    app: { getName: () => 'KanColle Assistant', getVersion: () => '1.0.0' },
+    appDataDir: '/fixture/app-data',
+    appDir: '/fixture/app',
+    browser,
+    configStore,
+    dialog: {},
+    fs: {},
+    getKc3ExtensionId: () => 'kc3',
+    hideHome: (value) => value,
+    homeDataLocation: '/fixture/home',
+    isMatch: () => false,
+    kccpService,
+    logger: { log: () => {}, error: () => {}, sendRecent: () => {} },
+    logSource: 'fixture',
+    nativeTheme,
+    path: {},
+    rootDir: '/fixture/root',
+    settingsUrl: `chrome-extension://${extensionId}/settings.html`,
+    shell: {},
+  })
+  return { browser, configStore, kccpService, nativeTheme, order, route }
+}
+
+test('webui command router preserves return values and proxy handler order', async () => {
+  const fixture = createRouterFixture()
+  assert.equal(
+    await fixture.route(null, { type: 'get-damecon-version' }),
+    'KanColle Assistant v1.0.0',
+  )
+  assert.deepEqual(await fixture.route(null, { type: 'get-config' }), { fixture: true })
+  assert.equal(
+    await fixture.route(null, { type: 'set-config-item' }, { key: 'proxy.enable', value: true }),
+    'saved',
+  )
+  assert.deepEqual(fixture.order, ['config:proxy.enable', 'start-stop', 'apply-proxy', 'broadcast'])
+
+  await fixture.route(
+    null,
+    { type: 'set-config-item' },
+    { key: 'window.style.brightness', value: 'dark' },
+  )
+  assert.equal(fixture.nativeTheme.themeSource, 'dark')
+})
