@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.0`    | `2026-08-25`   |
+| `v1.0.1`    | `2026-08-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -24,12 +24,22 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
 
+### v1.0.1 highlights (since v1.0.0)
+
+- The game canvas now refits when the window is resized, without locking the window aspect ratio.
+- Fleet recommendations now validate owned Fast+ and night-carrier setups, rank post-conversion
+  combat capacity, and build coherent torpedo-cruiser loadouts.
+- Recommendation generation and Strategy Room navigation now reuse account and equipment indexes,
+  stop after enough legal candidates, and avoid repeated whole-page scans.
+- Normal-map and expedition accuracy includes refreshed Extra Operation routes, enforced slow-fleet
+  routing, cruiser seaplane assignments, and bucket-reward prioritization.
+
 ### Project-specific highlights
 
 Compared with the original project, this source adds or improves:
 
 1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
-2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later manual adjustments remain available.
+2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later resizing keeps the full game visible when possible without locking the window aspect ratio.
 3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — KC3 Strategy Room can suggest up to three account-owned fleets for maps 1-1 through 7-5, including 5-6, without changing game state.
 4. **[Expedition resource-goal planning](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page uses current resources, targets, bucket-reward priority, selected expeditions, and fleets 2–4 to recommend one best pairing; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
 5. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
@@ -173,8 +183,9 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] Common mouse gestures (Tab middle-click, draggable tabs, Ctrl+scroll, etc)
 - [x] Find in page (Ctrl+F)
 - [x] DMM-only local credential vault using operating-system encryption
-- [x] One-time KanColle game-canvas auto-fit for the current display
-- [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5
+- [x] Responsive KanColle game-canvas auto-fit with a freely resizable window
+- [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, with validated
+      Fast+ equipment, expansion-slot assignments, and night-carrier setups
 - [x] Expedition resource-goal planning with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
 - [x] Up to five pinned KC3 Strategy Room quick links with stable ordering
