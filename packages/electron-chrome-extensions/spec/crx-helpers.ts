@@ -43,8 +43,17 @@ export const waitForBackgroundPage = async (
   if (!isBackgroundHostSupported(extension)) return
 
   return await new Promise<Electron.WebContents>((resolve) => {
-    const resolveHost = (wc: Electron.WebContents) => {
+    let settled = false
+    const observedHosts = new Map<Electron.WebContents, () => void>()
+    const cleanup = () => {
       app.removeListener('web-contents-created', onWebContentsCreated)
+      observedHosts.forEach((listener, wc) => wc.removeListener('did-frame-navigate', listener))
+      observedHosts.clear()
+    }
+    const resolveHost = (wc: Electron.WebContents) => {
+      if (settled) return
+      settled = true
+      cleanup()
       resolve(wc)
     }
 
@@ -59,17 +68,19 @@ export const waitForBackgroundPage = async (
         return
       }
 
-      wc.once('did-frame-navigate', () => {
+      const onNavigate = () => {
         if (hostPredicate(wc)) {
           resolveHost(wc)
         }
-      })
+      }
+      observedHosts.set(wc, onNavigate)
+      wc.once('did-frame-navigate', onNavigate)
     }
 
     const onWebContentsCreated = (_event: any, wc: Electron.WebContents) => observeWebContents(wc)
 
     webContents.getAllWebContents().forEach(observeWebContents)
-    app.on('web-contents-created', onWebContentsCreated)
+    if (!settled) app.on('web-contents-created', onWebContentsCreated)
   })
 }
 
