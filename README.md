@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.2`    | `2026-08-26`   |
+| `v1.0.3`    | `2026-08-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,18 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.3 highlights (since v1.0.2)
+
+- Normal-map recommendations now use guide-verified fleet skeletons, limit automatic selection to
+  stable boss routes, validate opening ASW thresholds, and fill compatible expansion slots.
+- Expedition recommendations now rank adjustable resource and bucket weights, refresh KC3 resource
+  data before planning, model collection intervals, and distinguish active missions from the next
+  dispatch.
+- Shell runtime work now caches configuration reads, batches window-size persistence, manages tab
+  views safely, and isolates KCCacheProxy and extension host lifecycles.
+- Update checks also run when the game opens, while DevTools split-layout handling and packaged app
+  icons are more reliable across supported platforms.
 
 ### v1.0.2 highlights (since v1.0.1)
 
@@ -46,7 +58,7 @@ Compared with the original project, this source adds or improves:
 1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
 2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later resizing keeps the full game visible when possible without locking the window aspect ratio.
 3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — KC3 Strategy Room can suggest up to three account-owned fleets for maps 1-1 through 7-5, including 5-6, without changing game state.
-4. **[Expedition resource-goal planning](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page uses current resources, targets, bucket-reward priority, selected expeditions, and fleets 2–4 to recommend one best pairing; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
+4. **[Expedition recommendations](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page shows current resources and uses adjustable resource and bucket weights, selected expeditions, success and Daihatsu settings, and fleets 2–4 to recommend one best pairing; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
 5. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
 6. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
 7. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin up to five Strategy Room tabs in `常用連結`; ordinary navigation keeps their order unchanged, and a sixth pin replaces the bottom link.
@@ -155,8 +167,8 @@ Resource Center summarizes current resources and recent gains, consumption, and 
 
 ![KC3 Strategy Room Resource Center dashboard.](./screenshots/resource-center.png)
 
-Expedition Recommendations plans resource goals and assigns the best expedition to each available
-fleet:
+Expedition Recommendations shows current resources and assigns the best expedition to each
+available fleet:
 
 ![KC3 Strategy Room Expedition Recommendations page.](./screenshots/expedition-recommendation.png)
 
@@ -166,7 +178,7 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 
 ### 🚀 Current
 
-- [x] Installer + Application auto-update
+- [x] Installer + Application auto-update on startup, game open, and every six hours
 - [x] KC3Kai integration
 - [x] Automatic updates for KC3
 - [x] Support both release and in-development versions of KC3
@@ -189,9 +201,10 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] Find in page (Ctrl+F)
 - [x] DMM-only local credential vault using operating-system encryption
 - [x] Responsive KanColle game-canvas auto-fit with a freely resizable window
-- [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, with validated
+- [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, using linked
+      guide-verified fleet skeletons and stable-route-only automatic selection, with validated
       Fast+ equipment, expansion-slot assignments, and night-carrier setups
-- [x] Expedition resource-goal planning with fleet assignments
+- [x] Weighted expedition recommendations with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
 - [x] Up to five pinned KC3 Strategy Room quick links with stable ordering
 
