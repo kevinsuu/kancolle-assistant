@@ -4,6 +4,8 @@ import { escapeHtml, formatLocalizedDate } from './strategy-room-format'
 import { panelMarkup, styles } from './views/fleet-recommender-view'
 
 let { locale, t, translateMessage } = createStrategyRoomI18n()
+let cachedAccountResult = null
+let cachedMapOptionsResult = null
 
 const formatDate = (value) => formatLocalizedDate(value, locale, { hour12: false }, '—')
 
@@ -46,7 +48,7 @@ const renderRecommendation = (recommendation, planIndex) => {
         <article class="dfr-ship bscolor3 fcolor2">
           <div class="dfr-ship-head">
             <h3>${escapeHtml(build.ship.name)} <span>Lv.${build.ship.level}</span></h3>
-            <span class="dfr-role">${escapeHtml(t(`fleet.role.${build.role}`))}</span>
+            <span class="dfr-role">${escapeHtml(t(`fleet.role.${build.role}`))} · ${escapeHtml(t('fleet.baseSpeed', { speed: t(`fleet.speed.${build.ship.speed}`) }))}</span>
           </div>
           <ol class="dfr-gear-list">
             ${build.equipment
@@ -72,7 +74,7 @@ const renderRecommendation = (recommendation, planIndex) => {
   return `
     <article class="dfr-plan">
       <header class="dfr-plan-head">
-        <div><h2>${escapeHtml(`${recommendation.route.name} · ${t('fleet.recommendationTab', { index: planIndex + 1 })}`)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${t(`fleet.confidence.${recommendation.route.confidence}`)}`)} · ${sourceMarkup} · ${t('fleet.verifiedAt', { date: escapeHtml(recommendation.route.lastVerified) })}</p></div>
+        <div><h2>${escapeHtml(`${recommendation.route.name} · ${t('fleet.recommendationTab', { index: planIndex + 1 })}`)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${t(`fleet.confidence.${recommendation.route.confidence}`)} · ${t('fleet.fleetSpeed', { speed: t(`fleet.speed.${metrics.finalSpeedClass}`) })}`)} · ${sourceMarkup} · ${t('fleet.verifiedAt', { date: escapeHtml(recommendation.route.lastVerified) })}</p></div>
         <div class="dfr-score bscolor3 fcolor2">${recommendation.score.total.toFixed(1)} <small>${t('fleet.score')} / 100</small></div>
       </header>
       <div class="dfr-metrics">
@@ -192,11 +194,12 @@ const mountPanel = (invoke) => {
   }
 
   const loadMapOptions = async () => {
-    const result = await invoke(MAP_OPTIONS_CHANNEL)
+    const result = cachedMapOptionsResult ?? (await invoke(MAP_OPTIONS_CHANNEL))
     if (result.status !== 'success') {
       mapSummary.textContent = translateMessage(result.error, 'fleet.mapUnavailableDetail')
       return
     }
+    cachedMapOptionsResult = result
     mapOptions = result.maps
     mapSelect.innerHTML = mapOptions
       .map(
@@ -210,7 +213,8 @@ const mountPanel = (invoke) => {
     setBusy(false)
   }
 
-  const syncAccount = async ({ invalidateResults = false } = {}) => {
+  const syncAccount = async ({ invalidateResults = false, forceRefresh = false } = {}) => {
+    if (forceRefresh) cachedAccountResult = null
     setBusy(true)
     title.textContent = t('fleet.account.loading')
     detail.textContent = t('fleet.account.validating')
@@ -222,8 +226,12 @@ const mountPanel = (invoke) => {
         </div>
       `
     }
-    const result = await invoke(ACCOUNT_CHANNEL)
+    const result =
+      !forceRefresh && cachedAccountResult
+        ? cachedAccountResult
+        : await invoke(ACCOUNT_CHANNEL, { forceRefresh })
     if (result.status === 'success') {
+      cachedAccountResult = result
       accountReady = true
       title.textContent = t('fleet.account.synced', {
         ships: result.account.shipCount,
@@ -251,7 +259,9 @@ const mountPanel = (invoke) => {
     setBusy(false)
   }
 
-  syncButton.addEventListener('click', () => syncAccount({ invalidateResults: true }))
+  syncButton.addEventListener('click', () =>
+    syncAccount({ invalidateResults: true, forceRefresh: true }),
+  )
   mapSelect.addEventListener('change', renderMapObjectives)
   objectiveOptions.addEventListener('change', renderRouteOptions)
   generateButton.addEventListener('click', async () => {

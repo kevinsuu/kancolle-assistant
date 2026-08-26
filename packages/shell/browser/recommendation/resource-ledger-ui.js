@@ -154,8 +154,12 @@ const mount = (tab, invoke) => {
 
 export const injectResourceLedgerSummary = (invoke) => {
   ;({ locale, t, translateMessage } = createStrategyRoomI18n())
-  const scan = () =>
-    document.querySelectorAll('.tab_resources').forEach((tab) => mount(tab, invoke))
-  scan()
-  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true })
+  const mountResourceTabs = (root) => {
+    if (root.matches?.('.tab_resources')) mount(root, invoke)
+    root.querySelectorAll?.('.tab_resources').forEach((tab) => mount(tab, invoke))
+  }
+  mountResourceTabs(document)
+  new MutationObserver((records) => {
+    records.forEach((record) => record.addedNodes.forEach(mountResourceTabs))
+  }).observe(document.body, { childList: true, subtree: true })
 }

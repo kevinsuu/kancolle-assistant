@@ -145,6 +145,19 @@ export const registerRecommendationIpc = ({
   summarizeResourceLedger: summarizeResourceLedgerInWorker,
   logger,
 }) => {
+  const accountSnapshots = new WeakMap()
+  const readCachedAccount = async (event, forceRefresh = false) => {
+    if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
+      return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
+    }
+    const sender = event.sender
+    if (forceRefresh) accountSnapshots.delete(sender)
+    if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
+    const snapshot = await readAccount(event, getKc3ExtensionId)
+    if (snapshot.status !== 'error') accountSnapshots.set(sender, snapshot)
+    return snapshot
+  }
+
   ipcMain.handle(MAP_OPTIONS_CHANNEL, async (event) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
@@ -152,8 +165,8 @@ export const registerRecommendationIpc = ({
     return { status: 'success', maps: getMapOptions() }
   })
 
-  ipcMain.handle(ACCOUNT_CHANNEL, async (event) => {
-    const snapshot = await readAccount(event, getKc3ExtensionId)
+  ipcMain.handle(ACCOUNT_CHANNEL, async (event, request) => {
+    const snapshot = await readCachedAccount(event, request?.forceRefresh === true)
     if (snapshot.status === 'error') return snapshot
     return {
       status: 'success',
@@ -232,7 +245,7 @@ export const registerRecommendationIpc = ({
     const parsedRequest = parseRequest(request)
     if (!parsedRequest) return errorResult('INVALID_REQUEST', '推薦條件格式不正確。')
 
-    const snapshot = await readAccount(event, getKc3ExtensionId)
+    const snapshot = await readCachedAccount(event)
     if (snapshot.status === 'error') return snapshot
 
     let result

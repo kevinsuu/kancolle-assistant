@@ -34,7 +34,8 @@ const findSourceMenuItem = (menu, tabId) =>
 
 const isAvailableMenuItem = (item) => {
   if (!item || item.classList.contains('disabled')) return false
-  return window.getComputedStyle(item.closest('.submenu')).display !== 'none'
+  const submenu = item.closest('.submenu')
+  return Boolean(submenu && !submenu.hidden && submenu.style.display !== 'none')
 }
 
 export const injectStrategyRoomRecentTabs = () => {
@@ -139,6 +140,13 @@ export const injectStrategyRoomRecentTabs = () => {
     )
   }
 
+  const syncPinnedActiveState = () => {
+    recentList.querySelectorAll('[data-recent-tab-id]').forEach((recentItem) => {
+      const sourceItem = findSourceMenuItem(menu, recentItem.dataset.recentTabId)
+      recentItem.classList.toggle('active', Boolean(sourceItem?.classList.contains('active')))
+    })
+  }
+
   document.addEventListener(
     'click',
     (event) => {
@@ -154,7 +162,7 @@ export const injectStrategyRoomRecentTabs = () => {
       if (!menuItem || menuItem.closest('.damecon-recent-tabs') || !isAvailableMenuItem(menuItem)) {
         return
       }
-      window.setTimeout(renderPinnedTabs, 0)
+      window.setTimeout(syncPinnedActiveState, 0)
     },
     true,
   )
