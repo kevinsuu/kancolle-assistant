@@ -676,7 +676,12 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "K", "T"],
         "stableBoss": true,
-        "tags": ["los-cn2-71", "anti-installation", "heavy-fleet"],
+        "tags": [
+          "los-cn2-71",
+          "anti-installation",
+          "anti-installation-type3-shells-3",
+          "heavy-fleet"
+        ],
         "desc": "戦艦2、正規/装甲空母1、重巡2、航巡1。K経由の砲撃主体編成。",
         "lastVerified": "2026-08-25",
         "fleet": [
@@ -698,7 +703,12 @@
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["A/C", "D", "H", "K", "T"],
         "stableBoss": true,
-        "tags": ["los-cn2-71", "anti-installation", "carrier-opening"],
+        "tags": [
+          "los-cn2-71",
+          "anti-installation",
+          "anti-installation-type3-shells-3",
+          "carrier-opening"
+        ],
         "desc": "戦艦1、正規/装甲空母2、軽空母1、重巡/航巡2。K経由の航空主体編成。",
         "lastVerified": "2026-08-25",
         "fleet": [

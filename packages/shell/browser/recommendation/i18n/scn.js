@@ -169,6 +169,8 @@ export const scn = {
     '账号内可装备且符合用途的装备不足，方案仍有 {count} 个空槽；请勿直接照抄出击。',
   'message.OASW_NOT_READY': '此路线依赖先制对潜，但当前方案没有符合舰种门槛且已装备声呐的舰娘。',
   'message.OASW_REQUIREMENT_PASSED': '可成立先制对潜 {count} 艘，已达到最低 {minimum} 艘。',
+  'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
+    '已为 {minimum} 艘战舰／重巡级配置三式弹系装备，符合此 4-5 路线的对地配置模型。',
   'message.ROUTE_NOT_GUARANTEED': '此方案包含概率分歧，结果页已保留数据来源标记。',
   'message.EXPERIMENTAL_ROUTE': '此路线仍属新海域／实验数据，出击前请再次核对最新攻略。',
   'message.COMBAT_THRESHOLDS_UNVERIFIED':
@@ -186,6 +188,8 @@ export const scn = {
     '当前候选舰队的速度不符合路线带路条件；已拒绝输出不合法的方案。',
   'message.NIGHT_CARRIER_UNAVAILABLE':
     '当前候选航母没有夜战特性，也无法以拥有且兼容的装备组成夜战航母配置。',
+  'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
+    '目前无法为 {minimum} 艘可用的战舰／重巡级各配置一件三式弹系装备。',
   'message.RULE_NOT_FOUND': '找不到指定关卡规则。',
   'message.NO_STABLE_ROUTE': '此关卡没有可保证固定进王的已验证编成，请手动选择随机路线。',
   'message.NO_AUTOMATED_ROUTE':

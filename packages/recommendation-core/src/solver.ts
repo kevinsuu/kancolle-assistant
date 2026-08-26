@@ -77,6 +77,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   let bestOpeningAsw = 0
   let speedRequirementFailed = false
   let nightCarrierRequirementFailed = false
+  let antiInstallationRequirementFailed = false
   const avoidCurrentFleetEquipment = input.preferences?.avoidCurrentFleetEquipment ?? false
   const gearSearchContext = createGearSearchContext(input.account, avoidCurrentFleetEquipment)
 
@@ -97,7 +98,9 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         (constraint) => constraint.kind === 'air-power',
       )
       const fastPlusRequired = route.tags.includes('fast+')
-      const antiInstallationRequired = route.tags.includes('anti-installation')
+      const antiInstallationShellCount = route.tags.includes('anti-installation-type3-shells-3')
+        ? 3
+        : 0
       const nightCarrierRequired = route.tags.includes('night-carrier')
       const failedSpecialFleets = []
       let successfulFleetCount = 0
@@ -113,9 +116,12 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           gearSearchContext,
           airPowerRequired,
           fastPlusRequired,
-          antiInstallationRequired,
+          antiInstallationShellCount,
           nightCarrierRequired,
         )
+        if (gearSolutions.length === 0 && antiInstallationShellCount > 0) {
+          antiInstallationRequirementFailed = true
+        }
         if (gearSolutions.length === 0 && (fastPlusRequired || nightCarrierRequired)) {
           failedSpecialFleets.push(fleet)
         }
@@ -170,7 +176,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
                 gearSearchContext,
                 airPowerRequired,
                 true,
-                antiInstallationRequired,
+                antiInstallationShellCount,
                 false,
               ).length > 0,
           )
@@ -206,6 +212,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       bestLos = Number.NEGATIVE_INFINITY
       speedRequirementFailed = false
       nightCarrierRequirementFailed = false
+      antiInstallationRequirementFailed = false
       searchRoutes({
         minimumFleetCount: MIN_FLEETS_TO_EQUIP,
         maximumFleetCount: MAX_FLEETS_TO_EQUIP,
@@ -308,6 +315,13 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       reasons.push({
         code: 'NIGHT_CARRIER_UNAVAILABLE',
         message: '目前候選空母沒有可成立的夜戰特性或帳號持有裝備組合。',
+      })
+    }
+    if (antiInstallationRequirementFailed) {
+      reasons.push({
+        code: 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
+        message: '目前無法為 3 艘可用的戰艦／重巡級各配置一件三式彈系裝備。',
+        values: { minimum: 3 },
       })
     }
     if (reasons.length === 0) {

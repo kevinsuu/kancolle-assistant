@@ -153,6 +153,46 @@ const createClDdHeavySnapshot = () => {
   return raw
 }
 
+const create45Type3ShellSnapshot = ({ shellCount = 3 } = {}) => {
+  const raw = createFastPlusSnapshot()
+  const shipTypeIds = [8, 11, 11, 7, 5, 6]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+  })
+
+  let equipmentId = 7000
+  const cloneGear = (source, overrides) => ({
+    ...structuredClone(source),
+    id: equipmentId++,
+    currentlyEquippedBy: 0,
+    ...overrides,
+  })
+  const recon = raw.equipment.find((gear) => gear.typeId === 9)
+  const attacker = raw.equipment.find((gear) => gear.typeId === 8)
+  const fighter = raw.equipment.find((gear) => gear.typeId === 6)
+  const shellMasterIds = [35, 317, 483].slice(0, shellCount)
+  raw.equipment.push(
+    cloneGear(recon, { name: 'Fixture reconnaissance seaplane' }),
+    ...Array.from({ length: 2 }, () => cloneGear(attacker, { name: 'Fixture carrier attacker' })),
+    ...Array.from({ length: 4 }, () => cloneGear(fighter, { name: 'Fixture fighter' })),
+    ...shellMasterIds.map((masterId) =>
+      cloneGear(raw.equipment[0], {
+        masterId,
+        name: `Fixture Type 3 Shell ${masterId}`,
+        typeId: 18,
+        iconTypeId: 18,
+        type: '18',
+        airPowerBySlotSize: {},
+      }),
+    ),
+  )
+  ;[0, 4, 5].forEach((shipIndex) => {
+    raw.ships[shipIndex].regularEquipableMasterIds.push(...shellMasterIds)
+  })
+  raw.currentFleetShipIds = []
+  return raw
+}
+
 const createOaswSnapshot = () => {
   const raw = createRawSnapshot()
   raw.equipment.forEach((gear, index) => {
@@ -531,6 +571,53 @@ test('automatic recommendations reject routes with unresolved manual setup', () 
   assert.equal(result.status, 'error')
   assert.equal(result.error.code, 'NO_AUTOMATED_ROUTE')
   assert.equal(getMapOptions().find((map) => map.id === '2-3').routes[0].automaticReady, false)
+})
+
+test('4-5 automatic routes require and assign three unique Type 3 Shell-family items', () => {
+  const automatic45RouteIds = getRouteTemplates('4-5', 'balanced').map((route) => route.id)
+  assert.deepEqual(automatic45RouteIds.sort(), ['4-5-standard-battleship', '4-5-standard-carrier'])
+  assert.equal(
+    isAutomaticRouteReady(NORMAL_MAP_ROUTES.find((route) => route.id === '4-5-standard-balanced')),
+    false,
+  )
+
+  const result = recommendFleet({
+    mapId: '4-5',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(create45Type3ShellSnapshot()),
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    const shells = recommendation.ships
+      .flatMap((build) => build.equipment)
+      .filter((gear) => gear && [35, 317, 483].includes(gear.masterId))
+    assert.equal(shells.length, 3)
+    assert.equal(new Set(shells.map((gear) => gear.id)).size, 3)
+    assert.ok(
+      recommendation.reasons.some(
+        (reason) => reason.code === 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
+      ),
+    )
+    assert.ok(
+      recommendation.warnings.every((warning) => warning.code !== 'EXTERNAL_COMBAT_SETUP_REQUIRED'),
+    )
+  })
+})
+
+test('4-5 automatic recommendation explains when Type 3 Shell-family items are insufficient', () => {
+  const result = recommendFleet({
+    mapId: '4-5',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(create45Type3ShellSnapshot({ shellCount: 1 })),
+  })
+
+  assert.equal(result.status, 'no-solution')
+  assert.ok(
+    result.analysis.reasons.some(
+      (reason) => reason.code === 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
+    ),
+  )
 })
 
 test('slow-route recommendations reject an all-fast fleet', () => {

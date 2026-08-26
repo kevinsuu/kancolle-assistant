@@ -185,6 +185,8 @@ export const en = {
     'This route relies on opening ASW, but no ship both meets its type threshold and equips sonar.',
   'message.OASW_REQUIREMENT_PASSED':
     '{count} ships qualify for opening ASW, meeting the minimum of {minimum}.',
+  'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
+    '{minimum} battleships or heavy cruisers equip Type 3 Shell-family items, satisfying this 4-5 anti-installation model.',
   'message.ROUTE_NOT_GUARANTEED':
     'This plan contains random routing; source markers are retained on the result.',
   'message.EXPERIMENTAL_ROUTE':
@@ -209,6 +211,8 @@ export const en = {
     'The candidate fleet speed does not satisfy this route, so the invalid plan was rejected.',
   'message.NIGHT_CARRIER_UNAVAILABLE':
     'No candidate carrier has an inherent night capability or an owned, compatible night-carrier equipment setup.',
+  'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
+    'The account cannot equip {minimum} available battleships or heavy cruisers with one Type 3 Shell-family item each.',
   'message.RULE_NOT_FOUND': 'The requested map rule was not found.',
   'message.NO_STABLE_ROUTE':
     'No verified fleet can guarantee the boss route on this map. Select a random route manually.',

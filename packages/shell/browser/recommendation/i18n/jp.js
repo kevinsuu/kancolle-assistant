@@ -178,6 +178,8 @@ export const jp = {
     'このルートは先制対潜を前提としますが、艦種別条件を満たしソナーを装備した艦がありません。',
   'message.OASW_REQUIREMENT_PASSED':
     '先制対潜可能艦は{count}隻で、最低{minimum}隻を満たしています。',
+  'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
+    '戦艦／重巡級 {minimum} 隻に三式弾系装備を割り当て、4-5 の対地装備モデルを満たしています。',
   'message.ROUTE_NOT_GUARANTEED':
     'この案にはランダム分岐があります。結果には情報源を表示しています。',
   'message.EXPERIMENTAL_ROUTE': '新海域または実験データです。出撃前に最新攻略を確認してください。',
@@ -197,6 +199,8 @@ export const jp = {
     '候補艦隊の速力がルート条件を満たさないため、無効な案を除外しました。',
   'message.NIGHT_CARRIER_UNAVAILABLE':
     '候補空母に固有の夜戦能力がなく、所持する互換装備でも夜戦空母編成を成立させられません。',
+  'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
+    '使用可能な戦艦／重巡級 {minimum} 隻に三式弾系装備を 1 個ずつ割り当てられません。',
   'message.RULE_NOT_FOUND': '指定海域のルールが見つかりません。',
   'message.NO_STABLE_ROUTE':
     'この海域にはボス到達を固定できる検証済み編成がありません。ランダムルートを手動選択してください。',

@@ -81,13 +81,14 @@ source or overlay shapes fail during module initialization.
 The standard boss catalog was rechecked on 2026-08-26 and replaces every broad legacy boss rule
 with a guide-backed fleet skeleton. Automatic selection only considers templates that are ready for
 solver-only use: fixed boss routing for boss objectives, non-experimental data, modeled required
-thresholds, and no unresolved support fleet, LBAS, smoke, special-attack, anti-installation, or other
-manual combat setup. A route that does not pass this audit remains available by explicit selection
-and is labeled as requiring a manual check. If a map has routes but none are safe for automatic
-selection, the result explains that distinction instead of claiming that the rule is missing.
-Automatic results also reject partially empty regular equipment layouts. Guide-primary templates
-rank before heuristic alternatives, so ship firepower scoring cannot silently substitute a
-different fleet class.
+thresholds, and no unresolved support fleet, LBAS, smoke, special-attack, anti-installation, or
+other manual combat setup. A modeled external requirement is exempt only when the solver validates
+its owned equipment instances and compatible ships. A route that does not pass this audit remains
+available by explicit selection and is labeled as requiring a manual check. If a map has routes but
+none are safe for automatic selection, the result explains that distinction instead of claiming
+that the rule is missing. Automatic results also reject partially empty regular equipment layouts.
+Guide-primary templates rank before heuristic alternatives, so ship firepower scoring cannot
+silently substitute a different fleet class.
 
 Opening ASW routes store a minimum qualifying-ship count when the guide defines a usable threshold.
 A ship qualifies only when it carries sonar and reaches the conservative ship-type threshold:
@@ -167,10 +168,17 @@ ship's base speed and the equipped fleet's final speed. If no legal result remai
 observed missing ship type, air power, LoS, speed, or assignment constraint.
 
 Torpedo cruisers receive a coherent combat loadout instead of independent per-slot scoring: a
-midget submarine is mandatory, followed by torpedoes for ordinary routes or main guns for
-anti-installation routes. This prevents ships such as Kitakami from being filled with unrelated
-radars while omitting their defining opening-torpedo equipment. The 8inch Mk.9 variants are also
-excluded from torpedo-cruiser gun choices because of their documented light-cruiser fit concern.
+midget submarine is mandatory, followed by torpedoes. This prevents ships such as Kitakami from
+being filled with unrelated radars while omitting their defining opening-torpedo equipment. The
+8inch Mk.9 variants are also excluded from torpedo-cruiser gun choices because of their documented
+light-cruiser fit concern.
+
+For 4-5 automatic selection, the standard battleship and standard carrier routes model the boss's
+anti-installation requirement with three Type 3 Shell-family items. Accepted variants use master
+IDs 35, 317, or 483. The solver reserves three unique owned instances on compatible battleship or
+heavy-cruiser-class ships. If those items cannot be assigned, it returns a specific no-solution
+reason. Broader 4-5 routes that may require landing craft, rockets, night carriers, or unmodeled
+opening ASW remain manual-only.
 
 Night-carrier routes require at least one carrier that KC3 identifies as able to attack at night.
 An inherent ship trait can satisfy the condition without reserved equipment; otherwise the solver
@@ -194,7 +202,8 @@ uses KC3's documented coefficients and naked ship LoS values. Combat score and r
 heuristics and are labelled as such in every recommendation. The displayed `/100` value is named
 `適配度`; it is not presented as a win probability. Routes with unmodeled LBAS, support,
 anti-installation, historical-bonus, or other special setup requirements show an execution warning
-and the source/verification date beside the route.
+and the source/verification date beside the route. Modeled 4-5 Type 3 Shell requirements instead
+show a passed validation reason in the result.
 
 ## Development
 

@@ -171,6 +171,8 @@ export const tcn = {
     '帳號內可裝且符合用途的裝備不足，方案仍有 {count} 個空槽；請勿直接照抄出擊。',
   'message.OASW_NOT_READY': '此路線依賴先制對潛，但目前方案沒有符合艦種門檻且已裝聲納的艦娘。',
   'message.OASW_REQUIREMENT_PASSED': '先制對潛可成立 {count} 艘，已達最低 {minimum} 艘。',
+  'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
+    '已為 {minimum} 艘戰艦／重巡級配置三式彈系裝備，符合此 4-5 路線的對地配置模型。',
   'message.ROUTE_NOT_GUARANTEED': '此方案含機率分歧，結果頁已保留資料來源標記。',
   'message.EXPERIMENTAL_ROUTE': '此路線仍屬新海域／實驗資料，出擊前請再次核對最新攻略。',
   'message.COMBAT_THRESHOLDS_UNVERIFIED':
@@ -188,6 +190,8 @@ export const tcn = {
     '目前候選艦隊的速度不符合路線帶路條件；已拒絕輸出不合法的方案。',
   'message.NIGHT_CARRIER_UNAVAILABLE':
     '目前候選空母沒有夜戰特性，也無法以持有且相容的裝備成立夜戰空母配置。',
+  'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
+    '目前無法為 {minimum} 艘可用的戰艦／重巡級各配置一件三式彈系裝備。',
   'message.RULE_NOT_FOUND': '找不到指定關卡規則。',
   'message.NO_STABLE_ROUTE': '此關卡沒有可保證固定進王的已驗證編成，請手動選擇隨機路線。',
   'message.NO_AUTOMATED_ROUTE':

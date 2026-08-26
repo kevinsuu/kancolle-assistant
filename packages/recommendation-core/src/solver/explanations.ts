@@ -5,7 +5,7 @@ import type {
   RecommendedShipBuild,
   RouteTemplate,
 } from '../types'
-import { EXTERNALLY_CONFIGURED_ROUTE_TAGS } from '../rules'
+import { unresolvedExternalRouteTags } from '../rules'
 
 const RECOMMENDATION_TITLES: Readonly<Record<RecommendationObjective, readonly string[]>> = {
   balanced: ['均衡主案', '穩定替案', '調度替案'],
@@ -90,6 +90,13 @@ export const recommendationMessages = (
       values: { count: metrics.openingAswCount, minimum: metrics.openingAswMinimum },
     })
   }
+  if (route.tags.includes('anti-installation-type3-shells-3')) {
+    reasons.push({
+      code: 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
+      message: '已為 3 艘戰艦／重巡級配置三式彈系裝備，符合此 4-5 路線的對地配置模型。',
+      values: { minimum: 3 },
+    })
+  }
 
   const movedEquipmentCount = builds.reduce(
     (total, build) =>
@@ -158,9 +165,7 @@ export const recommendationMessages = (
       message: '此模板已核對路線與艦種，但尚未建入完整制空／索敵硬門檻；出擊前請開啟攻略來源核對。',
     })
   }
-  const externallyConfiguredTags = EXTERNALLY_CONFIGURED_ROUTE_TAGS.filter((tag) =>
-    route.tags.includes(tag),
-  )
+  const externallyConfiguredTags = unresolvedExternalRouteTags(route)
   if (externallyConfiguredTags.length > 0) {
     warnings.push({
       code: 'EXTERNAL_COMBAT_SETUP_REQUIRED',

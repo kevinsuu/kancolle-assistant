@@ -31,6 +31,18 @@ export const EXTERNALLY_CONFIGURED_ROUTE_TAGS = [
   'special-attack',
 ] as const
 
+const MODELED_EXTERNAL_ROUTE_TAGS: Readonly<
+  Partial<Record<(typeof EXTERNALLY_CONFIGURED_ROUTE_TAGS)[number], string>>
+> = {
+  'anti-installation': 'anti-installation-type3-shells-3',
+}
+
+export const unresolvedExternalRouteTags = (route: RouteTemplate): readonly string[] =>
+  EXTERNALLY_CONFIGURED_ROUTE_TAGS.filter(
+    (tag) =>
+      route.tags.includes(tag) && !route.tags.includes(MODELED_EXTERNAL_ROUTE_TAGS[tag] ?? ''),
+  )
+
 const guidePriority = (route: RouteTemplate): number =>
   route.tags.includes('guide-primary') ? 0 : route.tags.includes('guide-alternative') ? 1 : 2
 
@@ -311,7 +323,7 @@ export const automaticRouteBlockers = (route: RouteTemplate): readonly string[] 
   if (route.tags.includes('random-routing') || route.tags.some((tag) => tag.includes('routing-'))) {
     blockers.push('random-routing')
   }
-  if (EXTERNALLY_CONFIGURED_ROUTE_TAGS.some((tag) => route.tags.includes(tag))) {
+  if (unresolvedExternalRouteTags(route).length > 0) {
     blockers.push('manual-combat-setup')
   }
   if (route.tags.includes('oasw')) {
