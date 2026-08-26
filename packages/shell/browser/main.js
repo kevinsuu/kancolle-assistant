@@ -275,6 +275,23 @@ const manifestExists = async (dirPath) => {
   }
 }
 
+let appUpdateCheckInFlight = false
+const appUpdaterInitialized = isSquirrel && configStore.get('app.update.auto')
+
+const checkForAppUpdates = async (trigger) => {
+  if (!appUpdaterInitialized || appUpdateCheckInFlight) return
+
+  appUpdateCheckInFlight = true
+  kccp.logger.log(logSource, `Checking for app updates (${trigger}).`)
+  try {
+    await autoUpdater.checkForUpdates()
+  } catch (error) {
+    kccp.logger.error(logSource, 'Unable to check for app updates.', error)
+  } finally {
+    appUpdateCheckInFlight = false
+  }
+}
+
 if (isSquirrel) {
   // clear old versions
   if (configStore.get('app.update.removeOld')) {
@@ -298,7 +315,7 @@ if (isSquirrel) {
   }
 
   // auto update
-  if (cfg.app.update.auto) {
+  if (appUpdaterInitialized) {
     kccp.logger.log(logSource, 'Checking for updates.')
     updateElectronApp({
       updateSource: {
@@ -392,7 +409,13 @@ class TabbedBrowserWindow {
       const isKc3StartPage = tabUrl === kc3StartPageUrl
       const isDmmGamePage = isDmmGamePageUrl(tabUrl)
       const canOpenGameDevtools = isKc3StartPage || isDmmGamePage
-      if (!isDmmGamePage) tab.gameResponsiveFitEnabled = false
+      if (!isDmmGamePage) {
+        tab.appUpdateCheckedForGameSession = false
+        tab.gameResponsiveFitEnabled = false
+      } else if (!tab.appUpdateCheckedForGameSession) {
+        tab.appUpdateCheckedForGameSession = true
+        void checkForAppUpdates('game opened')
+      }
 
       if (
         isDmmGamePage &&
