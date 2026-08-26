@@ -87,6 +87,7 @@ export const en = {
   'fleet.routeOption': '{name} · {nodes} · {confidence}',
   'fleet.autoRoutes': 'Automatically compare available routes (Top 3)',
   'fleet.stable': 'Stable',
+  'fleet.manualSetup': 'Manual check required',
   'fleet.source': 'Source {index}',
   'fleet.verifiedAt': 'verified {date}',
   'fleet.estimatedFuel': 'Estimated Fuel',
@@ -181,7 +182,9 @@ export const en = {
   'message.EMPTY_EQUIPMENT_SLOTS':
     'The account lacks {count} suitable equippable items, leaving empty slots. Do not copy this plan directly into a sortie.',
   'message.OASW_NOT_READY':
-    'This route relies on opening ASW, but the plan does not meet the general 100-ASW check. Verify each ship type’s threshold.',
+    'This route relies on opening ASW, but no ship both meets its type threshold and equips sonar.',
+  'message.OASW_REQUIREMENT_PASSED':
+    '{count} ships qualify for opening ASW, meeting the minimum of {minimum}.',
   'message.ROUTE_NOT_GUARANTEED':
     'This plan contains random routing; source markers are retained on the result.',
   'message.EXPERIMENTAL_ROUTE':
@@ -207,6 +210,12 @@ export const en = {
   'message.NIGHT_CARRIER_UNAVAILABLE':
     'No candidate carrier has an inherent night capability or an owned, compatible night-carrier equipment setup.',
   'message.RULE_NOT_FOUND': 'The requested map rule was not found.',
+  'message.NO_STABLE_ROUTE':
+    'No verified fleet can guarantee the boss route on this map. Select a random route manually.',
+  'message.NO_AUTOMATED_ROUTE':
+    'Only fleets requiring manual checks are available. Select a route explicitly and complete every warned setup.',
+  'message.OASW_INSUFFICIENT':
+    'Only {best} ships qualify for opening ASW; at least {minimum} are required.',
   'message.INVALID_REQUEST': 'The request format is invalid.',
   'message.KC3_UNAVAILABLE':
     'KC3 data is not ready. Return to the home port and synchronize again.',
@@ -291,12 +300,13 @@ export const en = {
   'expedition.menuTitle': 'Create the best expedition pairing from KC3 resources and availability',
   'expedition.title': 'Expedition Recommendations',
   'expedition.syncResources': 'Sync Resources',
+  'expedition.syncComplete': 'Synced',
   'expedition.lead':
     'Uses current KC3 resources, selected expeditions, and available time to create one actionable best pairing. The original Expedition Scorer is unchanged.',
-  'expedition.target': 'Target',
-  'expedition.shortfall': 'Shortfall',
   'expedition.candidates': 'Candidate Expeditions',
   'expedition.candidateHint': 'Only non-duplicate combinations from checked items are considered',
+  'expedition.candidateUnlockWarning':
+    'KC3 does not provide a complete unlock list. Select only expeditions currently dispatchable in game, or the result may not be actionable.',
   'expedition.candidatePresets': 'Quick-select candidate expeditions',
   'expedition.selectAll': 'All',
   'expedition.recommended': 'Recommended',
@@ -305,19 +315,15 @@ export const en = {
   'expedition.area': 'Area {index}',
   'expedition.expand': 'Expand ▼',
   'expedition.collapse': 'Collapse ▲',
-  'expedition.resourceWeights': 'Resource Weights',
-  'expedition.weightHint': '-5 avoid, 0 ignore, 20 prioritize',
-  'expedition.considerBuckets': 'Prioritize bucket rewards',
-  'expedition.bucketHint': 'Checked: maximize bucket potential before four-resource efficiency',
+  'expedition.resourceWeights': 'Resource and Bucket Weights',
+  'expedition.weightHint': 'Use 0 to ignore; -5 avoid, 20 prioritize',
   'expedition.bucketPerTrip': 'Up to +{count}/trip',
-  'expedition.bucketPlanSummary': 'Buckets up to {value}/h',
-  'expedition.schedule': 'Availability',
-  'expedition.scheduleHint': '0 minutes means continuously online',
+  'expedition.bucketPlanSummary': 'Bucket weight {weight} · up to {value}/h',
+  'expedition.schedule': 'Dispatch/collection interval',
+  'expedition.scheduleHint':
+    '0 minutes means continuously online; otherwise collect and redispatch at this interval',
   'expedition.fleets': '{count} fleets',
   'expedition.availableFleets': 'Available expedition fleets',
-  'expedition.assumptions': 'Income Assumptions',
-  'expedition.assumptionHint':
-    'Rewards are rounded in Kancepts order; resupply uses the current account and minimum-composition estimates.',
   'expedition.successMode': 'Success Mode',
   'expedition.normalSuccess': 'Normal Success',
   'expedition.greatSuccess': 'Great Success',
@@ -327,7 +333,7 @@ export const en = {
   'expedition.maximum': 'maximum',
   'expedition.totalMultiplier': 'Income multiplier for this plan',
   'expedition.actionHint':
-    'Finds one best answer using candidate expeditions, bucket priority, resource weights, offline time, available fleets, and income assumptions.',
+    'Finds one best answer using candidate expeditions, five weights, operation interval, available fleets, and success/Daihatsu settings.',
   'expedition.generate': 'Generate Best Pairing',
   'expedition.generating': 'Calculating pairing…',
   'expedition.idle': 'No pairing yet',
@@ -366,7 +372,10 @@ export const en = {
   'expedition.recompose': 'recompose',
   'expedition.resupply': 'resupply',
   'expedition.state.waiting': 'Waiting for Return',
+  'expedition.state.returned': 'Collect Return Result',
   'expedition.state.waitingAction': '{time}; after return, {actions}then dispatch',
+  'expedition.state.returnedAction':
+    'The return time has passed; collect the result, {actions}then dispatch',
   'expedition.state.composition': 'Recomposition Needed',
   'expedition.state.compositionAction': 'Meet the composition requirements below before dispatch',
   'expedition.state.supply': 'Resupply Needed',
@@ -374,7 +383,8 @@ export const en = {
   'expedition.state.ready': 'Ready to Dispatch',
   'expedition.state.readyAction': 'Composition and supply are ready; dispatch now',
   'expedition.dispatchFleet': 'Send Fleet {number} to',
-  'expedition.busy': 'Currently running {number} {name}; expected back at {time}.',
+  'expedition.busy':
+    'Fleet status (not the recommendation): currently running {number} {name}; expected back at {time}. This card recommends {recommendedNumber} {recommendedName} after return.',
   'expedition.sampleFleet': 'KC3 sample minimum composition: {ships}.',
   'expedition.compositionPassed': 'Current fleet meets all {count} success conditions',
   'expedition.compositionFailed': '{count} success conditions remain; adjust as shown below',
@@ -382,24 +392,26 @@ export const en = {
   'expedition.dispatch': 'to',
   'expedition.nextAction': 'Next: {action}',
   'expedition.perTrip': '/ trip',
+  'expedition.perHourAfterDispatch': '/h (current wait excluded)',
   'expedition.compositionCheck': 'Composition Check: {summary}',
   'expedition.calculationDetails': 'Income, Great Success, and Calculation Details',
   'expedition.supplyReady': 'Supply is ready.',
   'expedition.supplyNeeded': 'Fuel and ammo must be filled before departure or after return.',
+  'expedition.supplyAfterReturn':
+    'This fleet is away; collect the result and resupply before dispatching it again.',
   'expedition.daihatsuWarning':
     'Daihatsu count is a planning assumption. Equipment is not checked or changed automatically; confirm the fleet before departure.',
   'expedition.resupplyEstimate':
     'Estimated resupply: fuel {fuel} / ammo {ammo}; based on current account ships and the Kancepts minimum-composition cost model.',
-  'expedition.bestPlan': 'Best Plan: Dispatch in This Order',
+  'expedition.bestPlan': 'Best Plan',
   'expedition.noPlan': 'No Available Plan',
   'expedition.noPlanFallback': 'An expedition pairing cannot currently be generated.',
   'expedition.syncingTitle': 'Synchronizing KC3 home-port resources',
   'expedition.syncFailed': 'Sync Failed',
   'expedition.syncUnavailable': 'KC3 home-port resources could not be read.',
   'expedition.syncStatus': 'Synced {time} | Resource cap {maximum}',
-  'expedition.error.target': 'Targets must be integers from 0 to {maximum}.',
-  'expedition.error.afk': 'Offline time must be from 0 minutes to 48 hours.',
-  'expedition.error.weights': 'Resource weights must be integers from -5 to 20.',
+  'expedition.error.afk': 'The dispatch/collection interval must be from 0 minutes to 48 hours.',
+  'expedition.error.weights': 'Resource and bucket weights must be integers from -5 to 20.',
   'expedition.error.candidates': 'Fewer expeditions are checked than available fleets.',
   'expedition.error.syncConnection': 'Could not connect to the expedition resource sync service.',
   'expedition.error.planConnection': 'Could not connect to the expedition pairing service.',
@@ -429,11 +441,11 @@ export const en = {
     'Could not connect to the expedition resource sync service.',
   'message.EXPEDITION_PLAN_CONNECTION_FAILED':
     'Could not connect to the expedition pairing service.',
-  'message.EXPEDITION_TARGET_INVALID': 'Targets must be integers from 0 to {maximum}.',
-  'message.EXPEDITION_AFK_INVALID': 'Offline time must be from 0 minutes to 48 hours.',
-  'message.EXPEDITION_WEIGHTS_INVALID': 'Resource weights must be integers from -5 to 20.',
+  'message.EXPEDITION_AFK_INVALID':
+    'The dispatch/collection interval must be from 0 minutes to 48 hours.',
+  'message.EXPEDITION_WEIGHTS_INVALID':
+    'Resource and bucket weights must be integers from -5 to 20.',
   'message.EXPEDITION_CANDIDATES_INVALID': 'Fewer expeditions are checked than available fleets.',
-  'expedition.reason.TARGET_REACHED': 'All four resources already meet their targets.',
   'expedition.reason.INSUFFICIENT_FLEETS':
     'KC3 has only {available} available expedition fleets, fewer than the requested {requested}.',
   'expedition.reason.INSUFFICIENT_EXPEDITIONS':

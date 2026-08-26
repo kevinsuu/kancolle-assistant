@@ -68,10 +68,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '52c764c6e061314be1c4710478104fdd9dd6cbf6f914ef4a86ed2832ebb68b25',
-      jp: '92b29e67f5b59b26c3f495c206fe2b9ca20a22454635586625efd9562a95f8d6',
-      scn: '18b183240591a63427c12ba5587a719394939fc905defcf961231f8a8e493fac',
-      tcn: 'e61ce3fc1a30eb3754f21219a2ad05fd25306ec5c06c3a52d04611e70627e049',
+      en: '12ab915b306cb96a9bfffdbb980b9703976cce7c777bec72ec58e04cb98f7eb3',
+      jp: '067fae1ae371a0bc5bf73a07540d6bfc2ce44744dd9af0a46d57e3d0408908ad',
+      scn: 'feab33b29b46ebd9cd4786705e625532ffd99d7139a81b360553909aa6d185d8',
+      tcn: '5267562af9d6416aeeb4c3fee936840c01e4aeb108ec2c1964d2938026a8aa2e',
     },
   )
 })
@@ -89,6 +89,8 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
     assert.match(styles, /body:not\(\.dark\)/)
   })
   assert.match(fleetStyles, /\.dfr-root \{\s*width: 700px;/)
+  assert.match(fleetStyles, /\.dfr-button\.is-loading:disabled/)
+  assert.match(fleetStyles, /@keyframes dfr-route-spin/)
   assert.match(expeditionStyles, /\.dep-root \{ width: 680px;/)
   assert.match(resourceCenterStyles, /\.drc-root \{ width: 700px;/)
 })
@@ -133,6 +135,25 @@ test('fleet speed and torpedo-cruiser labels exist in all supported languages', 
       'fleet.speed.fast+',
       'fleet.speed.fastest',
       'fleet.role.torpedo-cruiser',
+      'fleet.manualSetup',
+      'message.NO_AUTOMATED_ROUTE',
+      'message.NO_STABLE_ROUTE',
+      'message.OASW_INSUFFICIENT',
+      'message.OASW_REQUIREMENT_PASSED',
     ].forEach((key) => assert.equal(typeof catalog[key], 'string', key))
+  })
+})
+
+test('expedition status safeguards exist in all supported languages', () => {
+  const keys = [
+    'expedition.syncComplete',
+    'expedition.candidateUnlockWarning',
+    'expedition.state.returned',
+    'expedition.state.returnedAction',
+    'expedition.perHourAfterDispatch',
+    'expedition.supplyAfterReturn',
+  ]
+  ;[en, jp, scn, tcn].forEach((catalog) => {
+    keys.forEach((key) => assert.equal(typeof catalog[key], 'string', key))
   })
 })

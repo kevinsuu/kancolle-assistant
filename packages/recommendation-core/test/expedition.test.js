@@ -113,12 +113,11 @@ const rawSnapshot = {
 }
 
 const request = (overrides = {}) => ({
-  target: resources(2000, 3000, 3000, 4000),
   resourceWeights: resources(1, 1),
   afkMinutes: 0,
   fleetCount: 2,
   candidateIds: [1, 2, 3],
-  considerBuckets: false,
+  bucketWeight: 0,
   incomeModifier: { greatSuccess: false, daihatsuCount: 0 },
   ...overrides,
 })
@@ -137,7 +136,7 @@ test('plans one to three fleets with stable expedition and fleet permutations', 
       expedition.id,
       fleet.fleetNumber,
     ]),
-    [[2, 2]],
+    [[1, 2]],
   )
   assert.deepEqual(
     plan({ fleetCount: 2 }).plans[0].pairings.map(({ expedition, fleet }) => [
@@ -162,6 +161,28 @@ test('plans one to three fleets with stable expedition and fleet permutations', 
   )
 })
 
+test('rejects inconsistent or incomplete busy-fleet mission state', () => {
+  const inconsistent = structuredClone(rawSnapshot)
+  inconsistent.candidates[0].fleetChecks[0].busy = true
+  assert.throws(() => parseKC3ExpeditionPlannerSnapshot(inconsistent), /busy.*currentMission/)
+
+  const incomplete = structuredClone(rawSnapshot)
+  incomplete.candidates[0].fleetChecks[1].currentMission.completesAt = 0
+  assert.throws(() => parseKC3ExpeditionPlannerSnapshot(incomplete), /currentMission.*不完整/)
+})
+
+test('does not treat a busy fleet current supply as post-return readiness', () => {
+  const suppliedBusyCandidates = structuredClone(rawSnapshot.candidates)
+  suppliedBusyCandidates.forEach((item) => {
+    item.fleetChecks.find((fleet) => fleet.fleetNumber === 3).isSupplied = true
+  })
+
+  const currentSupply = plan({ fleetCount: 3 }, { candidates: suppliedBusyCandidates })
+  const depletedSupply = plan({ fleetCount: 3 })
+
+  assert.equal(currentSupply.plans[0].pairingScore, depletedSupply.plans[0].pairingScore)
+})
+
 test('preserves great-success, 0-4 daihatsu, resupply, and marriage rounding order', () => {
   for (let daihatsuCount = 0; daihatsuCount <= 4; daihatsuCount += 1) {
     const result = plan({
@@ -176,17 +197,102 @@ test('preserves great-success, 0-4 daihatsu, resupply, and marriage rounding ord
   }
 })
 
-test('preserves afk cycles, resource weights, bucket priority, and no-solution codes', () => {
+test('preserves operation intervals, resource and bucket weights, and no-solution codes', () => {
   const afk = plan({ fleetCount: 1, afkMinutes: 120 })
   assert.equal(afk.settings.mode, 'afk')
   assert.equal(afk.plans[0].comparisonWindowMinutes, 120)
 
+  for (const [durationMinutes, effectiveCycleMinutes] of [
+    [30, 60],
+    [55, 60],
+    [90, 120],
+    [140, 180],
+    [175, 180],
+  ]) {
+    const hourlyCollection = plan(
+      { fleetCount: 1, candidateIds: [1], afkMinutes: 60 },
+      { candidates: [candidate(1, durationMinutes, resources(120, 0), 2)] },
+    )
+    const hourlyExpedition = hourlyCollection.plans[0].pairings[0].expedition
+    assert.equal(hourlyExpedition.effectiveCycleMinutes, effectiveCycleMinutes)
+    assert.equal(
+      hourlyExpedition.hourlyIncome.fuel,
+      (hourlyExpedition.netIncome.fuel * 60) / effectiveCycleMinutes,
+    )
+  }
+
   const fuelWeighted = plan({ fleetCount: 1, resourceWeights: resources(20, -5) })
   assert.equal(fuelWeighted.plans[0].pairings[0].expedition.id, 2)
-  const buckets = plan({ fleetCount: 1, considerBuckets: true })
+  const buckets = plan({ fleetCount: 1, bucketWeight: 5 })
   assert.equal(buckets.plans[0].pairings[0].expedition.id, 2)
 
-  assert.equal(plan({ target: resources(1, 1, 1, 1) }).reasonCode, 'TARGET_REACHED')
+  const bucketOnly = candidate(6, 30, resources(0, 0), 4, 2)
+  const resourceOnly = candidate(7, 30, resources(200, 200), 6)
+  const balanced = plan(
+    { fleetCount: 2, candidateIds: [2, 6, 7], bucketWeight: 5 },
+    { candidates: [rawSnapshot.candidates[1], bucketOnly, resourceOnly] },
+  )
+  assert.equal(balanced.status, 'success', JSON.stringify(balanced))
+  assert.deepEqual(balanced.plans[0].pairings.map(({ expedition }) => expedition.id).sort(), [2, 6])
+  assert.equal(balanced.settings.bucketWeight, 5)
+
+  const fuelFirst = plan(
+    {
+      fleetCount: 1,
+      candidateIds: [1, 2],
+      resourceWeights: resources(20, -5, -5, -5),
+      bucketWeight: 5,
+    },
+    {
+      candidates: [candidate(1, 30, resources(200, 0), 2), candidate(2, 30, resources(0, 0), 4, 1)],
+    },
+  )
+  assert.equal(fuelFirst.plans[0].pairings[0].expedition.id, 1)
+
+  const slightlyFuelFirst = plan(
+    {
+      fleetCount: 1,
+      candidateIds: [1, 2],
+      resourceWeights: resources(20, 0, 0, 0),
+      bucketWeight: 15,
+    },
+    {
+      candidates: [candidate(1, 30, resources(200, 0), 2), candidate(2, 30, resources(0, 0), 4, 1)],
+    },
+  )
+  assert.equal(slightlyFuelFirst.plans[0].pairings[0].expedition.id, 1)
+
+  const bucketFirst = plan(
+    {
+      fleetCount: 1,
+      candidateIds: [1, 2],
+      resourceWeights: resources(5, -5, -5, -5),
+      bucketWeight: 20,
+    },
+    {
+      candidates: [candidate(1, 30, resources(200, 0), 2), candidate(2, 30, resources(0, 0), 4, 1)],
+    },
+  )
+  assert.equal(bucketFirst.plans[0].pairings[0].expedition.id, 2)
+
+  const bucketFocused = plan(
+    { fleetCount: 2, candidateIds: [2, 6, 7], bucketWeight: 20 },
+    { candidates: [rawSnapshot.candidates[1], bucketOnly, resourceOnly] },
+  )
+  assert.deepEqual(
+    bucketFocused.plans[0].pairings.map(({ expedition }) => expedition.id).sort(),
+    [2, 6],
+  )
+
+  const bucketAvoiding = plan(
+    { fleetCount: 2, candidateIds: [2, 6, 7], bucketWeight: -5 },
+    { candidates: [rawSnapshot.candidates[1], bucketOnly, resourceOnly] },
+  )
+  assert.deepEqual(
+    bucketAvoiding.plans[0].pairings.map(({ expedition }) => expedition.id).sort(),
+    [2, 7],
+  )
+
   assert.equal(plan({ fleetCount: 3 }, { fleetNumbers: [2, 3] }).reasonCode, 'INSUFFICIENT_FLEETS')
   assert.equal(
     plan({ fleetCount: 2, candidateIds: [1] }, { candidates: [rawSnapshot.candidates[0]] })

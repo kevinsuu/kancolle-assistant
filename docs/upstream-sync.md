@@ -84,3 +84,8 @@ git merge electron25
 The installed application updater is separate from this source sync. A custom installer should use
 its own application identity and update feed so the official binary updater cannot replace the
 fleet-enabled build.
+
+For supported installed builds with automatic updates enabled, the application checks when it
+starts, whenever a tab enters the DMM KanColle game page, and every six hours while it remains open.
+Consecutive navigations within the DMM game page do not start duplicate checks; leaving and opening
+the game again starts a new check.

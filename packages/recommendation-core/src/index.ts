@@ -6,7 +6,14 @@ export {
   parseKC3ResourceLedgerSnapshot,
   summarizeResourceLedger,
 } from './resource-ledger'
-export { getMapOptions, getRouteTemplate, getRouteTemplates, NORMAL_MAP_ROUTES } from './rules'
+export {
+  automaticRouteBlockers,
+  getMapOptions,
+  getRouteTemplate,
+  getRouteTemplates,
+  isAutomaticRouteReady,
+  NORMAL_MAP_ROUTES,
+} from './rules'
 export { recommendFleet, SOLVER_VERSION } from './solver'
 export { RECOMMENDATION_OBJECTIVES } from './types'
 export type * from './expedition'

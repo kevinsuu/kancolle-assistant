@@ -1,13 +1,14 @@
-const { BrowserView } = require('electron')
-
 let topBarHeight = 64
 
 class Tab {
-  constructor(parentWindow, webContentsViewOptions = {}, searchPageUrl) {
+  constructor(parentWindow, webContentsViewOptions = {}, searchPageUrl, dependencies = {}) {
     // needed because browserwindow events don't bind this correctly
     this.updateLayout = this.updateLayout.bind(this)
 
-    this.view = new BrowserView()
+    const BrowserViewClass = dependencies.BrowserView || require('electron').BrowserView
+    this.createBrowserView = () => new BrowserViewClass()
+    this.searchPageUrl = searchPageUrl
+    this.view = this.createBrowserView()
     this.id = this.view.webContents.id
     this.window = parentWindow
     this.webContents = this.view.webContents
@@ -16,15 +17,28 @@ class Tab {
 
     this.searchInput = ''
     this.searchVisible = false
-    this.searchView = new BrowserView()
-    this.window.addBrowserView(this.searchView)
-    this.searchView.webContents.loadURL(searchPageUrl)
-    //this.searchView.webContents.openDevTools({ mode: 'detach', activate: true })
+    this.searchVisibilityRequest = 0
 
     this.webContents.on('found-in-page', (event, result) => {
       console.log('found on page', event, result)
-      this.sendMessage(this.searchView.webContents, 'found-in-page', result)
+      void this.searchViewReady?.then(() => {
+        if (this.searchView && !this.searchView.webContents.isDestroyed()) {
+          this.sendMessage(this.searchView.webContents, 'found-in-page', result)
+        }
+      })
     })
+  }
+
+  ensureSearchView() {
+    if (this.searchView) return this.searchViewReady
+    this.searchView = this.createBrowserView()
+    this.window.addBrowserView(this.searchView)
+    this.searchViewReady = this.searchView.webContents
+      .loadURL(this.searchPageUrl)
+      .catch((error) => {
+        console.error('Unable to load find-in-page view.', error)
+      })
+    return this.searchViewReady
   }
 
   destroy() {
@@ -32,28 +46,24 @@ class Tab {
 
     this.destroyed = true
 
-    this.hide()
-
-    this.window.removeBrowserView(this.searchView)
-    this.window.removeBrowserView(this.view)
+    this.visible = false
+    if (this.searchView) this.window.removeBrowserView(this.searchView)
+    if (this.view) this.window.removeBrowserView(this.view)
     this.window = undefined
 
-    if (!this.webContents.isDestroyed()) {
-      if (this.webContents.isDevToolsOpened()) {
-        this.webContents.closeDevTools()
+    if (this.view && !this.view.webContents.isDestroyed()) {
+      if (this.view.webContents.isDevToolsOpened()) {
+        this.view.webContents.closeDevTools()
       }
-
-      // TODO: why is this no longer called?
-      this.webContents.emit('destroyed')
-
-      this.webContents.destroy()
+      this.view.webContents.destroy()
     }
-
     this.webContents = undefined
-    this.view.webContents.destroy()
     this.view = undefined
-    this.searchView.webContents.destroy()
+    if (this.searchView && !this.searchView.webContents.isDestroyed()) {
+      this.searchView.webContents.destroy()
+    }
     this.searchView = undefined
+    this.searchViewReady = undefined
   }
 
   loadURL(url, options) {
@@ -108,6 +118,7 @@ class Tab {
       this.view.setAutoResize({ width: true, height: true })
 
       if (this.searchVisible) {
+        if (!this.searchView) return
         const searchWidth = finalWidth <= searchSnapWidth ? finalWidth : searchBaseWidth
         const searchX = Math.round((finalWidth - searchWidth) / 2)
         this.searchView.setBounds({
@@ -116,14 +127,14 @@ class Tab {
           width: searchWidth,
           height: searchHeight,
         })
-      } else {
+      } else if (this.searchView) {
         this.searchView.setBounds({ x: 0, y: 0, width: 0, height: 0 })
         this.webContents.stopFindInPage('clearSelection')
       }
     } else {
       this.view.setAutoResize({ width: false, height: false })
       this.view.setBounds({ x: 0, y: 0, width: 0, height: 0 })
-      this.searchView.setBounds({ x: 0, y: 0, width: 0, height: 0 })
+      if (this.searchView) this.searchView.setBounds({ x: 0, y: 0, width: 0, height: 0 })
     }
     //this.searchView.setBorderRadius(8)
   }
@@ -138,8 +149,24 @@ class Tab {
   }
 
   async setFindInPageVisible(visible) {
+    if (this.destroyed) return
+
+    const visibilityRequest = ++this.searchVisibilityRequest
+    const openingSearch = !this.searchVisible && visible
+    this.searchVisible = visible
     let changed = false
-    if (!this.searchVisible && visible) {
+    if (visible) {
+      await this.ensureSearchView()
+      if (
+        visibilityRequest !== this.searchVisibilityRequest ||
+        !this.searchVisible ||
+        this.destroyed ||
+        !this.view
+      ) {
+        return
+      }
+    }
+    if (openingSearch) {
       const selection = await this.view.webContents.executeJavaScript(
         'window.getSelection().toString()',
       )
@@ -148,16 +175,17 @@ class Tab {
         changed = true
       }
     }
-    this.searchVisible = visible
     this.updateLayout()
-    this.focusSearch()
+    await this.focusSearch()
     if (!changed)
       // prevent double trigger
       this.findInPage(this.searchInput)
   }
 
-  focusSearch() {
+  async focusSearch() {
     if (this.searchVisible) {
+      await this.searchViewReady
+      if (!this.searchVisible || this.destroyed || !this.searchView) return
       this.searchView.webContents.focus()
       this.sendMessage(this.searchView.webContents, 'prepare-search', {
         searchInput: this.searchInput,

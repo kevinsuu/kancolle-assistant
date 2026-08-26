@@ -84,6 +84,7 @@ export const jp = {
   'fleet.routeSummary': '該当ルート {routeCount} 件 · ボス固定 {stableCount} 件',
   'fleet.autoRoutes': '利用可能なルートを自動比較（上位3件）',
   'fleet.stable': '安定',
+  'fleet.manualSetup': '手動確認が必要',
   'fleet.source': '情報源 {index}',
   'fleet.verifiedAt': '{date}確認',
   'fleet.estimatedFuel': '推定燃料',
@@ -174,7 +175,9 @@ export const jp = {
   'message.EMPTY_EQUIPMENT_SLOTS':
     '用途に合う装備が不足し、{count}スロットが空いています。このまま出撃しないでください。',
   'message.OASW_NOT_READY':
-    'このルートは先制対潜を前提としますが、一般的な対潜100判定を満たしません。艦種別条件を確認してください。',
+    'このルートは先制対潜を前提としますが、艦種別条件を満たしソナーを装備した艦がありません。',
+  'message.OASW_REQUIREMENT_PASSED':
+    '先制対潜可能艦は{count}隻で、最低{minimum}隻を満たしています。',
   'message.ROUTE_NOT_GUARANTEED':
     'この案にはランダム分岐があります。結果には情報源を表示しています。',
   'message.EXPERIMENTAL_ROUTE': '新海域または実験データです。出撃前に最新攻略を確認してください。',
@@ -195,6 +198,11 @@ export const jp = {
   'message.NIGHT_CARRIER_UNAVAILABLE':
     '候補空母に固有の夜戦能力がなく、所持する互換装備でも夜戦空母編成を成立させられません。',
   'message.RULE_NOT_FOUND': '指定海域のルールが見つかりません。',
+  'message.NO_STABLE_ROUTE':
+    'この海域にはボス到達を固定できる検証済み編成がありません。ランダムルートを手動選択してください。',
+  'message.NO_AUTOMATED_ROUTE':
+    '手動確認が必要な編成のみ利用できます。ルートを明示的に選び、警告された設定を完了してください。',
+  'message.OASW_INSUFFICIENT': '先制対潜可能艦は{best}隻のみで、最低{minimum}隻必要です。',
   'message.INVALID_REQUEST': 'リクエスト形式が正しくありません。',
   'message.KC3_UNAVAILABLE': 'KC3データの準備ができていません。母港に戻って再同期してください。',
   'message.KC3_SCHEMA_INVALID': 'KC3アカウントデータの形式を解析できません。',
@@ -273,12 +281,13 @@ export const jp = {
   'expedition.menuTitle': 'KC3の資源と操作可能時間から最適な遠征組み合わせを作成',
   'expedition.title': '遠征提案',
   'expedition.syncResources': '資源を同期',
+  'expedition.syncComplete': '同期完了',
   'expedition.lead':
     '現在のKC3資源、候補遠征、操作可能時間から、実行可能な最適組み合わせを1件作成します。既存の遠征スコアラーは変更しません。',
-  'expedition.target': '目標',
-  'expedition.shortfall': '不足',
   'expedition.candidates': '候補遠征',
   'expedition.candidateHint': 'チェックした遠征から重複しない組み合わせのみ計算します',
+  'expedition.candidateUnlockWarning':
+    'KC3から完全な解放済み一覧は取得できません。ゲーム内で現在出発できる遠征だけを選択してください。',
   'expedition.candidatePresets': '候補遠征を一括選択',
   'expedition.selectAll': 'すべて',
   'expedition.recommended': 'おすすめ',
@@ -287,19 +296,15 @@ export const jp = {
   'expedition.area': '海域 {index}',
   'expedition.expand': '展開 ▼',
   'expedition.collapse': '閉じる ▲',
-  'expedition.resourceWeights': '資源の重み',
-  'expedition.weightHint': '-5 回避、0 無視、20 優先',
-  'expedition.considerBuckets': 'バケツ報酬を考慮',
-  'expedition.bucketHint': 'チェック時：1時間あたりのバケツ上限を4資源の効率より先に比較します',
+  'expedition.resourceWeights': '資源・バケツの重み',
+  'expedition.weightHint': '考慮しない項目は0；-5 回避、20 優先',
   'expedition.bucketPerTrip': '最大 +{count}／回',
-  'expedition.bucketPlanSummary': 'バケツ最大 {value}／時',
-  'expedition.schedule': '操作条件',
-  'expedition.scheduleHint': '0分は常時オンラインを表します',
+  'expedition.bucketPlanSummary': 'バケツ重み {weight} · 最大 {value}／時',
+  'expedition.schedule': '出発／受取間隔',
+  'expedition.scheduleHint':
+    '0分は常時オンライン。それ以外は固定間隔で受け取り、再出発として計算します',
   'expedition.fleets': '{count} 艦隊',
   'expedition.availableFleets': '使用可能な遠征艦隊',
-  'expedition.assumptions': '収入の前提',
-  'expedition.assumptionHint':
-    '報酬はKanceptsの順序で丸め、補給は現在の所属艦と最低編成から推定します。',
   'expedition.successMode': '成功モード',
   'expedition.normalSuccess': '通常成功',
   'expedition.greatSuccess': '大成功',
@@ -309,7 +314,7 @@ export const jp = {
   'expedition.maximum': '上限',
   'expedition.totalMultiplier': 'この計画の収入倍率',
   'expedition.actionHint':
-    '候補遠征、バケツ設定、資源の重み、離席時間、使用可能艦隊、収入前提から最適解を1件探します。',
+    '候補遠征、5項目の重み、操作間隔、使用可能艦隊、成功・大発設定から最適解を1件探します。',
   'expedition.generate': '最適な組み合わせを作成',
   'expedition.generating': '組み合わせを計算中…',
   'expedition.idle': '組み合わせはまだありません',
@@ -348,7 +353,9 @@ export const jp = {
   'expedition.recompose': '再編成',
   'expedition.resupply': '補給',
   'expedition.state.waiting': '帰投待ち',
+  'expedition.state.returned': '帰投結果を受け取る',
   'expedition.state.waitingAction': '{time}。帰投後に{actions}して出発',
+  'expedition.state.returnedAction': '帰投時刻を過ぎています。結果を受け取り、{actions}して出発',
   'expedition.state.composition': '再編成が必要',
   'expedition.state.compositionAction': '下記の編成条件を満たしてから出発',
   'expedition.state.supply': '補給が必要',
@@ -356,7 +363,8 @@ export const jp = {
   'expedition.state.ready': '出発可能',
   'expedition.state.readyAction': '編成と補給は準備済みです。今すぐ出発できます',
   'expedition.dispatchFleet': '第{number}艦隊の遠征先',
-  'expedition.busy': '現在 {number} {name} を実行中。{time}に帰投予定です。',
+  'expedition.busy':
+    '艦隊の現況（推薦先ではありません）：現在 {number} {name} を実行中。{time}に帰投予定です。このカードは帰投後の {recommendedNumber} {recommendedName} を推薦しています。',
   'expedition.sampleFleet': 'KC3の最低編成例：{ships}。',
   'expedition.compositionPassed': '現在の編成は全{count}件の成功条件を満たしています',
   'expedition.compositionFailed': '成功条件が{count}件不足しています。下記のとおり調整してください',
@@ -364,24 +372,26 @@ export const jp = {
   'expedition.dispatch': '遠征先',
   'expedition.nextAction': '次の操作：{action}',
   'expedition.perTrip': '／回',
+  'expedition.perHourAfterDispatch': '／時（現在の待ち時間を除く）',
   'expedition.compositionCheck': '編成確認：{summary}',
   'expedition.calculationDetails': '収入・大成功・計算根拠',
   'expedition.supplyReady': '補給済みです。',
   'expedition.supplyNeeded': '出発前または帰投後に燃料と弾薬を満タンにしてください。',
+  'expedition.supplyAfterReturn':
+    '現在遠征中です。結果を受け取った後、再出発前に補給してください。',
   'expedition.daihatsuWarning':
     '大発数は計画上の前提です。装備の確認や変更は自動で行わないため、出発前に艦隊を確認してください。',
   'expedition.resupplyEstimate':
     '補給見込み：燃料{fuel}／弾薬{ammo}。現在の所属艦とKanceptsの最低編成コストモデルによる推定です。',
-  'expedition.bestPlan': '最適案：この順番で出発',
+  'expedition.bestPlan': '最適案',
   'expedition.noPlan': '利用可能な案がありません',
   'expedition.noPlanFallback': '現在は遠征の組み合わせを作成できません。',
   'expedition.syncingTitle': 'KC3母港資源を同期中',
   'expedition.syncFailed': '同期に失敗しました',
   'expedition.syncUnavailable': 'KC3母港資源を読み込めません。',
   'expedition.syncStatus': '同期 {time}｜資源上限 {maximum}',
-  'expedition.error.target': '目標は0～{maximum}の整数で入力してください。',
-  'expedition.error.afk': '離席時間は0分～48時間で入力してください。',
-  'expedition.error.weights': '資源の重みは-5～20の整数で入力してください。',
+  'expedition.error.afk': '出発／受取間隔は0分～48時間で入力してください。',
+  'expedition.error.weights': '資源・バケツの重みは-5～20の整数で入力してください。',
   'expedition.error.candidates': 'チェックした遠征数が使用可能艦隊数より少なくなっています。',
   'expedition.error.syncConnection': '遠征資源同期サービスに接続できません。',
   'expedition.error.planConnection': '遠征組み合わせサービスに接続できません。',
@@ -409,12 +419,10 @@ export const jp = {
   'expedition.shipType.AR': '工作艦',
   'message.EXPEDITION_SYNC_CONNECTION_FAILED': '遠征資源同期サービスに接続できません。',
   'message.EXPEDITION_PLAN_CONNECTION_FAILED': '遠征組み合わせサービスに接続できません。',
-  'message.EXPEDITION_TARGET_INVALID': '目標は0～{maximum}の整数で入力してください。',
-  'message.EXPEDITION_AFK_INVALID': '離席時間は0分～48時間で入力してください。',
-  'message.EXPEDITION_WEIGHTS_INVALID': '資源の重みは-5～20の整数で入力してください。',
+  'message.EXPEDITION_AFK_INVALID': '出発／受取間隔は0分～48時間で入力してください。',
+  'message.EXPEDITION_WEIGHTS_INVALID': '資源・バケツの重みは-5～20の整数で入力してください。',
   'message.EXPEDITION_CANDIDATES_INVALID':
     'チェックした遠征数が使用可能艦隊数より少なくなっています。',
-  'expedition.reason.TARGET_REACHED': '4資源すべてが設定目標に到達しています。',
   'expedition.reason.INSUFFICIENT_FLEETS':
     'KC3で使用可能な遠征艦隊は{available}隊のみで、設定した{requested}隊に足りません。',
   'expedition.reason.INSUFFICIENT_EXPEDITIONS':

@@ -222,6 +222,17 @@ const eventListenerEquals = (a: EventListener) => (b: EventListener) => {
   return true
 }
 
+const routersBySession = new WeakMap<Electron.Session, ExtensionRouter>()
+let observesExtensionHosts = false
+
+const observeExtensionHosts = () => {
+  if (observesExtensionHosts) return
+  observesExtensionHosts = true
+  app.on('web-contents-created', (_event, webContents) => {
+    routersBySession.get(webContents.session)?.observeExtensionHost(webContents)
+  })
+}
+
 export class ExtensionRouter {
   private handlers: HandlerMap = new Map()
   private listeners: Map<EventName, EventListener[]> = new Map()
@@ -236,22 +247,18 @@ export class ExtensionRouter {
   private extensionHosts: Set<Electron.WebContents> = new Set()
 
   private extensionWorkers: Set<any> = new Set()
+  private observedListenerHosts = new WeakSet<FrameEventListener['host']>()
 
   constructor(
     public session: Electron.Session,
     private delegate: RoutingDelegate = RoutingDelegate.get(),
   ) {
     this.delegate.addObserver(this)
+    routersBySession.set(session, this)
+    observeExtensionHosts()
 
     session.on('extension-unloaded', (event, extension) => {
       this.filterListeners((listener) => listener.extensionId !== extension.id)
-    })
-
-    app.on('web-contents-created', (event, webContents) => {
-      if (webContents.session === this.session && webContents.getType() === 'backgroundPage') {
-        d(`storing reference to background host [url:'${webContents.getURL()}']`)
-        this.extensionHosts.add(webContents)
-      }
     })
 
     session.serviceWorkers.on(
@@ -275,6 +282,12 @@ export class ExtensionRouter {
     )
   }
 
+  observeExtensionHost(webContents: Electron.WebContents) {
+    if (webContents.getType() !== 'backgroundPage') return
+    d(`storing reference to background host [url:'${webContents.getURL()}']`)
+    this.extensionHosts.add(webContents)
+  }
+
   private filterListeners(predicate: (listener: EventListener) => boolean) {
     for (const [eventName, listeners] of this.listeners) {
       const filteredListeners = listeners.filter(predicate)
@@ -293,6 +306,8 @@ export class ExtensionRouter {
   }
 
   private observeListenerHost(host: FrameEventListener['host']) {
+    if (this.observedListenerHosts.has(host)) return
+    this.observedListenerHosts.add(host)
     const hostId = getHostId(host)
     d(`observing listener [id:${hostId}, url:'${getHostUrl(host)}']`)
     host.once('destroyed', () => {

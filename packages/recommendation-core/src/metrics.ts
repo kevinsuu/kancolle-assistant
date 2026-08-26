@@ -30,6 +30,11 @@ const getLosConstraint = (route: RouteTemplate) => {
   return constraint?.kind === 'los' ? constraint : null
 }
 
+const getOpeningAswConstraint = (route: RouteTemplate) => {
+  const constraint = route.calculatedConstraints.find((item) => item.kind === 'opening-asw')
+  return constraint?.kind === 'opening-asw' ? constraint : null
+}
+
 const equipmentLos = (gear: OwnedEquipment): number => {
   if (gear.stats.los <= 0) return 0
   const multiplier = LOS_MULTIPLIERS[gear.typeId] ?? 0.6
@@ -66,8 +71,11 @@ export const calculateLos33 = (
 
 const calculateOpeningAswCount = (builds: readonly RecommendedShipBuild[]): number =>
   builds.filter((build) => {
-    const equipmentAsw = build.equipment.reduce((total, gear) => total + (gear?.stats.asw ?? 0), 0)
-    return build.ship.stats.asw + equipmentAsw >= 100
+    const equipment = [...build.equipment, build.expansionSlot].filter((gear) => gear !== null)
+    const hasSonar = equipment.some((gear) => [14, 40].includes(gear.typeId))
+    const equipmentAsw = equipment.reduce((total, gear) => total + gear.stats.asw, 0)
+    const minimumAsw = build.ship.shipTypeId === 1 ? 60 : 100
+    return hasSonar && build.ship.stats.asw + equipmentAsw >= minimumAsw
   }).length
 
 const calculateNightCutInCandidates = (builds: readonly RecommendedShipBuild[]): number =>
@@ -115,6 +123,7 @@ export const calculateFleetMetrics = (
 ): FleetMetrics => {
   const airConstraint = getAirConstraint(route)
   const losConstraint = getLosConstraint(route)
+  const openingAswConstraint = getOpeningAswConstraint(route)
   const equipment = builds.flatMap((build) => build.equipment).filter((gear) => gear !== null)
   const landingCraftCount = equipment.filter(isNormalResourceLandingCraft).length
   const drumCount = equipment.filter(isDrumCanister).length
@@ -150,6 +159,8 @@ export const calculateFleetMetrics = (
     losRequired: losConstraint !== null,
     losMinimum: losConstraint?.minimum ?? 0,
     openingAswCount: calculateOpeningAswCount(builds),
+    openingAswRequired: openingAswConstraint !== null,
+    openingAswMinimum: openingAswConstraint?.minimum ?? 0,
     estimatedFuelCost,
     estimatedAmmoCost,
     estimatedResourceGain,
@@ -165,4 +176,5 @@ export const calculateFleetMetrics = (
 
 export const satisfiesCalculatedConstraints = (metrics: FleetMetrics): boolean =>
   (!metrics.airPowerRequired || metrics.airPower >= metrics.airPowerMinimum) &&
-  (!metrics.losRequired || metrics.los33 >= metrics.losMinimum)
+  (!metrics.losRequired || metrics.los33 >= metrics.losMinimum) &&
+  (!metrics.openingAswRequired || metrics.openingAswCount >= metrics.openingAswMinimum)

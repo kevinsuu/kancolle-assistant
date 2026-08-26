@@ -14,7 +14,7 @@ names continue to come from KC3, while map and route names come from the recomme
 ## Scope
 
 - Maps: all 37 currently available normal maps, including multi-phase maps and 5-6.
-- Routes: 110 canonical strategy templates.
+- Routes: 109 canonical strategy templates.
 - Objectives: balanced, boss clear, low cost, leveling, and resource farming.
 - Output: exact ship and equipment instance IDs, basic air power, Formula 33 LoS, estimated
   resource use, source links, reasons, and warnings.
@@ -43,11 +43,12 @@ Fleet and equipment search runs in a lazy worker thread with request correlation
 and a 30-second defensive timeout. Before a successful result crosses IPC, it is reduced to the
 route, ship, equipment, metric, score, reason, and warning fields used by the Strategy Room UI.
 
-The first account snapshot reloads KC3's persisted ship, equipment, HQ, and fleet data before
-reading the managers. Its normalized result is retained while the same Strategy Room page remains
-open, so returning to the recommender and generating a result do not repeat the full extraction.
-The `重新同步` action explicitly reloads and replaces that snapshot, reflects subsequent account
-changes, and invalidates any recommendation produced from the previous snapshot.
+The account summary may reuse its normalized snapshot while the same Strategy Room page remains
+open. Every recommendation request, however, reloads KC3's persisted ship, equipment, HQ, and fleet
+data before calculation, replaces the cached snapshot, and returns its generation time to the UI.
+The result therefore cannot silently use an older equipment or fleet assignment. The `重新同步`
+action still reloads the summary explicitly and invalidates any recommendation produced from the
+previous snapshot.
 
 The page reuses KC3 Strategy Room's native page title, help panel, section, control, theme color,
 and dense fleet-row conventions. Both the dark and legacy themes are driven by KC3's existing
@@ -55,18 +56,44 @@ and dense fleet-row conventions. Both the dark and legacy themes are driven by K
 equipment rows use KC3's equipment-type icon set, keyed by the master record's `api_type[3]`, so
 main guns, carrier fighters, and other categories match the equipment encyclopedia.
 
+Selecting `Generate recommendation` immediately disables the controls, changes the button label,
+and displays loading indicators in both the button and result area. The UI waits for that state to
+paint before refreshing the account snapshot and starting the worker calculation. A short timeout
+also releases that paint wait when the Strategy Room is in a background tab where animation frames
+may be suspended. Account synchronization failures always restore the controls and show an error,
+including IPC rejections rather than only structured service responses.
+
 ## Rule data
 
 The catalog is stored in:
 
-- `source-map-recommendations.json`: MIT-licensed base route constraints from
-  `shichiria/kancolle-browser`.
+- `verified-boss-fleets.json`: exact normal-map fleet skeletons and reviewed numeric thresholds
+  taken from the linked current ぜかまし攻略 pages.
+- `source-map-recommendations.json`: the retained MIT-licensed legacy base dataset from
+  `shichiria/kancolle-browser`; its broad boss constraints are no longer exposed to the solver.
 - `strategy-overlays.json`: curated boss, leveling, resource, X-5, and 5-6 strategies.
 
 Every normalized route includes source URLs, confidence, verification date, category, objectives,
-tags, and a rule version. Every one of the 110 templates links directly to its current per-map
+tags, and a rule version. Every one of the 109 templates links directly to its current per-map
 Kancolle Wiki guide in addition to any farming, leveling, or source-dataset reference. Invalid
 source or overlay shapes fail during module initialization.
+
+The standard boss catalog was rechecked on 2026-08-26 and replaces every broad legacy boss rule
+with a guide-backed fleet skeleton. Automatic selection only considers templates that are ready for
+solver-only use: fixed boss routing for boss objectives, non-experimental data, modeled required
+thresholds, and no unresolved support fleet, LBAS, smoke, special-attack, anti-installation, or other
+manual combat setup. A route that does not pass this audit remains available by explicit selection
+and is labeled as requiring a manual check. If a map has routes but none are safe for automatic
+selection, the result explains that distinction instead of claiming that the rule is missing.
+Automatic results also reject partially empty regular equipment layouts. Guide-primary templates
+rank before heuristic alternatives, so ship firepower scoring cannot silently substitute a
+different fleet class.
+
+Opening ASW routes store a minimum qualifying-ship count when the guide defines a usable threshold.
+A ship qualifies only when it carries sonar and reaches the conservative ship-type threshold:
+60 ASW for coastal defense ships and 100 ASW for other modeled types. Routes whose opening-ASW
+requirement is not quantified remain manual-only. Explicitly selected routes retain their source
+warnings instead of being silently treated as fully validated.
 
 The X-5 boss and gimmick catalogs were rechecked against Kancolle Wiki and 艦娘百科 on 2026-08-25
 and explicitly replace the older vendored X-5 routes. Exact-count constraints prevent a minimum
@@ -74,11 +101,18 @@ such as “one aviation battleship” from admitting additional battleships into
 The balanced 1-5 selection uses only the four-DE and DD/DE light fleets; the exact
 one-BBV/two-CL/one-DD second-shelling fleet is available only when boss clear is selected. For 4-5,
 fleets that pass node K require Cn2 LoS 71 and air power 112/252 (minimum/recommended); routes that
-skip K use air power 92/207. The 5-5 north and middle constraints exclude compositions that take a
-different branch, and the AO route warns that its optimized version requires an H-node smoke
-screen. 6-5 stores route-specific air-power targets after LBAS, while 7-5 exposes P1, two M-node
-gimmick choices, both P2 recommended fleets, and P3 independently. Every non-leveling X-5 template
-also retains its direct 艦娘百科 guide link.
+skip K use air power 92/207. The CL1/DD3 shortest route therefore requires at least one carrier in
+its two battleship/carrier slots; the documented two-battleship variant concedes air control and is
+not compatible with that hard threshold. The 5-5 north and middle constraints exclude compositions
+that take a different branch, and the AO route warns that its optimized version requires an H-node
+smoke screen. 6-5 stores route-specific air-power targets after LBAS, while 7-5 exposes P1, two
+M-node gimmick choices, both P2 recommended fleets, and P3 independently. Every non-leveling X-5
+template also retains its direct 艦娘百科 guide link.
+
+For 3-5, the current guide-primary upper route is exactly three regular/armored carriers, one CAV,
+and two SS/SSV on B-D-H-K. Air power 410 and Formula 33 coefficient-4 LoS 40 are hard gates. The
+former broad rule that admitted one battleship plus two carriers was removed, so combat scoring can
+no longer promote Musashi into this route.
 
 Examples of calculated hard constraints:
 
@@ -99,6 +133,11 @@ compatibility list captured from `KC3Master.equip_on_ship`. On routes with a rev
 minimum, compatible battleships and cruisers also allocate owned seaplane fighters instead of
 assuming that only carriers can supply the required air power.
 
+Opened expansion slots participate in the same global allocation. The solver fills each one when
+the account has a remaining compatible equipment instance, and leaves it empty only when no legal
+unused instance is available. Expansion assignments never duplicate equipment already recommended
+in a regular slot or another ship's expansion slot.
+
 Each recommendation request indexes owned equipment by compatibility and requirement once, then
 reuses ranked options across overlapping fleet candidates and routes. Fast+ and night-carrier
 reservation searches also collapse equivalent equipment-order states before applying their beam
@@ -109,6 +148,12 @@ Fleet candidates are equipped in stages. The solver first evaluates six candidat
 stops after three distinct fleets succeed; it expands toward the previous 18-candidate ceiling only
 when early candidates fail legal equipment or calculated constraints. This avoids fully solving
 lower-ranked fleets that cannot appear in the three-result response.
+
+Automatic route comparison uses a shallower first pass: it evaluates at least two and at most six
+fleet candidates for each applicable route, stopping after the minimum when one succeeds. If the
+pass does not produce three distinct legal fleets, the solver falls back to the full per-route
+limits above. Selecting one route always uses the full search directly. This keeps broad maps such
+as 4-5 responsive without weakening no-solution diagnostics or single-route recommendations.
 
 Recommendations that fail minimum air power or LoS are discarded rather than penalized with a
 score. Routes tagged as requiring a fast or slow fleet reject candidates with the wrong base fleet

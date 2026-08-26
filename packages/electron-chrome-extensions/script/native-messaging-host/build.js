@@ -40,6 +40,17 @@ async function createSEA() {
   }
 }
 
+async function createPortableHost() {
+  await fs.rm(path.join(outDir, seaBlobName), { force: true })
+  await fs.rm(path.join(outDir, exeName), { force: true })
+  const source = await fs.readFile(path.join(outDir, 'main.js'), 'utf8')
+  await fs.writeFile(path.join(outDir, exeName), `#!/usr/bin/env node\n${source}`)
+  await fs.chmod(path.join(outDir, exeName), 0o755)
+}
+
+const createHostExecutable = () =>
+  process.platform === 'win32' ? createSEA() : createPortableHost()
+
 async function installConfig(extensionIds) {
   console.info(`Installing config…`)
 
@@ -100,7 +111,7 @@ async function main() {
   }
 
   const extensionIds = extensionIdsArg.split(',')
-  await createSEA()
+  await createHostExecutable()
   await installConfig(extensionIds)
 }
 

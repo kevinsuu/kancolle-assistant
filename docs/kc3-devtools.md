@@ -21,3 +21,8 @@ monitor resolution.
 This integration depends on Chromium's internal DevTools module paths and tab model, plus
 `disableLocaleInfoBar` for the locale notice. Recheck them when upgrading Electron across Chromium
 versions.
+
+The DevTools split view can exist before its DOM element is attached. Initial panel selection
+retries during that interval; later fit adjustments return an unavailable-layout result instead of
+reading dimensions from a null element. This keeps the internal Chromium initialization race from
+escaping as an unhandled JavaScript error.

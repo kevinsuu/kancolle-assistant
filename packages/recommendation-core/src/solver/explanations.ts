@@ -5,6 +5,7 @@ import type {
   RecommendedShipBuild,
   RouteTemplate,
 } from '../types'
+import { EXTERNALLY_CONFIGURED_ROUTE_TAGS } from '../rules'
 
 const RECOMMENDATION_TITLES: Readonly<Record<RecommendationObjective, readonly string[]>> = {
   balanced: ['均衡主案', '穩定替案', '調度替案'],
@@ -82,6 +83,13 @@ export const recommendationMessages = (
       message: '索敵餘裕低於 5；更換艦娘或偵察裝備後請重新產生方案。',
     })
   }
+  if (metrics.openingAswRequired) {
+    reasons.push({
+      code: 'OASW_REQUIREMENT_PASSED',
+      message: `先制對潛可成立 ${metrics.openingAswCount} 艘，已達最低 ${metrics.openingAswMinimum} 艘。`,
+      values: { count: metrics.openingAswCount, minimum: metrics.openingAswMinimum },
+    })
+  }
 
   const movedEquipmentCount = builds.reduce(
     (total, build) =>
@@ -128,7 +136,7 @@ export const recommendationMessages = (
   if (route.tags.includes('oasw') && metrics.openingAswCount === 0) {
     warnings.push({
       code: 'OASW_NOT_READY',
-      message: '此路線依賴先制對潛，但目前方案未達一般 100 對潛判定；請依艦種個別門檻確認。',
+      message: '此路線依賴先制對潛，但目前方案沒有符合艦種門檻且已裝聲納的艦娘。',
     })
   }
   if (route.tags.includes('random-routing') || route.tags.some((tag) => tag.includes('routing-'))) {
@@ -150,18 +158,9 @@ export const recommendationMessages = (
       message: '此模板已核對路線與艦種，但尚未建入完整制空／索敵硬門檻；出擊前請開啟攻略來源核對。',
     })
   }
-  const externallyConfiguredTags = [
-    'anti-installation',
-    'boss-support',
-    'drum-canister-required',
-    'elite-torpedo-squadron-command-facility',
-    'historical-bonus',
-    'lbas',
-    'pt',
-    'rocket-barrage-required',
-    'smoke-screen',
-    'special-attack',
-  ].filter((tag) => route.tags.includes(tag))
+  const externallyConfiguredTags = EXTERNALLY_CONFIGURED_ROUTE_TAGS.filter((tag) =>
+    route.tags.includes(tag),
+  )
   if (externallyConfiguredTags.length > 0) {
     warnings.push({
       code: 'EXTERNAL_COMBAT_SETUP_REQUIRED',

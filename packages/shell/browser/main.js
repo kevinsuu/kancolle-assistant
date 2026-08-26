@@ -30,6 +30,7 @@ import { updateElectronApp, UpdateSourceType } from 'update-electron-app'
 // Application config
 import ConfigStore from 'configstore'
 import { configSchema, updateConfigDefaults, populateConfigDefaults } from './ui/config-utils.js'
+import { createRuntimeConfigStore } from './config/runtime-config'
 
 // These two break if using import syntax...?
 const { ElectronChromeExtensions } = require('electron-chrome-extensions')
@@ -121,9 +122,9 @@ if (preexisting) console.log('Detected preexisting userdata at current app locat
 
 updateConfigDefaults({ isSquirrel, preexisting })
 
-const configStore = new ConfigStore(legacyConfigId, {}, cfgOpts)
+const persistentConfigStore = new ConfigStore(legacyConfigId, {}, cfgOpts)
 
-const cfg = configStore.all
+const cfg = persistentConfigStore.all
 kccp.logger.log(logSource, 'Populating defaults for config')
 const configModified = populateConfigDefaults(cfg, configSchema, (...input) =>
   kccp.logger.log(logSource, ...input),
@@ -135,7 +136,8 @@ if (typeof cfg.proxy.client.enable !== 'undefined') {
   cfg.proxy.enable = cfg.proxy.client.enable
   delete cfg.proxy.client.enable
 }
-configStore.all = cfg // save with updated defaults
+persistentConfigStore.all = cfg // save with updated defaults
+const configStore = createRuntimeConfigStore(persistentConfigStore, cfg)
 
 if (!configStore.get('window.behavior.occlusion'))
   app.commandLine.appendSwitch('disable-renderer-backgrounding')
@@ -199,6 +201,9 @@ const PATHS = {
     ? path.resolve(process.resourcesPath, 'workers')
     : path.resolve(SHELL_ROOT_DIR, 'browser', 'workers'),
   PRELOAD: path.join(__dirname, '../renderer/browser/preload.js'),
+  APP_ICON: app.isPackaged
+    ? path.resolve(process.resourcesPath, 'ui', 'assets', 'icons', 'logo.png')
+    : path.resolve(ROOT_DIR, 'logo.png'),
   LOCAL_EXTENSIONS: path.join(dataPath, 'extensions'),
   KC3_EXTENSIONS: path.join(dataPath, 'extensions'),
   //KC3_EXTENSIONS: path.join(ROOT_DIR, 'ext_kc3kai'),
@@ -273,6 +278,23 @@ const manifestExists = async (dirPath) => {
   }
 }
 
+let appUpdateCheckInFlight = false
+const appUpdaterInitialized = isSquirrel && configStore.get('app.update.auto')
+
+const checkForAppUpdates = async (trigger) => {
+  if (!appUpdaterInitialized || appUpdateCheckInFlight) return
+
+  appUpdateCheckInFlight = true
+  kccp.logger.log(logSource, `Checking for app updates (${trigger}).`)
+  try {
+    await autoUpdater.checkForUpdates()
+  } catch (error) {
+    kccp.logger.error(logSource, 'Unable to check for app updates.', error)
+  } finally {
+    appUpdateCheckInFlight = false
+  }
+}
+
 if (isSquirrel) {
   // clear old versions
   if (configStore.get('app.update.removeOld')) {
@@ -296,7 +318,7 @@ if (isSquirrel) {
   }
 
   // auto update
-  if (cfg.app.update.auto) {
+  if (appUpdaterInitialized) {
     kccp.logger.log(logSource, 'Checking for updates.')
     updateElectronApp({
       updateSource: {
@@ -390,7 +412,13 @@ class TabbedBrowserWindow {
       const isKc3StartPage = tabUrl === kc3StartPageUrl
       const isDmmGamePage = isDmmGamePageUrl(tabUrl)
       const canOpenGameDevtools = isKc3StartPage || isDmmGamePage
-      if (!isDmmGamePage) tab.gameResponsiveFitEnabled = false
+      if (!isDmmGamePage) {
+        tab.appUpdateCheckedForGameSession = false
+        tab.gameResponsiveFitEnabled = false
+      } else if (!tab.appUpdateCheckedForGameSession) {
+        tab.appUpdateCheckedForGameSession = true
+        void checkForAppUpdates('game opened')
+      }
 
       if (
         isDmmGamePage &&
@@ -697,6 +725,10 @@ class Browser extends EventEmitter {
   }
 
   async init() {
+    if (process.platform === 'darwin' && !app.isPackaged) {
+      app.dock.setIcon(PATHS.APP_ICON)
+    }
+
     this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
     kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
@@ -1312,14 +1344,17 @@ class Browser extends EventEmitter {
           worldSafeExecuteJavaScript: true,
           backgroundThrottling: windowConfig.behavior.occlusion,
         },
-        icon: path.join(__dirname, 'icon.ico'),
+        icon: PATHS.APP_ICON,
       },
     })
 
     const resizeFitDelayMs = 50
+    const windowStateSaveDelayMs = 400
     let resizeFitTimer = null
     let resizeFitRunning = false
     let resizeFitPending = false
+    let windowStateSaveTimer = null
+    let pendingWindowSize = null
     const refitSelectedGameTab = async () => {
       if (resizeFitRunning) {
         resizeFitPending = true
@@ -1357,6 +1392,22 @@ class Browser extends EventEmitter {
         void refitSelectedGameTab()
       }, resizeFitDelayMs)
     }
+    const persistWindowSize = () => {
+      if (!pendingWindowSize) return
+      configStore.set({
+        'window.state.width': pendingWindowSize[0],
+        'window.state.height': pendingWindowSize[1],
+      })
+      pendingWindowSize = null
+    }
+    const scheduleWindowSizePersistence = (size) => {
+      pendingWindowSize = size
+      if (windowStateSaveTimer) clearTimeout(windowStateSaveTimer)
+      windowStateSaveTimer = setTimeout(() => {
+        windowStateSaveTimer = null
+        persistWindowSize()
+      }, windowStateSaveDelayMs)
+    }
 
     newTabbedWindow.window.on('close', (ev) => {
       ev.preventDefault()
@@ -1371,6 +1422,8 @@ class Browser extends EventEmitter {
       }
 
       if (resizeFitTimer) clearTimeout(resizeFitTimer)
+      if (windowStateSaveTimer) clearTimeout(windowStateSaveTimer)
+      persistWindowSize()
       this.windows.splice(idx, 1)
       newTabbedWindow.destroy()
     })
@@ -1380,10 +1433,8 @@ class Browser extends EventEmitter {
       })
       scheduleSelectedGameTabRefit()
       if (newTabbedWindow.window.isMaximized()) return
-      const size = newTabbedWindow.window.getSize()
       try {
-        configStore.set('window.state.width', size[0])
-        configStore.set('window.state.height', size[1])
+        scheduleWindowSizePersistence(newTabbedWindow.window.getSize())
       } catch (error) {
         kccp.logger.error(logSource, 'Failed to set window.state values during resize.')
       }
@@ -1809,7 +1860,9 @@ class Browser extends EventEmitter {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
     const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
 
-    tab.setFindInPageVisible(visible)
+    void tab.setFindInPageVisible(visible).catch((error) => {
+      kccp.logger.error(logSource, 'Unable to update find-in-page visibility.', error)
+    })
   }
   startFindInPage(tabId, searchInput) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))

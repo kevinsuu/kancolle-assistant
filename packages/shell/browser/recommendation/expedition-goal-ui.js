@@ -112,21 +112,22 @@ const formatShortDate = (value) => {
   )
 }
 
-const targetValues = (root) =>
-  Object.fromEntries(
-    resources.map(({ key }) => [key, Number(root.querySelector(`#dep-target-${key}`)?.value)]),
-  )
+const waitForNextPaint = () =>
+  new Promise((resolve) => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    window.setTimeout(finish, 100)
+    if (typeof window.requestAnimationFrame !== 'function') return
+    window.requestAnimationFrame(() => window.requestAnimationFrame(finish))
+  })
 
-const updateDeficits = (root, current) => {
-  const target = targetValues(root)
-  const deficits = Object.fromEntries(
-    resources.map(({ key }) => [key, Math.max(0, target[key] - Number(current[key] || 0))]),
-  )
-  const maxDeficit = Math.max(1, ...Object.values(deficits))
+const updateResources = (root, current) => {
   resources.forEach(({ key }) => {
     root.querySelector(`#dep-current-${key}`).textContent = formatNumber(current[key])
-    root.querySelector(`#dep-deficit-${key}`).textContent = formatNumber(deficits[key])
-    root.querySelector(`#dep-bar-${key}`).style.width = `${(deficits[key] / maxDeficit) * 100}%`
   })
 }
 
@@ -150,7 +151,7 @@ const scorerSettings = (root) => {
     fleetCount,
     candidateIds: selectedCandidateIds(root),
     resourceWeights,
-    considerBuckets: root.querySelector('#dep-consider-buckets')?.checked === true,
+    bucketWeight: Number(root.querySelector('#dep-bucket-weight')?.value),
   }
 }
 
@@ -330,14 +331,15 @@ const pairingState = (fleet) => {
   if (fleet.busy) {
     const afterReturn = [
       !fleet.meetsRequirements ? t('expedition.recompose') : '',
-      !fleet.isSupplied ? t('expedition.resupply') : '',
+      t('expedition.resupply'),
     ].filter(Boolean)
+    const returned = fleet.currentMission.completesAt <= Date.now()
     return {
       key: 'waiting',
-      label: t('expedition.state.waiting'),
-      action: t('expedition.state.waitingAction', {
-        time: formatShortDate(fleet.currentMission?.completesAt),
-        actions: afterReturn.length > 0 ? `${afterReturn.join(t('common.listSeparator'))} ` : '',
+      label: t(returned ? 'expedition.state.returned' : 'expedition.state.waiting'),
+      action: t(returned ? 'expedition.state.returnedAction' : 'expedition.state.waitingAction', {
+        time: formatShortDate(fleet.currentMission.completesAt),
+        actions: `${afterReturn.join(t('common.listSeparator'))} `,
       }),
     }
   }
@@ -379,6 +381,7 @@ const renderDispatchStep = ({ expedition, fleet }, index) => {
 
 const renderPairing = ({ expedition, fleet }) => {
   const state = pairingState(fleet)
+  const perHourLabel = fleet.busy ? t('expedition.perHourAfterDispatch') : t('common.perHour')
   const conditionItems = conditionRows(expedition.requirements, fleet)
   const failedConditions = conditionItems.filter((condition) => !condition.passed)
   const conditions = conditionItems
@@ -395,6 +398,8 @@ const renderPairing = ({ expedition, fleet }) => {
         number: fleet.currentMission.displayNo,
         name: fleet.currentMission.name,
         time: formatDate(fleet.currentMission.completesAt),
+        recommendedNumber: expedition.displayNo,
+        recommendedName: expedition.name,
       })
     : ''
   const sampleFleet =
@@ -418,12 +423,12 @@ const renderPairing = ({ expedition, fleet }) => {
         ${resources
           .map(
             (resource) =>
-              `<span style="--dep-resource:${resource.color}"><strong>${resourceLabel(resource)}</strong>${formatSigned(expedition.netIncome[resource.key])}${t('expedition.perTrip')} · ${formatSigned(expedition.hourlyIncome[resource.key], 1)}${t('common.perHour')}</span>`,
+              `<span style="--dep-resource:${resource.color}"><strong>${resourceLabel(resource)}</strong>${formatSigned(expedition.netIncome[resource.key])}${t('expedition.perTrip')} · ${formatSigned(expedition.hourlyIncome[resource.key], 1)}${perHourLabel}</span>`,
           )
           .join('')}
         ${
           expedition.bucketPotential.maxPerTrip > 0
-            ? `<span style="--dep-resource:#3b9d91"><strong>${t('common.bucket')}</strong>${t('expedition.bucketPerTrip', { count: formatNumber(expedition.bucketPotential.maxPerTrip) })} · ${formatNumber(expedition.bucketPotential.hourly, 2)}${t('common.perHour')}</span>`
+            ? `<span style="--dep-resource:#3b9d91"><strong>${t('common.bucket')}</strong>${t('expedition.bucketPerTrip', { count: formatNumber(expedition.bucketPotential.maxPerTrip) })} · ${formatNumber(expedition.bucketPotential.hourly, 2)}${perHourLabel}</span>`
             : ''
         }
       </div>
@@ -438,7 +443,7 @@ const renderPairing = ({ expedition, fleet }) => {
         <div class="dep-fold-body">
           <ul class="dep-notes">
             ${busyText ? `<li class="dep-busy">${escapeHtml(busyText)}</li>` : ''}
-            <li>${fleet.isSupplied ? t('expedition.supplyReady') : t('expedition.supplyNeeded')}</li>
+            <li>${fleet.busy ? t('expedition.supplyAfterReturn') : fleet.isSupplied ? t('expedition.supplyReady') : t('expedition.supplyNeeded')}</li>
             <li>${escapeHtml(modifierText(expedition.modifier))}</li>
             <li>${escapeHtml(greatSuccessText(expedition.greatSuccessCondition, fleet))}</li>
             <li>${t('expedition.daihatsuWarning')}</li>
@@ -457,7 +462,7 @@ const renderPlan = (plan) => {
       <section class="dep-dispatch-board page_panel bscolor4 fcolor2">
         <div class="dep-dispatch-title">
           <h3>${t('expedition.bestPlan')}</h3>
-          <span>${escapeHtml(modifierText(plan.pairings[0].expedition.modifier))}${plan.prioritizesBuckets ? ` · ${t('expedition.bucketPlanSummary', { value: formatNumber(plan.bucketPotentialHourly, 2) })}` : ''}</span>
+          <span>${escapeHtml(modifierText(plan.pairings[0].expedition.modifier))}${plan.bucketWeight !== 0 ? ` · ${t('expedition.bucketPlanSummary', { weight: plan.bucketWeight, value: formatNumber(plan.bucketPotentialHourly, 2) })}` : ''}</span>
         </div>
         <div class="dep-dispatch-steps">${plan.pairings.map(renderDispatchStep).join('')}</div>
       </section>
@@ -512,12 +517,16 @@ const mountPanel = (invoke) => {
   const syncButton = root.querySelector('#dep-sync')
   const generateButton = root.querySelector('#dep-generate')
   let current = null
-  let initializedTargets = false
+  let syncResetTimer = null
 
   const sync = async () => {
+    if (syncButton.disabled) return
+    if (syncResetTimer !== null) window.clearTimeout(syncResetTimer)
     syncButton.disabled = true
     syncButton.textContent = t('common.syncing')
     syncButton.title = t('expedition.syncingTitle')
+    syncButton.setAttribute('aria-busy', 'true')
+    await waitForNextPaint()
     let result
     try {
       result = await invoke(EXPEDITION_SUMMARY_CHANNEL)
@@ -525,6 +534,7 @@ const mountPanel = (invoke) => {
       result = { status: 'error', error: { code: 'EXPEDITION_SYNC_CONNECTION_FAILED' } }
     } finally {
       syncButton.disabled = false
+      syncButton.removeAttribute('aria-busy')
     }
     if (result?.status !== 'success') {
       syncButton.textContent = t('expedition.syncFailed')
@@ -533,22 +543,17 @@ const mountPanel = (invoke) => {
       return
     }
     current = result.current
-    resources.forEach(({ key, defaultTarget }) => {
-      const input = root.querySelector(`#dep-target-${key}`)
-      input.disabled = false
-      input.max = String(result.maxResource)
-      if (!initializedTargets) {
-        input.value = String(Math.min(result.maxResource, defaultTarget))
-      }
-    })
-    initializedTargets = true
-    updateDeficits(root, current)
+    updateResources(root, current)
     generateButton.disabled = false
-    syncButton.textContent = t('expedition.syncResources')
+    syncButton.textContent = t('expedition.syncComplete')
     syncButton.title = t('expedition.syncStatus', {
       time: formatDate(result.generatedAt),
       maximum: formatNumber(result.maxResource),
     })
+    syncResetTimer = window.setTimeout(() => {
+      syncButton.textContent = t('expedition.syncResources')
+      syncResetTimer = null
+    }, 1200)
   }
 
   root.querySelectorAll('[data-preset]').forEach((button) => {
@@ -565,32 +570,19 @@ const mountPanel = (invoke) => {
       ).textContent = input.value
     })
   })
-  resources.forEach(({ key }) => {
-    root.querySelector(`#dep-target-${key}`).addEventListener('input', () => {
-      if (current) updateDeficits(root, current)
-    })
+  root.querySelector('#dep-bucket-weight').addEventListener('input', (event) => {
+    root.querySelector('#dep-bucket-weight-value').textContent = event.currentTarget.value
   })
   root
     .querySelectorAll('input[name="dep-success-mode"], #dep-daihatsu-count')
     .forEach((control) => control.addEventListener('change', () => updateIncomeAssumption(root)))
   updateIncomeAssumption(root)
-  syncButton.addEventListener('click', sync)
+  syncButton.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    sync()
+  })
   generateButton.addEventListener('click', async () => {
-    const target = targetValues(root)
-    const maxTarget = Math.max(
-      ...resources.map(({ key }) => Number(root.querySelector(`#dep-target-${key}`).max || 350000)),
-    )
-    if (
-      Object.values(target).some(
-        (value) => !Number.isInteger(value) || value < 0 || value > maxTarget,
-      )
-    ) {
-      renderPlans(root, {
-        status: 'error',
-        error: { code: 'EXPEDITION_TARGET_INVALID', values: { maximum: formatNumber(maxTarget) } },
-      })
-      return
-    }
     const settings = scorerSettings(root)
     const incomeModifier = incomeAssumption(root)
     if (!Number.isInteger(settings.afkMinutes) || settings.afkMinutes > 2880) {
@@ -598,7 +590,7 @@ const mountPanel = (invoke) => {
       return
     }
     if (
-      Object.values(settings.resourceWeights).some(
+      [...Object.values(settings.resourceWeights), settings.bucketWeight].some(
         (value) => !Number.isInteger(value) || value < -5 || value > 20,
       )
     ) {
@@ -622,9 +614,17 @@ const mountPanel = (invoke) => {
     try {
       let result
       try {
-        result = await invoke(EXPEDITION_PLAN_CHANNEL, { target, ...settings, incomeModifier })
+        result = await invoke(EXPEDITION_PLAN_CHANNEL, { ...settings, incomeModifier })
       } catch {
         result = { status: 'error', error: { code: 'EXPEDITION_PLAN_CONNECTION_FAILED' } }
+      }
+      if (result?.current && result.generatedAt) {
+        current = result.current
+        updateResources(root, current)
+        syncButton.title = t('expedition.syncStatus', {
+          time: formatDate(result.generatedAt),
+          maximum: formatNumber(result.maxResource),
+        })
       }
       renderPlans(root, result)
     } finally {

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { createRuntimeConfigStore } from '../browser/config/runtime-config.js'
 import { createWebUiCommandRouter } from '../browser/ui/webui-command-router.js'
 import {
   isAllowedWebUiSender,
@@ -9,6 +10,41 @@ import {
 
 const extensionId = 'fixture-webui-extension'
 const eventFor = (url) => ({ senderFrame: { url }, sender: { getURL: () => url } })
+
+test('runtime config store serves reads from memory and persists batched updates once', () => {
+  const persisted = []
+  let diskReads = 0
+  const persistentStore = {
+    get all() {
+      diskReads += 1
+      return { proxy: { enable: true }, window: { state: { width: 800 } } }
+    },
+    set: (updates) => persisted.push(updates),
+    delete: () => {},
+    clear: () => {},
+    path: '/fixture/config.json',
+  }
+  const configStore = createRuntimeConfigStore(persistentStore)
+
+  assert.equal(configStore.get('proxy.enable'), true)
+  assert.equal(configStore.get('window.state.width'), 800)
+  assert.equal(diskReads, 1)
+
+  configStore.set({
+    'window.state.width': 1280,
+    'window.state.height': 720,
+  })
+
+  assert.deepEqual(persisted, [
+    {
+      'window.state.width': 1280,
+      'window.state.height': 720,
+    },
+  ])
+  assert.equal(configStore.get('window.state.width'), 1280)
+  assert.equal(configStore.get('window.state.height'), 720)
+  assert.equal(diskReads, 1)
+})
 
 test('webui IPC accepts only the current extension and five local pages', () => {
   for (const pagePath of WEBUI_ALLOWED_PATHS) {

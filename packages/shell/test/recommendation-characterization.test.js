@@ -35,12 +35,11 @@ const withRuntime = async (runtime, operation) => {
 
 const baseRequest = {
   mode: 'plan',
-  target: { fuel: 2000, ammo: 3000, steel: 3000, bauxite: 4000 },
   resourceWeights: { fuel: 1, ammo: 1, steel: 0, bauxite: 0 },
   afkMinutes: 0,
   fleetCount: 2,
   candidateIds: [1, 2, 3],
-  considerBuckets: false,
+  bucketWeight: 0,
   incomeModifier: { greatSuccess: false, daihatsuCount: 0 },
 }
 
@@ -59,8 +58,13 @@ const runResourceLedger = (range) =>
     return summarizeResourceLedger({ snapshot, range, now: FIXED_NOW })
   })
 
-test('KC3 expedition summary preserves current resources and timestamp', async () => {
-  const result = await withRuntime(createExpeditionWindow(), () =>
+test('KC3 expedition summary reloads current resources and preserves timestamp', async () => {
+  const runtime = createExpeditionWindow()
+  runtime.PlayerManager.hq.lastMaterial = [997, 1995, 2996, 4000]
+  runtime.PlayerManager.hq.load = () => {
+    runtime.PlayerManager.hq.lastMaterial = [1000, 2000, 3000, 4000]
+  }
+  const result = await withRuntime(runtime, () =>
     kc3ExpeditionPlannerMainWorld({ mode: 'summary' }),
   )
   assert.deepEqual(result, {
@@ -73,7 +77,6 @@ test('KC3 expedition summary preserves current resources and timestamp', async (
 test('KC3 expedition planner preserves pairing, costs, modifiers, and tie-breakers', async () => {
   const normal = await runExpeditionPlanner(baseRequest)
   assert.equal(normal.status, 'success')
-  assert.deepEqual(normal.deficits, { fuel: 1000, ammo: 1000, steel: 0, bauxite: 0 })
   assert.equal(normal.plans.length, 1)
   assert.deepEqual(
     normal.plans[0].pairings.map(({ expedition, fleet }) => [expedition.id, fleet.fleetNumber]),
@@ -113,21 +116,48 @@ test('KC3 expedition planner preserves pairing, costs, modifiers, and tie-breake
   const buckets = await runExpeditionPlanner({
     ...baseRequest,
     fleetCount: 1,
-    considerBuckets: true,
+    bucketWeight: 5,
   })
   assert.equal(buckets.status, 'success')
   assert.equal(buckets.plans[0].pairings[0].expedition.id, 2)
   assert.equal(buckets.plans[0].bucketPotentialHourly, 2)
 })
 
-test('KC3 expedition planner preserves no-solution outcomes', async () => {
-  const targetReached = await runExpeditionPlanner({
-    ...baseRequest,
-    target: { fuel: 1, ammo: 1, steel: 1, bauxite: 1 },
-  })
-  assert.equal(targetReached.status, 'no-solution')
-  assert.equal(targetReached.reasonCode, 'TARGET_REACHED')
+test('KC3 expedition snapshot keeps current missions separate from recommendations', async () => {
+  const snapshot = await withRuntime(createExpeditionWindow(), () =>
+    parseKC3ExpeditionPlannerSnapshot(kc3ExpeditionPlannerMainWorld(baseRequest)),
+  )
+  const recommendedExpedition = snapshot.candidates.find((candidate) => candidate.id === 2)
+  const busyFleet = recommendedExpedition.fleetChecks.find((fleet) => fleet.fleetNumber === 3)
 
+  assert.equal(recommendedExpedition.displayNo, '02')
+  assert.equal(busyFleet.busy, true)
+  assert.deepEqual(busyFleet.currentMission, {
+    id: 3,
+    displayNo: '03',
+    name: 'Ammo voyage',
+    completesAt: FIXED_NOW + 60 * 60 * 1000,
+  })
+
+  const runtimeWithStaleMission = createExpeditionWindow()
+  runtimeWithStaleMission.PlayerManager.fleets[1].mission = [0, 3, FIXED_NOW + 60 * 60 * 1000]
+  const staleSnapshot = await withRuntime(runtimeWithStaleMission, () =>
+    parseKC3ExpeditionPlannerSnapshot(kc3ExpeditionPlannerMainWorld(baseRequest)),
+  )
+  const freeFleet = staleSnapshot.candidates[0].fleetChecks.find((fleet) => fleet.fleetNumber === 2)
+
+  assert.equal(freeFleet.busy, false)
+  assert.equal(freeFleet.currentMission, null)
+
+  const runtimeWithIncompleteMission = createExpeditionWindow()
+  runtimeWithIncompleteMission.PlayerManager.fleets[2].mission = [1, 0, 0]
+  await assert.rejects(
+    withRuntime(runtimeWithIncompleteMission, () => kc3ExpeditionPlannerMainWorld(baseRequest)),
+    /mission data is incomplete/,
+  )
+})
+
+test('KC3 expedition planner preserves no-solution outcomes', async () => {
   const tooManyFleets = await runExpeditionPlanner({ ...baseRequest, fleetCount: 4 })
   assert.equal(tooManyFleets.status, 'no-solution')
   assert.equal(tooManyFleets.reasonCode, 'INSUFFICIENT_FLEETS')

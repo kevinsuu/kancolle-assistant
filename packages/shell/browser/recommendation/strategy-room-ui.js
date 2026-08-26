@@ -128,6 +128,21 @@ const renderError = (output, title, messages) => {
   `
 }
 
+const waitForNextPaint = () =>
+  new Promise((resolve) => {
+    let settled = false
+    let timeoutId
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeoutId)
+      resolve()
+    }
+    timeoutId = window.setTimeout(finish, 100)
+    if (typeof window.requestAnimationFrame !== 'function') return
+    window.requestAnimationFrame(() => window.requestAnimationFrame(finish))
+  })
+
 const mountPanel = (invoke) => {
   const content = document.querySelector('#content')
   const contentHtml = document.querySelector('#contentHtml')
@@ -151,8 +166,10 @@ const mountPanel = (invoke) => {
   let accountReady = false
   let mapOptionsReady = false
   let mapOptions = []
+  let busyOperationCount = 0
 
-  const setBusy = (busy) => {
+  const updateBusy = () => {
+    const busy = busyOperationCount > 0
     syncButton.disabled = busy
     mapSelect.disabled = busy || !mapOptionsReady
     routeSelect.disabled = busy || !mapOptionsReady
@@ -160,6 +177,26 @@ const mountPanel = (invoke) => {
     generateButton.querySelector('span').textContent = busy
       ? t('fleet.generating')
       : t('fleet.generate')
+  }
+  const beginBusy = () => {
+    busyOperationCount += 1
+    updateBusy()
+  }
+  const endBusy = () => {
+    busyOperationCount = Math.max(0, busyOperationCount - 1)
+    updateBusy()
+  }
+
+  const showAccountSummary = (account) => {
+    cachedAccountResult = { status: 'success', account }
+    accountReady = true
+    title.textContent = t('fleet.account.synced', {
+      ships: account.shipCount,
+      equipment: account.equipmentCount,
+    })
+    detail.textContent = t('fleet.account.snapshot', {
+      time: formatDate(account.generatedAt),
+    })
   }
 
   const renderMapObjectives = () => {
@@ -184,7 +221,7 @@ const mountPanel = (invoke) => {
       `<option value="">${t('fleet.autoRoutes')}</option>`,
       ...routes.map(
         (route) =>
-          `<option value="${escapeHtml(route.id)}">${escapeHtml(route.phase ? `${route.phase}｜${route.name}` : route.name)}${route.stableBoss ? `｜${t('fleet.stable')}` : ''}</option>`,
+          `<option value="${escapeHtml(route.id)}">${escapeHtml(route.phase ? `${route.phase}｜${route.name}` : route.name)}${route.stableBoss ? `｜${t('fleet.stable')}` : ''}${route.automaticReady ? '' : `｜${t('fleet.manualSetup')}`}</option>`,
       ),
     ].join('')
     mapSummary.textContent = t('fleet.routeSummary', {
@@ -194,28 +231,32 @@ const mountPanel = (invoke) => {
   }
 
   const loadMapOptions = async () => {
-    const result = cachedMapOptionsResult ?? (await invoke(MAP_OPTIONS_CHANNEL))
-    if (result.status !== 'success') {
-      mapSummary.textContent = translateMessage(result.error, 'fleet.mapUnavailableDetail')
-      return
+    beginBusy()
+    try {
+      const result = cachedMapOptionsResult ?? (await invoke(MAP_OPTIONS_CHANNEL))
+      if (result.status !== 'success') {
+        mapSummary.textContent = translateMessage(result.error, 'fleet.mapUnavailableDetail')
+        return
+      }
+      cachedMapOptionsResult = result
+      mapOptions = result.maps
+      mapSelect.innerHTML = mapOptions
+        .map(
+          (item) =>
+            `<option value="${escapeHtml(item.id)}">${escapeHtml(item.id)}｜${escapeHtml(item.name)}</option>`,
+        )
+        .join('')
+      if (mapOptions.some((item) => item.id === '1-1')) mapSelect.value = '1-1'
+      mapOptionsReady = true
+      renderMapObjectives()
+    } finally {
+      endBusy()
     }
-    cachedMapOptionsResult = result
-    mapOptions = result.maps
-    mapSelect.innerHTML = mapOptions
-      .map(
-        (item) =>
-          `<option value="${escapeHtml(item.id)}">${escapeHtml(item.id)}｜${escapeHtml(item.name)}</option>`,
-      )
-      .join('')
-    if (mapOptions.some((item) => item.id === '1-1')) mapSelect.value = '1-1'
-    mapOptionsReady = true
-    renderMapObjectives()
-    setBusy(false)
   }
 
   const syncAccount = async ({ invalidateResults = false, forceRefresh = false } = {}) => {
     if (forceRefresh) cachedAccountResult = null
-    setBusy(true)
+    beginBusy()
     title.textContent = t('fleet.account.loading')
     detail.textContent = t('fleet.account.validating')
     if (invalidateResults) {
@@ -226,37 +267,39 @@ const mountPanel = (invoke) => {
         </div>
       `
     }
-    const result =
-      !forceRefresh && cachedAccountResult
-        ? cachedAccountResult
-        : await invoke(ACCOUNT_CHANNEL, { forceRefresh })
-    if (result.status === 'success') {
-      cachedAccountResult = result
-      accountReady = true
-      title.textContent = t('fleet.account.synced', {
-        ships: result.account.shipCount,
-        equipment: result.account.equipmentCount,
-      })
-      detail.textContent = t('fleet.account.snapshot', {
-        time: formatDate(result.account.generatedAt),
-      })
-      if (invalidateResults) {
-        output.innerHTML = `
-          <div class="dfr-idle bscolor3 fcolor2">
-            <strong>${t('fleet.updatedTitle')}</strong>
-            <span>${t('fleet.updatedDetail')}</span>
-          </div>
-        `
+    try {
+      const result =
+        !forceRefresh && cachedAccountResult
+          ? cachedAccountResult
+          : await invoke(ACCOUNT_CHANNEL, { forceRefresh })
+      if (result.status === 'success') {
+        showAccountSummary(result.account)
+        if (invalidateResults) {
+          output.innerHTML = `
+            <div class="dfr-idle bscolor3 fcolor2">
+              <strong>${t('fleet.updatedTitle')}</strong>
+              <span>${t('fleet.updatedDetail')}</span>
+            </div>
+          `
+        }
+      } else {
+        accountReady = false
+        title.textContent = t('fleet.account.unavailable')
+        detail.textContent = translateMessage(result.error, 'fleet.account.syncFirst')
+        if (invalidateResults) {
+          renderError(output, t('fleet.resyncIncomplete'), [detail.textContent])
+        }
       }
-    } else {
+    } catch {
       accountReady = false
       title.textContent = t('fleet.account.unavailable')
-      detail.textContent = translateMessage(result.error, 'fleet.account.syncFirst')
+      detail.textContent = t('fleet.failedFallback')
       if (invalidateResults) {
         renderError(output, t('fleet.resyncIncomplete'), [detail.textContent])
       }
+    } finally {
+      endBusy()
     }
-    setBusy(false)
   }
 
   syncButton.addEventListener('click', () =>
@@ -267,15 +310,20 @@ const mountPanel = (invoke) => {
   generateButton.addEventListener('click', async () => {
     const objective = contentHtml.querySelector('input[name="dfr-objective"]:checked').value
     const mapId = mapSelect.value
-    setBusy(true)
-    output.innerHTML = `<div class="dfr-idle bscolor3 fcolor2"><strong>${t('fleet.planningTitle')}</strong><span>${t('fleet.planningDetail')}</span></div>`
+    beginBusy()
+    generateButton.classList.add('is-loading')
+    generateButton.setAttribute('aria-busy', 'true')
+    output.setAttribute('aria-busy', 'true')
+    output.innerHTML = `<div class="dfr-idle dfr-loading bscolor3 fcolor2"><strong>${t('fleet.planningTitle')}</strong><span>${t('fleet.planningDetail')}</span></div>`
     try {
+      await waitForNextPaint()
       const result = await invoke(RECOMMEND_CHANNEL, {
         mapId,
         objective,
         routeId: routeSelect.value || undefined,
         avoidCurrentFleetEquipment: preserveFleet.checked,
       })
+      if (result.account) showAccountSummary(result.account)
       if (result.status === 'success') {
         renderResults(output, result)
       } else if (result.status === 'no-solution') {
@@ -293,7 +341,10 @@ const mountPanel = (invoke) => {
     } catch {
       renderError(output, t('fleet.serviceUnavailable'), [t('fleet.failedFallback')])
     } finally {
-      setBusy(false)
+      generateButton.classList.remove('is-loading')
+      generateButton.removeAttribute('aria-busy')
+      output.removeAttribute('aria-busy')
+      endBusy()
     }
   })
 
@@ -301,12 +352,12 @@ const mountPanel = (invoke) => {
     accountReady = false
     title.textContent = t('fleet.account.unavailable')
     detail.textContent = t('fleet.account.syncFirst')
-    setBusy(false)
+    updateBusy()
   })
   loadMapOptions().catch(() => {
     mapSummary.textContent = t('fleet.mapUnavailableDetail')
     mapOptionsReady = false
-    setBusy(false)
+    updateBusy()
   })
 }
 

@@ -157,6 +157,10 @@ export const showKc3DevToolsPanel = async ({ devToolsWebContents, extensionId })
               layout: { applied: false, reason: 'right-docked-layout-unavailable' },
             }
           }
+          if (!ownerSplit.element) {
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            continue
+          }
 
           const totalWidth = ownerSplit.element.clientWidth
           const totalHeight = ownerSplit.element.clientHeight
@@ -214,6 +218,13 @@ export const showKc3DevToolsPanel = async ({ devToolsWebContents, extensionId })
             found: true,
             selectedTabId: inspectorView.tabbedPane.selectedTabId,
             layout: { applied: false, reason: 'right-docked-layout-unavailable' },
+          }
+        }
+        if (!ownerSplit.element) {
+          return {
+            found: true,
+            selectedTabId: inspectorView.tabbedPane.selectedTabId,
+            layout: { applied: false, reason: 'split-element-unavailable' },
           }
         }
 

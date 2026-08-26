@@ -161,6 +161,10 @@ export type CalculatedConstraint =
       readonly coefficient: number
       readonly minimum: number
     }
+  | {
+      readonly kind: 'opening-asw'
+      readonly minimum: number
+    }
 
 export interface RouteTemplate {
   readonly id: string
@@ -222,6 +226,8 @@ export interface FleetMetrics {
   readonly losRequired: boolean
   readonly losMinimum: number
   readonly openingAswCount: number
+  readonly openingAswRequired: boolean
+  readonly openingAswMinimum: number
   readonly estimatedFuelCost: number
   readonly estimatedAmmoCost: number
   readonly estimatedResourceGain: number | null
@@ -307,6 +313,7 @@ export interface MapRouteOption {
   readonly objectives: readonly RecommendationObjective[]
   readonly nodes: readonly string[]
   readonly stableBoss: boolean
+  readonly automaticReady: boolean
   readonly description: string
   readonly confidence: RouteTemplate['metadata']['confidence']
 }

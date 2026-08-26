@@ -24,6 +24,7 @@ export const styles = `
   .dep-candidate-summary-status span::before { color: #888; font-size: 11px; content: attr(data-collapsed-label); }
   .dep-candidate-panel[open] .dep-candidate-summary-status span::before { content: attr(data-expanded-label); }
   .dep-candidate-body { padding: 0 10px 10px; border-top: 1px solid rgba(128,128,128,.25); }
+  .dep-candidate-warning { margin: 9px 0 0; padding: 7px 9px; border-left: 3px solid #c98f00; background: rgba(201,143,0,.1); font-size: 11px; }
   .dep-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
   .dep-section-head h3 { margin: 0; font-size: 16px; }
   .dep-section-head p { margin: 0; color: #888; font-size: 11px; }
@@ -43,11 +44,6 @@ export const styles = `
   .dep-weight span { font-size: 12px; font-weight: bold; }
   .dep-weight output { font: bold 13px monospace; text-align: right; }
   .dep-weight input { width: 100%; min-width: 0; }
-  .dep-bucket-option { display: flex; grid-column: 1 / -1; align-items: center; gap: 8px; min-height: 38px; margin-top: 2px; padding: 6px 8px; border: 1px solid rgba(128,128,128,.35); cursor: pointer; }
-  .dep-bucket-option:has(input:checked) { border-color: #3b9d91; background: rgba(59,157,145,.14); }
-  .dep-bucket-option input { margin: 0; }
-  .dep-bucket-option strong { display: block; font-size: 12px; }
-  .dep-bucket-option small { display: block; color: #888; font-size: 10px; font-weight: normal; }
   .dep-schedule { display: grid; grid-template-columns: 1fr; gap: 9px; }
   .dep-time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .dep-time-inputs label { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; font-size: 11px; }
@@ -58,24 +54,14 @@ export const styles = `
   .dep-fleet-options label { display: flex; flex: 1; align-items: center; justify-content: center; gap: 4px; min-height: 31px; border: 1px solid rgba(128,128,128,.35); cursor: pointer; font-size: 12px; }
   .dep-fleet-options label:has(input:checked) { border-color: #3b87aa; background: rgba(70,150,190,.14); }
   .dep-button:focus-visible, .dep-root input:focus-visible, .dep-root select:focus-visible, .dep-candidate-summary:focus-visible, .dep-fold:focus-within { outline: 2px solid #69c; outline-offset: 2px; }
-  .dep-targets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 8px; }
+  .dep-resources { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 8px; }
   .dep-resource { --dep-resource: #777; position: relative; min-width: 0; padding: 10px 11px 9px; overflow: hidden; }
   .dep-resource::before { position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--dep-resource); content: ''; }
-  .dep-resource-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+  .dep-resource-head { display: flex; justify-content: space-between; align-items: baseline; }
   .dep-resource-head strong { font-size: 15px; }
   .dep-resource-head span { color: #888; font-size: 12px; }
   .dep-resource-head span b { margin-left: 2px; color: inherit; font-size: 16px; font-variant-numeric: tabular-nums; }
-  .dep-resource label { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 6px; font-size: 12px; }
-  .dep-resource input { width: 100%; height: 31px; padding: 3px 7px; color: inherit; font: 15px monospace; text-align: right; }
-  body.dark .dep-resource input { border: 1px solid #444; background: #090909; }
-  body:not(.dark) .dep-resource input { border: 1px solid #b7cbd5; background: #fff; }
-  .dep-shortfall { height: 6px; margin-top: 9px; overflow: hidden; background: rgba(128,128,128,.18); }
-  .dep-shortfall i { display: block; width: 0; height: 100%; background: var(--dep-resource); transition: width .18s ease-out; }
-  .dep-deficit { display: flex; justify-content: space-between; margin-top: 5px; color: #bd6678; font: 12px monospace; }
-  body.dark .dep-deficit { color: #f0a3b2; }
-  .dep-assumptions { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.45fr) minmax(0, 1.15fr) minmax(0, .75fr); gap: 12px; align-items: stretch; margin-top: 8px; padding: 13px; }
-  .dep-assumption-intro h3 { margin: 0 0 3px; font-size: 17px; }
-  .dep-assumption-intro p { margin: 0; color: #888; font-size: 12px; line-height: 1.55; }
+  .dep-success-panel { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.15fr) minmax(0, .75fr); gap: 12px; align-items: stretch; margin-top: 8px; padding: 13px; }
   .dep-assumption-group { min-width: 0; margin: 0; padding: 0; border: 0; }
   .dep-assumption-group legend, .dep-assumption-label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: bold; }
   .dep-success-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
@@ -146,16 +132,13 @@ export const styles = `
   .dep-conditions li.fail::before { content: '!'; }
   .dep-notes { margin: 0; padding-left: 19px; }
   .dep-notes li { margin: 4px 0; font-size: 12px; line-height: 1.5; }
-  @media (max-width: 1100px) {
-    .dep-assumptions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
   @media (max-width: 680px) {
     .dep-root { width: 100%; }
     .dep-candidate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .dep-settings-grid { grid-template-columns: 1fr; }
     .dep-weight-grid { grid-template-columns: 1fr; }
-    .dep-targets { grid-template-columns: repeat(2, 1fr); }
-    .dep-assumptions { grid-template-columns: minmax(0, 1fr); }
+    .dep-resources { grid-template-columns: repeat(2, 1fr); }
+    .dep-success-panel { grid-template-columns: minmax(0, 1fr); }
     .dep-dispatch-steps { grid-template-columns: 1fr; }
     .dep-conditions { grid-template-columns: 1fr; }
     .dep-actions { align-items: stretch; flex-direction: column; }
@@ -163,7 +146,6 @@ export const styles = `
   }
   @keyframes dep-route-spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
-    .dep-shortfall i { transition: none; }
     .dep-button-primary.is-loading::before { border-right-color: currentColor; animation: none; opacity: .55; }
   }
 `
@@ -175,7 +157,7 @@ export const plannerMarkup = (t, resources, weightResources, expeditionGroups) =
       <button id="dep-sync" class="dep-button dep-title-sync" type="button">${t('expedition.syncResources')}</button>
     </div>
     <p class="dep-lead page_panel bscolor4 fcolor2">${t('expedition.lead')}</p>
-    <div id="dep-targets" class="dep-targets">
+    <div id="dep-resources" class="dep-resources">
       ${resources
         .map(
           (resource) => `
@@ -184,12 +166,6 @@ export const plannerMarkup = (t, resources, weightResources, expeditionGroups) =
                 <strong>${t(`common.${resource.key}`)}</strong>
                 <span>${t('common.current')} <b id="dep-current-${resource.key}">—</b></span>
               </div>
-              <label for="dep-target-${resource.key}">
-                <span>${t('expedition.target')}</span>
-                <input id="dep-target-${resource.key}" inputmode="numeric" min="0" max="350000" step="1000" type="number" disabled>
-              </label>
-              <div class="dep-shortfall" aria-hidden="true"><i id="dep-bar-${resource.key}"></i></div>
-              <div class="dep-deficit"><span>${t('expedition.shortfall')}</span><strong id="dep-deficit-${resource.key}">—</strong></div>
             </section>
           `,
         )
@@ -201,6 +177,7 @@ export const plannerMarkup = (t, resources, weightResources, expeditionGroups) =
         <span class="dep-candidate-summary-status"><b id="dep-candidate-count">${t('expedition.selectAll')}</b><span aria-hidden="true" data-collapsed-label="${t('expedition.expand')}" data-expanded-label="${t('expedition.collapse')}"></span></span>
       </summary>
       <div class="dep-candidate-body">
+        <p class="dep-candidate-warning">${t('expedition.candidateUnlockWarning')}</p>
         <div class="dep-presets" aria-label="${t('expedition.candidatePresets')}">
           <button class="dep-preset" data-preset="all" type="button">${t('expedition.selectAll')}</button>
           <button class="dep-preset" data-preset="recommended" type="button">${t('expedition.recommended')}</button>
@@ -246,9 +223,10 @@ export const plannerMarkup = (t, resources, weightResources, expeditionGroups) =
               `,
             )
             .join('')}
-          <label class="dep-bucket-option">
-            <input id="dep-consider-buckets" type="checkbox" checked>
-            <span><strong>${t('expedition.considerBuckets')}</strong><small>${t('expedition.bucketHint')}</small></span>
+          <label class="dep-weight" style="--dep-resource:#3b9d91">
+            <span>${t('common.bucket')}</span>
+            <input id="dep-bucket-weight" min="-5" max="20" step="1" type="range" value="5">
+            <output id="dep-bucket-weight-value">5</output>
           </label>
         </div>
       </section>
@@ -270,11 +248,7 @@ export const plannerMarkup = (t, resources, weightResources, expeditionGroups) =
         </div>
       </section>
     </div>
-    <section class="dep-assumptions page_panel bscolor4 fcolor2" aria-labelledby="dep-assumption-title">
-      <div class="dep-assumption-intro">
-        <h3 id="dep-assumption-title">${t('expedition.assumptions')}</h3>
-        <p>${t('expedition.assumptionHint')}</p>
-      </div>
+    <section class="dep-success-panel page_panel bscolor4 fcolor2">
       <fieldset class="dep-assumption-group">
         <legend>${t('expedition.successMode')}</legend>
         <div class="dep-success-options">

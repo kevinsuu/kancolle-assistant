@@ -1,8 +1,8 @@
 export const EXPEDITION_RESOURCES = [
-  { key: 'fuel', color: '#50a65d', defaultTarget: 50000 },
-  { key: 'ammo', color: '#8b6b42', defaultTarget: 50000 },
-  { key: 'steel', color: '#6f8795', defaultTarget: 55000 },
-  { key: 'bauxite', color: '#c47e37', defaultTarget: 55000 },
+  { key: 'fuel', color: '#50a65d' },
+  { key: 'ammo', color: '#8b6b42' },
+  { key: 'steel', color: '#6f8795' },
+  { key: 'bauxite', color: '#c47e37' },
 ]
 
 export const LEDGER_RESOURCES = [

@@ -1,0 +1,808 @@
+[
+  {
+    "area": "1-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/1-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "1-1-guide-dd4",
+        "name": "攻略網・駆逐4",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "C"],
+        "stableBoss": false,
+        "tags": ["verified-guide", "guide-primary", "random-routing"],
+        "desc": "駆逐4。ボス到達率70%で、ゲーム仕様上ルート固定不可。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "1-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/1-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "1-2-guide-cl-dd4",
+        "name": "攻略網・軽巡駆逐",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "E"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "fast"],
+        "desc": "軽巡1、駆逐4、高速統一。攻略網掲載の固定進王編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 5 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "1-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/1-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "1-3-guide-cvl2-dd4",
+        "name": "攻略網・軽空母2駆逐4",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["C", "F", "J"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "軽空母2、駆逐4。開幕航空を使う攻略網の固定進王周回編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 52, "recommended": 52 }]
+      }
+    ]
+  },
+  {
+    "area": "1-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/1-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "1-4-guide-cvl2-dd3-ssv",
+        "name": "攻略網・軽空母潜母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["B", "C", "F", "E", "H", "L"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "軽空母2、駆逐3、潜水空母1。攻略網掲載のボス固定周回編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [14], "value": 1 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 77, "recommended": 77 }]
+      }
+    ]
+  },
+  {
+    "area": "1-6",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/1-6/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "1-6-guide-cl-dd5",
+        "name": "攻略網・下路水雷",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "E", "G", "F", "B", "N"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route"],
+        "desc": "軽巡1、駆逐5。終点固定の標準下ルート。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "2-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/2-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "2-1-guide-cl-dd4-av",
+        "name": "攻略網・最短水雷",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["C", "E", "H"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "fast"],
+        "desc": "軽巡1、駆逐4、水母1、高速統一。道中1戦の固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 81, "recommended": 81 }]
+      }
+    ]
+  },
+  {
+    "area": "2-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/2-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "2-2-guide-carrier-av-de",
+        "name": "攻略網・空母海防",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["C", "E", "F", "H", "K"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "空母系2、水母1、軽巡1、海防2。攻略網掲載の道中1戦固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [7, 11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [1], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 85, "recommended": 85 }]
+      }
+    ]
+  },
+  {
+    "area": "2-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/2-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "2-3-guide-ca5-cl",
+        "name": "攻略網・重巡5軽巡1",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/B", "N"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "boss-fixed", "random-routing"],
+        "desc": "軽巡1、重巡5。途中の経路は分岐するが、ぜかまし掲載のボス到達固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 5 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "2-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/2-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "2-4-guide-ca-cl-dd4",
+        "name": "攻略網・中央軽量固定",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["B", "G", "H", "L", "P"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route"],
+        "desc": "重巡級1、軽巡1、駆逐4。攻略資料で確認された中央固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "3-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/3-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "3-1-guide-cv2-cruiser-dd2",
+        "name": "攻略網・空母巡洋艦",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "F", "G"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "正規空母2、重巡1、雷巡1、駆逐2。攻略網掲載の最短編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 90, "recommended": 90 }]
+      }
+    ]
+  },
+  {
+    "area": "3-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/3-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "3-2-guide-fast-plus",
+        "name": "攻略網・高速＋水雷",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "E/G", "F", "L"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "fast+", "radar-required"],
+        "desc": "軽巡1、駆逐5、高速＋統一、電探1以上。戦艦Hマスを回避する攻略編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "3-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/3-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "3-3-guide-cv-cvl-ca2-dd2",
+        "name": "攻略網・空母重巡",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "C", "G", "M"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "正規空母1、軽空母1、重巡2、駆逐2。攻略網掲載の固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 160, "recommended": 160 }]
+      }
+    ]
+  },
+  {
+    "area": "3-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/3-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "3-4-guide-heavy-carrier",
+        "name": "攻略網・重量空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "C", "E", "G", "J", "P"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "戦艦1、正規空母2、軽空母1、軽巡1、水母1。初攻略向け掲載編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 175, "recommended": 175 }]
+      }
+    ]
+  },
+  {
+    "area": "4-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/4-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "4-1-guide-cv-ca2-cl-dd2",
+        "name": "攻略網・空母巡洋艦",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["D", "H", "J"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "正規空母1、重巡2、軽巡1、駆逐2。攻略網掲載の固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 75, "recommended": 75 }]
+      }
+    ]
+  },
+  {
+    "area": "4-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/4-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "4-2-guide-cv2-cl-dd3",
+        "name": "攻略網・空母水雷",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A/B", "C", "L"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "正規空母2、軽巡1、駆逐3。攻略網掲載のボス固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 90, "recommended": 90 }]
+      }
+    ]
+  },
+  {
+    "area": "4-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/4-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "4-3-guide-cv2-ca2-dd2",
+        "name": "攻略網・対地空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "D", "H", "N"],
+        "stableBoss": false,
+        "tags": [
+          "verified-guide",
+          "guide-primary",
+          "random-routing",
+          "carrier-opening",
+          "anti-installation"
+        ],
+        "desc": "正規空母2、重巡2、駆逐2。HからボスNは約91%で、約9%の逸れあり。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 165, "recommended": 165 }]
+      }
+    ]
+  },
+  {
+    "area": "4-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/4-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "4-4-guide-bb-cv2-ca-dd-de",
+        "name": "攻略網・戦艦空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "E", "I", "K"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening", "oasw"],
+        "desc": "戦艦1、正規空母2、重巡1、駆逐1、海防1。攻略網掲載の固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [1], "value": 1 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 80, "recommended": 80 },
+          { "kind": "opening-asw", "minimum": 1 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "5-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/5-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "5-1-guide-bb-cvl-ca-cl-dd2",
+        "name": "攻略網・戦艦軽空母",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "C", "F", "J"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route"],
+        "desc": "戦艦1、軽空母1、重巡1、軽巡1、駆逐2。攻略網掲載の固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 130, "recommended": 130 }]
+      }
+    ]
+  },
+  {
+    "area": "5-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/5-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "5-2-guide-cv2-bb2-cruisers",
+        "name": "攻略網・空母戦艦",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "C", "E", "F", "O"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "正規空母2、戦艦2、航巡1、重巡1。攻略網掲載の標準編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 252, "recommended": 252 },
+          { "kind": "los", "coefficient": 2, "minimum": 70 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "5-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/5-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "5-3-guide-ca5-cl",
+        "name": "攻略網・重巡級5",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["D", "G", "I", "O", "K", "E", "Q"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "night-battle"],
+        "desc": "航巡2、重巡3、軽巡1。攻略網掲載の重巡級5固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 71, "recommended": 71 }]
+      }
+    ]
+  },
+  {
+    "area": "5-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/5-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "5-4-guide-fbb2-cav2-dd2",
+        "name": "攻略網・上路夜戦",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "E", "H", "I", "J", "M", "P"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "fast", "night-battle"],
+        "desc": "高速戦艦2、航巡2、駆逐2。攻略網掲載の上ルート編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 63, "recommended": 63 },
+          { "kind": "los", "coefficient": 2, "minimum": 45 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "6-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/6-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "6-1-guide-cv-cl-clt-ss3",
+        "name": "攻略網・空母潜水",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "F", "G", "H", "K"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "正規空母1、雷巡1、軽巡1、潜水艦3。攻略網掲載の標準編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [13, 14], "value": 3 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 69, "recommended": 69 },
+          { "kind": "los", "coefficient": 4, "minimum": 36 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "6-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/6-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "6-2-guide-bb-cv-clt2-dd2",
+        "name": "攻略網・戦艦空母雷巡",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["C", "E", "J", "K"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+        "desc": "戦艦1、正規空母1、雷巡2、駆逐2。攻略網掲載の初攻略編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 155, "recommended": 155 },
+          { "kind": "los", "coefficient": 3, "minimum": 50 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "6-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/6-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "6-3-guide-cl-dd4-av",
+        "name": "攻略網・最短水雷",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "C", "E", "G", "H", "J"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route"],
+        "desc": "軽巡1、駆逐4、水母1。攻略網掲載の最短編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 3, "minimum": 38 }]
+      }
+    ]
+  },
+  {
+    "area": "6-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/6-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "6-4-guide-fast-left",
+        "name": "攻略網・高速左路",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "D", "C", "F", "N"],
+        "stableBoss": true,
+        "tags": [
+          "verified-guide",
+          "guide-primary",
+          "fixed-route",
+          "fast",
+          "anti-installation",
+          "lbas"
+        ],
+        "desc": "軽巡1、戦艦1、航巡1、駆逐3、高速統一。基地航空隊と対地装備前提。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "air-power", "minimum": 35, "recommended": 35 }]
+      }
+    ]
+  },
+  {
+    "area": "7-1",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/7-1/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "7-1-guide-cl-dd4",
+        "name": "攻略網・先制対潜水雷",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["D", "E", "G", "H", "K"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "oasw"],
+        "desc": "軽巡1、駆逐4。全艦先制対潜を目標にする攻略網掲載編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 5 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 5 }]
+      }
+    ]
+  },
+  {
+    "area": "7-2",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/7-2/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "7-2-guide-p1-cl-dd3",
+        "name": "攻略網・第一ゲージ対潜",
+        "phase": "第一ゲージ",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["C", "E", "G"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "oasw"],
+        "desc": "軽巡1、駆逐3。第一ゲージ初攻略の固定対潜編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 4 }]
+      },
+      {
+        "id": "7-2-guide-p2-heavy",
+        "name": "攻略網・第二ゲージ重量",
+        "phase": "第二ゲージ",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["B", "C", "D", "I", "M"],
+        "stableBoss": true,
+        "tags": [
+          "verified-guide",
+          "guide-primary",
+          "fixed-route",
+          "fast",
+          "carrier-opening",
+          "oasw"
+        ],
+        "desc": "戦艦1、正規空母1、軽空母1、雷巡1、駆逐2、高速統一。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+        ],
+        "calculated": [
+          { "kind": "air-power", "minimum": 370, "recommended": 370 },
+          { "kind": "los", "coefficient": 4, "minimum": 69 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "7-3",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/7-3/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "7-3-guide-p1-haguro-dd3",
+        "name": "攻略網・第一ゲージ羽黒",
+        "phase": "第一ゲージ",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear", "low-cost"],
+        "nodes": ["A", "C", "E"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route"],
+        "desc": "羽黒1、駆逐3。第一ゲージ初攻略の固定編成。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 4 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 },
+          { "type": "ContainsShipName", "names": ["羽黒", "Haguro"], "count": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ]
+      },
+      {
+        "id": "7-3-guide-p2-haguro-ashigara",
+        "name": "攻略網・第二ゲージ重巡",
+        "phase": "第二ゲージ",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "C", "D", "G", "J", "P"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "fast", "smoke-screen", "oasw"],
+        "desc": "羽黒、足柄、航巡1、駆逐3、高速統一。潜水Jマスは煙幕または対潜装備。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 2 },
+          { "type": "ContainsShipName", "names": ["羽黒", "Haguro"], "count": 1 },
+          { "type": "ContainsShipName", "names": ["足柄", "Ashigara"], "count": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
+        ]
+      }
+    ]
+  },
+  {
+    "area": "7-4",
+    "sources": ["https://zekamashi.net/kancolle-kouryaku/7-4/"],
+    "replaceSourceRoutes": true,
+    "routes": [
+      {
+        "id": "7-4-guide-bbv-cruisers-escort",
+        "name": "攻略網・初攻略混成",
+        "category": "boss",
+        "objectives": ["balanced", "boss-clear"],
+        "nodes": ["A", "B", "E", "J", "L", "P"],
+        "stableBoss": true,
+        "tags": ["verified-guide", "guide-primary", "fixed-route", "oasw", "lbas"],
+        "desc": "航戦1、重巡1、雷巡1、駆逐2、海防1。基地航空隊と先制対潜前提。",
+        "lastVerified": "2026-08-26",
+        "fleet": [
+          { "type": "ShipCount", "value": 6 },
+          { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 },
+          { "type": "ExactShipTypeCount", "stypes": [1], "value": 1 }
+        ],
+        "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 37 }]
+      }
+    ]
+  }
+]

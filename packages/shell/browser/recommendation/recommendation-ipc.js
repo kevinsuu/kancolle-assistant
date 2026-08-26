@@ -29,12 +29,12 @@ const isAllowedStrategyRoomSender = (event, extensionId) => {
   }
 }
 
-const readAccount = async (event, getKc3ExtensionId) => {
+const readAccount = async (event, getKc3ExtensionId, readAccountSnapshot) => {
   if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
     return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
   }
   try {
-    return await readKC3AccountSnapshot(event.sender)
+    return await readAccountSnapshot(event.sender)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     const code =
@@ -84,20 +84,15 @@ const parseExpeditionRequest = (request) => {
   if (
     !request ||
     typeof request !== 'object' ||
-    !request.target ||
     !request.resourceWeights ||
     !request.incomeModifier
   ) {
     return null
   }
-  const target = Object.fromEntries(RESOURCE_KEYS.map((key) => [key, Number(request.target[key])]))
   const resourceWeights = Object.fromEntries(
     RESOURCE_KEYS.map((key) => [key, Number(request.resourceWeights[key])]),
   )
   if (
-    RESOURCE_KEYS.some(
-      (key) => !Number.isInteger(target[key]) || target[key] < 0 || target[key] > 350000,
-    ) ||
     RESOURCE_KEYS.some(
       (key) =>
         !Number.isInteger(resourceWeights[key]) ||
@@ -111,7 +106,9 @@ const parseExpeditionRequest = (request) => {
     request.fleetCount < 1 ||
     request.fleetCount > 3 ||
     typeof request.incomeModifier.greatSuccess !== 'boolean' ||
-    typeof request.considerBuckets !== 'boolean' ||
+    !Number.isInteger(request.bucketWeight) ||
+    request.bucketWeight < -5 ||
+    request.bucketWeight > 20 ||
     !Number.isInteger(request.incomeModifier.daihatsuCount) ||
     request.incomeModifier.daihatsuCount < 0 ||
     request.incomeModifier.daihatsuCount > 4 ||
@@ -124,12 +121,11 @@ const parseExpeditionRequest = (request) => {
     .sort((left, right) => left - right)
   if (candidateIds.length < request.fleetCount) return null
   return {
-    target,
     resourceWeights,
     afkMinutes: request.afkMinutes,
     fleetCount: request.fleetCount,
     candidateIds,
-    considerBuckets: request.considerBuckets,
+    bucketWeight: request.bucketWeight,
     incomeModifier: {
       greatSuccess: request.incomeModifier.greatSuccess,
       daihatsuCount: request.incomeModifier.daihatsuCount,
@@ -144,7 +140,14 @@ export const registerRecommendationIpc = ({
   planExpeditions: planExpeditionsInWorker,
   summarizeResourceLedger: summarizeResourceLedgerInWorker,
   logger,
+  readAccountSnapshot = readKC3AccountSnapshot,
 }) => {
+  const accountSummary = (snapshot) => ({
+    shipCount: snapshot.ships.length,
+    equipmentCount: snapshot.equipment.length,
+    generatedAt: snapshot.generatedAt,
+    capabilities: snapshot.metadata.capabilities,
+  })
   const accountSnapshots = new WeakMap()
   const readCachedAccount = async (event, forceRefresh = false) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
@@ -153,7 +156,7 @@ export const registerRecommendationIpc = ({
     const sender = event.sender
     if (forceRefresh) accountSnapshots.delete(sender)
     if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
-    const snapshot = await readAccount(event, getKc3ExtensionId)
+    const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot)
     if (snapshot.status !== 'error') accountSnapshots.set(sender, snapshot)
     return snapshot
   }
@@ -170,12 +173,7 @@ export const registerRecommendationIpc = ({
     if (snapshot.status === 'error') return snapshot
     return {
       status: 'success',
-      account: {
-        shipCount: snapshot.ships.length,
-        equipmentCount: snapshot.equipment.length,
-        generatedAt: snapshot.generatedAt,
-        capabilities: snapshot.metadata.capabilities,
-      },
+      account: accountSummary(snapshot),
     }
   })
 
@@ -201,7 +199,7 @@ export const registerRecommendationIpc = ({
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
     }
     const parsedRequest = parseExpeditionRequest(request)
-    if (!parsedRequest) return errorResult('INVALID_REQUEST', '遠征目標或配對條件格式不正確。')
+    if (!parsedRequest) return errorResult('INVALID_REQUEST', '遠征配對條件格式不正確。')
     try {
       const result = await planKC3Expeditions(event.sender, parsedRequest, planExpeditionsInWorker)
       logger('expedition-planner.completed', {
@@ -245,7 +243,7 @@ export const registerRecommendationIpc = ({
     const parsedRequest = parseRequest(request)
     if (!parsedRequest) return errorResult('INVALID_REQUEST', '推薦條件格式不正確。')
 
-    const snapshot = await readCachedAccount(event)
+    const snapshot = await readCachedAccount(event, true)
     if (snapshot.status === 'error') return snapshot
 
     let result
@@ -260,14 +258,28 @@ export const registerRecommendationIpc = ({
       return errorResult('SOLVER_FAILED', '推薦計算失敗，請稍後再試。')
     }
     if (result.status !== 'error') {
+      const routeCount =
+        getMapOptions()
+          .find((map) => map.id === parsedRequest.mapId)
+          ?.routes.filter(
+            (route) =>
+              route.objectives.includes(parsedRequest.objective) &&
+              (!parsedRequest.routeId || route.id === parsedRequest.routeId),
+          ).length ?? 0
       logger('recommendation.completed', {
         mapId: parsedRequest.mapId,
         objective: parsedRequest.objective,
+        routeId: parsedRequest.routeId ?? null,
+        searchMode: parsedRequest.routeId ? 'selected-route' : 'auto-compare',
+        routeCount,
         status: result.status,
         elapsedMs: result.elapsedMs,
         recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
       })
     }
-    return toRecommendationRendererResult(result)
+    return {
+      ...toRecommendationRendererResult(result),
+      account: accountSummary(snapshot),
+    }
   })
 }

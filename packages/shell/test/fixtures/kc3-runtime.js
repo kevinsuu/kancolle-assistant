@@ -89,7 +89,7 @@ export const createExpeditionWindow = () => {
 
   return {
     PlayerManager: {
-      hq: { lastMaterial: [1000, 2000, 3000, 4000] },
+      hq: { lastMaterial: [1000, 2000, 3000, 4000], load: () => {} },
       maxResource: 350000,
       fleets,
       loadFleets: () => {},

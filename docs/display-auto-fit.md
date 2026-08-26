@@ -37,6 +37,11 @@ stays at `0.5` and the undersized viewport may clip the game instead of forcing 
 larger size. A manual zoom remains in effect until the next window resize. Canvas detection times
 out after five minutes; reloading the game page starts a fresh attempt.
 
+Resize calculations are debounced independently from window-state persistence. While a resize is
+in progress, the latest non-maximized dimensions remain in memory. Width and height are written to
+the persistent configuration together after resize activity settles, with a final flush when the
+window closes. This keeps atomic configuration writes out of the high-frequency resize event path.
+
 The behavior is enabled by default and can be disabled under:
 
 ```text
