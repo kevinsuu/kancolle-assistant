@@ -154,7 +154,21 @@ const withEffectiveViewport = (measurement, topViewport) => ({
   },
 })
 
-const calculateZoomFactor = (measurement, currentZoom, displayMetrics) => {
+const withResponsiveViewport = (measurement, topViewport) => ({
+  ...measurement,
+  viewport: {
+    width:
+      Number(topViewport?.width) > 0
+        ? Number(topViewport.width)
+        : Number(measurement.viewport.width),
+    height:
+      Number(topViewport?.height) > 0
+        ? Number(topViewport.height)
+        : Number(measurement.viewport.height),
+  },
+})
+
+const calculateZoomFactor = (measurement, currentZoom, displayMetrics = null) => {
   const usableViewportWidth = Math.max(
     Number(measurement.viewport.width) - Math.max(Number(measurement.canvas.left), 0),
     1,
@@ -165,18 +179,22 @@ const calculateZoomFactor = (measurement, currentZoom, displayMetrics) => {
   )
   const measuredViewportWidth = usableViewportWidth * currentZoom
   const measuredViewportHeight = usableViewportHeight * currentZoom
-  const availableWidth = Math.min(
+  const fallbackWidth = displayMetrics?.workAreaSize.width ?? 1
+  const fallbackHeight = displayMetrics?.workAreaSize.height ?? 1
+  const viewportWidth =
     Number.isFinite(measuredViewportWidth) && measuredViewportWidth > 0
       ? measuredViewportWidth
-      : displayMetrics.workAreaSize.width,
-    displayMetrics.workAreaSize.width,
-  )
-  const availableHeight = Math.min(
+      : fallbackWidth
+  const viewportHeight =
     Number.isFinite(measuredViewportHeight) && measuredViewportHeight > 0
       ? measuredViewportHeight
-      : displayMetrics.workAreaSize.height,
-    displayMetrics.workAreaSize.height,
-  )
+      : fallbackHeight
+  const availableWidth = displayMetrics
+    ? Math.min(viewportWidth, displayMetrics.workAreaSize.width)
+    : viewportWidth
+  const availableHeight = displayMetrics
+    ? Math.min(viewportHeight, displayMetrics.workAreaSize.height)
+    : viewportHeight
   const canvasWidth = Number(measurement.canvas.width) * currentZoom
   const canvasHeight = Number(measurement.canvas.height) * currentZoom
   const fitRatio = Math.min(availableWidth / canvasWidth, availableHeight / canvasHeight)
@@ -184,6 +202,9 @@ const calculateZoomFactor = (measurement, currentZoom, displayMetrics) => {
     Math.floor(clamp(currentZoom * fitRatio, MIN_ZOOM, MAX_ZOOM) * ZOOM_PRECISION) / ZOOM_PRECISION
   )
 }
+
+export const calculateResponsiveGameZoom = (measurement, currentZoom, topViewport = null) =>
+  calculateZoomFactor(withResponsiveViewport(measurement, topViewport), currentZoom)
 
 export const captureStartupDisplayMetrics = (electronScreen) => {
   const display = electronScreen.getPrimaryDisplay()
@@ -256,6 +277,42 @@ export const fitWindowForGameAndSidebar = ({ tab, displayMetrics, sidebarWidth }
     ...layout,
     previousSize: { width: currentBounds.width, height: currentBounds.height },
   }
+}
+
+export const fitGameTabToCurrentViewport = async ({ tab, logger }) => {
+  const webContents = tab?.webContents
+  if (!tab?.gameResponsiveFitEnabled || !tab.visible || !webContents || webContents.isDestroyed()) {
+    return { applied: false, reason: 'responsive-fit-unavailable' }
+  }
+
+  const candidate = await findLargestCanvas(webContents)
+  if (!candidate || !tab.gameResponsiveFitEnabled || webContents.isDestroyed()) {
+    return { applied: false, reason: 'canvas-unavailable' }
+  }
+
+  const currentZoom = webContents.getZoomFactor()
+  const topViewport = await measureTopViewport(webContents)
+  if (!tab.gameResponsiveFitEnabled || webContents.isDestroyed()) {
+    return { applied: false, reason: 'responsive-fit-disabled' }
+  }
+
+  const measurement = withResponsiveViewport(candidate.measurement, topViewport)
+  const zoomFactor = calculateResponsiveGameZoom(candidate.measurement, currentZoom, topViewport)
+  const changed = Math.abs(zoomFactor - currentZoom) >= ZOOM_STEP
+  if (changed) webContents.setZoomFactor(zoomFactor)
+
+  if (changed && logger) {
+    logger('display.game-resize-fit', {
+      canvas: candidate.measurement.canvas,
+      frameViewport: candidate.measurement.viewport,
+      topViewport,
+      effectiveViewport: measurement.viewport,
+      previousZoomFactor: currentZoom,
+      zoomFactor,
+    })
+  }
+
+  return { applied: true, changed, previousZoomFactor: currentZoom, zoomFactor }
 }
 
 export const fitGameTabOnce = async ({

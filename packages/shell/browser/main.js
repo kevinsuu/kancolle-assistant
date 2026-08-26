@@ -43,6 +43,7 @@ import {
   calculateGameAndSidebarWindowLayout,
   constrainWindowSizeToDisplay,
   fitGameTabOnce,
+  fitGameTabToCurrentViewport,
   fitWindowForGameAndSidebar,
 } from './display/game-auto-fit'
 import {
@@ -260,6 +261,8 @@ const isDmmRegionBlockUrl = (value) => {
     return false
   }
 }
+const isDmmGamePageUrl = (value) =>
+  value === DMMPageUrl || value.startsWith(`${DMMPageUrl}?`) || value.startsWith(`${DMMPageUrl}/`)
 const manifestExists = async (dirPath) => {
   if (!dirPath) return false
   const manifestPath = path.join(dirPath, 'manifest.json')
@@ -376,6 +379,7 @@ class TabbedBrowserWindow {
     this.tabs.on('tab-navigated', function onTabNavigated(tab, tabUrl) {
       //console.log(">> main.tabs.on('tab-navigated', tabsOpts)")
       if (isDmmRegionBlockUrl(tabUrl)) {
+        tab.gameResponsiveFitEnabled = false
         self.showDmmRegionBlockDialog(tab).catch((error) => {
           kccp.logger.error(logSource, 'Unable to show the DMM regional access warning.', error)
         })
@@ -384,11 +388,9 @@ class TabbedBrowserWindow {
       tab.dmmRegionBlockDialogShown = false
 
       const isKc3StartPage = tabUrl === kc3StartPageUrl
-      const isDmmGamePage =
-        tabUrl === DMMPageUrl ||
-        tabUrl.startsWith(`${DMMPageUrl}?`) ||
-        tabUrl.startsWith(`${DMMPageUrl}/`)
+      const isDmmGamePage = isDmmGamePageUrl(tabUrl)
       const canOpenGameDevtools = isKc3StartPage || isDmmGamePage
+      if (!isDmmGamePage) tab.gameResponsiveFitEnabled = false
 
       if (
         isDmmGamePage &&
@@ -456,10 +458,15 @@ class TabbedBrowserWindow {
             displayMetrics: options.startupDisplayMetrics,
             logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
           })
+          tab.gameResponsiveFitEnabled =
+            result.applied &&
+            !tab.webContents.isDestroyed() &&
+            isDmmGamePageUrl(tab.webContents.getURL())
           if (!result.applied) tab.gameAutoFitScheduled = false
         }
         autoFitFromMainProcess().catch((error) => {
           tab.gameAutoFitScheduled = false
+          tab.gameResponsiveFitEnabled = false
           kccp.logger.error(logSource, 'Unable to auto-fit game tab.', error)
         })
       }
@@ -1309,6 +1316,48 @@ class Browser extends EventEmitter {
       },
     })
 
+    const resizeFitDelayMs = 50
+    let resizeFitTimer = null
+    let resizeFitRunning = false
+    let resizeFitPending = false
+    const refitSelectedGameTab = async () => {
+      if (resizeFitRunning) {
+        resizeFitPending = true
+        return
+      }
+
+      resizeFitRunning = true
+      try {
+        do {
+          resizeFitPending = false
+          const tab = newTabbedWindow.tabs.selected
+          if (
+            newTabbedWindow.window.isDestroyed() ||
+            !configStore.get('window.view.autoFitGameOnStartup') ||
+            !tab?.gameResponsiveFitEnabled
+          ) {
+            break
+          }
+          await fitGameTabToCurrentViewport({
+            tab,
+            logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+          })
+        } while (resizeFitPending)
+      } catch (error) {
+        kccp.logger.error(logSource, 'Unable to fit game tab after window resize.', error)
+      } finally {
+        resizeFitRunning = false
+      }
+    }
+    const scheduleSelectedGameTabRefit = () => {
+      resizeFitPending = true
+      if (resizeFitTimer) return
+      resizeFitTimer = setTimeout(() => {
+        resizeFitTimer = null
+        void refitSelectedGameTab()
+      }, resizeFitDelayMs)
+    }
+
     newTabbedWindow.window.on('close', (ev) => {
       ev.preventDefault()
       const idx = this.windows.indexOf(newTabbedWindow)
@@ -1321,6 +1370,7 @@ class Browser extends EventEmitter {
         if (!leave) return
       }
 
+      if (resizeFitTimer) clearTimeout(resizeFitTimer)
       this.windows.splice(idx, 1)
       newTabbedWindow.destroy()
     })
@@ -1328,6 +1378,7 @@ class Browser extends EventEmitter {
       this.sendToWindow(newTabbedWindow.id, 'webui-display-mode', {
         mode: newTabbedWindow.window.isMaximized() ? 'maximized' : 'normal',
       })
+      scheduleSelectedGameTabRefit()
       if (newTabbedWindow.window.isMaximized()) return
       const size = newTabbedWindow.window.getSize()
       try {

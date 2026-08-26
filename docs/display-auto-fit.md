@@ -28,14 +28,19 @@ three consecutive measurements after the configured DevTools startup. KanColle A
 applies a zoom factor that fits the rendered canvas within both the final viewport and display work area. One
 post-zoom measurement can apply a final correction if the page layout changed during zooming.
 
-The calculated zoom is rounded to two decimal places and clamped to `0.5–1.25`. It is applied only
-once per game tab. Later window resizing and manual zoom controls are not overridden. Canvas
-detection times out after five minutes; reloading the game page starts a fresh attempt.
+The startup zoom uses `0.001` increments and is clamped to `0.5–1.25`. After the initial fit,
+shrinking or expanding the window recalculates the game zoom from the current top-level viewport.
+The window aspect ratio remains unrestricted: the limiting width or height determines the scale,
+and any extra space remains available to the page. Whenever both dimensions can contain the full
+canvas at a supported scale, the complete game remains visible. Below the `0.5` minimum, the zoom
+stays at `0.5` and the undersized viewport may clip the game instead of forcing the window to a
+larger size. A manual zoom remains in effect until the next window resize. Canvas detection times
+out after five minutes; reloading the game page starts a fresh attempt.
 
 The behavior is enabled by default and can be disabled under:
 
 ```text
-KanColle Assistant Settings → Window → View → Auto-fit KanColle once when the game opens
+KanColle Assistant Settings → Window → View → Auto-fit KanColle when the game opens and window resizes
 ```
 
 Structured logs use these lifecycle events:
@@ -48,6 +53,7 @@ display.game-window-layout
 display.game-auto-fit-waiting-canvas
 display.game-canvas-found
 display.game-auto-fit
+display.game-resize-fit
 ```
 
 They contain display dimensions, scale factor, canvas and viewport dimensions, and the selected
