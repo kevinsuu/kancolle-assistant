@@ -65,26 +65,10 @@ import { isMatch } from 'matcher'
 import { createNodeWorker } from './workers/worker-shim'
 import updateWorker from 'worker-loader?filename=updater.worker.js!./workers/updater-worker.js'
 
-// KCCP
-const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
-const kccpCacher = require('../../kccacheproxy/src/proxy/cacher.js')
-const kccpCacheHandler = require('../../kccacheproxy/src/proxy/cacheHandler.js')
-const kccpModderUtils = require('../../kccacheproxy/src/proxy/mod/modderUtils.js')
-const kccpPatcher = require('../../kccacheproxy/src/proxy/mod/patcher.js')
-import {
-  getKccpStatus,
-  getKccpConfig,
-  setKccpConfig,
-  initKccp,
-  startStopKccp,
-  kccpCheckRestart,
-  getKccpCachePath,
-  getKccpModPath,
-  getKccpKcs2CachePath,
-  proxyRequest,
-  installKccpGitMod,
-  updateKccpGitMod,
-} from './kccp-integration.js'
+import { createKccpService } from './kccp-integration.js'
+
+const kccpService = createKccpService()
+const kccp = { logger: kccpService.logger, kccpLogSource: kccpService.logSource }
 
 const logSource = 'kancolle-assistant'
 const legacyAppName = 'Damecon'
@@ -633,7 +617,7 @@ class Browser extends EventEmitter {
     if (this.isProxyEnabled && (internal || allExternal || https)) {
       let host, port
       if (internal) {
-        const kccpConfig = await getKccpConfig(configStore)
+        const kccpConfig = await kccpService.getConfig(configStore)
         host = kccpConfig.config.hostname
         port = kccpConfig.config.httpsPort
       } else {
@@ -967,7 +951,7 @@ class Browser extends EventEmitter {
               app: appDir,
               appData: appDataDir,
             },
-            kccpStatus: getKccpStatus(),
+            kccpStatus: kccpService.getStatus(),
           }
           break
         case 'get-damecon-version':
@@ -989,11 +973,11 @@ class Browser extends EventEmitter {
                 (data.key == 'proxy.mode' &&
                   data.value == 'kccp-internal' &&
                   configStore.get('proxy.enable') == true)) &&
-              (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
+              (await kccpService.getConfig(configStore))?.config?.autoUpdateGitMods
             ) {
               await this.updateKccpMods()
             } else {
-              await startStopKccp(configStore)
+              await kccpService.startStop(configStore)
               await this.applyProxy()
             }
           } else if (data.key == 'kc3kai.update.channel') {
@@ -1027,8 +1011,8 @@ class Browser extends EventEmitter {
             configStore.get('proxy.enable') &&
             configStore.get('proxy.mode') === 'kccp-internal'
           ) {
-            const kccpCfg = await getKccpConfig(configStore)
-            const cachePath = getKccpCachePath(kccpCfg.config)
+            const kccpCfg = await kccpService.getConfig(configStore)
+            const cachePath = kccpService.getCachePath(kccpCfg.config)
             const mainjsPath = path.join(cachePath, 'kcs2', 'js', 'main.js')
             if (fsSync.existsSync(mainjsPath)) {
               kccp.logger.log(logSource, 'Deleting main.js from internal KCCacheProxy cache.')
@@ -1087,18 +1071,18 @@ class Browser extends EventEmitter {
           this.confirmCloseTab(data.tabId)
           break
         case 'kccp-get-status':
-          result = getKccpStatus()
+          result = kccpService.getStatus()
           break
         case 'kccp-get-config':
-          result = await getKccpConfig(configStore)
+          result = await kccpService.getConfig(configStore)
           break
         case 'kccp-save-config':
           const newConfig = data
-          await setKccpConfig(newConfig)
+          await kccpService.setConfig(newConfig)
           if (configStore.get('proxy.enable') && newConfig.autoUpdateGitMods) {
             await this.updateKccpMods()
           } else {
-            await startStopKccp(configStore)
+            await kccpService.startStop(configStore)
             await this.applyProxy()
           }
           break
@@ -1107,7 +1091,7 @@ class Browser extends EventEmitter {
           try {
             if (data?.builtIn) {
               location = path.join(ROOT_DIR, 'resources/minimum-cache.zip')
-              await kccpCacheHandler.mergeCache(location)
+              await kccpService.mergeCache(location)
             } else {
               const response = await dialog.showOpenDialog({
                 title: 'Select cache dump .zip file',
@@ -1121,7 +1105,7 @@ class Browser extends EventEmitter {
               })
               if (!response.canceled) {
                 location = response.filePaths[0]
-                await kccpCacheHandler.mergeCache(location)
+                await kccpService.mergeCache(location)
               }
             }
           } catch (error) {
@@ -1140,11 +1124,11 @@ class Browser extends EventEmitter {
             cancelId: 1,
           })
           if (verifyResponse === 0) return
-          await kccpCacheHandler.verifyCache(verifyResponse === 1)
+          await kccpService.verifyCache(verifyResponse === 1)
           break
         case 'kccp-extract-spritesheet':
-          kccpConfig = await getKccpConfig(configStore)
-          cachePath = getKccpKcs2CachePath(kccpConfig.config)
+          kccpConfig = await kccpService.getConfig(configStore)
+          cachePath = kccpService.getKcs2CachePath(kccpConfig.config)
           source = await dialog.showOpenDialog({
             title: 'Select a spritesheet',
             defaultPath: cachePath,
@@ -1160,15 +1144,15 @@ class Browser extends EventEmitter {
 
           target = await dialog.showOpenDialog({
             title: 'Select a folder to extract to',
-            defaultPath: getKccpModPath(kccpConfig.config),
+            defaultPath: kccpService.getModPath(kccpConfig.config),
             properties: ['openDirectory'],
           })
           if (target.canceled) return
-          await kccpModderUtils.extractSplit(source.filePaths[0], target.filePaths[0])
+          await kccpService.extractSplit(source.filePaths[0], target.filePaths[0])
           break
         case 'kccp-make-outlines':
-          kccpConfig = await getKccpConfig(configStore)
-          cachePath = getKccpKcs2CachePath(kccpConfig.config)
+          kccpConfig = await kccpService.getConfig(configStore)
+          cachePath = kccpService.getKcs2CachePath(kccpConfig.config)
           source = await dialog.showOpenDialog({
             title: 'Select a spritesheet',
             defaultPath: cachePath,
@@ -1184,7 +1168,7 @@ class Browser extends EventEmitter {
 
           target = await dialog.showSaveDialog({
             title: 'Select a location to save outlines to',
-            defaultPath: getKccpModPath(kccpConfig.config),
+            defaultPath: kccpService.getModPath(kccpConfig.config),
             filters: [
               {
                 name: 'Images',
@@ -1194,10 +1178,10 @@ class Browser extends EventEmitter {
           })
           if (target.canceled) return
 
-          await kccpModderUtils.outlines(source.filePaths[0], target.filePath)
+          await kccpService.makeOutlines(source.filePaths[0], target.filePath)
           break
         case 'kccp-convert-poi':
-          kccpConfig = await getKccpConfig(configStore)
+          kccpConfig = await kccpService.getConfig(configStore)
           source = await dialog.showOpenDialog({
             title: 'Select cache folder to import from',
             defaultPath: getModPath(kccpConfig.config),
@@ -1212,16 +1196,16 @@ class Browser extends EventEmitter {
           })
           if (target.canceled) return
 
-          await kccpModderUtils.importExternalMod(source.filePaths[0], target.filePaths[0])
+          await kccpService.importExternalMod(source.filePaths[0], target.filePaths[0])
           break
         case 'kccp-add-mod':
-          kccpConfig = await getKccpConfig(configStore)
+          kccpConfig = await kccpService.getConfig(configStore)
           const addModResponse = await dialog.showOpenDialog({
             title: 'Select a mod metadata file',
             filters: [
               {
                 name: 'Mod metadata',
-                defaultPath: getKccpModPath(kccpConfig.config),
+                defaultPath: kccpService.getModPath(kccpConfig.config),
                 extensions: ['mod.json'],
               },
             ],
@@ -1233,8 +1217,8 @@ class Browser extends EventEmitter {
             return
           }
           kccpConfig.config.mods.push({ path: addModResponse.filePaths[0] })
-          await setKccpConfig(kccpConfig.config)
-          //await startStopKccp(configStore)
+          await kccpService.setConfig(kccpConfig.config)
+          //await kccpService.startStop(configStore)
           // will automatically start when fetching the config and checking for updates
           await this.applyProxy()
           break
@@ -1242,18 +1226,18 @@ class Browser extends EventEmitter {
           const { url } = data
           if (!url) return
           kccp.logger.log(logSource, 'Adding KCCP git mod')
-          await installKccpGitMod(configStore, url)
+          await kccpService.installGitMod(configStore, url)
           break
         case 'kccp-update-git-mod':
           const modToUpdate = data.mod
           if (!path) return
           kccp.logger.log(logSource, 'Updating KCCP git mod', modToUpdate.path)
-          await updateKccpGitMod(modToUpdate)
-          await startStopKccp(configStore)
+          await kccpService.updateGitMod(modToUpdate)
+          await kccpService.startStop(configStore)
           break
         case 'kccp-open-mod-folder':
           const modToOpen = data.mod
-          kccpConfig = await getKccpConfig(configStore)
+          kccpConfig = await kccpService.getConfig(configStore)
           const modPath = this.getModPath(kccpConfig.config)
           if (modPath) shell.openPath(modPath)
           break
@@ -1261,16 +1245,16 @@ class Browser extends EventEmitter {
           kccp.logger.sendRecent()
           break
         case 'kccp-reload-mods':
-          await kccpPatcher.reloadModCache()
+          await kccpService.reloadModCache()
           break
         case 'kccp-reload-cache':
-          kccpCacher.loadCached()
+          kccpService.reloadCache()
           break
         case 'kccp-prepatch':
-          await kccpPatcher.prepatch()
+          await kccpService.prepatch()
           break
         case 'kccp-check-mitm-cert':
-          await kccp.checkTrustMitmCert()
+          await kccpService.checkTrustMitmCert()
       }
       return result
     })
@@ -1290,21 +1274,21 @@ class Browser extends EventEmitter {
     this.setProxyHandler()
     if (
       configStore.get('proxy.enable') &&
-      (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
+      (await kccpService.getConfig(configStore))?.config?.autoUpdateGitMods
     ) {
       await this.updateKccpMods()
     } else {
-      await startStopKccp(configStore)
+      await kccpService.startStop(configStore)
       await this.applyProxy()
     }
     // check to see if we need to retry kccp startup periodically
-    setTimeout(() => kccpCheckRestart(configStore), 5000)
+    setTimeout(() => kccpService.checkRestart(configStore), 5000)
   }
 
   async getProxyDestination() {
     const proxyCfg = configStore.get('proxy')
     if (proxyCfg.mode === 'kccp-internal') {
-      const { hostname, port } = (await getKccpConfig(configStore)).config
+      const { hostname, port } = (await kccpService.getConfig(configStore)).config
       return { host: hostname, port }
     } else {
       const { host, port } = proxyCfg.client
@@ -1402,7 +1386,7 @@ class Browser extends EventEmitter {
         if (cfg.proxy.mode == 'kccp-internal') {
           const newHeaders = { ...headers }
           newHeaders['X-Proxied'] = '1'
-          proxyRequest(
+          kccpService.proxyRequest(
             {
               method,
               headers: newHeaders,
@@ -1484,7 +1468,7 @@ class Browser extends EventEmitter {
           await this.checkStartKc3(kc3Path)
         } else if (msg.data.name === 'KCCP Mod Update') {
           kccp.logger.log(kccp.kccpLogSource, 'Finished updating KCCP mods.')
-          await startStopKccp(configStore)
+          await kccpService.startStop(configStore)
           await this.applyProxy()
         }
         break
@@ -1661,7 +1645,7 @@ class Browser extends EventEmitter {
       const newMainWindow = this.windows[0].window
       this.kccpMainWindowId = newMainWindow.id
       kccp.logger.setMainWindow(newMainWindow)
-      initKccp()
+      kccpService.init()
     }
 
     //* webui.html
@@ -2129,7 +2113,7 @@ class Browser extends EventEmitter {
   }
 
   async updateKccpMods() {
-    const config = (await getKccpConfig(configStore))?.config
+    const config = (await kccpService.getConfig(configStore))?.config
     kccp.logger.log(kccp.kccpLogSource, 'Checking for asset mod updates...')
     this.updateWorker.postMessage({
       type: 'do-kccp-modder-update',

@@ -1,5 +1,3 @@
-import { setMainWindow } from '../../kccacheproxy/src/proxy/ipc'
-
 const { BrowserView } = require('electron')
 
 let topBarHeight = 64

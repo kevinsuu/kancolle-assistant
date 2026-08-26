@@ -1,7 +1,6 @@
 import ProcessTracker from './processtracker'
 import { onUpdateStarted, onUpdateProgress, onUpdateCompleted } from './updater-utils.js'
-import { updateMod } from '../../../kccacheproxy/src/proxy/mod/gitModHandler'
-import { reloadModCache } from '../../../kccacheproxy/src/proxy/mod/patcher'
+import { reloadKccpModCache, updateKccpMod } from '../kccacheproxy-api'
 import path from 'path'
 
 let self
@@ -38,10 +37,10 @@ class KCCPModUpdater {
         })
         if (mod.git) {
           try {
-            const updateResult = await updateMod(mod.path, mod.git)
+            const updateResult = await updateKccpMod(mod.path, mod.git)
             if (updateResult && global.mainWindow) {
               global.mainWindow.webContents.send('gitModUpdated', updateResult)
-              reloadModCache()
+              reloadKccpModCache()
             }
           } catch (error) {
             ipc.error(logSource, `Failed to update Git mod ${mod.git}:`, error)

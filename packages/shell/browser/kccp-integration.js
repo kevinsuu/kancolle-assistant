@@ -12,16 +12,16 @@ import {
 } from 'electron'
 import { setTimeout as delay } from 'timers/promises'
 
-// KCCP
-const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
-const kccpCacher = require('../../kccacheproxy/src/proxy/cacher.js')
-const kccpCacheHandler = require('../../kccacheproxy/src/proxy/cacheHandler.js')
-const kccpModderUtils = require('../../kccacheproxy/src/proxy/mod/modderUtils.js')
-const kccpPatcher = require('../../kccacheproxy/src/proxy/mod/patcher.js')
-const {
-  updateMod,
-  handleModInstallation,
-} = require('../../kccacheproxy/src/proxy/mod/gitModHandler.js')
+import {
+  installKccpMod,
+  kccp,
+  kccpCacheHandler,
+  kccpCacher,
+  kccpModderUtils,
+  kccpPatcher,
+  reloadKccpModCache,
+  updateKccpMod,
+} from './kccacheproxy-api'
 
 let kccpProxy
 const kccpStatus = { started: false, busy: false, busyActions: 0 }
@@ -100,7 +100,7 @@ async function installKccpGitMod(configStore, url) {
     }
   }
 
-  const installResult = await handleModInstallation(
+  const installResult = await installKccpMod(
     modsPath,
     url,
     kccpConfig.config,
@@ -124,9 +124,9 @@ async function installKccpGitMod(configStore, url) {
 
 const updateKccpGitMod = async function (mod) {
   try {
-    const updateResult = await updateMod(mod.path, mod.git, handleProgress)
+    const updateResult = await updateKccpMod(mod.path, mod.git, handleProgress)
     if (updateResult.success) {
-      await kccpPatcher.reloadModCache()
+      await reloadKccpModCache()
       const windows = BrowserWindow.getAllWindows()
       windows.forEach((w) =>
         w.webContents.send('webui-message', {
@@ -245,7 +245,7 @@ const getKccpConfig = async function (configStore, includeManager) {
 
     if (modified) {
       await setKccpConfig(config)
-      await kccpPatcher.reloadModCache()
+      await reloadKccpModCache()
       if (doRestart) {
         kccp.logger.log(logSource, 'Config updates pending, restarting KCCP...')
         await startStopKccp(configStore, kccpStatus.busyActions)
@@ -429,6 +429,45 @@ function getKccpStatus() {
 
 async function proxyRequest(req, callback) {
   return await kccpProxy.proxyRequest(req, callback)
+}
+
+export const createKccpService = (dependencies = {}) => {
+  const runtime = {
+    kccp: dependencies.kccp || kccp,
+    cacher: dependencies.cacher || kccpCacher,
+    cacheHandler: dependencies.cacheHandler || kccpCacheHandler,
+    modderUtils: dependencies.modderUtils || kccpModderUtils,
+    patcher: dependencies.patcher || kccpPatcher,
+  }
+
+  return Object.freeze({
+    logger: runtime.kccp.logger,
+    logSource: runtime.kccp.kccpLogSource,
+    getStatus: getKccpStatus,
+    getConfig: getKccpConfig,
+    setConfig: setKccpConfig,
+    init: initKccp,
+    startStop: startStopKccp,
+    checkRestart: kccpCheckRestart,
+    stop: stopKccp,
+    dispose: stopKccp,
+    getCachePath: getKccpCachePath,
+    getKcs2CachePath: getKccpKcs2CachePath,
+    getImageCachePath: getKccpImgCachePath,
+    getModPath: getKccpModPath,
+    proxyRequest,
+    installGitMod: installKccpGitMod,
+    updateGitMod: updateKccpGitMod,
+    mergeCache: (...args) => runtime.cacheHandler.mergeCache(...args),
+    verifyCache: (...args) => runtime.cacheHandler.verifyCache(...args),
+    reloadCache: (...args) => runtime.cacher.loadCached(...args),
+    extractSplit: (...args) => runtime.modderUtils.extractSplit(...args),
+    makeOutlines: (...args) => runtime.modderUtils.outlines(...args),
+    importExternalMod: (...args) => runtime.modderUtils.importExternalMod(...args),
+    reloadModCache: (...args) => runtime.patcher.reloadModCache(...args),
+    prepatch: (...args) => runtime.patcher.prepatch(...args),
+    checkTrustMitmCert: (...args) => runtime.kccp.checkTrustMitmCert(...args),
+  })
 }
 
 export {
