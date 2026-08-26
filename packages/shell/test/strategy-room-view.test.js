@@ -5,6 +5,7 @@ import { en } from '../browser/recommendation/i18n/en.js'
 import { jp } from '../browser/recommendation/i18n/jp.js'
 import { scn } from '../browser/recommendation/i18n/scn.js'
 import { tcn } from '../browser/recommendation/i18n/tcn.js'
+import { applyDefaultDailyImprovementFilter } from '../browser/recommendation/daily-improvement-ui.js'
 import {
   createStrategyRoomI18n,
   getStrategyRoomLanguage,
@@ -140,6 +141,8 @@ test('fleet speed and torpedo-cruiser labels exist in all supported languages', 
       'message.NO_STABLE_ROUTE',
       'message.OASW_INSUFFICIENT',
       'message.OASW_REQUIREMENT_PASSED',
+      'message.ANTI_INSTALLATION_REQUIREMENT_PASSED',
+      'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
     ].forEach((key) => assert.equal(typeof catalog[key], 'string', key))
   })
 })
@@ -156,4 +159,31 @@ test('expedition status safeguards exist in all supported languages', () => {
   ;[en, jp, scn, tcn].forEach((catalog) => {
     keys.forEach((key) => assert.equal(typeof catalog[key], 'string', key))
   })
+})
+
+test('daily improvement filter applies once per rendered KC3 toggle button', () => {
+  let clickCount = 0
+  const button = { click: () => clickCount++ }
+  const equipmentList = { querySelector: () => ({}) }
+  const root = {
+    querySelector: (selector) => (selector.includes('disabled_toggle') ? button : equipmentList),
+  }
+  const filteredButtons = new WeakSet()
+
+  assert.equal(applyDefaultDailyImprovementFilter(root, filteredButtons), true)
+  assert.equal(applyDefaultDailyImprovementFilter(root, filteredButtons), false)
+  assert.equal(clickCount, 1)
+})
+
+test('daily improvement filter waits for KC3 to render filterable equipment', () => {
+  let clickCount = 0
+  const root = {
+    querySelector: (selector) =>
+      selector.includes('disabled_toggle')
+        ? { click: () => clickCount++ }
+        : { querySelector: () => null },
+  }
+
+  assert.equal(applyDefaultDailyImprovementFilter(root), false)
+  assert.equal(clickCount, 0)
 })

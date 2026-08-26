@@ -1,6 +1,7 @@
 import { injectBrowserAction } from 'electron-chrome-extensions/browser-action'
 import { injectIpc } from './preload-ipc.js'
 import { ipcRenderer } from 'electron'
+import { injectDefaultDailyImprovementFilter } from './browser/recommendation/daily-improvement-ui.js'
 import { injectExpeditionGoalPlanner } from './browser/recommendation/expedition-goal-ui.js'
 import { injectFleetRecommender } from './browser/recommendation/strategy-room-ui.js'
 import { injectStrategyRoomRecentTabs } from './browser/recommendation/strategy-room-recent-ui.js'
@@ -35,6 +36,7 @@ if (
       injectResourceCenter(invoke)
       injectResourceLedgerSummary(invoke)
       injectStrategyRoomRecentTabs()
+      injectDefaultDailyImprovementFilter()
     }, 0)
   })
 }
