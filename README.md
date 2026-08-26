@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.3`    | `2026-08-26`   |
+| `v1.0.4`    | `2026-08-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,13 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.4 highlights (since v1.0.3)
+
+- Automatic 4-5 recommendations now reserve three unique owned Type 3 Shell-family items on
+  compatible ships and explain when the account cannot satisfy that setup.
+- KC3's Daily Improvements page now starts with its native improvable-equipment filter enabled;
+  the user can still toggle the complete list back on.
 
 ### v1.0.3 highlights (since v1.0.2)
 
@@ -62,6 +69,7 @@ Compared with the original project, this source adds or improves:
 5. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
 6. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
 7. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin up to five Strategy Room tabs in `常用連結`; ordinary navigation keeps their order unchanged, and a sixth pin replaces the bottom link.
+8. **[Daily improvement filter](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page applies KC3's own improvable-equipment filter once by default, while leaving the toggle available for the complete list.
 
 These added Strategy Room interfaces follow KC3's selected language and support English,
 Traditional Chinese, Simplified Chinese, and Japanese.
@@ -203,10 +211,12 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] Responsive KanColle game-canvas auto-fit with a freely resizable window
 - [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, using linked
       guide-verified fleet skeletons and stable-route-only automatic selection, with validated
-      Fast+ equipment, expansion-slot assignments, and night-carrier setups
+      Fast+ equipment, expansion-slot assignments, night-carrier setups, and 4-5 Type 3 Shell
+      assignments
 - [x] Weighted expedition recommendations with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
 - [x] Up to five pinned KC3 Strategy Room quick links with stable ordering
+- [x] KC3 Daily Improvements opens with the improvable-equipment filter enabled
 
 ### 🤞 Eventually
 
