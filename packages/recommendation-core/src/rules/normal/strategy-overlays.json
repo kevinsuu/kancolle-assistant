@@ -104,7 +104,8 @@
         "fleet": [
           { "type": "ShipCount", "value": 4 },
           { "type": "ExactShipTypeCount", "stypes": [1], "value": 4 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 4 }]
       },
       {
         "id": "1-5-boss-light",
@@ -122,7 +123,8 @@
           { "type": "ShipTypeCount", "stypes": [1, 2], "value": 2 },
           { "type": "MaxShipTypeCount", "stypes": [1], "value": 3 },
           { "type": "MaxShipTypeCount", "stypes": [3, 21], "value": 2 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 4 }]
       },
       {
         "id": "1-5-boss-heavy",
@@ -140,7 +142,8 @@
           { "type": "ExactShipTypeCount", "stypes": [10], "value": 1 },
           { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
           { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 3 }]
       },
       {
         "id": "1-5-leveling-asw",
@@ -155,7 +158,8 @@
           { "type": "ShipCount", "value": 4 },
           { "type": "ShipTypeCount", "stypes": [1, 2, 3, 21], "value": 3 },
           { "type": "MaxShipTypeCount", "stypes": [7, 10], "value": 1 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 1 }]
       }
     ]
   },
@@ -472,28 +476,36 @@
         "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
       },
       {
-        "id": "3-5-upper-heavy",
-        "name": "上路重量",
+        "id": "3-5-upper-carrier-guide",
+        "name": "攻略網・上路空母3",
         "category": "boss",
         "objectives": ["balanced", "boss-clear"],
         "nodes": ["B", "D", "H", "K"],
         "stableBoss": true,
-        "tags": ["upper-route", "anti-installation", "los-cn4-40"],
-        "desc": "戦艦/空母3、重巡/航巡/雷巡2、重巡/航巡/雷巡/潜水1。北方棲姫経由。",
-        "lastVerified": "2026-08-25",
+        "tags": [
+          "verified-guide",
+          "guide-primary",
+          "fixed-route",
+          "upper-route",
+          "anti-installation",
+          "los-cn4-40"
+        ],
+        "desc": "空母3、航巡1、潜水/潜母2。ぜかまし現行掲載のBDHK固定上ルート。Hマス航空優勢は制空410目安。",
+        "lastVerified": "2026-08-26",
+        "sources": ["https://zekamashi.net/kancolle-kouryaku/3-5/"],
         "fleet": [
           { "type": "ShipCount", "value": 6 },
           {
             "type": "ExactShipTypeCount",
-            "stypes": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18],
+            "stypes": [6, 11, 13, 14, 18],
             "value": 6
           },
-          { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 3 },
-          { "type": "ShipTypeCount", "stypes": [4, 5, 6], "value": 2 },
-          { "type": "ExactShipTypeCount", "stypes": [4, 5, 6, 13, 14], "value": 3 }
+          { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
+          { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+          { "type": "ExactShipTypeCount", "stypes": [13, 14], "value": 2 }
         ],
         "calculated": [
-          { "kind": "air-power", "minimum": 170, "recommended": 381 },
+          { "kind": "air-power", "minimum": 410, "recommended": 410 },
           { "kind": "los", "coefficient": 4, "minimum": 40 }
         ]
       },
@@ -848,11 +860,12 @@
         "nodes": ["A/C", "D", "H", "T"],
         "stableBoss": true,
         "tags": ["anti-installation", "fixed-route", "quest-friendly"],
-        "desc": "戦艦/空母2、軽巡1、駆逐3。Kを回避する小型艦条件。",
+        "desc": "空母1以上を含む戦艦/空母2、軽巡1、駆逐3。Kを回避し、ボス制空を維持する小型艦条件。",
         "lastVerified": "2026-08-25",
         "fleet": [
           { "type": "ShipCount", "value": 6 },
           { "type": "ExactShipTypeCount", "stypes": [7, 8, 9, 10, 11, 12, 18], "value": 2 },
+          { "type": "ShipTypeCount", "stypes": [7, 11, 18], "value": 1 },
           { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
           { "type": "ExactShipTypeCount", "stypes": [2], "value": 3 }
         ],
@@ -893,7 +906,8 @@
         "fleet": [
           { "type": "ShipCount", "value": 6 },
           { "type": "ShipTypeCount", "stypes": [1, 2, 3, 7, 10, 21], "value": 3 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 3 }]
       }
     ]
   },
@@ -1105,13 +1119,19 @@
         "fleet": [
           { "type": "ShipCount", "value": 6 },
           { "type": "ShipTypeCount", "stypes": [1, 2, 3, 7, 10, 21], "value": 4 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 4 }]
       }
     ]
   },
   {
     "area": "5-6",
     "name": "ラバウル方面海域",
+    "sources": [
+      "https://kankorekore.2-d.jp/5-6_2nd/",
+      "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6"
+    ],
+    "replaceSourceRoutes": true,
     "routes": [
       {
         "id": "5-6-p1-transport",
@@ -1370,7 +1390,8 @@
           { "type": "ShipTypeCount", "stypes": [3], "value": 1 },
           { "type": "ShipTypeCount", "stypes": [1, 2, 3, 21], "value": 4 },
           { "type": "MaxShipTypeCount", "stypes": [4, 7, 11, 18], "value": 0 }
-        ]
+        ],
+        "calculated": [{ "kind": "opening-asw", "minimum": 4 }]
       }
     ]
   },

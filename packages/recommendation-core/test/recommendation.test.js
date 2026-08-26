@@ -7,6 +7,7 @@ const {
   calculateFleetMetrics,
   getMapOptions,
   getRouteTemplates,
+  isAutomaticRouteReady,
   parseKC3AccountSnapshot,
   recommendFleet,
 } = require('../dist/index.js')
@@ -128,6 +129,42 @@ const createFastPlusSnapshot = ({
   return raw
 }
 
+const createClDdHeavySnapshot = () => {
+  const raw = createFastPlusSnapshot()
+  const [battleship, carrier, lightCruiser, ...destroyers] = raw.ships
+  battleship.shipTypeId = 8
+  battleship.name = 'High-score fixture battleship 1'
+  battleship.stats.firepower = 300
+  carrier.shipTypeId = 11
+  carrier.name = 'Fixture regular carrier'
+  carrier.stats.firepower = 30
+  lightCruiser.shipTypeId = 3
+  destroyers.forEach((ship) => {
+    ship.shipTypeId = 2
+  })
+  const extraBattleships = Array.from({ length: 13 }, (_, index) => ({
+    ...structuredClone(battleship),
+    id: 900 + index,
+    masterId: 1900 + index,
+    name: `High-score fixture battleship ${index + 2}`,
+  }))
+  raw.ships.push(...extraBattleships)
+  raw.currentFleetShipIds = []
+  return raw
+}
+
+const createOaswSnapshot = () => {
+  const raw = createRawSnapshot()
+  raw.equipment.forEach((gear, index) => {
+    if (index >= 18) return
+    gear.typeId = index < 12 ? 14 : 15
+    gear.iconTypeId = gear.typeId
+    gear.type = String(gear.typeId)
+    gear.stats.asw = 20
+  })
+  return raw
+}
+
 test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs', () => {
   const raw = createRawSnapshot()
   const account = parseKC3AccountSnapshot(raw)
@@ -145,7 +182,8 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 110)
+  assert.equal(NORMAL_MAP_ROUTES.length, 109)
+  assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
 
   const routeIds = new Set()
   const semanticSignatures = new Set()
@@ -177,7 +215,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   assert.ok(extraOperationRoutes.every((route) => !route.id.startsWith('source-')))
   assert.ok(
     extraOperationRoutes
-      .filter((route) => route.category !== 'leveling')
+      .filter((route) => route.category !== 'leveling' && !route.tags.includes('verified-guide'))
       .every(
         (route) =>
           route.metadata.lastVerified === '2026-08-25' &&
@@ -192,6 +230,52 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
         `missing kcwiki X-5 source: ${route.id}`,
       )
     })
+
+  const verifiedGuideRoutes = NORMAL_MAP_ROUTES.filter((route) =>
+    route.tags.includes('verified-guide'),
+  )
+  assert.equal(verifiedGuideRoutes.length, 32)
+  verifiedGuideRoutes.forEach((route) => {
+    assert.equal(route.metadata.confidence, 'verified')
+    assert.equal(route.metadata.lastVerified, '2026-08-26')
+    assert.ok(route.metadata.ruleVersion.endsWith('-verified-guide'))
+    assert.ok(
+      route.metadata.source.some((source) => source.startsWith('https://zekamashi.net/')),
+      `missing strategy guide: ${route.id}`,
+    )
+  })
+
+  assert.deepEqual(getRouteTemplates('1-1', 'balanced'), [])
+  assert.deepEqual(getRouteTemplates('2-3', 'balanced'), [])
+  assert.equal(getRouteTemplates('2-3', 'balanced', '2-3-guide-ca5-cl').length, 1)
+  assert.deepEqual(getRouteTemplates('4-3', 'balanced'), [])
+  assert.equal(getRouteTemplates('1-1', 'balanced', '1-1-guide-dd4').length, 1)
+  assert.equal(getRouteTemplates('4-3', 'balanced', '4-3-guide-cv2-ca2-dd2').length, 1)
+
+  const upper35 = getRouteTemplates('3-5', 'balanced', '3-5-upper-carrier-guide')[0]
+  assert.equal(upper35.id, '3-5-upper-carrier-guide')
+  assert.deepEqual(
+    upper35.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[6, 11, 13, 14, 18], 6],
+      [[11, 18], 3],
+      [[6], 1],
+      [[13, 14], 2],
+    ],
+  )
+  assert.equal(
+    upper35.calculatedConstraints.find((constraint) => constraint.kind === 'air-power').minimum,
+    410,
+  )
+
+  NORMAL_MAP_ROUTES.filter((route) => route.mapId === '5-6').forEach((route) => {
+    assert.equal(route.metadata.confidence, 'experimental')
+    assert.equal(route.metadata.lastVerified, '2026-08-26')
+    assert.equal(route.metadata.ruleVersion, '2026.08.26-5-6')
+    assert.ok(route.metadata.source.includes('https://kankorekore.2-d.jp/5-6_2nd/'))
+  })
 
   assert.deepEqual(
     getRouteTemplates('1-5', 'balanced').map((route) => route.id),
@@ -227,7 +311,9 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     ),
   )
 
-  const routes45 = getRouteTemplates('4-5', 'balanced')
+  const routes45 = NORMAL_MAP_ROUTES.filter(
+    (route) => route.mapId === '4-5' && route.objectives.includes('balanced'),
+  )
   assert.ok(routes45.some((route) => route.id === '4-5-small-ship'))
   assert.ok(routes45.some((route) => route.id === '4-5-fast-plus-night-carrier'))
   routes45.forEach((route) => {
@@ -285,6 +371,13 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
         constraint.exact === 2,
     ),
   )
+
+  maps
+    .flatMap((map) => map.routes)
+    .forEach((routeOption) => {
+      const route = NORMAL_MAP_ROUTES.find((candidate) => candidate.id === routeOption.id)
+      assert.equal(routeOption.automaticReady, isAutomaticRouteReady(route))
+    })
 
   const ao55 = getRouteTemplates('5-5', 'balanced', '5-5-middle-ao')[0]
   assert.ok(ao55.tags.includes('smoke-screen'))
@@ -410,16 +503,34 @@ test('1-3 fuel farming fills effective landing craft and calculates net fuel', (
   )
 })
 
-test('1-5 balanced recommendations stay on light ASW fleets', () => {
-  const account = parseKC3AccountSnapshot(createRawSnapshot())
+test('automatic route comparison keeps three distinct legal light ASW fleets', () => {
+  const account = parseKC3AccountSnapshot(createOaswSnapshot())
   const result = recommendFleet({ mapId: '1-5', objective: 'balanced', account })
 
   assert.equal(result.status, 'success')
-  assert.ok(result.recommendations.length > 0)
+  assert.equal(result.recommendations.length, 3)
+  assert.equal(
+    new Set(
+      result.recommendations.map((recommendation) =>
+        recommendation.ships.map((build) => build.ship.id).join('-'),
+      ),
+    ).size,
+    3,
+  )
   result.recommendations.forEach((recommendation) => {
     assert.notEqual(recommendation.route.id, '1-5-boss-heavy')
     assert.ok(recommendation.ships.every((build) => [1, 2, 3, 21].includes(build.ship.shipTypeId)))
+    assert.ok(recommendation.metrics.openingAswCount >= recommendation.metrics.openingAswMinimum)
   })
+})
+
+test('automatic recommendations reject routes with unresolved manual setup', () => {
+  const account = parseKC3AccountSnapshot(createRawSnapshot())
+  const result = recommendFleet({ mapId: '2-3', objective: 'balanced', account })
+
+  assert.equal(result.status, 'error')
+  assert.equal(result.error.code, 'NO_AUTOMATED_ROUTE')
+  assert.equal(getMapOptions().find((map) => map.id === '2-3').routes[0].automaticReady, false)
 })
 
 test('slow-route recommendations reject an all-fast fleet', () => {
@@ -482,6 +593,48 @@ test('Fast+ routes allocate unique speed gear through open expansion slots', () 
             .every((gear) => [2, 22].includes(gear.typeId)),
         )
       })
+  })
+})
+
+test('4-5 CL/DD shortest route searches an air-control carrier composition', () => {
+  const result = recommendFleet({
+    mapId: '4-5',
+    routeId: '4-5-cl-dd-heavy',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(createClDdHeavySnapshot()),
+  })
+
+  assert.equal(result.status, 'success')
+  assert.ok(result.recommendations.length > 0)
+  result.recommendations.forEach((recommendation) => {
+    assert.ok(recommendation.ships.some((build) => [7, 11, 18].includes(build.ship.shipTypeId)))
+    assert.ok(recommendation.metrics.airPower >= 92)
+  })
+})
+
+test('ordinary routes fill opened expansion slots with unique compatible equipment', () => {
+  const raw = createRawSnapshot()
+  const expansionEquipmentIds = raw.equipment
+    .filter((gear) => gear.typeId === 5)
+    .map((gear) => gear.id)
+  raw.ships.forEach((ship) => {
+    ship.expansionSlotUnlocked = true
+    ship.expansionEquipableEquipmentIds = expansionEquipmentIds
+  })
+
+  const result = recommendFleet({
+    mapId: '1-1',
+    routeId: '1-1-guide-dd4',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success')
+  result.recommendations.forEach((recommendation) => {
+    const assignedExpansionIds = recommendation.ships.map((build) => build.expansionSlot?.id)
+    assert.ok(assignedExpansionIds.every((id) => id !== undefined))
+    assert.equal(new Set(assignedExpansionIds).size, assignedExpansionIds.length)
+    assert.ok(assignedExpansionIds.every((id) => expansionEquipmentIds.includes(id)))
   })
 })
 
@@ -641,7 +794,12 @@ test('air-constrained cruiser routes assign owned seaplane fighters', () => {
 
 test('solver is deterministic and only returns account-owned unique instances', () => {
   const account = parseKC3AccountSnapshot(createRawSnapshot())
-  const input = { mapId: '1-1', objective: 'balanced', account }
+  const input = {
+    mapId: '1-1',
+    routeId: '1-1-guide-dd4',
+    objective: 'balanced',
+    account,
+  }
   const first = recommendFleet(input)
   const second = recommendFleet(input)
 
@@ -665,6 +823,16 @@ test('solver is deterministic and only returns account-owned unique instances', 
   })
 })
 
+test('automatic recommendation refuses maps without a boss-fixed route', () => {
+  const account = parseKC3AccountSnapshot(createRawSnapshot())
+
+  ;['1-1', '4-3'].forEach((mapId) => {
+    const result = recommendFleet({ mapId, objective: 'balanced', account })
+    assert.equal(result.status, 'error')
+    assert.equal(result.error.code, 'NO_STABLE_ROUTE')
+  })
+})
+
 test('large unrelated equipment inventories do not change recommendations', () => {
   const baseRaw = createRawSnapshot()
   const largeRaw = structuredClone(baseRaw)
@@ -683,11 +851,13 @@ test('large unrelated equipment inventories do not change recommendations', () =
 
   const base = recommendFleet({
     mapId: '1-1',
+    routeId: '1-1-guide-dd4',
     objective: 'balanced',
     account: parseKC3AccountSnapshot(baseRaw),
   })
   const large = recommendFleet({
     mapId: '1-1',
+    routeId: '1-1-guide-dd4',
     objective: 'balanced',
     account: parseKC3AccountSnapshot(largeRaw),
   })
@@ -697,7 +867,12 @@ test('large unrelated equipment inventories do not change recommendations', () =
 
 test('solver returns no-solution when the account cannot meet fleet size', () => {
   const account = parseKC3AccountSnapshot(createRawSnapshot({ shipCount: 1 }))
-  const result = recommendFleet({ mapId: '1-1', objective: 'balanced', account })
+  const result = recommendFleet({
+    mapId: '1-1',
+    routeId: '1-1-guide-dd4',
+    objective: 'balanced',
+    account,
+  })
 
   assert.equal(result.status, 'no-solution')
   assert.ok(result.analysis.reasons.length > 0)

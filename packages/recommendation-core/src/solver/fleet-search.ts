@@ -190,7 +190,7 @@ const candidateShipScore = (
 const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
   if (
     route.tags.some((tag) => ['asw', 'oasw'].includes(tag)) &&
-    [1, 2, 3, 7, 10, 21].includes(ship.shipTypeId)
+    [1, 2, 3, 21].includes(ship.shipTypeId)
   ) {
     return 'anti-submarine'
   }

@@ -41,12 +41,13 @@ type GearRequirementKind =
   | 'midget-submarine'
   | 'landing-craft'
   | 'seaplane'
+  | 'expansion'
   | 'general'
 
 interface GearRequirement {
   readonly key: string
   readonly shipIndex: number
-  readonly slotIndex: number
+  readonly slotIndex: number | 'expansion'
   readonly slotSize: number
   readonly kind: GearRequirementKind
 }
@@ -185,6 +186,7 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
     'midget-submarine': [22],
     'landing-craft': [],
     seaplane: [10, 11],
+    expansion: [],
     general: [],
   }
   return kind === 'general' || acceptedTypes[kind].includes(gear.typeId)
@@ -254,6 +256,7 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
         stats.bombing * 3 +
         stats.antiAir * 2
       )
+    case 'expansion':
     case 'general':
       return (
         stats.firepower * 2 +
@@ -613,16 +616,25 @@ const optionsForRequirement = (
   const cacheKey = `${ship.id}:${member.role}:${requirement.kind}:${requirement.slotSize}`
   const cached = context.optionCache.get(cacheKey)
   if (cached) return cached.slice(0, candidateLimit)
-  let matchingEquipment = context.equipmentByRequirementKind.get(requirement.kind)
-  if (!matchingEquipment) {
-    matchingEquipment = context.availableEquipment.filter((gear) =>
-      gearMatchesRequirement(gear, requirement.kind),
-    )
-    context.equipmentByRequirementKind.set(requirement.kind, matchingEquipment)
-  }
   const regularMasterIds = context.regularMasterIdsByShip.get(ship.id) ?? new Set<number>()
+  const expansionEquipmentIds =
+    context.expansionEquipmentIdsByShip.get(ship.id) ?? new Set<number>()
+  let matchingEquipment: readonly OwnedEquipment[]
+  if (requirement.kind === 'expansion') {
+    matchingEquipment = context.availableEquipment.filter((gear) =>
+      expansionEquipmentIds.has(gear.id),
+    )
+  } else {
+    matchingEquipment = context.equipmentByRequirementKind.get(requirement.kind) ?? []
+    if (matchingEquipment.length === 0) {
+      matchingEquipment = context.availableEquipment.filter((gear) =>
+        gearMatchesRequirement(gear, requirement.kind),
+      )
+      context.equipmentByRequirementKind.set(requirement.kind, matchingEquipment)
+    }
+  }
   const options = matchingEquipment
-    .filter((gear) => regularMasterIds.has(gear.masterId))
+    .filter((gear) => requirement.kind === 'expansion' || regularMasterIds.has(gear.masterId))
     .filter(
       (gear) =>
         member.role !== 'torpedo-cruiser' ||
@@ -650,7 +662,7 @@ export const buildGearSolutions = (
   )}:${Number(nightCarrierRequired)}`
   const cachedSolution = context.solutionCache.get(solutionCacheKey)
   if (cachedSolution) return cachedSolution
-  const requirements = fleet.members.flatMap((member, shipIndex) => {
+  const regularRequirements = fleet.members.flatMap((member, shipIndex) => {
     const assignAirSeaplanes =
       airPowerRequired &&
       context.availableEquipment.some(
@@ -661,6 +673,21 @@ export const buildGearSolutions = (
       )
     return requirementsForMember(member, shipIndex, assignAirSeaplanes, antiInstallationRequired)
   })
+  const expansionRequirements: readonly GearRequirement[] = fleet.members.flatMap(
+    (member, shipIndex) =>
+      member.ship.expansionSlotUnlocked
+        ? [
+            {
+              key: `${shipIndex}:expansion`,
+              shipIndex,
+              slotIndex: 'expansion' as const,
+              slotSize: 0,
+              kind: 'expansion' as const,
+            },
+          ]
+        : [],
+  )
+  const requirements = [...regularRequirements, ...expansionRequirements]
   const requirementCounts = new Map<GearRequirementKind, number>()
   requirements.forEach((requirement) => {
     requirementCounts.set(requirement.kind, (requirementCounts.get(requirement.kind) ?? 0) + 1)
@@ -699,7 +726,9 @@ export const buildGearSolutions = (
   requirementsWithOptions.forEach(({ requirement, options }) => {
     const nextStates: GearSearchState[] = []
     states.forEach((state) => {
-      if (state.assignments.has(requirement.key)) {
+      const expansionAlreadyAssigned =
+        requirement.kind === 'expansion' && state.expansionAssignments.has(requirement.shipIndex)
+      if (state.assignments.has(requirement.key) || expansionAlreadyAssigned) {
         nextStates.push(state)
         return
       }
@@ -708,12 +737,17 @@ export const buildGearSolutions = (
         requirement.kind === 'midget-submarine' ? availableOptions : [...availableOptions, null]
       candidates.forEach((option) => {
         const assignments = new Map(state.assignments)
-        assignments.set(requirement.key, option?.gear ?? null)
+        const expansionAssignments = new Map(state.expansionAssignments)
+        if (requirement.kind === 'expansion') {
+          if (option) expansionAssignments.set(requirement.shipIndex, option.gear)
+        } else {
+          assignments.set(requirement.key, option?.gear ?? null)
+        }
         const usedEquipmentIds = new Set(state.usedEquipmentIds)
         if (option) usedEquipmentIds.add(option.gear.id)
         nextStates.push({
           assignments,
-          expansionAssignments: state.expansionAssignments,
+          expansionAssignments,
           usedEquipmentIds,
           score: state.score + (option?.score ?? -80),
           signature: `${state.signature}|${requirement.key}:${option?.gear.id ?? 0}`,

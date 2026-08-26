@@ -1,5 +1,6 @@
 import sourceMapData from './rules/normal/source-map-recommendations.json'
 import strategyOverlayData from './rules/normal/strategy-overlays.json'
+import verifiedBossFleetData from './rules/normal/verified-boss-fleets.json'
 import { RECOMMENDATION_OBJECTIVES } from './types'
 import type {
   CalculatedConstraint,
@@ -15,6 +16,23 @@ type UnknownRecord = Record<string, unknown>
 
 const BASIC_OBJECTIVES: readonly RecommendationObjective[] = ['balanced', 'boss-clear', 'low-cost']
 const STRATEGY_CATEGORIES: readonly StrategyCategory[] = ['boss', 'leveling', 'resource', 'gimmick']
+
+export const EXTERNALLY_CONFIGURED_ROUTE_TAGS = [
+  'anti-installation',
+  'boss-support',
+  'drum-canister-required',
+  'elite-torpedo-squadron-command-facility',
+  'historical-bonus',
+  'lbas',
+  'lbas-proficiency',
+  'pt',
+  'rocket-barrage-required',
+  'smoke-screen',
+  'special-attack',
+] as const
+
+const guidePriority = (route: RouteTemplate): number =>
+  route.tags.includes('guide-primary') ? 0 : route.tags.includes('guide-alternative') ? 1 : 2
 
 const isRecord = (value: unknown): value is UnknownRecord =>
   !!value && typeof value === 'object' && !Array.isArray(value)
@@ -103,6 +121,9 @@ const parseCalculatedConstraint = (value: unknown): CalculatedConstraint => {
       minimum: readNumber(value, 'minimum'),
     }
   }
+  if (kind === 'opening-asw') {
+    return { kind, minimum: readNumber(value, 'minimum') }
+  }
   throw new Error(`normal map catalog: 未支援 calculated constraint ${kind}`)
 }
 
@@ -186,14 +207,19 @@ const sourceRoutes = (sourceMapData as unknown[]).flatMap((mapValue) => {
   })
 })
 
+const overlayCatalogData = [
+  ...(verifiedBossFleetData as unknown[]),
+  ...(strategyOverlayData as unknown[]),
+]
+
 const replacedSourceMapIds = new Set(
-  (strategyOverlayData as unknown[]).flatMap((mapValue) => {
+  overlayCatalogData.flatMap((mapValue) => {
     if (!isRecord(mapValue) || mapValue.replaceSourceRoutes !== true) return []
     return [readString(mapValue, 'area')]
   }),
 )
 
-const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
+const overlayRoutes = overlayCatalogData.flatMap((mapValue) => {
   if (!isRecord(mapValue) || !Array.isArray(mapValue.routes)) {
     throw new Error('normal map overlay data shape invalid')
   }
@@ -218,6 +244,7 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
     }
     const tags = readStringArray(routeValue.tags, 'tags')
     const isNewMap = tags.includes('new-map')
+    const isVerifiedGuide = tags.includes('verified-guide')
     const strategySource =
       category === 'resource'
         ? 'https://en.kancollewiki.net/Resource_Farming'
@@ -230,7 +257,11 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
         : readStringArray(routeValue.sources, 'sources')
     const sources = Array.from(new Set([mapGuideSource(mapId), ...mapSources, ...providedSources]))
     const lastVerified =
-      typeof routeValue.lastVerified === 'string' ? routeValue.lastVerified : '2026-08-24'
+      typeof routeValue.lastVerified === 'string'
+        ? routeValue.lastVerified
+        : isNewMap
+          ? '2026-08-26'
+          : '2026-08-24'
     return {
       id: readString(routeValue, 'id'),
       mapId,
@@ -252,9 +283,11 @@ const overlayRoutes = (strategyOverlayData as unknown[]).flatMap((mapValue) => {
           : parseResourceProfile(routeValue.resourceProfile),
       metadata: {
         source: sources,
-        confidence: isNewMap ? 'experimental' : 'community',
+        confidence: isNewMap ? 'experimental' : isVerifiedGuide ? 'verified' : 'community',
         lastVerified,
-        ruleVersion: isNewMap ? '2026.08.24-5-6' : `${lastVerified.replace(/-/g, '.')}-overlay`,
+        ruleVersion: isNewMap
+          ? `${lastVerified.replace(/-/g, '.')}-5-6`
+          : `${lastVerified.replace(/-/g, '.')}-${isVerifiedGuide ? 'verified-guide' : 'overlay'}`,
       },
     }
   })
@@ -270,12 +303,38 @@ export const NORMAL_MAP_ROUTES: readonly RouteTemplate[] = [
   return true
 })
 
+export const automaticRouteBlockers = (route: RouteTemplate): readonly string[] => {
+  const blockers: string[] = []
+  const world = Number(route.mapId.split('-')[0])
+  if (route.category === 'boss' && !route.stableBoss) blockers.push('unstable-boss-route')
+  if (route.metadata.confidence === 'experimental') blockers.push('experimental')
+  if (route.tags.includes('random-routing') || route.tags.some((tag) => tag.includes('routing-'))) {
+    blockers.push('random-routing')
+  }
+  if (EXTERNALLY_CONFIGURED_ROUTE_TAGS.some((tag) => route.tags.includes(tag))) {
+    blockers.push('manual-combat-setup')
+  }
+  if (route.tags.includes('oasw')) {
+    const openingAswModeled = route.calculatedConstraints.some(
+      (constraint) => constraint.kind === 'opening-asw',
+    )
+    if (!openingAswModeled) blockers.push('opening-asw-unmodeled')
+  }
+  if (route.category === 'boss' && world >= 2 && route.calculatedConstraints.length === 0) {
+    blockers.push('combat-thresholds-unmodeled')
+  }
+  return blockers
+}
+
+export const isAutomaticRouteReady = (route: RouteTemplate): boolean =>
+  automaticRouteBlockers(route).length === 0
+
 const mapNames = new Map<string, string>()
 ;(sourceMapData as unknown[]).forEach((value) => {
   if (!isRecord(value)) return
   mapNames.set(readString(value, 'area'), readString(value, 'name'))
 })
-;(strategyOverlayData as unknown[]).forEach((value) => {
+overlayCatalogData.forEach((value) => {
   if (!isRecord(value)) return
   const mapId = readString(value, 'area')
   if (typeof value.name === 'string') mapNames.set(mapId, value.name)
@@ -293,9 +352,8 @@ export const getRouteTemplates = (
       (!routeId || route.id === routeId),
   )
   if (routeId) return matching
-  const stableBossRequired = mapId.endsWith('-5') && BASIC_OBJECTIVES.includes(objective)
-  const filtered = stableBossRequired ? matching.filter((route) => route.stableBoss) : matching
-  return filtered.length > 0 ? filtered : matching
+  const eligible = matching.filter(isAutomaticRouteReady)
+  return [...eligible].sort((left, right) => guidePriority(left) - guidePriority(right))
 }
 
 export const getRouteTemplate = (
@@ -322,6 +380,7 @@ export const getMapOptions = (): readonly MapOption[] =>
           objectives: route.objectives,
           nodes: route.nodes,
           stableBoss: route.stableBoss,
+          automaticReady: isAutomaticRouteReady(route),
           description: route.description,
           confidence: route.metadata.confidence,
         })),

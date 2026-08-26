@@ -2,7 +2,7 @@
 
 ## Coverage
 
-The catalog contains all 37 normal maps available on 2026-08-25:
+The catalog contains all 37 normal maps available on 2026-08-26:
 
 ```text
 1-1 .. 1-6
@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-25:
 7-1 .. 7-5
 ```
 
-It normalizes 110 canonical strategy templates. A canonical template represents a different routing
+It normalizes 109 canonical strategy templates. A canonical template represents a different routing
 condition, phase, or gameplay objective; swapping one ship for another of the same accepted type
 does not create another template.
 
@@ -26,13 +26,16 @@ composition.
 
 ## Sources
 
-Base boss-routing constraints are vendored from the MIT-licensed
-`shichiria/kancolle-browser/src-tauri/data/map_recommendations.json`, last updated on 2026-03-02.
-The original license is retained next to the JSON.
+The older broad boss-routing constraints remain vendored from the MIT-licensed
+`shichiria/kancolle-browser/src-tauri/data/map_recommendations.json`, last updated on 2026-03-02,
+with the original license retained next to the JSON. Every one of those broad solver routes is now
+replaced by either a reviewed ぜかまし normal-map fleet skeleton, a current X-5 overlay, or the
+separately reviewed 5-6 phase catalog.
 
 The overlay catalog cross-checks current map and farming guidance from:
 
 - <https://en.kancollewiki.net/>
+- <https://zekamashi.net/kancolle-kouryaku/>
 - <https://wikiwiki.jp/kancolle/>
 - <https://m.kcwiki.cn/>
 - <https://forum.gamer.com.tw/B.php?bsn=24698>
@@ -77,8 +80,10 @@ Notable overlays include:
 
 ## Extra Operations
 
-For boss objectives, maps ending in `-5` only expose routes marked `stableBoss` to automatic Top 3
-selection. The ranking pass first selects the best fleet from distinct route templates, then fills
+For basic boss objectives, every normal map only exposes routes marked `stableBoss` to automatic
+Top 3 selection. Inherently random maps such as 1-1 and 4-3 return no stable automatic plan instead
+of presenting a probability as a guarantee; their reviewed routes remain manually selectable. The
+ranking pass first selects the best fleet from distinct route templates, then fills
 remaining slots with fleet variants only when fewer than three distinct legal routes exist.
 
 The 1-5 through 7-5 overlays were rechecked against the current per-map Kancolle Wiki and 艦娘百科
@@ -89,7 +94,10 @@ record their allowed types and minimum/maximum counts.
 
 For 1-5, the balanced objective is limited to the four-DE or DD/DE light fleets, while the
 one-BBV/two-CL/one-DD fleet remains available under boss clear. The 2-5 and 3-5 routes carry their
-reviewed route-specific air-power thresholds. The 4-5 catalog distinguishes the two-DD light fleet
+reviewed route-specific air-power thresholds. The 3-5 guide-primary upper route is fixed to three
+regular/armored carriers, one CAV, and two SS/SSV, with air power 410 and Cn4 LoS 40 as hard gates;
+the former rule that allowed one battleship plus two carriers was removed. The 4-5 catalog
+distinguishes the two-DD light fleet
 that goes through K from the three-DD fleet that goes directly from H to T and retains the Fast+
 night-carrier/torpedo-cruiser composition. The stable 5-5 north routes now use exact two-BB/two-CV
 cores, and the AO middle route records its H-node smoke-screen requirement. The 6-5 north route is

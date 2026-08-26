@@ -14,6 +14,14 @@ export const styles = `
     min-width: 90px; height: 26px; padding: 0 10px; cursor: pointer;
   }
   .dfr-button:disabled { cursor: not-allowed; opacity: .5; }
+  .dfr-button.is-loading:disabled { cursor: wait; opacity: .82; }
+  .dfr-button.is-loading::before, .dfr-loading::before {
+    display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor;
+    border-right-color: transparent; border-radius: 50%; animation: dfr-route-spin .7s linear infinite;
+    content: '';
+  }
+  .dfr-button.is-loading::before { margin-right: 6px; vertical-align: -2px; }
+  .dfr-loading::before { margin-bottom: 5px; }
   body.dark .dfr-button { border: 1px solid #444; background: #121212; color: #ccc; }
   body:not(.dark) .dfr-button { border: 1px solid #ace; border-radius: 8px; background: #def; color: #369; }
   .dfr-button:focus-visible, .dfr-root input:focus-visible, .dfr-root select:focus-visible,
@@ -88,6 +96,7 @@ export const styles = `
   body:not(.dark) .dfr-error { border: 1px solid #c88; border-radius: 8px; background: #fee; }
   .dfr-error h2 { margin: 0 0 5px; color: #c44; font-size: 14px; }
   .dfr-error li { font-size: 11px; line-height: 1.5; }
+  @keyframes dfr-route-spin { to { transform: rotate(360deg); } }
   @media (max-width: 720px) {
     .dfr-root, .dfr-plan { width: 100%; }
     .dfr-control-row { display: block; }
@@ -97,6 +106,11 @@ export const styles = `
     .dfr-metrics { grid-template-columns: repeat(2, 1fr); }
     .dfr-ship-grid { grid-template-columns: 1fr; }
     .dfr-notes { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dfr-button.is-loading::before, .dfr-loading::before {
+      border-right-color: currentColor; animation: none; opacity: .55;
+    }
   }
 `
 

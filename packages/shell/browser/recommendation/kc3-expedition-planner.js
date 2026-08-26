@@ -11,7 +11,10 @@ export const kc3ExpeditionPlannerMainWorld = (request) => {
     102: { resource: [120, 0, 60, 60] },
     110: { resource: [0, 0, 10, 30] },
   }
-  const currentMaterials = window.PlayerManager?.hq?.lastMaterial
+  const hq = window.PlayerManager?.hq
+
+  if (typeof hq?.load === 'function') hq.load()
+  const currentMaterials = hq?.lastMaterial
 
   if (
     !Array.isArray(currentMaterials) ||
@@ -158,20 +161,28 @@ export const kc3ExpeditionPlannerMainWorld = (request) => {
     .slice(1, 4)
     .filter((fleet) => fleet && fleet.active !== false && Number(fleet.fleetId) > 1)
     .map((fleet) => {
+      const busy = Number(fleet.mission?.[0] || 0) > 0
       const missionId = Number(fleet.mission?.[1] || 0)
-      const missionMaster = missionId > 0 ? window.KC3Master.mission(missionId) : null
+      const completesAt = Number(fleet.mission?.[2] || 0)
+      const missionMaster = busy && missionId > 0 ? window.KC3Master.mission(missionId) : null
+      if (
+        busy &&
+        (missionId <= 0 || !Number.isFinite(completesAt) || completesAt <= 0 || !missionMaster)
+      ) {
+        throw new Error(`KC3 fleet ${fleet.fleetId} mission data is incomplete`)
+      }
       return {
         fleet,
         fleetNumber: Number(fleet.fleetId),
         name: String(fleet.name || `第${fleet.fleetId}艦隊`),
-        busy: Number(fleet.mission?.[0] || 0) > 0,
+        busy,
         currentMission:
-          missionId > 0
+          busy && missionId > 0
             ? {
                 id: missionId,
-                displayNo: String(missionMaster?.api_disp_no || missionId),
-                name: String(missionMaster?.api_name || ''),
-                completesAt: Number(fleet.mission?.[2] || 0),
+                displayNo: String(missionMaster.api_disp_no || missionId),
+                name: String(missionMaster.api_name || ''),
+                completesAt,
               }
             : null,
       }

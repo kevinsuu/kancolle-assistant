@@ -4,12 +4,11 @@ export type ExpeditionResourceKey = (typeof EXPEDITION_RESOURCE_KEYS)[number]
 export type ExpeditionResources = Readonly<Record<ExpeditionResourceKey, number>>
 
 export interface ExpeditionPlannerRequest {
-  readonly target: ExpeditionResources
   readonly resourceWeights: ExpeditionResources
   readonly afkMinutes: number
   readonly fleetCount: number
   readonly candidateIds: readonly number[]
-  readonly considerBuckets: boolean
+  readonly bucketWeight: number
   readonly incomeModifier: {
     readonly greatSuccess: boolean
     readonly daihatsuCount: number
@@ -150,14 +149,12 @@ export interface ExpeditionPlanPairing {
 }
 
 export interface ExpeditionPlan {
-  readonly goalCoverage: number
   readonly weightedHourlyIncome: number
   readonly bucketPotentialHourly: number
-  readonly prioritizesBuckets: boolean
+  readonly bucketWeight: number
   readonly comparisonWindowMinutes: number
   readonly projectedIncome: ExpeditionResources
   readonly hourlyIncome: ExpeditionResources
-  readonly estimatedHoursToTarget: number | null
   readonly pairingScore: number
   readonly pairings: readonly ExpeditionPlanPairing[]
 }
@@ -167,8 +164,6 @@ export type ExpeditionPlannerResult =
       readonly status: 'success'
       readonly generatedAt: string
       readonly current: ExpeditionResources
-      readonly target: ExpeditionResources
-      readonly deficits: ExpeditionResources
       readonly resourceWeights: ExpeditionResources
       readonly maxResource: number
       readonly candidateCount: number
@@ -177,7 +172,7 @@ export type ExpeditionPlannerResult =
         readonly fleetCount: number
         readonly comparisonWindowMinutes: number
         readonly resourceWeights: ExpeditionResources
-        readonly considerBuckets: boolean
+        readonly bucketWeight: number
         readonly mode: 'online' | 'afk'
         readonly incomeModifier: {
           readonly greatSuccess: boolean
@@ -192,12 +187,10 @@ export type ExpeditionPlannerResult =
   | {
       readonly status: 'no-solution'
       readonly reason: string
-      readonly reasonCode: 'TARGET_REACHED' | 'INSUFFICIENT_FLEETS' | 'INSUFFICIENT_EXPEDITIONS'
+      readonly reasonCode: 'INSUFFICIENT_FLEETS' | 'INSUFFICIENT_EXPEDITIONS'
       readonly reasonValues: Readonly<Record<string, number>>
       readonly generatedAt: string
       readonly current: ExpeditionResources
-      readonly target: ExpeditionResources
-      readonly deficits: ExpeditionResources
       readonly maxResource: number
     }
 
@@ -331,11 +324,25 @@ const parseFleetActual = (value: unknown, path: string): ExpeditionFleetActual =
 
 const parseFleetCheck = (value: unknown, path: string): ExpeditionFleetCheckSnapshot => {
   const record = asRecord(value, path)
+  const busy = asBoolean(record.busy, `${path}.busy`)
+  const currentMission = parseCurrentMission(record.currentMission, `${path}.currentMission`)
+  if (busy !== Boolean(currentMission)) {
+    throw new Error(`${path}.busy 與 ${path}.currentMission 不一致`)
+  }
+  if (
+    currentMission &&
+    (currentMission.id <= 0 ||
+      currentMission.displayNo.length === 0 ||
+      currentMission.name.length === 0 ||
+      currentMission.completesAt <= 0)
+  ) {
+    throw new Error(`${path}.currentMission 內容不完整`)
+  }
   return {
     fleetNumber: asNumber(record.fleetNumber, `${path}.fleetNumber`),
     fleetName: asString(record.fleetName, `${path}.fleetName`),
-    busy: asBoolean(record.busy, `${path}.busy`),
-    currentMission: parseCurrentMission(record.currentMission, `${path}.currentMission`),
+    busy,
+    currentMission,
     shipCount: asNumber(record.shipCount, `${path}.shipCount`),
     isSupplied: asBoolean(record.isSupplied, `${path}.isSupplied`),
     actual: parseFleetActual(record.actual, `${path}.actual`),
@@ -553,7 +560,7 @@ const createFleetResult = (snapshot: ExpeditionFleetCheckSnapshot): ExpeditionFl
     fitScore:
       passedCount * 10 +
       (meetsRequirements ? 100 : 0) +
-      (snapshot.isSupplied ? 5 : 0) +
+      (!snapshot.busy && snapshot.isSupplied ? 5 : 0) +
       (snapshot.busy ? 0 : 2),
   }
 }
@@ -586,6 +593,9 @@ const permutations = <T>(values: readonly T[], count: number): readonly (readonl
   )
 }
 
+const normalizeAcrossPlans = (value: number, minimum: number, maximum: number): number =>
+  maximum === minimum ? 0 : (value - minimum) / (maximum - minimum)
+
 interface CalculatedExpedition extends ExpeditionCandidateSnapshot {
   readonly effectiveCycleMinutes: number
   readonly netIncome: ExpeditionResources
@@ -603,12 +613,9 @@ export const planExpeditions = ({
   readonly snapshot: ExpeditionPlannerSnapshot
   readonly request: ExpeditionPlannerRequest
 }): ExpeditionPlannerResult => {
-  const target = mapResources(request.target, (value) => value)
-  const deficits = mapResources(target, (value, key) => Math.max(0, value - snapshot.current[key]))
-  const deficitKeys = EXPEDITION_RESOURCE_KEYS.filter((key) => deficits[key] > 0)
   const noSolution = (
     reason: string,
-    reasonCode: 'TARGET_REACHED' | 'INSUFFICIENT_FLEETS' | 'INSUFFICIENT_EXPEDITIONS',
+    reasonCode: 'INSUFFICIENT_FLEETS' | 'INSUFFICIENT_EXPEDITIONS',
     reasonValues: Readonly<Record<string, number>> = {},
   ): ExpeditionPlannerResult => ({
     status: 'no-solution',
@@ -617,14 +624,9 @@ export const planExpeditions = ({
     reasonValues,
     generatedAt: snapshot.generatedAt,
     current: snapshot.current,
-    target,
-    deficits,
     maxResource: snapshot.maxResource,
   })
 
-  if (deficitKeys.length === 0 && !request.considerBuckets) {
-    return noSolution('目前四項資源都已達到設定目標。', 'TARGET_REACHED')
-  }
   if (snapshot.fleetNumbers.length < request.fleetCount) {
     return noSolution(
       `KC3 目前只有 ${snapshot.fleetNumbers.length} 支可用遠征艦隊，少於設定的 ${request.fleetCount} 支。`,
@@ -650,7 +652,10 @@ export const planExpeditions = ({
         steel: grossIncome.steel,
         bauxite: grossIncome.bauxite,
       }
-      const effectiveCycleMinutes = Math.max(candidate.durationMinutes, request.afkMinutes)
+      const effectiveCycleMinutes =
+        request.afkMinutes === 0
+          ? candidate.durationMinutes
+          : Math.ceil(candidate.durationMinutes / request.afkMinutes) * request.afkMinutes
       return [
         {
           ...candidate,
@@ -710,14 +715,6 @@ export const planExpeditions = ({
         hourlyIncome,
         (value) => (value * comparisonWindowMinutes) / 60,
       )
-      const goalCoverage =
-        deficitKeys.length === 0
-          ? 1
-          : deficitKeys.reduce(
-              (sum, key) =>
-                sum + Math.min(Math.max(0, projectedIncome[key]), deficits[key]) / deficits[key],
-              0,
-            ) / deficitKeys.length
       const weightedHourlyIncome = EXPEDITION_RESOURCE_KEYS.reduce(
         (sum, key) => sum + hourlyIncome[key] * resourceWeights[key],
         0,
@@ -726,22 +723,14 @@ export const planExpeditions = ({
         (sum, expedition) => sum + expedition.bucketPotential.hourly,
         0,
       )
-      const estimatedHours =
-        deficitKeys.length === 0
-          ? 0
-          : deficitKeys.every((key) => hourlyIncome[key] > 0)
-            ? Math.max(...deficitKeys.map((key) => deficits[key] / hourlyIncome[key]))
-            : null
       const pairing = bestPairing(expeditions)
       return {
-        goalCoverage,
         weightedHourlyIncome,
         bucketPotentialHourly,
-        prioritizesBuckets: request.considerBuckets,
+        bucketWeight: request.bucketWeight,
         comparisonWindowMinutes,
         projectedIncome,
         hourlyIncome,
-        estimatedHoursToTarget: estimatedHours,
         pairingScore: pairing.score,
         pairings: pairing.pairings.map(({ expedition, fleet }) => ({
           fleet,
@@ -766,16 +755,51 @@ export const planExpeditions = ({
     },
   )
 
+  const resourceRanges = Object.fromEntries(
+    EXPEDITION_RESOURCE_KEYS.map((key) => [
+      key,
+      plans.reduce(
+        (range, plan) => ({
+          minimum: Math.min(range.minimum, plan.hourlyIncome[key]),
+          maximum: Math.max(range.maximum, plan.hourlyIncome[key]),
+        }),
+        { minimum: Number.POSITIVE_INFINITY, maximum: Number.NEGATIVE_INFINITY },
+      ),
+    ]),
+  ) as Record<ExpeditionResourceKey, { minimum: number; maximum: number }>
+  const bucketRange = plans.reduce(
+    (range, plan) => ({
+      minimum: Math.min(range.minimum, plan.bucketPotentialHourly),
+      maximum: Math.max(range.maximum, plan.bucketPotentialHourly),
+    }),
+    { minimum: Number.POSITIVE_INFINITY, maximum: Number.NEGATIVE_INFINITY },
+  )
+  const preferenceScore = (plan: ExpeditionPlan): number =>
+    EXPEDITION_RESOURCE_KEYS.reduce(
+      (score, key) =>
+        score +
+        normalizeAcrossPlans(
+          plan.hourlyIncome[key],
+          resourceRanges[key].minimum,
+          resourceRanges[key].maximum,
+        ) *
+          resourceWeights[key],
+      0,
+    ) +
+    normalizeAcrossPlans(plan.bucketPotentialHourly, bucketRange.minimum, bucketRange.maximum) *
+      request.bucketWeight
+
   plans.sort((left, right) => {
-    const bucketDifference = request.considerBuckets
-      ? right.bucketPotentialHourly - left.bucketPotentialHourly
-      : 0
+    const preferenceDifference = preferenceScore(right) - preferenceScore(left)
+    const bucketTieBreaker =
+      request.bucketWeight === 0
+        ? 0
+        : Math.sign(request.bucketWeight) *
+          (right.bucketPotentialHourly - left.bucketPotentialHourly)
     return (
-      bucketDifference ||
+      preferenceDifference ||
       right.weightedHourlyIncome - left.weightedHourlyIncome ||
-      (left.estimatedHoursToTarget ?? Number.POSITIVE_INFINITY) -
-        (right.estimatedHoursToTarget ?? Number.POSITIVE_INFINITY) ||
-      right.goalCoverage - left.goalCoverage ||
+      bucketTieBreaker ||
       right.pairingScore - left.pairingScore
     )
   })
@@ -784,8 +808,6 @@ export const planExpeditions = ({
     status: 'success',
     generatedAt: snapshot.generatedAt,
     current: snapshot.current,
-    target,
-    deficits,
     resourceWeights,
     maxResource: snapshot.maxResource,
     candidateCount: candidates.length,
@@ -794,7 +816,7 @@ export const planExpeditions = ({
       fleetCount: request.fleetCount,
       comparisonWindowMinutes,
       resourceWeights,
-      considerBuckets: request.considerBuckets,
+      bucketWeight: request.bucketWeight,
       mode: request.afkMinutes === 0 ? 'online' : 'afk',
       incomeModifier: {
         greatSuccess: request.incomeModifier.greatSuccess,

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import test from 'node:test'
+import { ACCOUNT_CHANNEL, RECOMMEND_CHANNEL } from '../browser/recommendation/channels.js'
+import { registerRecommendationIpc } from '../browser/recommendation/recommendation-ipc.js'
 import { createRecommendationWorkerService } from '../browser/recommendation/recommendation-worker-service.js'
 
 class WorkerDouble extends EventEmitter {
@@ -94,4 +96,62 @@ test('recommendation worker service rebuilds after a worker error', async () => 
   assert.equal(workers.length, 2)
   assert.equal(workers[0].terminated, true)
   service.dispose()
+})
+
+test('fleet recommendations refresh the KC3 account snapshot before every calculation', async () => {
+  const handlers = new Map()
+  const ipcMain = { handle: (channel, handler) => handlers.set(channel, handler) }
+  const sender = { getURL: () => 'chrome-extension://fixture/pages/strategy/strategy.html' }
+  const event = {
+    sender,
+    senderFrame: { url: 'chrome-extension://fixture/pages/strategy/strategy.html' },
+  }
+  const recommendedSnapshots = []
+  let snapshotCount = 0
+
+  registerRecommendationIpc({
+    ipcMain,
+    getKc3ExtensionId: () => 'fixture',
+    readAccountSnapshot: async () => {
+      snapshotCount += 1
+      return {
+        generatedAt: `2026-08-26T00:00:0${snapshotCount}.000Z`,
+        ships: Array.from({ length: snapshotCount }, (_, index) => ({ id: index + 1 })),
+        equipment: [],
+        metadata: { capabilities: {} },
+      }
+    },
+    recommend: async (input) => {
+      recommendedSnapshots.push(input.account)
+      return {
+        status: 'no-solution',
+        analysis: { reasons: [] },
+        elapsedMs: 0,
+        solverVersion: 'fixture',
+      }
+    },
+    planExpeditions: async () => {},
+    summarizeResourceLedger: async () => {},
+    logger: () => {},
+  })
+
+  const accountResult = await handlers.get(ACCOUNT_CHANNEL)(event)
+  const firstResult = await handlers.get(RECOMMEND_CHANNEL)(event, {
+    mapId: '1-1',
+    objective: 'balanced',
+    avoidCurrentFleetEquipment: false,
+  })
+  const secondResult = await handlers.get(RECOMMEND_CHANNEL)(event, {
+    mapId: '1-1',
+    objective: 'balanced',
+    avoidCurrentFleetEquipment: false,
+  })
+
+  assert.equal(accountResult.account.shipCount, 1)
+  assert.deepEqual(
+    recommendedSnapshots.map((snapshot) => snapshot.ships.length),
+    [2, 3],
+  )
+  assert.equal(firstResult.account.shipCount, 2)
+  assert.equal(secondResult.account.shipCount, 3)
 })
