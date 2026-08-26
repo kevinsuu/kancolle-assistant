@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.4`    | `2026-08-26`   |
+| `v1.0.5`    | `2026-08-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,29 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.5 highlights (since v1.0.4)
+
+- Automatic 4-5 recommendations now validate mixed anti-installation setups: unique owned Type 3
+  Shell-family items, KC3-classified carrier aircraft, the CL/DD shortest route, Fast+ slot
+  conflicts, and clear failures.
+- All normal-map recommendations now use KC3's current complete-loadout calculations to rerank
+  candidates by ship-specific and combination bonuses, improvements, gun fit, and target-specific
+  surface, anti-submarine, or anti-installation power. The Fast+ battleship/carrier 4-5 route is
+  split into two fully validated fleet ratios and no longer requires a manual check.
+- Fleet recommendations reuse synchronized KC3 snapshots and identical completed calculations
+  until explicit resync; map/route controls also no longer wait for initial account extraction.
+- Regular equipment slots now always form a complete legal loadout, using role-safe compatible
+  fallbacks when ideal gear is exhausted; 2-5 north and 5-5 south also validate distinct drum
+  carriers.
+- 2-1 now recognizes KC3's current water-fighter and related equipment categories across every
+  map, adds a carrier boss fallback and fixed E-node instant-construction-material route, and is
+  covered by a primary-route generation check for all 37 normal maps.
+- Automatic Top 3 now falls back to calculable warning-bearing routes when a map has no completely
+  validated alternative, so maps such as 7-4 no longer require manual route selection merely to
+  generate a fleet.
+- KC3's Daily Improvements page now starts with its native improvable-equipment filter enabled;
+  the user can still toggle the complete list back on.
 
 ### v1.0.4 highlights (since v1.0.3)
 
@@ -69,7 +92,7 @@ Compared with the original project, this source adds or improves:
 5. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
 6. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
 7. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin up to five Strategy Room tabs in `常用連結`; ordinary navigation keeps their order unchanged, and a sixth pin replaces the bottom link.
-8. **[Daily improvement filter](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page applies KC3's own improvable-equipment filter once by default, while leaving the toggle available for the complete list.
+8. **[Daily improvement filters](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page applies KC3's own improvable-equipment filter once by default and adds a horizontal filter containing only the equipment types currently available for improvement, while leaving the native toggle available for the complete list.
 
 These added Strategy Room interfaces follow KC3's selected language and support English,
 Traditional Chinese, Simplified Chinese, and Japanese.
@@ -210,13 +233,18 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] DMM-only local credential vault using operating-system encryption
 - [x] Responsive KanColle game-canvas auto-fit with a freely resizable window
 - [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, using linked
-      guide-verified fleet skeletons and stable-route-only automatic selection, with validated
-      Fast+ equipment, expansion-slot assignments, night-carrier setups, and 4-5 Type 3 Shell
-      assignments
+      guide-verified fleet skeletons, preferring fully validated automatic routes and falling back
+      to calculable routes with explicit setup warnings, with validated
+      complete regular slots, a 2-1 carrier fallback and instant-construction-material route,
+      current KC3 water-fighter/aircraft/ordnance categories, 2-5/5-5 drum routing, Fast+
+      equipment, expansion-slot assignments, night-carrier setups, and 4-5 mixed
+      anti-installation assignments, plus automatic 5-5 special-attack pairing, fleet order, and
+      formation guidance; final ranking uses KC3 complete-loadout bonuses and target-specific power
 - [x] Weighted expedition recommendations with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
 - [x] Up to five pinned KC3 Strategy Room quick links with stable ordering
-- [x] KC3 Daily Improvements opens with the improvable-equipment filter enabled
+- [x] KC3 Daily Improvements opens with the improvable-equipment filter enabled and offers a
+      filter containing only currently improvable equipment types
 
 ### 🤞 Eventually
 
