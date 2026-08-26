@@ -201,6 +201,9 @@ const PATHS = {
     ? path.resolve(process.resourcesPath, 'workers')
     : path.resolve(SHELL_ROOT_DIR, 'browser', 'workers'),
   PRELOAD: path.join(__dirname, '../renderer/browser/preload.js'),
+  APP_ICON: app.isPackaged
+    ? path.resolve(process.resourcesPath, 'ui', 'assets', 'icons', 'logo.png')
+    : path.resolve(ROOT_DIR, 'logo.png'),
   LOCAL_EXTENSIONS: path.join(dataPath, 'extensions'),
   KC3_EXTENSIONS: path.join(dataPath, 'extensions'),
   //KC3_EXTENSIONS: path.join(ROOT_DIR, 'ext_kc3kai'),
@@ -722,6 +725,10 @@ class Browser extends EventEmitter {
   }
 
   async init() {
+    if (process.platform === 'darwin' && !app.isPackaged) {
+      app.dock.setIcon(PATHS.APP_ICON)
+    }
+
     this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
     kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
@@ -1337,7 +1344,7 @@ class Browser extends EventEmitter {
           worldSafeExecuteJavaScript: true,
           backgroundThrottling: windowConfig.behavior.occlusion,
         },
-        icon: path.join(__dirname, 'icon.ico'),
+        icon: PATHS.APP_ICON,
       },
     })
 

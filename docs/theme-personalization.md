@@ -30,3 +30,6 @@ The replacement is stored in the local KanColle Assistant configuration and is a
 KanColle Assistant item in the settings sidebar, its preview, and the settings-page favicon. It
 does not rewrite the packaged operating-system application icon (`.ico` or `.icns`). Select
 `Use default` to remove the stored replacement and restore `logo.png`.
+
+The packaged operating-system icon and the macOS Dock icon use the repository-level `logo.png`.
+Changing the icon in Theme settings affects only the in-app surfaces listed above.
