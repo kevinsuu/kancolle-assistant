@@ -64,6 +64,11 @@ workflow:
 5. creates a GitHub Release whose categorized notes compare this tag with the previous release,
    then uploads the installer, ZIP, full Squirrel package, and `RELEASES` manifest.
 
+The general `.github/workflows/test.yml` workflow accepts branch pushes and pull requests, but not
+tag pushes. A release tag therefore starts only the Windows release workflow instead of launching
+a second general CI run for the same commit. The release workflow retains its own blocking tests so
+the exact tagged source is still verified before packaging and publishing.
+
 Stable semantic versions create normal releases. Versions containing a prerelease suffix create
 GitHub prereleases. Re-running a completed workflow replaces matching assets on the existing
 release instead of creating a duplicate.
