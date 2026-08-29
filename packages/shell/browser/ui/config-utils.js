@@ -55,7 +55,7 @@ const configSchema = {
         default: 'damecon',
       },
       brightness: { type: 'option', options: ['system', 'light', 'dark'], default: 'system' },
-      customColor: { type: 'string', default: '#6e35ae' },
+      customColor: { type: 'string', default: '#514d56' },
       customIcon: { type: 'string', default: '' },
     },
     view: {

@@ -133,7 +133,7 @@ const mixThemeColor = function (color, blackWeight) {
 }
 
 const createCustomThemeStyle = function (value) {
-  const color = normalizeThemeColor(value) || '#6e35ae'
+  const color = normalizeThemeColor(value) || '#514d56'
   const channels = color
     .slice(1)
     .match(/.{2}/g)

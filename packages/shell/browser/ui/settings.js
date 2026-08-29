@@ -26,8 +26,8 @@ class Settings {
   appIcon = ko.observable(this.defaultAppIcon)
   theme = ko.observable('andra')
   brightness = ko.observable('system')
-  customColor = ko.observable('#6e35ae')
-  customThemeColorInput = ko.observable('#6e35ae')
+  customColor = ko.observable('#514d56')
+  customThemeColorInput = ko.observable('#514d56')
   themeColorError = ko.observable('')
   iconUploadError = ko.observable('')
 
@@ -326,7 +326,7 @@ class Settings {
   applyCustomThemeColor() {
     const color = normalizeThemeColor(this.customThemeColorInput())
     if (!color) {
-      this.themeColorError('Enter a six-digit hex color, for example #6e35ae.')
+      this.themeColorError('Enter a six-digit hex color, for example #514d56.')
       return
     }
     this.persistCustomThemeColor(color)

@@ -28,15 +28,15 @@
 
 /* dark themes */
 #root.theme-damecon {
-  --chrome-fg-color: #6e35ae;
-  --chrome-mid-color: #552887;
-  --chrome-bg-color: #3d1d61;
+  --chrome-fg-color: #514d56;
+  --chrome-mid-color: #3f3c43;
+  --chrome-bg-color: #2d2b30;
 }
 
 #root.theme-custom {
-  --chrome-fg-color: var(--custom-theme-color, #6e35ae);
-  --chrome-mid-color: var(--custom-theme-mid-color, #552887);
-  --chrome-bg-color: var(--custom-theme-bg-color, #3d1d61);
+  --chrome-fg-color: var(--custom-theme-color, #514d56);
+  --chrome-mid-color: var(--custom-theme-mid-color, #3f3c43);
+  --chrome-bg-color: var(--custom-theme-bg-color, #2d2b30);
   --chrome-text-color: var(--custom-theme-text-color, #ececec);
   --control-text-color: var(--custom-theme-control-text-color, #ecececc0);
   --control-hover-light-bg-filter: saturate(110%) brightness(110%);

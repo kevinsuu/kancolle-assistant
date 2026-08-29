@@ -5,10 +5,11 @@ dedicated `KanColle Assistant Settings → Theme` tab.
 
 ## Browser color
 
-Choose any existing theme to restore its original palette. To create a personal palette, use the
-color picker or enter a six-digit hexadecimal value such as `#6e35ae`. KanColle Assistant selects
-the `custom` theme automatically and derives the middle and dark browser-chrome shades from that
-color. Text switches between light and dark automatically to retain contrast.
+KanColle Assistant defaults to the `#514d56` browser color. Choose any existing theme to restore its
+preset palette. To create a personal palette, use the color picker or enter a six-digit hexadecimal
+value such as `#514d56`. KanColle Assistant selects the `custom` theme automatically and derives the
+middle and dark browser-chrome shades from that color. Text switches between light and dark
+automatically to retain contrast.
 
 Dragging the color picker previews the palette in the settings page without repeatedly saving the
 configuration or repainting every browser window. The selected color is applied globally after the
