@@ -79,6 +79,11 @@ The generated Windows executable is not code-signed unless signing credentials a
 the repository and the Forge build. Windows SmartScreen may therefore warn users before the app
 has established reputation.
 
+Local packaging logs a warning and continues when
+`packages/kccacheproxy/minimum-cache.zip` is absent, which keeps development packages usable
+without a generated cache dump. Release builders should still generate the file with the
+KCCacheProxy build script and confirm that it is copied into the packaged resources.
+
 ## Application updates
 
 Installed Windows builds use `update.electronjs.org` through `update-electron-app` and read release

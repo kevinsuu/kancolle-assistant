@@ -1,6 +1,70 @@
 const path = require('path')
 const fs = require('fs/promises')
 
+const isNotFoundError = (error) =>
+  Boolean(error && typeof error === 'object' && error.code === 'ENOENT')
+
+const copyDirectoryIfPresent = async (source, destination) => {
+  try {
+    await fs.cp(source, destination, { recursive: true })
+    return true
+  } catch (error) {
+    if (isNotFoundError(error)) return false
+    throw error
+  }
+}
+
+const copyFileIfPresent = async (source, destination) => {
+  try {
+    const info = await fs.stat(source)
+    if (!info.isFile()) return false
+    await fs.mkdir(path.dirname(destination), { recursive: true })
+    await fs.copyFile(source, destination)
+    return true
+  } catch (error) {
+    if (isNotFoundError(error)) return false
+    throw error
+  }
+}
+
+const copyBundledExtensions = async (outputPath) => {
+  const src = path.join(__dirname, '../../extensions')
+  const dst = path.join(outputPath, 'extensions')
+  await fs.mkdir(dst, { recursive: true })
+  const directories = (await fs.readdir(src, { withFileTypes: true }))
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+  const skippedExtensionPattern = /^(?!kc3kai).*$/
+  for (const dir of directories) {
+    if (skippedExtensionPattern.test(dir)) {
+      await copyDirectoryIfPresent(path.join(src, dir), path.join(dst, dir))
+    }
+  }
+}
+
+const copyMinimumCache = async (config, options) => {
+  const minCacheSrc = path.join(__dirname, '../../packages/kccacheproxy/minimum-cache.zip')
+  const resourcesDir =
+    options.platform === 'darwin'
+      ? config.packagerConfig.name + '.app/Contents/Resources'
+      : 'resources'
+  const minCacheDest = path.join(options.outputPaths[0], resourcesDir, 'minimum-cache.zip')
+
+  const copied = await copyFileIfPresent(minCacheSrc, minCacheDest)
+  if (copied) {
+    console.log('Copied minimum-cache.zip to ', minCacheDest)
+    return
+  }
+
+  console.warn(
+    [
+      'minimum-cache.zip not found; skipping bundled KCCacheProxy cache dump.',
+      `Expected: ${minCacheSrc}`,
+      'Generate it with packages/kccacheproxy/build.sh or packages/kccacheproxy/build.bat before packaging a release that should include the built-in cache dump.',
+    ].join(' '),
+  )
+}
+
 module.exports = {
   packagerConfig: {
     name: 'kancolle-assistant',
@@ -56,37 +120,14 @@ module.exports = {
   hooks: {
     postPackage: async (config, options) => {
       try {
-        var src = path.join(__dirname, '../../extensions')
-        var dst = path.join(options.outputPaths[0], 'extensions')
-        try {
-          await fs.mkdir(dst)
-        } catch {}
-        const directories = (await fs.readdir(src, { withFileTypes: true }))
-          .filter((d) => d.isDirectory())
-          .map((d) => d.name)
-        for (const dir of directories) {
-          var regex = /^(?!kc3kai).*$/
-          if (regex.test(dir)) {
-            await fs.cp(path.join(src, dir), path.join(dst, dir), { recursive: true })
-          }
-        }
-
-        const minCacheSrc = path.join(__dirname, '../../packages/kccacheproxy/minimum-cache.zip')
-        const resourcesDir =
-          options.platform === 'darwin'
-            ? config.packagerConfig.name + '.app/Contents/Resources'
-            : 'resources'
-        const minCacheDest = path.join(options.outputPaths[0], resourcesDir, 'minimum-cache.zip')
-
-        console.log('Copying minimum-cache.zip to ', minCacheDest)
-        const fi = await fs.stat(minCacheSrc)
-        if (!fi.isFile())
-          throw new Error(
-            'Minimum cache zip not found. run in packages/kccacheproxy/build.bat to generate it.',
-          )
-        await fs.copyFile(minCacheSrc, minCacheDest)
+        await copyBundledExtensions(options.outputPaths[0])
       } catch (error) {
         console.log('Error copying extensions', error)
+      }
+      try {
+        await copyMinimumCache(config, options)
+      } catch (error) {
+        console.log('Error copying minimum-cache.zip', error)
       }
     },
   },
