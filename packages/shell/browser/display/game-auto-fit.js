@@ -1,6 +1,7 @@
 const GAME_VIEWPORT = Object.freeze({ width: 1200, height: 720 })
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 1.25
+const STARTUP_MAX_ZOOM = 1
 const ZOOM_PRECISION = 1000
 const ZOOM_STEP = 1 / ZOOM_PRECISION
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000
@@ -233,7 +234,7 @@ export const calculateGameAndSidebarWindowLayout = ({
   const maximumZoom = Math.min(
     (displayMetrics.workAreaSize.width - sidebarWidth) / GAME_VIEWPORT.width,
     (displayMetrics.workAreaSize.height - topBarHeight) / GAME_VIEWPORT.height,
-    MAX_ZOOM,
+    STARTUP_MAX_ZOOM,
   )
   if (maximumZoom < MIN_ZOOM) return { applied: false, reason: 'display-too-small' }
 

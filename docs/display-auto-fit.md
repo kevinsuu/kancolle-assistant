@@ -12,11 +12,12 @@ Retina and other high-DPI displays.
 When KC3 DevTools is configured to open docked on the right, KanColle Assistant initially estimates
 its width as a proportion of the display work area. After the selected KC3 theme loads, the
 application measures the panel's actual content width and adjusts the divider so the panel is not
-clipped. The remaining display area determines the largest complete 1200:720 game scale. The same
-scale is applied as soon as the DMM game page loads instead of inheriting an older tab zoom. The
-scale uses 0.001 increments and preserves the game's original aspect ratio, so the combined game
-and KC3 layout adapts closely to different displays without stretching the game or relying on a
-fixed screen resolution.
+clipped. The remaining display area determines the largest complete 1200:720 game scale up to the
+game's native 1.0 scale, so large displays do not force the startup window to the full available
+width. The same scale is applied as soon as the DMM game page loads instead of inheriting an older
+tab zoom. The scale uses 0.001 increments and preserves the game's original aspect ratio, so the
+combined game and KC3 layout adapts closely to different displays without stretching the game or
+relying on a fixed screen resolution.
 
 KC3's `direct.html` is only a launcher, so it is not used for sizing. After the main tab navigates
 to the configured DMM game URL, the main process scans the tab's frame subtree for the real
@@ -28,14 +29,15 @@ three consecutive measurements after the configured DevTools startup. KanColle A
 applies a zoom factor that fits the rendered canvas within both the final viewport and display work area. One
 post-zoom measurement can apply a final correction if the page layout changed during zooming.
 
-The startup zoom uses `0.001` increments and is clamped to `0.5–1.25`. After the initial fit,
-shrinking or expanding the window recalculates the game zoom from the current top-level viewport.
-The window aspect ratio remains unrestricted: the limiting width or height determines the scale,
-and any extra space remains available to the page. Whenever both dimensions can contain the full
-canvas at a supported scale, the complete game remains visible. Below the `0.5` minimum, the zoom
-stays at `0.5` and the undersized viewport may clip the game instead of forcing the window to a
-larger size. A manual zoom remains in effect until the next window resize. Canvas detection times
-out after five minutes; reloading the game page starts a fresh attempt.
+The startup window zoom uses `0.001` increments and is clamped to `0.5–1.0`. After the initial fit,
+shrinking or expanding the window recalculates the game zoom from the current top-level viewport
+with the responsive `0.5–1.25` range. The window aspect ratio remains unrestricted: the limiting
+width or height determines the scale, and any extra space remains available to the page. Whenever
+both dimensions can contain the full canvas at a supported scale, the complete game remains
+visible. Below the `0.5` minimum, the zoom stays at `0.5` and the undersized viewport may clip the
+game instead of forcing the window to a larger size. A manual zoom remains in effect until the next
+window resize. Canvas detection times out after five minutes; reloading the game page starts a
+fresh attempt.
 
 Resize calculations are debounced independently from window-state persistence. While a resize is
 in progress, the latest non-maximized dimensions remain in memory. Width and height are written to
