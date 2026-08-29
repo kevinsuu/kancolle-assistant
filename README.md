@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.6`    | `2026-08-29`   |
+| `v1.0.7`    | `2026-08-29`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.7 highlights (since v1.0.6)
+
+- The extension test runner now declares its command-line parser directly, so clean Windows
+  release builds can execute the full Electron extension test suite.
 
 ### v1.0.6 highlights (since v1.0.5)
 
@@ -80,11 +85,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   views safely, and isolates KCCacheProxy and extension host lifecycles.
 - Update checks also run when the game opens, while DevTools split-layout handling and packaged app
   icons are more reliable across supported platforms.
-
-### v1.0.2 highlights (since v1.0.1)
-
-- Release tags no longer start a duplicate general CI run, and recommendation-core tests use
-  explicit cross-platform paths so Windows release validation discovers every test file.
 
 ### Project-specific highlights
 

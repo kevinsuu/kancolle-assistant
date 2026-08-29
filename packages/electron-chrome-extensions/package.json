@@ -56,7 +56,8 @@
     "mocha": "^11.7.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
-    "walkdir": "^0.4.1"
+    "walkdir": "^0.4.1",
+    "yargs": "^17.7.2"
   },
   "peerDependencies": {
     "electron": "25.x"

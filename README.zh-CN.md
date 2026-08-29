@@ -13,7 +13,7 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 
 | 应用程序版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.0.6`     | `2026-08-29`    |
+| `v1.0.7`     | `2026-08-29`    |
 
 - **下载版本：** 安装程序和便携式压缩包可从
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下载。
@@ -21,6 +21,10 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
   会保存每个 tag 之间自动生成的更新内容。
 - **当前累积能力：** [功能状态](#功能状态)分别列出当前支持、将来可能加入和不在计划内的项目。
 - **功能技术细节：** 下方项目功能重点会链接至对应文档。
+
+### v1.0.7 更新重点（相比 v1.0.6）
+
+- 扩展测试运行器现在直接声明命令行解析器依赖，使干净的 Windows release 构建能够执行完整的 Electron 扩展测试套件。
 
 ### v1.0.6 更新重点（相比 v1.0.5）
 
@@ -51,11 +55,6 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 - 远征推荐可调整资源与水桶权重，规划前会重新同步 KC3 资源、按收取间隔计算，并区分当前执行中的任务与下一次派遣建议。
 - Shell runtime 会缓存设置读取、批量保存窗口尺寸、安全管理标签页视图，并隔离 KCCacheProxy 与扩展 host 的生命周期。
 - 打开游戏时也会检查应用程序更新；DevTools 分割布局处理与各平台打包图标也更加稳定。
-
-### v1.0.2 更新重点（相比 v1.0.1）
-
-- Release tag 不再重复启动普通 CI；推荐核心测试改用明确的跨平台路径，使 Windows release
-  验证能够找到所有测试文件。
 
 ### 本项目功能重点
 
