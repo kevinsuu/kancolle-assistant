@@ -1,4 +1,5 @@
 import './kccacheproxy-boundary.test.js'
+import './display-auto-fit.test.js'
 import './recommendation-characterization.test.js'
 import './recommendation-worker-service.test.js'
 import './strategy-room-view.test.js'
