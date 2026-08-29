@@ -1,0 +1,51 @@
+{
+  "area": "3-2",
+  "sources": [
+    "https://en.kancollewiki.net/World_3/3-2",
+    "https://en.kancollewiki.net/Resource_Farming"
+  ],
+  "routes": [
+    {
+      "id": "3-2-ammo-dd",
+      "name": "彈藥回収・駆逐単艦",
+      "category": "resource",
+      "objectives": ["resource-ammo"],
+      "nodes": ["A", "B"],
+      "stableBoss": false,
+      "tags": ["throwaway-option", "landing-craft", "damage-control"],
+      "desc": "駆逐1。A戦後B彈藥回收。応急要員運用は要注意。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "3-2-ammo-submarine",
+      "name": "彈藥回収・潜水艦隊",
+      "category": "resource",
+      "objectives": ["resource-ammo"],
+      "nodes": ["A", "B"],
+      "stableBoss": false,
+      "tags": ["higher-risk", "amphibious-tank"],
+      "desc": "潜水/潜母3-6。高回収だが敗北・被害リスクあり。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [13, 14],
+          "value": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "area": "6-3",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/6-3/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "6-3-guide-cl-dd4-av",
+      "name": "攻略網・最短水雷",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["A", "C", "E", "G", "H", "J"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route"],
+      "desc": "軽巡1、駆逐4、水母1。攻略網掲載の最短編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 3,
+          "minimum": 38
+        }
+      ]
+    }
+  ]
+}

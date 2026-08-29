@@ -43,7 +43,7 @@ const arrangePairAttack = (
 
 const arrangeNelsonTouch = (members: readonly FleetMember[]): SpecialAttackSetup | null => {
   const flagship = members.find((member) =>
-    /(?:Nelson|Rodney|ネルソン|ロドニー).*改/.test(member.ship.name),
+    /(?:Nelson|Rodney).*(?:改|Kai)|(?:ネルソン|ロドニー).*改/i.test(member.ship.name),
   )
   if (!flagship) return null
   const remaining = members.filter((member) => member.ship.id !== flagship.ship.id)
@@ -65,12 +65,12 @@ export const arrangeSpecialAttack = (members: readonly FleetMember[]): SpecialAt
   arrangePairAttack(
     members,
     /大和改二(?:重)?|Yamato Kai Ni(?: Juu)?/,
-    (member) => /武[藏蔵]改二|Musashi Kai Ni/.test(member.ship.name),
+    (member) => /武[藏蔵]改二|Musashi Kai Ni|Iowa|Bismarck|Richelieu/i.test(member.ship.name),
     '大和型改二特殊砲擊',
   ) ??
   arrangePairAttack(
     members,
-    /(?:長門|陸奥)改二|(?:Nagato|Mutsu) Kai Ni/,
+    /(?:長門|陸[奥奧])改二|(?:Nagato|Mutsu) Kai Ni/i,
     (member) => isBattleship(member),
     '長門型改二特殊砲擊',
   ) ??

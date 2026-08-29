@@ -81,7 +81,7 @@ export const scoreFleet = (
   const hasExactCombatEvaluation = builds.every((build) => build.combat !== undefined)
   const routeTargetsInstallations = route?.tags.includes('anti-installation') ?? false
   const routeTargetsSubmarines =
-    route?.tags.includes('oasw') ||
+    route?.tags.includes('asw-loadout') ||
     route?.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw') ||
     false
   const totalShipFirepower = builds.reduce((total, build) => {

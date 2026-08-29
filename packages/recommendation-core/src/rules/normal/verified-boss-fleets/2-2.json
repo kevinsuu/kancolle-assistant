@@ -1,0 +1,51 @@
+{
+  "area": "2-2",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/2-2/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "2-2-guide-carrier-av-de",
+      "name": "攻略網・空母海防",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["C", "E", "F", "H", "K"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "空母系2、水母1、軽巡1、海防2。攻略網掲載の道中1戦固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 85,
+          "recommended": 85
+        }
+      ]
+    }
+  ]
+}

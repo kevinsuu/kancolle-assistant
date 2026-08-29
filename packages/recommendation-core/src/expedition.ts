@@ -1,7 +1,68 @@
 export const EXPEDITION_RESOURCE_KEYS = ['fuel', 'ammo', 'steel', 'bauxite'] as const
+export const EXPEDITION_UTILITY_RESOURCE_KEYS = [...EXPEDITION_RESOURCE_KEYS, 'bucket'] as const
+const DEFAULT_PLAN_LIMIT = 1
+const MAX_PLAN_LIMIT = 5
+const UTILITY_SCORE_EPSILON = 1e-9
+const RESOURCE_CONSTRAINT_EPSILON = 1e-9
 
 export type ExpeditionResourceKey = (typeof EXPEDITION_RESOURCE_KEYS)[number]
+export type ResourceKey = (typeof EXPEDITION_UTILITY_RESOURCE_KEYS)[number]
 export type ExpeditionResources = Readonly<Record<ExpeditionResourceKey, number>>
+export type PriorityRank = 1 | 2 | 3 | 4 | 5
+export type ResourcePriorityMap = Readonly<Record<ResourceKey, PriorityRank | null>>
+export type ResourcePreference =
+  | {
+      readonly mode: 'optimize'
+      readonly rank: PriorityRank
+    }
+  | {
+      readonly mode: 'constraint'
+      readonly minimumNetYieldPerHour: number
+    }
+  | {
+      readonly mode: 'ignore'
+    }
+export type ResourcePreferenceMap = Readonly<Record<ResourceKey, ResourcePreference>>
+
+export interface PriorityPreference {
+  readonly mode: 'priority'
+  readonly preferences: ResourcePreferenceMap
+}
+
+export interface CustomWeightPreference {
+  readonly mode: 'customWeight'
+  readonly weights: ResourceVector
+}
+
+export type OptimizationPreference = PriorityPreference | CustomWeightPreference
+
+export interface ResourceVector {
+  readonly fuel: number
+  readonly ammo: number
+  readonly steel: number
+  readonly bauxite: number
+  readonly bucket: number
+}
+
+export const PRIORITY_WEIGHT_BY_RANK: Readonly<Record<PriorityRank, number>> = {
+  1: 100,
+  2: 70,
+  3: 45,
+  4: 25,
+  5: 10,
+}
+
+export type ExpeditionItemRewardSlot = 'left' | 'right' | 'unknown'
+export type ExpeditionItemRewardRule = 'random' | 'great-success-guaranteed'
+
+export interface ExpeditionBucketRewardSnapshot {
+  readonly item: 'bucket'
+  readonly min: number
+  readonly max: number
+  readonly itemSlot: ExpeditionItemRewardSlot
+  readonly rewardRule: ExpeditionItemRewardRule
+  readonly acquisitionProbability: number | null
+}
 
 export interface ExpeditionPlannerRequest {
   readonly resourceWeights: ExpeditionResources
@@ -9,6 +70,9 @@ export interface ExpeditionPlannerRequest {
   readonly fleetCount: number
   readonly candidateIds: readonly number[]
   readonly bucketWeight: number
+  readonly preference?: OptimizationPreference
+  readonly planLimit?: number
+  readonly debug?: boolean
   readonly incomeModifier: {
     readonly greatSuccess: boolean
     readonly daihatsuCount: number
@@ -98,6 +162,7 @@ export interface ExpeditionCandidateSnapshot {
   readonly durationMinutes: number
   readonly baseIncome: ExpeditionResources
   readonly bucketMaxPerTrip: number
+  readonly bucketReward: ExpeditionBucketRewardSnapshot | null
   readonly fuelPercent: number
   readonly ammoPercent: number
   readonly requirements: ExpeditionRequirements
@@ -134,7 +199,12 @@ export interface ExpeditionPlanPairing {
     readonly baseIncome: ExpeditionResources
     readonly netIncome: ExpeditionResources
     readonly hourlyIncome: ExpeditionResources
-    readonly bucketPotential: { readonly maxPerTrip: number; readonly hourly: number }
+    readonly bucketPotential: {
+      readonly maxPerTrip: number
+      readonly expectedPerTrip: number
+      readonly hourly: number
+    }
+    readonly bucketReward: ExpeditionBucketRewardSnapshot | null
     readonly estimatedResupplyCost: { readonly fuel: number; readonly ammo: number }
     readonly requirements: ExpeditionRequirements
     readonly modifier: {
@@ -148,15 +218,220 @@ export interface ExpeditionPlanPairing {
   }
 }
 
+export interface ExpeditionPlanScoreDetails {
+  readonly expectedNetYield: ResourceVector
+  readonly benchmark: ResourceVector
+  readonly satisfaction: ResourceVector
+  readonly utility: ResourceVector
+  readonly normalizedWeight: ResourceVector
+  readonly weightedContribution: ResourceVector
+  readonly totalScore: number
+}
+
 export interface ExpeditionPlan {
   readonly weightedHourlyIncome: number
+  readonly weightedExpectedNetYield: number
+  readonly utilityScore: number
+  readonly normalizedYield: ResourceVector
+  readonly satisfaction: ResourceVector
+  readonly utility: ResourceVector
+  readonly normalizedWeights: ResourceVector
+  readonly weightedContribution: ResourceVector
+  readonly scoreDetails: ExpeditionPlanScoreDetails
   readonly bucketPotentialHourly: number
   readonly bucketWeight: number
   readonly comparisonWindowMinutes: number
   readonly projectedIncome: ExpeditionResources
   readonly hourlyIncome: ExpeditionResources
+  readonly estimatedResupplyCost: { readonly fuel: number; readonly ammo: number }
+  readonly negativeYieldCount: number
+  readonly fallbackUtilityScore: number
   readonly pairingScore: number
   readonly pairings: readonly ExpeditionPlanPairing[]
+}
+
+export interface ResourceScoreDebug {
+  readonly rawYieldPerHour: number
+  readonly benchmarkPerHour: number
+  readonly satisfaction: number
+  readonly utility: number
+  readonly rawWeight: number
+  readonly normalizedWeight: number
+  readonly weightedContribution: number
+  readonly contributionRatio: number
+}
+
+export type ResourceScoreDebugMap = Readonly<Record<ResourceKey, ResourceScoreDebug>>
+
+export interface ExpeditionItemRewardDebug extends ExpeditionBucketRewardSnapshot {
+  readonly itemPosition: ExpeditionItemRewardSlot
+  readonly successMode: 'normalSuccess' | 'greatSuccess'
+  readonly acquisitionProbability: number
+  readonly expectedPerRun: number
+  readonly expectedPerHour: number
+}
+
+export interface ExpeditionYieldDebug {
+  readonly id: number
+  readonly displayNo: string
+  readonly name: string
+  readonly durationMinutes: number
+  readonly effectiveCycleMinutes: number
+  readonly baseReward: ExpeditionResources
+  readonly resourceRewardAfterSuccessMultiplier: ExpeditionResources
+  readonly resourceRewardAfterDaihatsu: ExpeditionResources
+  readonly bucketExpectedPerRun: number
+  readonly supplyCostPerRun: { readonly fuel: number; readonly ammo: number }
+  readonly netRewardPerRun: ExpeditionResources
+  readonly expectedNetPerHour: ResourceVector
+  readonly itemRewardDebug: ExpeditionItemRewardDebug | null
+  readonly selectedReasons: readonly string[]
+}
+
+export interface CombinationScoreDebug {
+  readonly expeditionIds: readonly string[]
+  readonly expeditionNames: readonly string[]
+  readonly resourceScores: ResourceScoreDebugMap
+  readonly totalScore: number
+  readonly totalNetYield: ResourceVector
+  readonly negativeResources: readonly ResourceKey[]
+  readonly rank: number
+}
+
+export interface DetailedCombinationScoreDebug extends CombinationScoreDebug {
+  readonly expeditionYields: readonly ExpeditionYieldDebug[]
+}
+
+export interface ResourceBenchmarkDebug {
+  readonly resource: ResourceKey
+  readonly bestPerHour: number
+  readonly bestCombination: readonly string[]
+}
+
+export type ResourceBenchmarkDebugMap = Readonly<Record<ResourceKey, ResourceBenchmarkDebug>>
+
+export interface OptimizationContextDebug {
+  readonly fleetCount: number
+  readonly weights: ResourceVector
+  readonly preferenceMode: OptimizationPreference['mode']
+  readonly preferences?: ResourcePreferenceMap
+  readonly priorityOrder: readonly ResourcePriorityDebug[]
+  readonly normalizedWeights: ResourceVector
+  readonly collectionIntervalMinutes: number
+  readonly successMode: 'normalSuccess' | 'greatSuccess'
+  readonly baseRewardMultiplier: number
+  readonly daihatsuBonus: number
+  readonly effectiveResourceMultiplier: number
+  readonly availableExpeditionCount: number
+  readonly validCombinationCount: number
+  readonly constraintRejectedCount: number
+  readonly feasibleCombinationCount: number
+  readonly scoredCombinationCount: number
+  readonly totalCombinationCount: number
+  readonly paretoRemovedCount: number
+  readonly paretoRemainingCount: number
+  readonly remainingCombinationCount: number
+  readonly comparisonWindowMinutes: number
+}
+
+export interface ResourcePriorityDebug {
+  readonly resource: ResourceKey
+  readonly mode: ResourcePreference['mode']
+  readonly rank: PriorityRank | null
+  readonly minimumNetYieldPerHour?: number
+  readonly internalWeight: number
+  readonly normalizedWeight: number
+}
+
+export interface ResourceConstraintViolation {
+  readonly resource: ResourceKey
+  readonly actual: number
+  readonly required: number
+}
+
+export interface ConstraintRejectedCombinationDebug {
+  readonly expeditionIds: readonly string[]
+  readonly expeditions: string
+  readonly constraintViolations: readonly ResourceConstraintViolation[]
+  readonly totalNetYield: ResourceVector
+}
+
+export interface OptimizationExplanationResourceDelta {
+  readonly resource: ResourceKey
+  readonly contributionDifference: number
+  readonly yieldDifferencePerHour: number
+  readonly explanation: string
+}
+
+export interface OptimizationExplanation {
+  readonly winner: string
+  readonly runnerUp: string
+  readonly scoreDifference: number
+  readonly advantages: readonly OptimizationExplanationResourceDelta[]
+  readonly disadvantages: readonly OptimizationExplanationResourceDelta[]
+  readonly summary: string
+}
+
+export interface OptimizationNearTieDebug {
+  readonly scoreGap: number
+  readonly contributionGaps: readonly OptimizationExplanationResourceDelta[]
+}
+
+export interface OptimizationParetoCombinationDebug {
+  readonly requestedExpeditionIds: readonly string[]
+  readonly expeditionIds: readonly string[]
+  readonly validBeforePruning: boolean
+  readonly paretoDominated: boolean
+  readonly presentAfterPruning: boolean
+  readonly dominatedBy: readonly string[] | null
+  readonly rankAfterPruning: number | null
+  readonly score: DetailedCombinationScoreDebug | null
+}
+
+export interface OptimizationParetoDebug {
+  readonly totalCombinationCount: number
+  readonly paretoRemovedCount: number
+  readonly remainingCombinationCount: number
+  readonly watchedCombinations: readonly OptimizationParetoCombinationDebug[]
+}
+
+export interface OptimizationCombinationComparisonResource {
+  readonly resource: ResourceKey
+  readonly leftYieldPerHour: number
+  readonly rightYieldPerHour: number
+  readonly yieldDifferencePerHour: number
+  readonly leftContribution: number
+  readonly rightContribution: number
+  readonly contributionDifference: number
+}
+
+export interface OptimizationCombinationComparison {
+  readonly left: string
+  readonly right: string
+  readonly leftScore: number
+  readonly rightScore: number
+  readonly winner: 'left' | 'right' | 'tie'
+  readonly scoreDifference: number
+  readonly resourceDeltas: readonly OptimizationCombinationComparisonResource[]
+  readonly explanation: OptimizationExplanation | null
+}
+
+export interface OptimizationDebugViolation {
+  readonly code: string
+  readonly message: string
+  readonly context: unknown
+}
+
+export interface OptimizationDebugReport {
+  readonly context: OptimizationContextDebug
+  readonly benchmarks: ResourceBenchmarkDebugMap
+  readonly pareto: OptimizationParetoDebug
+  readonly constraintRejectedCombinations: readonly ConstraintRejectedCombinationDebug[]
+  readonly rankedCombinations: readonly CombinationScoreDebug[]
+  readonly topCombinations: readonly CombinationScoreDebug[]
+  readonly detailedCombinations: readonly DetailedCombinationScoreDebug[]
+  readonly winnerExplanation: OptimizationExplanation | null
+  readonly nearTie: OptimizationNearTieDebug | null
 }
 
 export type ExpeditionPlannerResult =
@@ -167,6 +442,8 @@ export type ExpeditionPlannerResult =
       readonly resourceWeights: ExpeditionResources
       readonly maxResource: number
       readonly candidateCount: number
+      readonly combinationCount: number
+      readonly prunedCombinationCount: number
       readonly settings: {
         readonly afkMinutes: number
         readonly fleetCount: number
@@ -183,6 +460,7 @@ export type ExpeditionPlannerResult =
         readonly resupplyCostModel: 'kancepts-account'
       }
       readonly plans: readonly ExpeditionPlan[]
+      readonly optimizationDebug?: OptimizationDebugReport
     }
   | {
       readonly status: 'no-solution'
@@ -192,6 +470,19 @@ export type ExpeditionPlannerResult =
       readonly generatedAt: string
       readonly current: ExpeditionResources
       readonly maxResource: number
+    }
+  | {
+      readonly status: 'no-feasible-plan'
+      readonly reason: string
+      readonly reasonCode: 'RESOURCE_CONSTRAINTS'
+      readonly reasonValues: Readonly<Record<string, number>>
+      readonly generatedAt: string
+      readonly current: ExpeditionResources
+      readonly maxResource: number
+      readonly constraintRejectedCount: number
+      readonly feasibleCombinationCount: number
+      readonly closestViolations: readonly ResourceConstraintViolation[]
+      readonly optimizationDebug?: OptimizationDebugReport
     }
 
 type UnknownRecord = Record<string, unknown>
@@ -361,15 +652,72 @@ const parseGreatSuccessCondition = (
   throw new Error(`${path}.type 不支援`)
 }
 
+const parseExpeditionItemRewardSlot = (value: unknown, path: string): ExpeditionItemRewardSlot => {
+  const slot = asString(value, path)
+  if (slot === 'left' || slot === 'right' || slot === 'unknown') return slot
+  throw new Error(`${path} 不支援`)
+}
+
+const parseExpeditionItemRewardRule = (
+  value: unknown,
+  itemSlot: ExpeditionItemRewardSlot,
+  path: string,
+): ExpeditionItemRewardRule => {
+  if (typeof value === 'undefined') {
+    return itemSlot === 'right' ? 'great-success-guaranteed' : 'random'
+  }
+  const rule = asString(value, path)
+  if (rule === 'random' || rule === 'great-success-guaranteed') return rule
+  throw new Error(`${path} 不支援`)
+}
+
+const defaultBucketReward = (bucketMaxPerTrip: number): ExpeditionBucketRewardSnapshot | null =>
+  bucketMaxPerTrip > 0
+    ? {
+        item: 'bucket',
+        min: 0,
+        max: bucketMaxPerTrip,
+        itemSlot: 'unknown',
+        rewardRule: 'random',
+        acquisitionProbability: null,
+      }
+    : null
+
+const parseBucketReward = (
+  value: unknown,
+  bucketMaxPerTrip: number,
+  path: string,
+): ExpeditionBucketRewardSnapshot | null => {
+  if (typeof value === 'undefined') return defaultBucketReward(bucketMaxPerTrip)
+  if (value === null) return null
+  const record = asRecord(value, path)
+  const item = asString(record.item, `${path}.item`)
+  if (item !== 'bucket') throw new Error(`${path}.item 不支援`)
+  const itemSlot = parseExpeditionItemRewardSlot(record.itemSlot, `${path}.itemSlot`)
+  return {
+    item,
+    min: asNumber(record.min, `${path}.min`),
+    max: asNumber(record.max, `${path}.max`),
+    itemSlot,
+    rewardRule: parseExpeditionItemRewardRule(record.rewardRule, itemSlot, `${path}.rewardRule`),
+    acquisitionProbability:
+      typeof record.acquisitionProbability === 'undefined' || record.acquisitionProbability === null
+        ? null
+        : asNumber(record.acquisitionProbability, `${path}.acquisitionProbability`),
+  }
+}
+
 const parseCandidate = (value: unknown, path: string): ExpeditionCandidateSnapshot => {
   const record = asRecord(value, path)
+  const bucketMaxPerTrip = asNumber(record.bucketMaxPerTrip, `${path}.bucketMaxPerTrip`)
   return {
     id: asNumber(record.id, `${path}.id`),
     displayNo: asString(record.displayNo, `${path}.displayNo`),
     name: asString(record.name, `${path}.name`),
     durationMinutes: asNumber(record.durationMinutes, `${path}.durationMinutes`),
     baseIncome: parseResources(record.baseIncome, `${path}.baseIncome`),
-    bucketMaxPerTrip: asNumber(record.bucketMaxPerTrip, `${path}.bucketMaxPerTrip`),
+    bucketMaxPerTrip,
+    bucketReward: parseBucketReward(record.bucketReward, bucketMaxPerTrip, `${path}.bucketReward`),
     fuelPercent: asNumber(record.fuelPercent, `${path}.fuelPercent`),
     ammoPercent: asNumber(record.ammoPercent, `${path}.ammoPercent`),
     requirements: parseRequirements(record.requirements, `${path}.requirements`),
@@ -460,6 +808,940 @@ const MINIMUM_COMPOSITIONS: Readonly<Record<number, CostComposition>> = {
 }
 
 const emptyResources = (): ExpeditionResources => ({ fuel: 0, ammo: 0, steel: 0, bauxite: 0 })
+
+const emptyResourceVector = (): ResourceVector => ({
+  fuel: 0,
+  ammo: 0,
+  steel: 0,
+  bauxite: 0,
+  bucket: 0,
+})
+
+const isPriorityRank = (value: number): value is PriorityRank =>
+  Number.isInteger(value) && value >= 1 && value <= 5
+
+export const priorityRankToWeight = (rank: PriorityRank | null): number =>
+  rank === null ? 0 : PRIORITY_WEIGHT_BY_RANK[rank]
+
+export const validateResourcePriorityMap = (priorities: ResourcePriorityMap): boolean => {
+  const activeRanks = EXPEDITION_UTILITY_RESOURCE_KEYS.map((resource) => priorities[resource])
+    .filter((rank): rank is PriorityRank => rank !== null)
+    .sort((left, right) => left - right)
+  return (
+    activeRanks.every(isPriorityRank) &&
+    new Set(activeRanks).size === activeRanks.length &&
+    activeRanks.every((rank, index) => rank === index + 1)
+  )
+}
+
+export const resourcePreferencesFromPriorityMap = (
+  priorities: ResourcePriorityMap,
+): ResourcePreferenceMap => ({
+  fuel: priorities.fuel === null ? { mode: 'ignore' } : { mode: 'optimize', rank: priorities.fuel },
+  ammo: priorities.ammo === null ? { mode: 'ignore' } : { mode: 'optimize', rank: priorities.ammo },
+  steel:
+    priorities.steel === null ? { mode: 'ignore' } : { mode: 'optimize', rank: priorities.steel },
+  bauxite:
+    priorities.bauxite === null
+      ? { mode: 'ignore' }
+      : { mode: 'optimize', rank: priorities.bauxite },
+  bucket:
+    priorities.bucket === null ? { mode: 'ignore' } : { mode: 'optimize', rank: priorities.bucket },
+})
+
+export const validateResourcePreferenceMap = (preferences: ResourcePreferenceMap): boolean => {
+  const optimizeRanks = EXPEDITION_UTILITY_RESOURCE_KEYS.map((resource) => {
+    const preference = preferences[resource]
+    return preference.mode === 'optimize' ? preference.rank : null
+  })
+    .filter((rank): rank is PriorityRank => rank !== null)
+    .sort((left, right) => left - right)
+  return (
+    optimizeRanks.every(isPriorityRank) &&
+    new Set(optimizeRanks).size === optimizeRanks.length &&
+    optimizeRanks.every((rank, index) => rank === index + 1) &&
+    EXPEDITION_UTILITY_RESOURCE_KEYS.every((resource) => {
+      const preference = preferences[resource]
+      return preference.mode !== 'constraint' || Number.isFinite(preference.minimumNetYieldPerHour)
+    })
+  )
+}
+
+export const priorityPreferenceToWeights = (priorities: ResourcePriorityMap): ResourceVector => {
+  if (!validateResourcePriorityMap(priorities)) {
+    throw new Error('Resource priority ranks must be unique and continuous from 1.')
+  }
+  return resourcePreferencesToWeights(resourcePreferencesFromPriorityMap(priorities))
+}
+
+export const resourcePreferencesToWeights = (
+  preferences: ResourcePreferenceMap,
+): ResourceVector => {
+  if (!validateResourcePreferenceMap(preferences)) {
+    throw new Error('Optimized resource ranks must be unique and continuous from 1.')
+  }
+  const weightForResource = (resource: ResourceKey): number => {
+    const preference = preferences[resource]
+    return preference.mode === 'optimize' ? priorityRankToWeight(preference.rank) : 0
+  }
+  return {
+    fuel: weightForResource('fuel'),
+    ammo: weightForResource('ammo'),
+    steel: weightForResource('steel'),
+    bauxite: weightForResource('bauxite'),
+    bucket: weightForResource('bucket'),
+  }
+}
+
+export const resourceConstraintViolations = (
+  yieldValue: ResourceVector,
+  preferences: ResourcePreferenceMap,
+): readonly ResourceConstraintViolation[] =>
+  EXPEDITION_UTILITY_RESOURCE_KEYS.flatMap((resource): readonly ResourceConstraintViolation[] => {
+    const preference = preferences[resource]
+    if (preference.mode !== 'constraint') return []
+    const actual = finiteOrZero(yieldValue[resource])
+    const required = preference.minimumNetYieldPerHour
+    return actual + RESOURCE_CONSTRAINT_EPSILON >= required ? [] : [{ resource, actual, required }]
+  })
+
+export const satisfiesResourceConstraints = (
+  yieldValue: ResourceVector,
+  preferences: ResourcePreferenceMap,
+): boolean => resourceConstraintViolations(yieldValue, preferences).length === 0
+
+const finiteOrZero = (value: number): number => (Number.isFinite(value) ? value : 0)
+
+export const clampSatisfaction = (value: number): number =>
+  Math.max(-1, Math.min(1, finiteOrZero(value)))
+
+const calculateSatisfactionValue = (yieldValue: number, benchmark: number): number => {
+  const safeYield = finiteOrZero(yieldValue)
+  const safeBenchmark = finiteOrZero(benchmark)
+  if (safeBenchmark <= 0) return 0
+  return clampSatisfaction(safeYield / safeBenchmark)
+}
+
+export const resourceUtility = (satisfaction: number): number => {
+  const clamped = clampSatisfaction(satisfaction)
+  return 1 - (1 - clamped) ** 2
+}
+
+export const calculateResourceBenchmarks = (
+  yieldValues: readonly ResourceVector[],
+): ResourceVector =>
+  yieldValues.reduce(
+    (maximums, yieldValue) => ({
+      fuel: Math.max(maximums.fuel, finiteOrZero(yieldValue.fuel)),
+      ammo: Math.max(maximums.ammo, finiteOrZero(yieldValue.ammo)),
+      steel: Math.max(maximums.steel, finiteOrZero(yieldValue.steel)),
+      bauxite: Math.max(maximums.bauxite, finiteOrZero(yieldValue.bauxite)),
+      bucket: Math.max(maximums.bucket, finiteOrZero(yieldValue.bucket)),
+    }),
+    emptyResourceVector(),
+  )
+
+export const calculateResourceYieldMaximums = calculateResourceBenchmarks
+
+export const calculateSatisfaction = (
+  yieldValue: ResourceVector,
+  benchmarks: ResourceVector,
+): ResourceVector => ({
+  fuel: calculateSatisfactionValue(yieldValue.fuel, benchmarks.fuel),
+  ammo: calculateSatisfactionValue(yieldValue.ammo, benchmarks.ammo),
+  steel: calculateSatisfactionValue(yieldValue.steel, benchmarks.steel),
+  bauxite: calculateSatisfactionValue(yieldValue.bauxite, benchmarks.bauxite),
+  bucket: calculateSatisfactionValue(yieldValue.bucket, benchmarks.bucket),
+})
+
+export const normalizeResourceYield = (
+  yieldValue: ResourceVector,
+  benchmarks: ResourceVector,
+): ResourceVector => calculateSatisfaction(yieldValue, benchmarks)
+
+export const calculateResourceUtility = (satisfaction: ResourceVector): ResourceVector => ({
+  fuel: resourceUtility(satisfaction.fuel),
+  ammo: resourceUtility(satisfaction.ammo),
+  steel: resourceUtility(satisfaction.steel),
+  bauxite: resourceUtility(satisfaction.bauxite),
+  bucket: resourceUtility(satisfaction.bucket),
+})
+
+export const calculateTotalWeight = (weights: ResourceVector): number =>
+  EXPEDITION_UTILITY_RESOURCE_KEYS.reduce(
+    (total, key) => total + Math.abs(finiteOrZero(weights[key])),
+    0,
+  )
+
+export const normalizeResourceWeights = (weights: ResourceVector): ResourceVector => {
+  const totalWeight = calculateTotalWeight(weights)
+  if (totalWeight <= 0) return emptyResourceVector()
+  return {
+    fuel: finiteOrZero(weights.fuel) / totalWeight,
+    ammo: finiteOrZero(weights.ammo) / totalWeight,
+    steel: finiteOrZero(weights.steel) / totalWeight,
+    bauxite: finiteOrZero(weights.bauxite) / totalWeight,
+    bucket: finiteOrZero(weights.bucket) / totalWeight,
+  }
+}
+
+export const calculateWeightedContribution = (
+  utility: ResourceVector,
+  normalizedWeights: ResourceVector,
+): ResourceVector => ({
+  fuel: utility.fuel * normalizedWeights.fuel,
+  ammo: utility.ammo * normalizedWeights.ammo,
+  steel: utility.steel * normalizedWeights.steel,
+  bauxite: utility.bauxite * normalizedWeights.bauxite,
+  bucket: utility.bucket * normalizedWeights.bucket,
+})
+
+const sumResourceVector = (values: ResourceVector): number =>
+  EXPEDITION_UTILITY_RESOURCE_KEYS.reduce((sum, key) => sum + values[key], 0)
+
+export const calculateCombinationScore = (
+  satisfaction: ResourceVector,
+  weights: ResourceVector,
+): number =>
+  sumResourceVector(
+    calculateWeightedContribution(
+      calculateResourceUtility(satisfaction),
+      normalizeResourceWeights(weights),
+    ),
+  )
+
+export const calculateUtilityScore = calculateCombinationScore
+
+export const calculatePlanScoreDetails = (
+  expectedNetYield: ResourceVector,
+  benchmark: ResourceVector,
+  weights: ResourceVector,
+): ExpeditionPlanScoreDetails => {
+  const satisfaction = calculateSatisfaction(expectedNetYield, benchmark)
+  const utility = calculateResourceUtility(satisfaction)
+  const normalizedWeight = normalizeResourceWeights(weights)
+  const weightedContribution = calculateWeightedContribution(utility, normalizedWeight)
+  return {
+    expectedNetYield,
+    benchmark,
+    satisfaction,
+    utility,
+    normalizedWeight,
+    weightedContribution,
+    totalScore: sumResourceVector(weightedContribution),
+  }
+}
+
+const DEFAULT_DEBUG_RANK_LIMIT = 10
+const DETAILED_DEBUG_RANK_LIMIT = 5
+const NEAR_TIE_SCORE_THRESHOLD = 0.01
+const SCORING_INVARIANT_EPSILON = 1e-9
+const DEBUG_WATCHED_COMBINATIONS: readonly (readonly string[])[] = [
+  ['02', '05', '38'],
+  ['A2', '05', '38'],
+  ['02', 'A2', '38'],
+  ['05', 'A2', 'B1'],
+  ['02', 'A2', 'B1'],
+]
+
+const resourceVectorFromWeights = (
+  resourceWeights: ExpeditionResources,
+  bucketWeight: number,
+): ResourceVector => ({
+  ...resourceWeights,
+  bucket: bucketWeight,
+})
+
+const optimizationPreferenceFromLegacyWeights = (
+  resourceWeights: ExpeditionResources,
+  bucketWeight: number,
+): CustomWeightPreference => ({
+  mode: 'customWeight',
+  weights: resourceVectorFromWeights(resourceWeights, bucketWeight),
+})
+
+const weightsFromOptimizationPreference = (preference: OptimizationPreference): ResourceVector =>
+  preference.mode === 'priority'
+    ? resourcePreferencesToWeights(preference.preferences)
+    : preference.weights
+
+const constraintPreferencesFromOptimizationPreference = (
+  preference: OptimizationPreference,
+): ResourcePreferenceMap | null => (preference.mode === 'priority' ? preference.preferences : null)
+
+const priorityOrderDebug = (
+  preference: OptimizationPreference,
+  normalizedWeights: ResourceVector,
+): readonly ResourcePriorityDebug[] => {
+  if (preference.mode !== 'priority') return []
+  return EXPEDITION_UTILITY_RESOURCE_KEYS.map((resource) => {
+    const resourcePreference = preference.preferences[resource]
+    const rank = resourcePreference.mode === 'optimize' ? resourcePreference.rank : null
+    return {
+      resource,
+      mode: resourcePreference.mode,
+      rank,
+      ...(resourcePreference.mode === 'constraint'
+        ? { minimumNetYieldPerHour: resourcePreference.minimumNetYieldPerHour }
+        : {}),
+      internalWeight: priorityRankToWeight(rank),
+      normalizedWeight: normalizedWeights[resource],
+    }
+  }).sort((left, right) => {
+    if (left.rank === null && right.rank === null) {
+      return (
+        EXPEDITION_UTILITY_RESOURCE_KEYS.indexOf(left.resource) -
+        EXPEDITION_UTILITY_RESOURCE_KEYS.indexOf(right.resource)
+      )
+    }
+    if (left.rank === null) return 1
+    if (right.rank === null) return -1
+    return left.rank - right.rank
+  })
+}
+
+const DEFAULT_RANDOM_ITEM_REWARD_PROBABILITY = 0.5
+
+const clampProbability = (value: number): number => Math.max(0, Math.min(1, finiteOrZero(value)))
+
+const bucketRewardBounds = (
+  reward: ExpeditionBucketRewardSnapshot,
+): { readonly min: number; readonly max: number } => {
+  const min = Math.max(0, finiteOrZero(reward.min))
+  return { min, max: Math.max(min, finiteOrZero(reward.max)) }
+}
+
+const bucketAcquisitionProbability = (
+  reward: ExpeditionBucketRewardSnapshot,
+  greatSuccess: boolean,
+): number => {
+  if (reward.rewardRule === 'great-success-guaranteed') return greatSuccess ? 1 : 0
+  return clampProbability(reward.acquisitionProbability ?? DEFAULT_RANDOM_ITEM_REWARD_PROBABILITY)
+}
+
+export const calculateBucketExpectedPerRun = (
+  reward: ExpeditionBucketRewardSnapshot | null,
+  greatSuccess: boolean,
+): number => {
+  if (!reward) return 0
+  const { min, max } = bucketRewardBounds(reward)
+  const probability = bucketAcquisitionProbability(reward, greatSuccess)
+  return min + (max - min) * probability
+}
+
+const finiteResourceValues = (values: ResourceVector): boolean =>
+  EXPEDITION_UTILITY_RESOURCE_KEYS.every((key) => Number.isFinite(values[key]))
+
+const combinationLabel = (ids: readonly string[]): string => ids.join(' + ')
+
+const canonicalExpeditionId = (value: string): string => {
+  const normalized = value.trim().toUpperCase()
+  return /^\d+$/.test(normalized) ? String(Number(normalized)) : normalized
+}
+
+const combinationKey = (ids: readonly string[]): string =>
+  ids.map(canonicalExpeditionId).sort().join('|')
+
+const planDisplayIds = (plan: Pick<ExpeditionPlan, 'pairings'>): readonly string[] =>
+  plan.pairings.map(({ expedition }) => expedition.displayNo).sort()
+
+const scoreDeltaExplanation = (
+  resource: ResourceKey,
+  contributionDifference: number,
+  yieldDifferencePerHour: number,
+): string => {
+  const direction = contributionDifference >= 0 ? 'advantage' : 'disadvantage'
+  return `${resource} is a ${direction}: contribution ${contributionDifference >= 0 ? '+' : ''}${contributionDifference}, yield ${yieldDifferencePerHour >= 0 ? '+' : ''}${yieldDifferencePerHour}/h.`
+}
+
+const resourceDelta = (
+  winner: CombinationScoreDebug,
+  runnerUp: CombinationScoreDebug,
+  resource: ResourceKey,
+): OptimizationExplanationResourceDelta => {
+  const contributionDifference =
+    winner.resourceScores[resource].weightedContribution -
+    runnerUp.resourceScores[resource].weightedContribution
+  const yieldDifferencePerHour =
+    winner.resourceScores[resource].rawYieldPerHour -
+    runnerUp.resourceScores[resource].rawYieldPerHour
+  return {
+    resource,
+    contributionDifference,
+    yieldDifferencePerHour,
+    explanation: scoreDeltaExplanation(resource, contributionDifference, yieldDifferencePerHour),
+  }
+}
+
+export const explainWinner = (
+  winner: CombinationScoreDebug,
+  runnerUp: CombinationScoreDebug,
+): OptimizationExplanation => {
+  const deltas = EXPEDITION_UTILITY_RESOURCE_KEYS.map((resource) =>
+    resourceDelta(winner, runnerUp, resource),
+  ).sort(
+    (left, right) => Math.abs(right.contributionDifference) - Math.abs(left.contributionDifference),
+  )
+  const advantages = deltas.filter((delta) => delta.contributionDifference > 0)
+  const disadvantages = deltas.filter((delta) => delta.contributionDifference < 0)
+  const topAdvantages = advantages
+    .slice(0, 2)
+    .map((delta) => delta.resource)
+    .join(' and ')
+  const tradeOffs = disadvantages
+    .slice(0, 2)
+    .map((delta) => delta.resource)
+    .join(' and ')
+  const summary =
+    topAdvantages.length === 0
+      ? `${combinationLabel(winner.expeditionIds)} wins by tie-breakers or very small contribution gaps.`
+      : `${combinationLabel(winner.expeditionIds)} wins mainly from ${topAdvantages}${tradeOffs.length > 0 ? `, enough to offset lower ${tradeOffs}` : ''}.`
+
+  return {
+    winner: combinationLabel(winner.expeditionIds),
+    runnerUp: combinationLabel(runnerUp.expeditionIds),
+    scoreDifference: winner.totalScore - runnerUp.totalScore,
+    advantages,
+    disadvantages,
+    summary,
+  }
+}
+
+const createResourceScoreDebugMap = (
+  scoreDetails: ExpeditionPlanScoreDetails,
+  weights: ResourceVector,
+): ResourceScoreDebugMap => {
+  const create = (resource: ResourceKey): ResourceScoreDebug => {
+    const weightedContribution = scoreDetails.weightedContribution[resource]
+    return {
+      rawYieldPerHour: scoreDetails.expectedNetYield[resource],
+      benchmarkPerHour: scoreDetails.benchmark[resource],
+      satisfaction: scoreDetails.satisfaction[resource],
+      utility: scoreDetails.utility[resource],
+      rawWeight: weights[resource],
+      normalizedWeight: scoreDetails.normalizedWeight[resource],
+      weightedContribution,
+      contributionRatio:
+        scoreDetails.totalScore === 0 ? 0 : weightedContribution / scoreDetails.totalScore,
+    }
+  }
+  return {
+    fuel: create('fuel'),
+    ammo: create('ammo'),
+    steel: create('steel'),
+    bauxite: create('bauxite'),
+    bucket: create('bucket'),
+  }
+}
+
+const createCombinationScoreDebug = (
+  plan: Pick<ExpeditionPlan, 'pairings' | 'scoreDetails'>,
+  weights: ResourceVector,
+  rank: number,
+): CombinationScoreDebug => ({
+  expeditionIds: planDisplayIds(plan),
+  expeditionNames: plan.pairings.map(({ expedition }) => expedition.name),
+  resourceScores: createResourceScoreDebugMap(plan.scoreDetails, weights),
+  totalScore: plan.scoreDetails.totalScore,
+  totalNetYield: plan.scoreDetails.expectedNetYield,
+  negativeResources: EXPEDITION_UTILITY_RESOURCE_KEYS.filter(
+    (resource) => plan.scoreDetails.expectedNetYield[resource] < 0,
+  ),
+  rank,
+})
+
+const expeditionResourceRewardAfterSuccess = (
+  expedition: ExpeditionPlanPairing['expedition'],
+): ExpeditionResources => {
+  const successMultiplier = expedition.modifier.greatSuccess ? 1.5 : 1
+  return mapResources(expedition.baseIncome, (value) => Math.floor(value * successMultiplier))
+}
+
+const expeditionResourceRewardAfterDaihatsu = (
+  expedition: ExpeditionPlanPairing['expedition'],
+): ExpeditionResources => ({
+  fuel: expedition.netIncome.fuel + expedition.estimatedResupplyCost.fuel,
+  ammo: expedition.netIncome.ammo + expedition.estimatedResupplyCost.ammo,
+  steel: expedition.netIncome.steel,
+  bauxite: expedition.netIncome.bauxite,
+})
+
+const selectedReasonsForExpedition = (
+  expedition: ExpeditionPlanPairing['expedition'],
+  weights: ResourceVector,
+): readonly string[] => {
+  const expectedNetPerHour: ResourceVector = {
+    ...expedition.hourlyIncome,
+    bucket: expedition.bucketPotential.hourly,
+  }
+  const weightedPositiveResources = EXPEDITION_UTILITY_RESOURCE_KEYS.filter(
+    (resource) => weights[resource] > 0 && expectedNetPerHour[resource] > 0,
+  ).sort(
+    (left, right) =>
+      expectedNetPerHour[right] * weights[right] - expectedNetPerHour[left] * weights[left],
+  )
+  if (weightedPositiveResources.length === 0) {
+    return [
+      'Included by the winning combination trade-off, not by a positive weighted yield alone.',
+    ]
+  }
+  return weightedPositiveResources
+    .slice(0, 3)
+    .map((resource) => `Adds positive ${resource} yield for a weighted objective.`)
+}
+
+const createExpeditionYieldDebug = (
+  pairing: ExpeditionPlanPairing,
+  weights: ResourceVector,
+): ExpeditionYieldDebug => {
+  const { expedition } = pairing
+  const expectedNetPerHour: ResourceVector = {
+    ...expedition.hourlyIncome,
+    bucket: expedition.bucketPotential.hourly,
+  }
+  const itemRewardDebug: ExpeditionItemRewardDebug | null = expedition.bucketReward
+    ? {
+        ...expedition.bucketReward,
+        itemPosition: expedition.bucketReward.itemSlot,
+        successMode: expedition.modifier.greatSuccess ? 'greatSuccess' : 'normalSuccess',
+        acquisitionProbability: bucketAcquisitionProbability(
+          expedition.bucketReward,
+          expedition.modifier.greatSuccess,
+        ),
+        expectedPerRun: expedition.bucketPotential.expectedPerTrip,
+        expectedPerHour: expedition.bucketPotential.hourly,
+      }
+    : null
+
+  return {
+    id: expedition.id,
+    displayNo: expedition.displayNo,
+    name: expedition.name,
+    durationMinutes: expedition.durationMinutes,
+    effectiveCycleMinutes: expedition.effectiveCycleMinutes,
+    baseReward: expedition.baseIncome,
+    resourceRewardAfterSuccessMultiplier: expeditionResourceRewardAfterSuccess(expedition),
+    resourceRewardAfterDaihatsu: expeditionResourceRewardAfterDaihatsu(expedition),
+    bucketExpectedPerRun: expedition.bucketPotential.expectedPerTrip,
+    supplyCostPerRun: expedition.estimatedResupplyCost,
+    netRewardPerRun: expedition.netIncome,
+    expectedNetPerHour,
+    itemRewardDebug,
+    selectedReasons: selectedReasonsForExpedition(expedition, weights),
+  }
+}
+
+const createDetailedCombinationScoreDebug = (
+  plan: Pick<ExpeditionPlan, 'pairings' | 'scoreDetails'>,
+  weights: ResourceVector,
+  rank: number,
+): DetailedCombinationScoreDebug => ({
+  ...createCombinationScoreDebug(plan, weights, rank),
+  expeditionYields: plan.pairings.map((pairing) => createExpeditionYieldDebug(pairing, weights)),
+})
+
+const createDetailedCombinationScoreDebugFromDraft = (
+  plan: ExpeditionPlanDraft,
+  weights: ResourceVector,
+  benchmark: ResourceVector,
+  rank: number,
+): DetailedCombinationScoreDebug => ({
+  ...createCombinationScoreDebug(
+    {
+      pairings: plan.pairings,
+      scoreDetails: calculatePlanScoreDetails(planYieldVector(plan), benchmark, weights),
+    },
+    weights,
+    rank,
+  ),
+  expeditionYields: plan.pairings.map((pairing) => createExpeditionYieldDebug(pairing, weights)),
+})
+
+const createResourceBenchmarkDebugMap = (
+  plans: readonly ExpeditionPlan[],
+  benchmark: ResourceVector,
+  weights: ResourceVector,
+): ResourceBenchmarkDebugMap => {
+  const create = (resource: ResourceKey): ResourceBenchmarkDebug => {
+    if (weights[resource] === 0) {
+      return {
+        resource,
+        bestPerHour: 0,
+        bestCombination: [],
+      }
+    }
+    const leader = plans.reduce<ExpeditionPlan | null>(
+      (best, plan) =>
+        !best ||
+        plan.scoreDetails.expectedNetYield[resource] > best.scoreDetails.expectedNetYield[resource]
+          ? plan
+          : best,
+      null,
+    )
+    return {
+      resource,
+      bestPerHour: benchmark[resource],
+      bestCombination: leader ? planDisplayIds(leader) : [],
+    }
+  }
+  return {
+    fuel: create('fuel'),
+    ammo: create('ammo'),
+    steel: create('steel'),
+    bauxite: create('bauxite'),
+    bucket: create('bucket'),
+  }
+}
+
+const findPlanByCombinationKey = <TPlan extends Pick<ExpeditionPlan, 'pairings'>>(
+  plans: readonly TPlan[],
+  key: string,
+): TPlan | null => plans.find((plan) => combinationKey(planDisplayIds(plan)) === key) ?? null
+
+const createParetoDebug = ({
+  planDrafts,
+  prunedPlanDrafts,
+  rankedPlans,
+  activeWeights,
+  weights,
+  benchmark,
+}: {
+  readonly planDrafts: readonly ExpeditionPlanDraft[]
+  readonly prunedPlanDrafts: readonly ExpeditionPlanDraft[]
+  readonly rankedPlans: readonly ExpeditionPlan[]
+  readonly activeWeights: ResourceVector
+  readonly weights: ResourceVector
+  readonly benchmark: ResourceVector
+}): OptimizationParetoDebug => {
+  const remainingCombinationCount = prunedPlanDrafts.length
+  return {
+    totalCombinationCount: planDrafts.length,
+    paretoRemovedCount: planDrafts.length - remainingCombinationCount,
+    remainingCombinationCount,
+    watchedCombinations: DEBUG_WATCHED_COMBINATIONS.map((requestedExpeditionIds) => {
+      const key = combinationKey(requestedExpeditionIds)
+      const prePrunePlan = findPlanByCombinationKey(planDrafts, key)
+      const rankedPlan = findPlanByCombinationKey(rankedPlans, key)
+      const dominator = prePrunePlan
+        ? findParetoDominator(prePrunePlan, planDrafts, activeWeights)
+        : null
+      const rankAfterPruning = rankedPlan ? rankedPlans.indexOf(rankedPlan) + 1 : null
+      const score = rankedPlan
+        ? createDetailedCombinationScoreDebug(rankedPlan, weights, rankAfterPruning ?? 0)
+        : prePrunePlan
+          ? createDetailedCombinationScoreDebugFromDraft(prePrunePlan, weights, benchmark, 0)
+          : null
+      return {
+        requestedExpeditionIds,
+        expeditionIds: score?.expeditionIds ?? requestedExpeditionIds,
+        validBeforePruning: prePrunePlan !== null,
+        paretoDominated: dominator !== null,
+        presentAfterPruning: rankedPlan !== null,
+        dominatedBy: dominator ? planDisplayIds(dominator) : null,
+        rankAfterPruning,
+        score,
+      }
+    }),
+  }
+}
+
+const createNearTieDebug = (
+  winner: CombinationScoreDebug | undefined,
+  runnerUp: CombinationScoreDebug | undefined,
+): OptimizationNearTieDebug | null => {
+  if (!winner || !runnerUp) return null
+  const scoreGap = Math.abs(winner.totalScore - runnerUp.totalScore)
+  if (scoreGap >= NEAR_TIE_SCORE_THRESHOLD) return null
+  return {
+    scoreGap,
+    contributionGaps: EXPEDITION_UTILITY_RESOURCE_KEYS.map((resource) =>
+      resourceDelta(winner, runnerUp, resource),
+    ).sort(
+      (left, right) =>
+        Math.abs(right.contributionDifference) - Math.abs(left.contributionDifference),
+    ),
+  }
+}
+
+const createOptimizationDebugReport = ({
+  request,
+  preference,
+  weights,
+  planDrafts,
+  feasiblePlanDrafts,
+  constraintRejectedCombinations,
+  prunedPlanDrafts,
+  plans,
+  candidateCount,
+  activeWeights,
+  comparisonWindowMinutes,
+}: {
+  readonly request: ExpeditionPlannerRequest
+  readonly preference: OptimizationPreference
+  readonly weights: ResourceVector
+  readonly planDrafts: readonly ExpeditionPlanDraft[]
+  readonly feasiblePlanDrafts: readonly ExpeditionPlanDraft[]
+  readonly constraintRejectedCombinations: readonly ConstraintRejectedCombinationDebug[]
+  readonly prunedPlanDrafts: readonly ExpeditionPlanDraft[]
+  readonly plans: readonly ExpeditionPlan[]
+  readonly candidateCount: number
+  readonly activeWeights: ResourceVector
+  readonly comparisonWindowMinutes: number
+}): OptimizationDebugReport => {
+  const normalizedWeights = normalizeResourceWeights(weights)
+  const benchmark = plans[0]?.scoreDetails.benchmark ?? emptyResourceVector()
+  const pareto = createParetoDebug({
+    planDrafts: feasiblePlanDrafts,
+    prunedPlanDrafts,
+    rankedPlans: plans,
+    activeWeights,
+    weights,
+    benchmark,
+  })
+  const rankedCombinations = plans.map((plan, index) =>
+    createCombinationScoreDebug(plan, weights, index + 1),
+  )
+  const topCombinations = rankedCombinations.slice(0, DEFAULT_DEBUG_RANK_LIMIT)
+  const detailedCombinations = plans
+    .slice(0, DETAILED_DEBUG_RANK_LIMIT)
+    .map((plan, index) => createDetailedCombinationScoreDebug(plan, weights, index + 1))
+  const winner = rankedCombinations[0]
+  const runnerUp = rankedCombinations[1]
+  return {
+    context: {
+      fleetCount: request.fleetCount,
+      weights,
+      preferenceMode: preference.mode,
+      ...(preference.mode === 'priority' ? { preferences: preference.preferences } : {}),
+      priorityOrder: priorityOrderDebug(preference, normalizedWeights),
+      normalizedWeights,
+      collectionIntervalMinutes: request.afkMinutes,
+      successMode: request.incomeModifier.greatSuccess ? 'greatSuccess' : 'normalSuccess',
+      baseRewardMultiplier: request.incomeModifier.greatSuccess ? 1.5 : 1,
+      daihatsuBonus: request.incomeModifier.daihatsuCount * 0.05,
+      effectiveResourceMultiplier:
+        (request.incomeModifier.greatSuccess ? 1.5 : 1) *
+        (1 + request.incomeModifier.daihatsuCount * 0.05),
+      availableExpeditionCount: candidateCount,
+      validCombinationCount: feasiblePlanDrafts.length,
+      constraintRejectedCount: constraintRejectedCombinations.length,
+      feasibleCombinationCount: feasiblePlanDrafts.length,
+      scoredCombinationCount: pareto.remainingCombinationCount,
+      totalCombinationCount: planDrafts.length,
+      paretoRemovedCount: pareto.paretoRemovedCount,
+      paretoRemainingCount: pareto.remainingCombinationCount,
+      remainingCombinationCount: pareto.remainingCombinationCount,
+      comparisonWindowMinutes,
+    },
+    benchmarks: createResourceBenchmarkDebugMap(plans, benchmark, weights),
+    pareto,
+    constraintRejectedCombinations,
+    rankedCombinations,
+    topCombinations,
+    detailedCombinations,
+    winnerExplanation: winner && runnerUp ? explainWinner(winner, runnerUp) : null,
+    nearTie: createNearTieDebug(winner, runnerUp),
+  }
+}
+
+export const compareOptimizationCombinations = (
+  report: OptimizationDebugReport,
+  leftExpeditionIds: readonly string[],
+  rightExpeditionIds: readonly string[],
+): OptimizationCombinationComparison | null => {
+  const leftKey = combinationKey(leftExpeditionIds)
+  const rightKey = combinationKey(rightExpeditionIds)
+  const findCombination = (key: string): CombinationScoreDebug | null =>
+    report.rankedCombinations.find(
+      (combination) => combinationKey(combination.expeditionIds) === key,
+    ) ??
+    report.pareto.watchedCombinations.find(
+      (combination) => combination.score && combinationKey(combination.score.expeditionIds) === key,
+    )?.score ??
+    null
+  const left = findCombination(leftKey)
+  const right = findCombination(rightKey)
+  if (!left || !right) return null
+  const scoreDifference = right.totalScore - left.totalScore
+  const winner =
+    Math.abs(scoreDifference) < SCORING_INVARIANT_EPSILON
+      ? 'tie'
+      : scoreDifference > 0
+        ? 'right'
+        : 'left'
+  const resourceDeltas = EXPEDITION_UTILITY_RESOURCE_KEYS.map((resource) => ({
+    resource,
+    leftYieldPerHour: left.resourceScores[resource].rawYieldPerHour,
+    rightYieldPerHour: right.resourceScores[resource].rawYieldPerHour,
+    yieldDifferencePerHour:
+      right.resourceScores[resource].rawYieldPerHour -
+      left.resourceScores[resource].rawYieldPerHour,
+    leftContribution: left.resourceScores[resource].weightedContribution,
+    rightContribution: right.resourceScores[resource].weightedContribution,
+    contributionDifference:
+      right.resourceScores[resource].weightedContribution -
+      left.resourceScores[resource].weightedContribution,
+  }))
+  return {
+    left: combinationLabel(left.expeditionIds),
+    right: combinationLabel(right.expeditionIds),
+    leftScore: left.totalScore,
+    rightScore: right.totalScore,
+    winner,
+    scoreDifference,
+    resourceDeltas,
+    explanation:
+      winner === 'right'
+        ? explainWinner(right, left)
+        : winner === 'left'
+          ? explainWinner(left, right)
+          : null,
+  }
+}
+
+const scoreDebugValues = (combination: CombinationScoreDebug): readonly number[] => [
+  combination.totalScore,
+  ...EXPEDITION_UTILITY_RESOURCE_KEYS.flatMap((resource) => {
+    const score = combination.resourceScores[resource]
+    return [
+      score.rawYieldPerHour,
+      score.benchmarkPerHour,
+      score.satisfaction,
+      score.utility,
+      score.rawWeight,
+      score.normalizedWeight,
+      score.weightedContribution,
+      score.contributionRatio,
+    ]
+  }),
+]
+
+export const validateOptimizationDebugReport = (
+  report: OptimizationDebugReport,
+): readonly OptimizationDebugViolation[] => {
+  const violations: OptimizationDebugViolation[] = []
+  if (
+    report.context.totalCombinationCount !== report.pareto.totalCombinationCount ||
+    report.context.remainingCombinationCount !== report.pareto.remainingCombinationCount ||
+    report.context.paretoRemovedCount !== report.pareto.paretoRemovedCount
+  ) {
+    violations.push({
+      code: 'PARETO_STATISTICS_MISMATCH',
+      message: 'Context and pareto debug statistics disagree.',
+      context: {
+        context: report.context,
+        pareto: {
+          totalCombinationCount: report.pareto.totalCombinationCount,
+          paretoRemovedCount: report.pareto.paretoRemovedCount,
+          remainingCombinationCount: report.pareto.remainingCombinationCount,
+        },
+      },
+    })
+  }
+  if (
+    report.pareto.totalCombinationCount - report.pareto.remainingCombinationCount !==
+    report.pareto.paretoRemovedCount
+  ) {
+    violations.push({
+      code: 'PARETO_COUNT_MISMATCH',
+      message: 'Pareto removed count must equal total combinations minus remaining combinations.',
+      context: report.pareto,
+    })
+  }
+
+  report.rankedCombinations.forEach((combination) => {
+    if (!scoreDebugValues(combination).every(Number.isFinite)) {
+      violations.push({
+        code: 'NON_FINITE_SCORE_DEBUG',
+        message: 'Combination score debug contains a non-finite value.',
+        context: combination,
+      })
+    }
+    const contributionSum = EXPEDITION_UTILITY_RESOURCE_KEYS.reduce(
+      (sum, resource) => sum + combination.resourceScores[resource].weightedContribution,
+      0,
+    )
+    if (Math.abs(contributionSum - combination.totalScore) > SCORING_INVARIANT_EPSILON) {
+      violations.push({
+        code: 'CONTRIBUTION_SUM_MISMATCH',
+        message: 'Resource contributions do not add up to the total score.',
+        context: {
+          combination: combination.expeditionIds,
+          contributionSum,
+          totalScore: combination.totalScore,
+        },
+      })
+    }
+    EXPEDITION_UTILITY_RESOURCE_KEYS.forEach((resource) => {
+      const score = combination.resourceScores[resource]
+      if (
+        score.rawWeight === 0 &&
+        Math.abs(score.weightedContribution) > SCORING_INVARIANT_EPSILON
+      ) {
+        violations.push({
+          code: 'ZERO_WEIGHT_CONTRIBUTION',
+          message: 'A zero-weight resource contributed to the total score.',
+          context: { combination: combination.expeditionIds, resource, score },
+        })
+      }
+    })
+    if (!finiteResourceValues(combination.totalNetYield)) {
+      violations.push({
+        code: 'NON_FINITE_EXPECTED_YIELD',
+        message: 'Combination expected net yield contains a non-finite value.',
+        context: combination,
+      })
+    }
+  })
+
+  report.pareto.watchedCombinations.forEach((combination) => {
+    if (!combination.score) return
+    if (!scoreDebugValues(combination.score).every(Number.isFinite)) {
+      violations.push({
+        code: 'NON_FINITE_WATCHED_SCORE_DEBUG',
+        message: 'Watched combination score debug contains a non-finite value.',
+        context: combination,
+      })
+    }
+  })
+
+  report.detailedCombinations.forEach((combination) => {
+    combination.expeditionYields.forEach((expedition) => {
+      if (!finiteResourceValues(expedition.expectedNetPerHour)) {
+        violations.push({
+          code: 'NON_FINITE_EXPEDITION_YIELD',
+          message: 'Expedition expected net hourly yield contains a non-finite value.',
+          context: expedition,
+        })
+      }
+      const expectedFuelNet =
+        expedition.resourceRewardAfterDaihatsu.fuel - expedition.supplyCostPerRun.fuel
+      const expectedAmmoNet =
+        expedition.resourceRewardAfterDaihatsu.ammo - expedition.supplyCostPerRun.ammo
+      if (
+        expectedFuelNet !== expedition.netRewardPerRun.fuel ||
+        expectedAmmoNet !== expedition.netRewardPerRun.ammo
+      ) {
+        violations.push({
+          code: 'SUPPLY_COST_MULTIPLIER_MISMATCH',
+          message: 'Supply cost appears inconsistent with post-multiplier resource rewards.',
+          context: { expedition, expectedFuelNet, expectedAmmoNet },
+        })
+      }
+      if (
+        expedition.itemRewardDebug &&
+        expedition.itemRewardDebug.expectedPerRun > expedition.itemRewardDebug.max
+      ) {
+        violations.push({
+          code: 'BUCKET_ITEM_MULTIPLIER_MISMATCH',
+          message: 'Bucket item expectation is greater than the KC3 item slot maximum.',
+          context: expedition.itemRewardDebug,
+        })
+      }
+    })
+  })
+  return violations
+}
 
 const mapResources = (
   resources: ExpeditionResources,
@@ -593,18 +1875,133 @@ const permutations = <T>(values: readonly T[], count: number): readonly (readonl
   )
 }
 
-const normalizeAcrossPlans = (value: number, minimum: number, maximum: number): number =>
-  maximum === minimum ? 0 : (value - minimum) / (maximum - minimum)
-
 interface CalculatedExpedition extends ExpeditionCandidateSnapshot {
   readonly effectiveCycleMinutes: number
   readonly netIncome: ExpeditionResources
   readonly hourlyIncome: ExpeditionResources
-  readonly bucketPotential: { readonly maxPerTrip: number; readonly hourly: number }
+  readonly bucketPotential: {
+    readonly maxPerTrip: number
+    readonly expectedPerTrip: number
+    readonly hourly: number
+  }
   readonly estimatedResupplyCost: { readonly fuel: number; readonly ammo: number }
   readonly modifier: ExpeditionPlanPairing['expedition']['modifier']
   readonly calculatedFleetChecks: readonly ExpeditionFleetResult[]
 }
+
+type ExpeditionPlanDraft = Omit<
+  ExpeditionPlan,
+  | 'weightedHourlyIncome'
+  | 'weightedExpectedNetYield'
+  | 'utilityScore'
+  | 'normalizedYield'
+  | 'satisfaction'
+  | 'utility'
+  | 'normalizedWeights'
+  | 'weightedContribution'
+  | 'scoreDetails'
+  | 'negativeYieldCount'
+  | 'fallbackUtilityScore'
+>
+
+const planYieldVector = (
+  plan: Pick<ExpeditionPlanDraft, 'hourlyIncome' | 'bucketPotentialHourly'>,
+): ResourceVector => ({
+  fuel: plan.hourlyIncome.fuel,
+  ammo: plan.hourlyIncome.ammo,
+  steel: plan.hourlyIncome.steel,
+  bauxite: plan.hourlyIncome.bauxite,
+  bucket: plan.bucketPotentialHourly,
+})
+
+const createConstraintRejectedCombinationDebug = (
+  plan: ExpeditionPlanDraft,
+  preferences: ResourcePreferenceMap,
+): ConstraintRejectedCombinationDebug => {
+  const totalNetYield = planYieldVector(plan)
+  const expeditionIds = planDisplayIds(plan)
+  return {
+    expeditionIds,
+    expeditions: combinationLabel(expeditionIds),
+    constraintViolations: resourceConstraintViolations(totalNetYield, preferences),
+    totalNetYield,
+  }
+}
+
+const scopedBenchmark = (benchmark: ResourceVector, weights: ResourceVector): ResourceVector => ({
+  fuel: weights.fuel === 0 ? 0 : benchmark.fuel,
+  ammo: weights.ammo === 0 ? 0 : benchmark.ammo,
+  steel: weights.steel === 0 ? 0 : benchmark.steel,
+  bauxite: weights.bauxite === 0 ? 0 : benchmark.bauxite,
+  bucket: weights.bucket === 0 ? 0 : benchmark.bucket,
+})
+
+const weightedExpectedNetYield = (
+  yieldValue: ResourceVector,
+  normalizedWeights: ResourceVector,
+): number =>
+  EXPEDITION_UTILITY_RESOURCE_KEYS.reduce(
+    (score, key) => score + yieldValue[key] * normalizedWeights[key],
+    0,
+  )
+
+const negativeYieldCount = (yieldValue: ResourceVector, weights: ResourceVector): number =>
+  EXPEDITION_UTILITY_RESOURCE_KEYS.filter((key) => weights[key] !== 0 && yieldValue[key] < 0).length
+
+const resupplyCostTotal = (cost: { readonly fuel: number; readonly ammo: number }): number =>
+  cost.fuel + cost.ammo
+
+const planExpeditionIds = (plan: Pick<ExpeditionPlan, 'pairings'>): readonly number[] =>
+  plan.pairings.map(({ expedition }) => expedition.id).sort((left, right) => left - right)
+
+const compareExpeditionIdOrder = (
+  left: Pick<ExpeditionPlan, 'pairings'>,
+  right: Pick<ExpeditionPlan, 'pairings'>,
+): number => {
+  const leftIds = planExpeditionIds(left)
+  const rightIds = planExpeditionIds(right)
+  for (let index = 0; index < Math.min(leftIds.length, rightIds.length); index += 1) {
+    const difference = leftIds[index] - rightIds[index]
+    if (difference !== 0) return difference
+  }
+  return leftIds.length - rightIds.length
+}
+
+const paretoDominates = (
+  left: ResourceVector,
+  right: ResourceVector,
+  activeWeights: ResourceVector,
+): boolean => {
+  const activeResourceKeys = EXPEDITION_UTILITY_RESOURCE_KEYS.filter(
+    (key) => activeWeights[key] !== 0,
+  )
+  if (activeResourceKeys.length === 0) return false
+  const preferenceDelta = (key: ResourceKey): number =>
+    activeWeights[key] > 0 ? left[key] - right[key] : right[key] - left[key]
+  const improvesWeightedResource = activeResourceKeys.some((key) => preferenceDelta(key) > 0)
+  if (!improvesWeightedResource) return false
+  return activeResourceKeys.every((key) => preferenceDelta(key) >= 0)
+}
+
+const findParetoDominator = (
+  plan: ExpeditionPlanDraft,
+  plans: readonly ExpeditionPlanDraft[],
+  activeWeights: ResourceVector,
+): ExpeditionPlanDraft | null => {
+  const yieldValue = planYieldVector(plan)
+  return (
+    plans.find(
+      (other) =>
+        other !== plan && paretoDominates(planYieldVector(other), yieldValue, activeWeights),
+    ) ?? null
+  )
+}
+
+const paretoPrunePlans = (
+  plans: readonly ExpeditionPlanDraft[],
+  activeWeights: ResourceVector,
+): readonly ExpeditionPlanDraft[] =>
+  plans.filter((plan) => findParetoDominator(plan, plans, activeWeights) === null)
 
 export const planExpeditions = ({
   snapshot,
@@ -652,6 +2049,10 @@ export const planExpeditions = ({
         steel: grossIncome.steel,
         bauxite: grossIncome.bauxite,
       }
+      const bucketExpectedPerTrip = calculateBucketExpectedPerRun(
+        candidate.bucketReward,
+        request.incomeModifier.greatSuccess,
+      )
       const effectiveCycleMinutes =
         request.afkMinutes === 0
           ? candidate.durationMinutes
@@ -664,8 +2065,10 @@ export const planExpeditions = ({
           hourlyIncome: mapResources(netIncome, (value) => (value * 60) / effectiveCycleMinutes),
           bucketPotential: {
             maxPerTrip: candidate.bucketMaxPerTrip,
-            hourly: (candidate.bucketMaxPerTrip * 60) / effectiveCycleMinutes,
+            expectedPerTrip: bucketExpectedPerTrip,
+            hourly: (bucketExpectedPerTrip * 60) / effectiveCycleMinutes,
           },
+          bucketReward: candidate.bucketReward,
           estimatedResupplyCost: resupplyCost,
           modifier: {
             type: 'kancepts-account',
@@ -703,9 +2106,28 @@ export const planExpeditions = ({
       })
       .sort((left, right) => right.score - left.score)[0]
 
-  const resourceWeights = mapResources(request.resourceWeights, (value) => value)
+  const preference =
+    request.preference ??
+    optimizationPreferenceFromLegacyWeights(request.resourceWeights, request.bucketWeight)
+  const utilityWeights = weightsFromOptimizationPreference(preference)
+  const constraintPreferences = constraintPreferencesFromOptimizationPreference(preference)
+  const resourceWeights: ExpeditionResources = {
+    fuel: utilityWeights.fuel,
+    ammo: utilityWeights.ammo,
+    steel: utilityWeights.steel,
+    bauxite: utilityWeights.bauxite,
+  }
+  const bucketWeight = utilityWeights.bucket
+  const normalizedWeights = normalizeResourceWeights(utilityWeights)
+  const activeWeightTotal = calculateTotalWeight(utilityWeights)
+  const activeWeights =
+    activeWeightTotal > 0
+      ? normalizedWeights
+      : preference.mode === 'customWeight'
+        ? { fuel: 1, ammo: 1, steel: 1, bauxite: 1, bucket: 1 }
+        : emptyResourceVector()
   const comparisonWindowMinutes = Math.max(60, request.afkMinutes)
-  const plans: ExpeditionPlan[] = combinations(candidates, request.fleetCount).map(
+  const planDrafts: ExpeditionPlanDraft[] = combinations(candidates, request.fleetCount).map(
     (expeditions) => {
       const hourlyIncome = expeditions.reduce(
         (sum, expedition) => addResources(sum, expedition.hourlyIncome),
@@ -715,22 +2137,25 @@ export const planExpeditions = ({
         hourlyIncome,
         (value) => (value * comparisonWindowMinutes) / 60,
       )
-      const weightedHourlyIncome = EXPEDITION_RESOURCE_KEYS.reduce(
-        (sum, key) => sum + hourlyIncome[key] * resourceWeights[key],
-        0,
-      )
       const bucketPotentialHourly = expeditions.reduce(
         (sum, expedition) => sum + expedition.bucketPotential.hourly,
         0,
       )
+      const estimatedResupplyCost = expeditions.reduce(
+        (sum, expedition) => ({
+          fuel: sum.fuel + expedition.estimatedResupplyCost.fuel,
+          ammo: sum.ammo + expedition.estimatedResupplyCost.ammo,
+        }),
+        { fuel: 0, ammo: 0 },
+      )
       const pairing = bestPairing(expeditions)
       return {
-        weightedHourlyIncome,
         bucketPotentialHourly,
-        bucketWeight: request.bucketWeight,
+        bucketWeight,
         comparisonWindowMinutes,
         projectedIncome,
         hourlyIncome,
+        estimatedResupplyCost,
         pairingScore: pairing.score,
         pairings: pairing.pairings.map(({ expedition, fleet }) => ({
           fleet,
@@ -744,6 +2169,7 @@ export const planExpeditions = ({
             netIncome: expedition.netIncome,
             hourlyIncome: expedition.hourlyIncome,
             bucketPotential: expedition.bucketPotential,
+            bucketReward: expedition.bucketReward,
             estimatedResupplyCost: expedition.estimatedResupplyCost,
             requirements: expedition.requirements,
             modifier: expedition.modifier,
@@ -755,54 +2181,137 @@ export const planExpeditions = ({
     },
   )
 
-  const resourceRanges = Object.fromEntries(
-    EXPEDITION_RESOURCE_KEYS.map((key) => [
-      key,
-      plans.reduce(
-        (range, plan) => ({
-          minimum: Math.min(range.minimum, plan.hourlyIncome[key]),
-          maximum: Math.max(range.maximum, plan.hourlyIncome[key]),
-        }),
-        { minimum: Number.POSITIVE_INFINITY, maximum: Number.NEGATIVE_INFINITY },
-      ),
-    ]),
-  ) as Record<ExpeditionResourceKey, { minimum: number; maximum: number }>
-  const bucketRange = plans.reduce(
-    (range, plan) => ({
-      minimum: Math.min(range.minimum, plan.bucketPotentialHourly),
-      maximum: Math.max(range.maximum, plan.bucketPotentialHourly),
-    }),
-    { minimum: Number.POSITIVE_INFINITY, maximum: Number.NEGATIVE_INFINITY },
+  const constrainedPlanDrafts = constraintPreferences
+    ? planDrafts.reduce(
+        (groups, plan) => {
+          if (satisfiesResourceConstraints(planYieldVector(plan), constraintPreferences)) {
+            groups.feasible.push(plan)
+          } else {
+            groups.rejected.push(
+              createConstraintRejectedCombinationDebug(plan, constraintPreferences),
+            )
+          }
+          return groups
+        },
+        {
+          feasible: [] as ExpeditionPlanDraft[],
+          rejected: [] as ConstraintRejectedCombinationDebug[],
+        },
+      )
+    : { feasible: planDrafts, rejected: [] as ConstraintRejectedCombinationDebug[] }
+  const constraintRejectedCombinations = constrainedPlanDrafts.rejected
+  const feasiblePlanDrafts = constrainedPlanDrafts.feasible
+
+  if (feasiblePlanDrafts.length === 0) {
+    const closest = constraintRejectedCombinations
+      .map((combination) => ({
+        combination,
+        gap: combination.constraintViolations.reduce(
+          (sum, violation) => sum + Math.max(0, violation.required - violation.actual),
+          0,
+        ),
+      }))
+      .sort((left, right) => left.gap - right.gap)[0]
+    const optimizationDebug = request.debug
+      ? createOptimizationDebugReport({
+          request,
+          preference,
+          weights: utilityWeights,
+          planDrafts,
+          feasiblePlanDrafts,
+          constraintRejectedCombinations,
+          prunedPlanDrafts: [],
+          plans: [],
+          candidateCount: candidates.length,
+          activeWeights,
+          comparisonWindowMinutes,
+        })
+      : undefined
+    return {
+      status: 'no-feasible-plan',
+      reason: '目前沒有符合所有最低收益條件的遠征組合。',
+      reasonCode: 'RESOURCE_CONSTRAINTS',
+      reasonValues: {
+        rejected: constraintRejectedCombinations.length,
+        feasible: 0,
+      },
+      generatedAt: snapshot.generatedAt,
+      current: snapshot.current,
+      maxResource: snapshot.maxResource,
+      constraintRejectedCount: constraintRejectedCombinations.length,
+      feasibleCombinationCount: 0,
+      closestViolations: closest?.combination.constraintViolations ?? [],
+      ...(optimizationDebug ? { optimizationDebug } : {}),
+    }
+  }
+
+  const prunedPlanDrafts = paretoPrunePlans(feasiblePlanDrafts, activeWeights)
+  const benchmarks = scopedBenchmark(
+    calculateResourceBenchmarks(prunedPlanDrafts.map(planYieldVector)),
+    utilityWeights,
   )
-  const preferenceScore = (plan: ExpeditionPlan): number =>
-    EXPEDITION_RESOURCE_KEYS.reduce(
-      (score, key) =>
-        score +
-        normalizeAcrossPlans(
-          plan.hourlyIncome[key],
-          resourceRanges[key].minimum,
-          resourceRanges[key].maximum,
-        ) *
-          resourceWeights[key],
-      0,
-    ) +
-    normalizeAcrossPlans(plan.bucketPotentialHourly, bucketRange.minimum, bucketRange.maximum) *
-      request.bucketWeight
+  const fallbackWeights: ResourceVector =
+    preference.mode === 'customWeight'
+      ? { fuel: 1, ammo: 1, steel: 1, bauxite: 1, bucket: 1 }
+      : emptyResourceVector()
+  const plans: ExpeditionPlan[] = prunedPlanDrafts.map((plan) => {
+    const expectedNetYield = planYieldVector(plan)
+    const scoreDetails = calculatePlanScoreDetails(expectedNetYield, benchmarks, utilityWeights)
+    const fallbackDetails = calculatePlanScoreDetails(expectedNetYield, benchmarks, fallbackWeights)
+    return {
+      ...plan,
+      weightedHourlyIncome: weightedExpectedNetYield(expectedNetYield, normalizedWeights),
+      weightedExpectedNetYield: weightedExpectedNetYield(expectedNetYield, normalizedWeights),
+      utilityScore: scoreDetails.totalScore,
+      normalizedYield: scoreDetails.satisfaction,
+      satisfaction: scoreDetails.satisfaction,
+      utility: scoreDetails.utility,
+      normalizedWeights: scoreDetails.normalizedWeight,
+      weightedContribution: scoreDetails.weightedContribution,
+      scoreDetails,
+      negativeYieldCount: negativeYieldCount(expectedNetYield, utilityWeights),
+      fallbackUtilityScore: fallbackDetails.totalScore,
+    }
+  })
 
   plans.sort((left, right) => {
-    const preferenceDifference = preferenceScore(right) - preferenceScore(left)
-    const bucketTieBreaker =
-      request.bucketWeight === 0
-        ? 0
-        : Math.sign(request.bucketWeight) *
-          (right.bucketPotentialHourly - left.bucketPotentialHourly)
-    return (
-      preferenceDifference ||
-      right.weightedHourlyIncome - left.weightedHourlyIncome ||
-      bucketTieBreaker ||
-      right.pairingScore - left.pairingScore
-    )
+    const utilityDifference = right.utilityScore - left.utilityScore
+    if (Math.abs(utilityDifference) >= UTILITY_SCORE_EPSILON) return utilityDifference
+    const fallbackDifference =
+      activeWeightTotal <= 0 && preference.mode === 'customWeight'
+        ? right.fallbackUtilityScore - left.fallbackUtilityScore
+        : 0
+    if (Math.abs(fallbackDifference) >= UTILITY_SCORE_EPSILON) return fallbackDifference
+    const weightedYieldDifference = right.weightedExpectedNetYield - left.weightedExpectedNetYield
+    if (Math.abs(weightedYieldDifference) >= UTILITY_SCORE_EPSILON) return weightedYieldDifference
+    const negativeCountDifference = left.negativeYieldCount - right.negativeYieldCount
+    if (negativeCountDifference !== 0) return negativeCountDifference
+    const costDifference =
+      resupplyCostTotal(left.estimatedResupplyCost) - resupplyCostTotal(right.estimatedResupplyCost)
+    if (costDifference !== 0) return costDifference
+    return compareExpeditionIdOrder(left, right)
   })
+
+  const requestedPlanLimit = request.planLimit
+  const planLimit =
+    typeof requestedPlanLimit === 'number' && Number.isInteger(requestedPlanLimit)
+      ? Math.max(DEFAULT_PLAN_LIMIT, Math.min(MAX_PLAN_LIMIT, requestedPlanLimit))
+      : DEFAULT_PLAN_LIMIT
+  const optimizationDebug = request.debug
+    ? createOptimizationDebugReport({
+        request,
+        preference,
+        weights: utilityWeights,
+        planDrafts,
+        feasiblePlanDrafts,
+        constraintRejectedCombinations,
+        prunedPlanDrafts,
+        plans,
+        candidateCount: candidates.length,
+        activeWeights,
+        comparisonWindowMinutes,
+      })
+    : undefined
 
   return {
     status: 'success',
@@ -811,12 +2320,14 @@ export const planExpeditions = ({
     resourceWeights,
     maxResource: snapshot.maxResource,
     candidateCount: candidates.length,
+    combinationCount: planDrafts.length,
+    prunedCombinationCount: prunedPlanDrafts.length,
     settings: {
       afkMinutes: request.afkMinutes,
       fleetCount: request.fleetCount,
       comparisonWindowMinutes,
       resourceWeights,
-      bucketWeight: request.bucketWeight,
+      bucketWeight,
       mode: request.afkMinutes === 0 ? 'online' : 'afk',
       incomeModifier: {
         greatSuccess: request.incomeModifier.greatSuccess,
@@ -826,6 +2337,7 @@ export const planExpeditions = ({
       usesExpeditionTableCostConfig: false,
       resupplyCostModel: 'kancepts-account',
     },
-    plans: plans.slice(0, 1),
+    plans: plans.slice(0, planLimit),
+    ...(optimizationDebug ? { optimizationDebug } : {}),
   }
 }

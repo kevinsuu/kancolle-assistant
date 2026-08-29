@@ -1,0 +1,41 @@
+{
+  "area": "1-3",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/1-3/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "1-3-guide-cvl2-dd4",
+      "name": "攻略網・軽空母2駆逐4",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["C", "F", "J"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "軽空母2、駆逐4。開幕航空を使う攻略網の固定進王周回編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 52,
+          "recommended": 52
+        }
+      ]
+    }
+  ]
+}

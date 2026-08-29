@@ -1,0 +1,39 @@
+{
+  "area": "2-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/2-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "2-4-guide-ca-cl-dd4",
+      "name": "攻略網・中央軽量固定",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["B", "G", "H", "L", "P"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route"],
+      "desc": "重巡級1、軽巡1、駆逐4。攻略資料で確認された中央固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ]
+    }
+  ]
+}

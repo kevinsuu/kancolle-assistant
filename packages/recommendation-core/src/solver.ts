@@ -19,6 +19,9 @@ const SUCCESSFUL_FLEETS_PER_ROUTE = 3
 const AUTO_COMPARE_MIN_FLEETS_TO_EQUIP = 1
 const AUTO_COMPARE_MAX_FLEETS_TO_EQUIP = 6
 const AUTO_COMPARE_SUCCESSFUL_FLEETS_PER_ROUTE = 1
+const SELECTED_ROUTE_MIN_FLEETS_TO_EQUIP = 1
+const SELECTED_ROUTE_MAX_FLEETS_TO_EQUIP = 6
+const SELECTED_ROUTE_SUCCESSFUL_FLEETS_PER_ROUTE = 1
 
 const guidePriority = (recommendation: FleetRecommendation): number =>
   recommendation.route.tags.includes('guide-primary')
@@ -68,9 +71,22 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   }))
   const availableRoutes = routeAvailability.filter(({ reasons }) => reasons.length === 0)
   if (availableRoutes.length === 0) {
+    const reasons = routeAvailability.flatMap(({ reasons }) => reasons)
     return {
       status: 'no-solution',
-      analysis: { reasons: routeAvailability.flatMap(({ reasons }) => reasons) },
+      analysis: { reasons },
+      diagnostics: {
+        routeCandidateCount: routes.length,
+        availableRouteCount: 0,
+        evaluatedFleetCandidateCount: 0,
+        gearSolutionCount: 0,
+        recommendationCandidateCount: 0,
+        bestAirPower: 0,
+        airPowerMinimum: null,
+        bestOpeningAsw: 0,
+        openingAswMinimum: null,
+        reasonCodes: [...new Set(reasons.map(({ code }) => code))],
+      },
       elapsedMs: Date.now() - startedAt,
       solverVersion: SOLVER_VERSION,
     }
@@ -88,9 +104,13 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   let drumCanisterRequirementFailed = false
   let drumCanisterCarrierMinimum = Number.POSITIVE_INFINITY
   let specialAttackRequirementFailed = false
+  let evaluatedFleetCandidateCount = 0
+  let gearSolutionCount = 0
   const avoidCurrentFleetEquipment = input.preferences?.avoidCurrentFleetEquipment ?? false
   const gearSearchContext = createGearSearchContext(input.account, avoidCurrentFleetEquipment)
   const successfulFleetSignatures = new Set<string>()
+  const candidateLimit = Math.min(Math.max(Math.trunc(input.candidateLimit ?? 3), 3), 24)
+  const selectedRouteFastPath = input.routeId !== undefined && candidateLimit <= 3
 
   const searchRoutes = ({
     minimumFleetCount,
@@ -116,17 +136,32 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       if (route.tags.includes('special-attack-modeled') && fleetCandidates.length === 0) {
         specialAttackRequirementFailed = true
       }
-      const airPowerRequired = route.calculatedConstraints.some(
+      const airPowerConstraint = route.calculatedConstraints.find(
         (constraint) => constraint.kind === 'air-power',
+      )
+      const airPowerMinimum = airPowerConstraint?.minimum ?? null
+      const losRequired = route.calculatedConstraints.some(
+        (constraint) => constraint.kind === 'los',
       )
       const fastPlusRequired = route.tags.includes('fast+')
       const antiInstallationShellCount = routeTagCount(
         route.tags,
         'anti-installation-type3-shells-',
       )
+      const antiInstallationSurfaceCount = routeTagCount(
+        route.tags,
+        'anti-installation-surface-gears-',
+      )
       const antiInstallationCarrierCount = routeTagCount(route.tags, 'anti-installation-carriers-')
       const drumCanisterCarrierCount = routeTagCount(route.tags, 'drum-canister-carriers-')
+      const bbvSeaplaneLosPriority = route.tags.includes('bbv-seaplane-los-priority')
+      const bbvSeaplaneAirPriority = route.tags.includes('bbv-seaplane-air-priority')
+      const surfaceSeaplaneAirPriority = route.tags.includes('surface-seaplane-air-priority')
+      const flexibleCarrierAirPriority = route.tags.includes('flexible-carrier-air-priority')
       const nightCarrierRequired = route.tags.includes('night-carrier')
+      const submarineSeaplaneAirControl = route.tags.includes('submarine-seaplane-air-control')
+      const submarineLosPriority = route.tags.includes('submarine-los-priority')
+      const mayaAaciPreferred = route.tags.includes('guide-prefer-maya-aaci')
       const failedSpecialFleets = []
       const failedGearFleets = []
       let successfulFleetCount = 0
@@ -137,16 +172,27 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         fleetIndex += 1
       ) {
         const fleet = fleetCandidates[fleetIndex]
+        evaluatedFleetCandidateCount += 1
         const gearSolutions = buildGearSolutions(
           fleet,
           gearSearchContext,
-          airPowerRequired,
+          airPowerMinimum,
           fastPlusRequired,
           antiInstallationShellCount,
+          antiInstallationSurfaceCount,
           nightCarrierRequired,
           antiInstallationCarrierCount,
+          flexibleCarrierAirPriority,
           drumCanisterCarrierCount,
+          bbvSeaplaneLosPriority,
+          bbvSeaplaneAirPriority,
+          surfaceSeaplaneAirPriority,
+          losRequired,
+          submarineSeaplaneAirControl,
+          submarineLosPriority,
+          mayaAaciPreferred,
         )
+        gearSolutionCount += gearSolutions.length
         if (gearSolutions.length === 0) failedGearFleets.push(fleet)
         if (gearSolutions.length === 0 && (fastPlusRequired || nightCarrierRequired)) {
           failedSpecialFleets.push(fleet)
@@ -205,12 +251,21 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               buildGearSolutions(
                 fleet,
                 gearSearchContext,
-                airPowerRequired,
+                airPowerMinimum,
                 true,
                 antiInstallationShellCount,
+                antiInstallationSurfaceCount,
                 false,
                 antiInstallationCarrierCount,
+                flexibleCarrierAirPriority,
                 drumCanisterCarrierCount,
+                bbvSeaplaneLosPriority,
+                bbvSeaplaneAirPriority,
+                surfaceSeaplaneAirPriority,
+                losRequired,
+                submarineSeaplaneAirControl,
+                submarineLosPriority,
+                mayaAaciPreferred,
               ).length > 0,
           )
           if (speedOnlyAvailable) nightCarrierRequirementFailed = true
@@ -224,19 +279,30 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         diagnoseSpecialFailures &&
         successfulFleetCount === 0 &&
         failedGearFleets.length > 0 &&
-        (antiInstallationShellCount > 0 || antiInstallationCarrierCount > 0)
+        (antiInstallationShellCount > 0 ||
+          antiInstallationSurfaceCount > 0 ||
+          antiInstallationCarrierCount > 0)
       ) {
         const canBuildWithoutAntiInstallation = failedGearFleets.some(
           (fleet) =>
             buildGearSolutions(
               fleet,
               gearSearchContext,
-              airPowerRequired,
+              airPowerMinimum,
               fastPlusRequired,
+              0,
               0,
               nightCarrierRequired,
               0,
+              flexibleCarrierAirPriority,
               drumCanisterCarrierCount,
+              bbvSeaplaneLosPriority,
+              bbvSeaplaneAirPriority,
+              surfaceSeaplaneAirPriority,
+              losRequired,
+              submarineSeaplaneAirControl,
+              submarineLosPriority,
+              mayaAaciPreferred,
             ).length > 0,
         )
         const canBuildShellSetup = failedGearFleets.some(
@@ -244,23 +310,32 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             buildGearSolutions(
               fleet,
               gearSearchContext,
-              airPowerRequired,
+              airPowerMinimum,
               fastPlusRequired,
               antiInstallationShellCount,
+              antiInstallationSurfaceCount,
               nightCarrierRequired,
               0,
+              flexibleCarrierAirPriority,
               drumCanisterCarrierCount,
+              bbvSeaplaneLosPriority,
+              bbvSeaplaneAirPriority,
+              surfaceSeaplaneAirPriority,
+              losRequired,
+              submarineSeaplaneAirControl,
+              submarineLosPriority,
+              mayaAaciPreferred,
             ).length > 0,
         )
         if (
-          antiInstallationShellCount > 0 &&
+          (antiInstallationShellCount > 0 || antiInstallationSurfaceCount > 0) &&
           canBuildWithoutAntiInstallation &&
           !canBuildShellSetup
         ) {
           antiInstallationRequirementFailed = true
           antiInstallationShellMinimum = Math.min(
             antiInstallationShellMinimum,
-            antiInstallationShellCount,
+            antiInstallationShellCount + antiInstallationSurfaceCount,
           )
         }
         if (antiInstallationCarrierCount > 0 && canBuildShellSetup) {
@@ -277,12 +352,21 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             buildGearSolutions(
               fleet,
               gearSearchContext,
-              airPowerRequired,
+              airPowerMinimum,
               fastPlusRequired,
               antiInstallationShellCount,
+              antiInstallationSurfaceCount,
               nightCarrierRequired,
               antiInstallationCarrierCount,
+              flexibleCarrierAirPriority,
               0,
+              bbvSeaplaneLosPriority,
+              bbvSeaplaneAirPriority,
+              surfaceSeaplaneAirPriority,
+              losRequired,
+              submarineSeaplaneAirControl,
+              submarineLosPriority,
+              mayaAaciPreferred,
             ).length > 0,
         )
       ) {
@@ -311,14 +395,19 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     }
   } else {
     searchRoutes({
-      minimumFleetCount: MIN_FLEETS_TO_EQUIP,
-      maximumFleetCount: MAX_FLEETS_TO_EQUIP,
-      successfulFleetTarget: SUCCESSFUL_FLEETS_PER_ROUTE,
+      minimumFleetCount: selectedRouteFastPath
+        ? SELECTED_ROUTE_MIN_FLEETS_TO_EQUIP
+        : MIN_FLEETS_TO_EQUIP,
+      maximumFleetCount: selectedRouteFastPath
+        ? SELECTED_ROUTE_MAX_FLEETS_TO_EQUIP
+        : MAX_FLEETS_TO_EQUIP,
+      successfulFleetTarget: selectedRouteFastPath
+        ? SELECTED_ROUTE_SUCCESSFUL_FLEETS_PER_ROUTE
+        : SUCCESSFUL_FLEETS_PER_ROUTE,
       diagnoseSpecialFailures: true,
     })
   }
 
-  const candidateLimit = Math.min(Math.max(Math.trunc(input.candidateLimit ?? 3), 3), 24)
   const keepGearVariants = candidateLimit > 3
   const seenFleets = new Set<string>()
   const rankedRecommendations = recommendationCandidates
@@ -460,6 +549,18 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     return {
       status: 'no-solution',
       analysis: { reasons },
+      diagnostics: {
+        routeCandidateCount: routes.length,
+        availableRouteCount: availableRoutes.length,
+        evaluatedFleetCandidateCount,
+        gearSolutionCount,
+        recommendationCandidateCount: recommendationCandidates.length,
+        bestAirPower,
+        airPowerMinimum: airMinimum,
+        bestOpeningAsw,
+        openingAswMinimum,
+        reasonCodes: [...new Set(reasons.map(({ code }) => code))],
+      },
       elapsedMs: Date.now() - startedAt,
       solverVersion: SOLVER_VERSION,
     }
@@ -468,6 +569,32 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   return {
     status: 'success',
     recommendations,
+    diagnostics: {
+      routeCandidateCount: routes.length,
+      availableRouteCount: availableRoutes.length,
+      evaluatedFleetCandidateCount,
+      gearSolutionCount,
+      recommendationCandidateCount: recommendationCandidates.length,
+      bestAirPower,
+      airPowerMinimum:
+        availableRoutes
+          .flatMap(({ route }) =>
+            route.calculatedConstraints
+              .filter((constraint) => constraint.kind === 'air-power')
+              .map((constraint) => constraint.minimum),
+          )
+          .sort((left, right) => left - right)[0] ?? null,
+      bestOpeningAsw,
+      openingAswMinimum:
+        availableRoutes
+          .flatMap(({ route }) =>
+            route.calculatedConstraints
+              .filter((constraint) => constraint.kind === 'opening-asw')
+              .map((constraint) => constraint.minimum),
+          )
+          .sort((left, right) => left - right)[0] ?? null,
+      reasonCodes: [],
+    },
     elapsedMs: Date.now() - startedAt,
     solverVersion: SOLVER_VERSION,
   }

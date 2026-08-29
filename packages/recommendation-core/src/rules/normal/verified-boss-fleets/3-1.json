@@ -1,0 +1,51 @@
+{
+  "area": "3-1",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/3-1/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "3-1-guide-cv2-cruiser-dd2",
+      "name": "攻略網・空母巡洋艦",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "F", "G"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "正規空母2、重巡1、雷巡1、駆逐2。攻略網掲載の最短編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 90,
+          "recommended": 90
+        }
+      ]
+    }
+  ]
+}

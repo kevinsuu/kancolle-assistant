@@ -14,9 +14,21 @@ import { arrangeSpecialAttack } from './special-attack'
 const FLEET_BEAM_WIDTH = 400
 const FLEET_CANDIDATES_PER_ROLE = 14
 const SPEED_GEAR_MASTER_IDS = new Set([33, 34, 87])
+const SEAPLANE_TYPE_IDS = new Set([10, 11, 45])
+const RADAR_TYPE_IDS = new Set([12, 13, 51, 93])
+const AIR_POWER_EQUIPMENT_TYPE_IDS = new Set([6, 7, 8, 11, 45, 56, 57, 58, 91])
 
 interface FastPlusCandidateProfile {
   readonly regularSlotsUsed: number
+}
+
+interface RouteSupportProfile {
+  readonly airPowerPotential: number
+  readonly seaplaneAirPowerPotential: number
+  readonly seaplaneLosPotential: number
+  readonly submarineLosPotential: number
+  readonly compatibleSeaplaneCount: number
+  readonly compatibleSubmarineLosCount: number
 }
 
 interface RankedShipCandidate {
@@ -29,9 +41,73 @@ const fastPlusProfileCache = new WeakMap<
   AccountSnapshot,
   Map<number, FastPlusCandidateProfile | null>
 >()
+const routeSupportProfileCache = new WeakMap<AccountSnapshot, Map<number, RouteSupportProfile>>()
 
 const shipSignature = (members: readonly FleetMember[]): string =>
   members.map((member) => member.ship.id).join('-')
+
+const gearAirPowerForSlot = (
+  gear: AccountSnapshot['equipment'][number],
+  slotSize: number,
+): number => gear.airPowerBySlotSize[String(slotSize)] ?? 0
+
+const shipRouteSupportProfile = (
+  ship: OwnedShip,
+  account: AccountSnapshot,
+): RouteSupportProfile => {
+  let accountCache = routeSupportProfileCache.get(account)
+  if (!accountCache) {
+    accountCache = new Map<number, RouteSupportProfile>()
+    routeSupportProfileCache.set(account, accountCache)
+  }
+  const cached = accountCache.get(ship.id)
+  if (cached) return cached
+
+  const regularMasterIds = new Set(ship.regularEquipableMasterIds)
+  const compatibleEquipment = account.equipment.filter((gear) =>
+    regularMasterIds.has(gear.masterId),
+  )
+  const compatibleSeaplanes = compatibleEquipment.filter((gear) =>
+    SEAPLANE_TYPE_IDS.has(gear.typeId),
+  )
+  const compatibleSubmarineLosEquipment = compatibleEquipment.filter(
+    (gear) => SEAPLANE_TYPE_IDS.has(gear.typeId) || RADAR_TYPE_IDS.has(gear.typeId),
+  )
+  const compatibleAirPowerGear = compatibleEquipment.filter((gear) =>
+    AIR_POWER_EQUIPMENT_TYPE_IDS.has(gear.typeId),
+  )
+  const positiveSlots = ship.slotSizes.filter((slotSize) => slotSize > 0)
+  const airPowerPotential = positiveSlots.reduce(
+    (total, slotSize) =>
+      total +
+      Math.max(0, ...compatibleAirPowerGear.map((gear) => gearAirPowerForSlot(gear, slotSize))),
+    0,
+  )
+  const seaplaneAirPowerPotential = positiveSlots.reduce(
+    (total, slotSize) =>
+      total +
+      Math.max(0, ...compatibleSeaplanes.map((gear) => gearAirPowerForSlot(gear, slotSize))),
+    0,
+  )
+  const bestSeaplaneLos = Math.max(
+    0,
+    ...compatibleSeaplanes.map((gear) => gear.stats.los + gear.losImprovement),
+  )
+  const bestSubmarineLos = Math.max(
+    0,
+    ...compatibleSubmarineLosEquipment.map((gear) => gear.stats.los + gear.losImprovement),
+  )
+  const profile = {
+    airPowerPotential,
+    seaplaneAirPowerPotential,
+    seaplaneLosPotential: bestSeaplaneLos * positiveSlots.length,
+    submarineLosPotential: bestSubmarineLos * positiveSlots.length,
+    compatibleSeaplaneCount: compatibleSeaplanes.length,
+    compatibleSubmarineLosCount: compatibleSubmarineLosEquipment.length,
+  }
+  accountCache.set(ship.id, profile)
+  return profile
+}
 
 const resourceGearKindsForShip = (ship: OwnedShip, account: AccountSnapshot): ReadonlySet<string> =>
   new Set(
@@ -138,6 +214,7 @@ const candidateShipScore = (
   objective: RecommendationObjective,
   account: AccountSnapshot,
   fastPlusProfile: FastPlusCandidateProfile | null,
+  route: RouteTemplate,
 ): number => {
   const level = Math.min(ship.level, 180) / 1.8
   const survival = ship.stats.hp * 0.8 + ship.stats.armor + ship.stats.evasion * 0.45
@@ -153,17 +230,68 @@ const candidateShipScore = (
     roleFit = ship.stats.los * 0.8 + ship.stats.torpedo * 0.7 + ship.stats.luck * 0.35
   }
 
+  const supportProfile = shipRouteSupportProfile(ship, account)
+  const positiveSlotCount = ship.slotSizes.filter((slotSize) => slotSize > 0).length
+  const totalSlotSize = ship.slotSizes.reduce((total, slotSize) => total + slotSize, 0)
+  const airPowerRequired = route.calculatedConstraints.some(
+    (constraint) => constraint.kind === 'air-power',
+  )
+  const losRequired = route.calculatedConstraints.some((constraint) => constraint.kind === 'los')
+  const seaplaneLosPriority = route.tags.includes('bbv-seaplane-los-priority')
+  let routeFit = 0
+  if (seaplaneLosPriority && ship.shipTypeId === 10) {
+    routeFit += ship.slotSizes.length * 120 + positiveSlotCount * 40 + totalSlotSize * 1.2
+    routeFit += supportProfile.compatibleSeaplaneCount > 0 ? 180 : -250
+    if (airPowerRequired) routeFit += Math.min(supportProfile.seaplaneAirPowerPotential, 180) * 0.75
+    if (losRequired)
+      routeFit += ship.nakedLos * 0.6 + Math.min(supportProfile.seaplaneLosPotential, 100)
+  } else {
+    if (airPowerRequired && role === 'carrier-air-superiority') {
+      routeFit += Math.min(supportProfile.airPowerPotential, 360) * 0.25
+    }
+    if (airPowerRequired && [6, 10, 16].includes(ship.shipTypeId)) {
+      routeFit += Math.min(supportProfile.seaplaneAirPowerPotential, 160) * 0.35
+    }
+    if (losRequired && ['main-battleship', 'utility-cruiser'].includes(role)) {
+      routeFit += ship.nakedLos * 0.25 + Math.min(supportProfile.seaplaneLosPotential, 80) * 0.4
+    }
+    if (route.tags.includes('submarine-seaplane-air-control') && role === 'submarine') {
+      routeFit += ship.slotSizes.length * 110 + positiveSlotCount * 55 + totalSlotSize * 0.9
+      routeFit += Math.min(supportProfile.seaplaneAirPowerPotential, 160) * 0.7
+      routeFit += supportProfile.compatibleSeaplaneCount > 0 ? 180 : -300
+    }
+    if (route.tags.includes('submarine-los-priority') && role === 'submarine') {
+      routeFit += positiveSlotCount * 120 + totalSlotSize * 0.8
+      routeFit += Math.min(supportProfile.submarineLosPotential, 140) * 1.1
+      routeFit += supportProfile.compatibleSubmarineLosCount > 0 ? 220 : -350
+    }
+    if (route.tags.includes('guide-prefer-maya-aaci') && isMayaClassAntiAirCandidate(ship)) {
+      routeFit += 1600 + ship.stats.antiAir * 4
+    }
+  }
+
   const speedBurden = fastPlusBurdenPenalty(ship, role, fastPlusProfile)
   if (objective === 'boss-clear') {
-    return roleFit * 0.55 + offense * 0.3 + survival * 0.1 + level - speedBurden
+    return roleFit * 0.55 + routeFit + offense * 0.3 + survival * 0.1 + level - speedBurden
   }
   if (objective === 'low-cost') {
     return (
-      roleFit * 0.4 + survival * 0.25 + level - (ship.fuelCost + ship.ammoCost) * 0.65 - speedBurden
+      roleFit * 0.4 +
+      routeFit +
+      survival * 0.25 +
+      level -
+      (ship.fuelCost + ship.ammoCost) * 0.65 -
+      speedBurden
     )
   }
   if (objective === 'leveling') {
-    return roleFit * 0.2 + survival * 0.1 + (180 - Math.min(ship.level, 180)) * 1.5 - speedBurden
+    return (
+      roleFit * 0.2 +
+      routeFit +
+      survival * 0.1 +
+      (180 - Math.min(ship.level, 180)) * 1.5 -
+      speedBurden
+    )
   }
   if (objective.startsWith('resource-')) {
     const resourceGearKinds = new Set(
@@ -178,6 +306,7 @@ const candidateShipScore = (
           : 0
     return (
       roleFit * 0.15 +
+      routeFit +
       survival * 0.1 +
       transportFit +
       180 -
@@ -185,14 +314,17 @@ const candidateShipScore = (
       speedBurden
     )
   }
-  return roleFit * 0.45 + survival * 0.25 + offense * 0.15 + level - speedBurden
+  return roleFit * 0.45 + routeFit + survival * 0.25 + offense * 0.15 + level - speedBurden
 }
 
 const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
-  if (
-    route.tags.some((tag) => ['asw', 'oasw'].includes(tag)) &&
-    [1, 2, 3, 21].includes(ship.shipTypeId)
-  ) {
+  const openingAswRequired = route.calculatedConstraints.some(
+    (constraint) => constraint.kind === 'opening-asw',
+  )
+  const antiSubmarineLoadoutRequired =
+    route.tags.includes('asw-loadout') ||
+    (openingAswRequired && route.tags.some((tag) => ['asw', 'oasw'].includes(tag)))
+  if (antiSubmarineLoadoutRequired && [1, 2, 3, 21].includes(ship.shipTypeId)) {
     return 'anti-submarine'
   }
   const needsResourceEquipment = route.tags.some((tag) =>
@@ -210,6 +342,27 @@ const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
   return 'wildcard'
 }
 
+const normalizeShipNameForMatch = (name: string): string =>
+  name
+    .normalize('NFKC')
+    .replace(/黒/g, '黑')
+    .replace(/蔵/g, '藏')
+    .replace(/奥/g, '奧')
+    .replace(/陆/g, '陸')
+
+const isMayaClassAntiAirCandidate = (ship: OwnedShip): boolean =>
+  /摩耶|Maya/i.test(normalizeShipNameForMatch(ship.name))
+
+const shipMatchesNameConstraint = (
+  shipName: string,
+  constraintNames: readonly string[],
+): boolean => {
+  const normalizedShipName = normalizeShipNameForMatch(shipName)
+  return constraintNames.some((name) =>
+    normalizedShipName.includes(normalizeShipNameForMatch(name)),
+  )
+}
+
 const satisfiesFleetConstraints = (
   members: readonly FleetMember[],
   route: RouteTemplate,
@@ -218,7 +371,7 @@ const satisfiesFleetConstraints = (
     if (constraint.kind === 'ship-count') return members.length === constraint.exact
     if (constraint.kind === 'specific-ship-name') {
       const count = members.filter((member) =>
-        constraint.names.some((name) => member.ship.name.includes(name)),
+        shipMatchesNameConstraint(member.ship.name, constraint.names),
       ).length
       return count >= constraint.min
     }
@@ -253,9 +406,9 @@ const requiredConstraintBonus = (
   route.fleetConstraints.reduce((bonus, constraint) => {
     if (constraint.kind === 'specific-ship-name') {
       const current = members.filter((member) =>
-        constraint.names.some((name) => member.ship.name.includes(name)),
+        shipMatchesNameConstraint(member.ship.name, constraint.names),
       ).length
-      const matches = constraint.names.some((name) => ship.name.includes(name))
+      const matches = shipMatchesNameConstraint(ship.name, constraint.names)
       return bonus + (current < constraint.min && matches ? 2000 : 0)
     }
     if (constraint.kind !== 'ship-type-count') return bonus
@@ -283,10 +436,10 @@ const canStillSatisfyFleetConstraints = (
     if (constraint.kind === 'ship-count') return true
     if (constraint.kind === 'specific-ship-name') {
       const current = members.filter((member) =>
-        constraint.names.some((name) => member.ship.name.includes(name)),
+        shipMatchesNameConstraint(member.ship.name, constraint.names),
       ).length
       const available = remainingCandidates.filter(({ ship }) =>
-        constraint.names.some((name) => ship.name.includes(name)),
+        shipMatchesNameConstraint(ship.name, constraint.names),
       ).length
       return current + Math.min(remainingSlots, available) >= constraint.min
     }
@@ -307,6 +460,7 @@ const genericCandidatePool = (
   route: RouteTemplate,
   objective: RecommendationObjective,
 ): readonly RankedShipCandidate[] => {
+  const fastRequired = route.tags.includes('fast')
   const fastPlusRequired = route.tags.includes('fast+')
   const ranked = account.ships
     .map((ship) => ({
@@ -316,13 +470,14 @@ const genericCandidatePool = (
     }))
     .filter(
       ({ ship, role, fastPlusProfile }) =>
+        (!fastRequired || ship.speed !== 'slow') &&
         (!fastPlusRequired || fastPlusProfile !== null) &&
         (role !== 'resource-carrier' || resourceGearKindsForShip(ship, account).size > 0),
     )
     .map(({ ship, role, fastPlusProfile }) => ({
       ship,
       role,
-      score: candidateShipScore(ship, role, objective, account, fastPlusProfile),
+      score: candidateShipScore(ship, role, objective, account, fastPlusProfile, route),
     }))
     .sort((left, right) => right.score - left.score || left.ship.id - right.ship.id)
   const byType = new Map<number, number>()
@@ -331,7 +486,7 @@ const genericCandidatePool = (
     const isNamedRequirement = route.fleetConstraints.some(
       (constraint) =>
         constraint.kind === 'specific-ship-name' &&
-        constraint.names.some((name) => ship.name.includes(name)),
+        shipMatchesNameConstraint(ship.name, constraint.names),
     )
     if (count >= FLEET_CANDIDATES_PER_ROLE && !isNamedRequirement) return false
     byType.set(ship.shipTypeId, count + 1)
@@ -410,10 +565,11 @@ export const analyzeFleetAvailability = (
   route: RouteTemplate,
 ): readonly UnsatisfiedRequirement[] => {
   const reasons: UnsatisfiedRequirement[] = []
+  const fastRequired = route.tags.includes('fast')
   route.fleetConstraints.forEach((constraint) => {
     if (constraint.kind === 'specific-ship-name') {
       const count = account.ships.filter((ship) =>
-        constraint.names.some((name) => ship.name.includes(name)),
+        shipMatchesNameConstraint(ship.name, constraint.names),
       ).length
       if (count < constraint.min) {
         reasons.push({
@@ -421,6 +577,18 @@ export const analyzeFleetAvailability = (
           message: `此路線需要 ${constraint.names.join('/')}，目前帳號缺少可用艦。`,
           values: { names: constraint.names.join('/') },
         })
+      }
+      if (fastRequired) {
+        const fastCount = account.ships.filter(
+          (ship) => ship.speed !== 'slow' && shipMatchesNameConstraint(ship.name, constraint.names),
+        ).length
+        if (count >= constraint.min && fastCount < constraint.min) {
+          reasons.push({
+            code: 'FLEET_SPEED_INSUFFICIENT',
+            message: `此路線需要全高速，但符合 ${constraint.names.join('/')} 的高速艦只有 ${fastCount} 艘，需要 ${constraint.min} 艘。`,
+            values: { count: fastCount, minimum: constraint.min },
+          })
+        }
       }
       return
     }
@@ -436,6 +604,19 @@ export const analyzeFleetAvailability = (
         message: `符合艦種條件的艦娘只有 ${count} 艘，需要 ${minimum} 艘。`,
         values: { count, minimum },
       })
+      return
+    }
+    if (fastRequired) {
+      const fastCount = account.ships.filter(
+        (ship) => ship.speed !== 'slow' && constraint.shipTypeIds.includes(ship.shipTypeId),
+      ).length
+      if (fastCount < minimum) {
+        reasons.push({
+          code: 'FLEET_SPEED_INSUFFICIENT',
+          message: `此路線需要全高速，但符合艦種條件的高速艦只有 ${fastCount} 艘，需要 ${minimum} 艘。`,
+          values: { count: fastCount, minimum },
+        })
+      }
     }
   })
   return reasons

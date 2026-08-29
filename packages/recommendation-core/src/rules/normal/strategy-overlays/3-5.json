@@ -1,0 +1,468 @@
+{
+  "area": "3-5",
+  "sources": ["https://m.kcwiki.cn/wiki/%E5%8C%97%E6%96%B9%E6%B5%B7%E5%9F%9F/3-5"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "3-5-true-south",
+      "name": "KCWiki｜下路1CL/AV+5DD",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "K"],
+      "stableBoss": true,
+      "tags": ["los-cn4-28", "fixed-route"],
+      "desc": "軽巡/水母1、駆逐5。下路固定、Cn4索敵28+。制空35/69は手動配装の目安で、到達条件としては強制しない。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8C%97%E6%96%B9%E6%B5%B7%E5%9F%9F/3-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 },
+        { "type": "ExactShipTypeCount", "stypes": [3, 16], "value": 1 }
+      ],
+      "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+    },
+    {
+      "id": "3-5-newbie-lower-smoke",
+      "name": "Yui・新手下路",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "K"],
+      "stableBoss": true,
+      "tags": ["los-cn4-28", "fixed-route", "smoke-screen"],
+      "desc": "軽巡1、駆逐5。Yui新手下路、Gマスは煙幕推奨、Cn4索敵28+。制空1+は推奨値として扱い、到達条件としては強制しない。",
+      "sources": ["https://yuikancolle.blog.fc2.com/blog-entry-183.html"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
+      ],
+      "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+    },
+    {
+      "id": "3-5-torpedo-squadron",
+      "name": "精鋭水雷戦隊",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "K"],
+      "stableBoss": true,
+      "tags": ["los-cn4-28", "fixed-route", "elite-torpedo-squadron-command-facility"],
+      "desc": "旗艦軽巡1、駆逐5。精鋭水雷戦隊司令部、夜瑞雲/瑞雲の制空1+は推奨値として扱い、到達条件としては強制しない。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E5%8C%97%E6%96%B9%E6%B5%B7%E5%9F%9F/3-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-183.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
+      ],
+      "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+    },
+    {
+      "id": "3-5-kcwiki-lower-yahagi",
+      "name": "KCWiki｜下路矢矧水雷魂",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "K"],
+      "stableBoss": true,
+      "tags": ["los-cn4-28", "fixed-route", "elite-torpedo-squadron-command-facility", "aaci"],
+      "desc": "矢矧改二乙1、駆逐5。Cn4索敵28+。水戦、対空CI2隻、旗艦の精鋭水雷戦隊司令部は手動配装推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        {
+          "type": "ContainsShipName",
+          "names": ["矢矧改二乙", "Yahagi Kai Ni B", "Yahagi Kai Ni Otsu"],
+          "count": 1
+        },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
+      ],
+      "calculated": [{ "kind": "los", "coefficient": 4, "minimum": 28 }]
+    },
+    {
+      "id": "3-5-kcwiki-lower-nisshin",
+      "name": "KCWiki｜下路日進水雷魂",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "K"],
+      "stableBoss": true,
+      "tags": ["los-cn4-28", "fixed-route", "seaplane-air-control"],
+      "desc": "日進1、駆逐5。Cn4索敵28+、制空35/69。日進は旗艦の主砲2・瑞雲・甲標的、または6番艦の瑞雲3・甲標的を手動配装推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ContainsShipName", "names": ["日進", "日进", "Nisshin"], "count": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [16], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 5 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-upper-3cv",
+      "name": "KCWiki｜上路大船北方流（3CV）",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "upper-route",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "los-cn4-40"
+      ],
+      "desc": "正規/装甲空母3、重巡/航巡/雷巡3。Hマス最終形態の航空優勢381+（推奨395+）、Cn4索敵40+。旗艦巡洋艦の三式弾と空母の対地艦爆を優先。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [4, 5, 6], "value": 3 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 381, "recommended": 395 },
+        { "kind": "los", "coefficient": 4, "minimum": 40 }
+      ]
+    },
+    {
+      "id": "3-5-upper-carrier-guide",
+      "name": "KCWiki + 攻略網｜上路潛艇北方流",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-primary",
+        "fixed-route",
+        "upper-route",
+        "anti-installation",
+        "los-cn4-40"
+      ],
+      "desc": "正規/装甲空母3、重巡/航巡1、潜水/潜母2。BDHK固定、Hマス航空優勢420+、Cn4索敵40+。潜水艦の応急修理/回避装備は手動推奨。",
+      "lastVerified": "2026-08-29",
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/3-5/",
+        "https://m.kcwiki.cn/wiki/%E5%8C%97%E6%96%B9%E6%B5%B7%E5%9F%9F/3-5"
+      ],
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [5, 6, 11, 13, 14, 18], "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [13, 14], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 420, "recommended": 420 },
+        { "kind": "los", "coefficient": 4, "minimum": 40 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-upper-maya-submarines",
+      "name": "KCWiki｜上路潛艇北方流之亞棍之棍",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "upper-route",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "los-cn4-40",
+        "aaci",
+        "guide-prefer-maya-aaci"
+      ],
+      "desc": "摩耶1、潜水/潜母2、正規/装甲空母3。航空優勢381+（推奨395+）、Cn4索敵40+。摩耶のAtlanta砲対空CIと三式弾連撃、潜水艦のダメコンは手動配装推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ContainsShipName", "names": ["摩耶", "Maya"], "count": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [13, 14], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 381, "recommended": 395 },
+        { "kind": "los", "coefficient": 4, "minimum": 40 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-upper-nelson-touch",
+      "name": "KCWiki｜上路Nelson Touch",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "upper-route",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "los-cn4-40",
+        "special-attack",
+        "special-attack-modeled"
+      ],
+      "desc": "Nelson改1、正規/装甲空母2、重巡/航巡/雷巡3。Hマス複縦陣Nelson Touch、航空優勢381+（推奨395+）、Cn4索敵40+。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        {
+          "type": "ContainsShipName",
+          "names": ["Nelson改", "Nelson Kai", "ネルソン改"],
+          "count": 1
+        },
+        { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [4, 5, 6], "value": 3 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 381, "recommended": 395 },
+        { "kind": "los", "coefficient": 4, "minimum": 40 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-upper-bb2cv",
+      "name": "KCWiki｜上路大船北方流",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "upper-route",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "los-cn4-40"
+      ],
+      "desc": "戦艦1、正規/装甲空母2、重巡/航巡/雷巡3。航空優勢381+（推奨395+）、Cn4索敵40+。戦艦は徹甲弾、巡洋艦は三式弾を手動調整。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [8, 9, 10, 12], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [4, 5, 6], "value": 3 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 381, "recommended": 395 },
+        { "kind": "los", "coefficient": 4, "minimum": 40 }
+      ]
+    },
+    {
+      "id": "3-5-newbie-upper-cav3",
+      "name": "Yui・新手上路",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "upper-route",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "los-cn4-40",
+        "smoke-screen",
+        "aaci",
+        "guide-prefer-maya-aaci",
+        "submarine-seaplane-air-control"
+      ],
+      "desc": "空母3、摩耶級対空重巡を優先する重巡/航巡1、潜水/潜母2。Yui新手上路、Hマスは煙幕推奨、制空420+、Cn4索敵40+。",
+      "lastVerified": "2026-08-29",
+      "sources": ["https://yuikancolle.blog.fc2.com/blog-entry-183.html"],
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [5, 6], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [13, 14], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 420, "recommended": 420 },
+        { "kind": "los", "coefficient": 4, "minimum": 40 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-cav3cl2dd",
+      "name": "KCWiki｜下路1CAV+3CL+2DD",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["F-G-K / B-C-F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "routing-f-e-25", "los-cn4-28", "seaplane-air-control"],
+      "desc": "航巡1、軽巡3、駆逐2。Cn4索敵28+、制空35/69。出撃時50%でB、航巡によりF→Eへ25%転進する可能性あり。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-cav2cl-flex",
+      "name": "KCWiki｜下路1CAV+2CL+3自由",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["F-G-K / B-C-F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "routing-f-e-25", "los-cn4-28", "seaplane-air-control"],
+      "desc": "航巡1、軽巡2以上、自由3（水母/練巡/軽巡/雷巡/駆逐）。Cn4索敵28+、制空35/69。航巡によりF→Eへ25%転進する可能性あり。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [2, 3, 4, 6, 16, 21], "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [6], "value": 1 },
+        { "type": "ShipTypeCount", "stypes": [3], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-cl2-av2-flex",
+      "name": "KCWiki｜下路2CL+2AV+2自由",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["F-G-K / B-C-F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "los-cn4-28", "seaplane-air-control"],
+      "desc": "軽巡2以上、水母2以上、自由2（水母/練巡/軽巡/雷巡/駆逐）。Cn4索敵28+、制空35/69。出撃時はB/Fランダム。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [2, 3, 4, 16, 21], "value": 6 },
+        { "type": "ShipTypeCount", "stypes": [3], "value": 2 },
+        { "type": "ShipTypeCount", "stypes": [16], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-yubari-clt",
+      "name": "KCWiki｜下路夕張5開幕雷",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "C", "F", "G", "K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "fixed-start-b", "los-cn4-28", "seaplane-air-control", "aaci"],
+      "desc": "夕張改二特、軽巡1、雷巡1、水母2、駆逐1。雷巡によりBCFGK、Cn4索敵28+、制空35/69。全員の甲標的と駆逐対空CIは手動配装推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        {
+          "type": "ContainsShipName",
+          "names": ["夕張改二特", "夕张改二特", "Yubari Kai Ni Toku"],
+          "count": 1
+        },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [16], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 1 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-opening-torpedo-six",
+      "name": "KCWiki｜下路6開幕雷更新流",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["F-G-K / B-C-F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "los-cn4-28", "seaplane-air-control"],
+      "desc": "軽巡2、水母3、水母/駆逐1。Cn4索敵28+、制空35/69。出撃時B/Fランダム、F開始までの再出撃と全員甲標的は手動運用。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+        { "type": "ShipTypeCount", "stypes": [16], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [2, 16], "value": 4 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-hayasui",
+      "name": "KCWiki｜下路速吸改+2CL+2AV+1自由",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B-C-F-G-K / F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "los-cn4-28", "seaplane-air-control"],
+      "desc": "速吸改1、軽巡2以上、水母2以上、自由1（水母/練巡/軽巡/雷巡/駆逐）。Cn4索敵28+、制空35/69。速吸旗艦と射撃回避艦攻は手動推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ContainsShipName", "names": ["速吸改", "Hayasui Kai"], "count": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [2, 3, 4, 16, 21, 22], "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [22], "value": 1 },
+        { "type": "ShipTypeCount", "stypes": [3], "value": 2 },
+        { "type": "ShipTypeCount", "stypes": [16], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-hayasui-yamashio",
+      "name": "KCWiki｜下路速吸改+山汐丸",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B-C-F-G-K / F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "los-cn4-28", "seaplane-air-control"],
+      "desc": "速吸改、山汐丸、軽巡2、水母2。Cn4索敵28+、制空35/69。長射程速吸、射撃回避艦攻/瑞雲と4開幕雷は手動配装推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ContainsShipName", "names": ["速吸改", "Hayasui Kai"], "count": 1 },
+        { "type": "ContainsShipName", "names": ["山汐丸", "Yamashio Maru"], "count": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [22], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [16], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    },
+    {
+      "id": "3-5-kcwiki-lower-yamashio-av3",
+      "name": "KCWiki｜下路山汐丸+3AV+2CL",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B-C-F-G-K / F-G-K"],
+      "stableBoss": true,
+      "tags": ["random-routing", "los-cn4-28", "seaplane-air-control"],
+      "desc": "山汐丸1、水母3、軽巡2。Cn4索敵28+、制空35/69。全員の航空戦/先制雷撃と山汐丸の長射程化は手動配装推奨。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ContainsShipName", "names": ["山汐丸", "Yamashio Maru"], "count": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [22], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [16], "value": 3 },
+        { "type": "ExactShipTypeCount", "stypes": [3], "value": 2 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 35, "recommended": 69 },
+        { "kind": "los", "coefficient": 4, "minimum": 28 }
+      ]
+    }
+  ]
+}

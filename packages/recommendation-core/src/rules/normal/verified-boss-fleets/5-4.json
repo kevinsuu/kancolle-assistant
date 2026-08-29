@@ -1,0 +1,51 @@
+{
+  "area": "5-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/5-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "5-4-guide-fbb2-cav2-dd2",
+      "name": "攻略網・上路夜戦",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "E", "H", "I", "J", "M", "P"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "fast", "night-battle"],
+      "desc": "高速戦艦2、航巡2、駆逐2。攻略網掲載の上ルート編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 63,
+          "recommended": 63
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 45
+        }
+      ]
+    }
+  ]
+}

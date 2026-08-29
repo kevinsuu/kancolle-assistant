@@ -1,0 +1,56 @@
+{
+  "area": "5-1",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/5-1/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "5-1-guide-bb-cvl-ca-cl-dd2",
+      "name": "攻略網・戦艦軽空母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "C", "F", "J"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route"],
+      "desc": "戦艦1、軽空母1、重巡1、軽巡1、駆逐2。攻略網掲載の固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 130,
+          "recommended": 130
+        }
+      ]
+    }
+  ]
+}

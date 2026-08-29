@@ -1,0 +1,56 @@
+{
+  "area": "7-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/7-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "7-4-guide-bbv-cruisers-escort",
+      "name": "攻略網・初攻略混成",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "oasw", "lbas"],
+      "desc": "航戦1、重巡1、雷巡1、駆逐2、海防1。基地航空隊と先制対潜前提。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 37
+        }
+      ]
+    }
+  ]
+}

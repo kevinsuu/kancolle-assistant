@@ -11,11 +11,13 @@ export const RESOURCE_LEDGER_KEYS = [
 
 export type ResourceLedgerKey = (typeof RESOURCE_LEDGER_KEYS)[number]
 export type ResourceLedgerRange = 'today' | 'yesterday' | 'rolling24'
+export type ResourceLedgerGranularity = 'minute' | 'fiveMinute' | 'thirtyMinute' | 'hourly'
 export type ResourceLedgerValues = Readonly<Record<ResourceLedgerKey, number>>
 export type NullableResourceLedgerValues = Readonly<Record<ResourceLedgerKey, number | null>>
 
 export interface ResourceLedgerRecord {
   readonly hour: number
+  readonly minute?: number
   readonly type: string
   readonly data: readonly number[]
 }
@@ -41,6 +43,8 @@ export interface ResourceLedgerSnapshot extends ResourceLedgerWindow {
 
 export interface ResourceLedgerBucket {
   readonly hour: number
+  readonly startMinute: number
+  readonly endMinuteExclusive: number
   readonly gained: ResourceLedgerValues
   readonly spent: ResourceLedgerValues
   readonly net: ResourceLedgerValues
@@ -64,6 +68,10 @@ export interface ResourceLedgerSummary {
     readonly end: string
     readonly timeZone: 'Asia/Tokyo'
   }
+  readonly granularity: {
+    readonly key: ResourceLedgerGranularity
+    readonly minutes: number
+  }
   readonly summary: Readonly<
     Record<
       ResourceLedgerKey,
@@ -79,13 +87,22 @@ export interface ResourceLedgerSummary {
   readonly hours: readonly ResourceLedgerBucket[]
   readonly inventoryHours: readonly {
     readonly hour: number
+    readonly startMinute: number
+    readonly endMinuteExclusive: number
     readonly values: NullableResourceLedgerValues
     readonly label: string
   }[]
 }
 
+const MINUTE_MS = 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
 const JST_OFFSET_MS = 9 * HOUR_MS
+const GRANULARITY_MINUTES: Readonly<Record<ResourceLedgerGranularity, number>> = {
+  minute: 1,
+  fiveMinute: 5,
+  thirtyMinute: 30,
+  hourly: 60,
+}
 const RESOURCE_INDEXES: Readonly<Record<ResourceLedgerKey, number>> = {
   fuel: 0,
   ammo: 1,
@@ -158,6 +175,9 @@ const asNumber = (value: unknown, path: string): number => {
   return value
 }
 
+const asOptionalNumber = (value: unknown, path: string): number | undefined =>
+  typeof value === 'undefined' ? undefined : asNumber(value, path)
+
 const asString = (value: unknown, path: string): string => {
   if (typeof value !== 'string') throw new Error(`${path} 必須是字串`)
   return value
@@ -203,6 +223,7 @@ export const parseKC3ResourceLedgerSnapshot = (value: unknown): ResourceLedgerSn
       const raw = asRecord(item, `snapshot.records[${index}]`)
       return {
         hour: asNumber(raw.hour, `snapshot.records[${index}].hour`),
+        minute: asOptionalNumber(raw.minute, `snapshot.records[${index}].minute`),
         type: asString(raw.type, `snapshot.records[${index}].type`),
         data: asArray(raw.data, `snapshot.records[${index}].data`).map((entry, itemIndex) =>
           asNumber(entry, `snapshot.records[${index}].data[${itemIndex}]`),
@@ -242,52 +263,70 @@ const sourceCategory = (type: string): string => {
   return 'other'
 }
 
+export const normalizeResourceLedgerGranularity = (
+  value: unknown,
+): ResourceLedgerGranularity | null => {
+  if (
+    value === 'minute' ||
+    value === 'fiveMinute' ||
+    value === 'thirtyMinute' ||
+    value === 'hourly'
+  ) {
+    return value
+  }
+  return null
+}
+
 export const summarizeResourceLedger = ({
   snapshot,
   range,
   now,
+  granularity = 'hourly',
 }: {
   readonly snapshot: ResourceLedgerSnapshot
   readonly range: ResourceLedgerRange
   readonly now: number
+  readonly granularity?: ResourceLedgerGranularity
 }): ResourceLedgerSummary => {
-  const hourly = new Map<
+  const normalizedGranularity = normalizeResourceLedgerGranularity(granularity) || 'hourly'
+  const bucketMinutes = GRANULARITY_MINUTES[normalizedGranularity]
+  const startMinute = snapshot.startHour * 60
+  const hourlyEndMinute = snapshot.endHourExclusive * 60
+  const currentMinute = Math.floor(now / MINUTE_MS)
+  const endMinuteExclusive =
+    normalizedGranularity === 'hourly' || range === 'yesterday'
+      ? hourlyEndMinute
+      : Math.min(hourlyEndMinute, currentMinute + 1)
+  const buckets = new Map<
     number,
     {
       hour: number
+      startMinute: number
+      endMinuteExclusive: number
       gained: Record<ResourceLedgerKey, number>
       spent: Record<ResourceLedgerKey, number>
       net: Record<ResourceLedgerKey, number>
     }
   >()
-  for (let hour = snapshot.startHour; hour < snapshot.endHourExclusive; hour += 1) {
-    hourly.set(hour, { hour, gained: emptyValues(), spent: emptyValues(), net: emptyValues() })
+  for (let minute = startMinute; minute < endMinuteExclusive; minute += bucketMinutes) {
+    buckets.set(minute, {
+      hour: Math.floor(minute / 60),
+      startMinute: minute,
+      endMinuteExclusive: Math.min(minute + bucketMinutes, endMinuteExclusive),
+      gained: emptyValues(),
+      spent: emptyValues(),
+      net: emptyValues(),
+    })
   }
 
-  snapshot.records.forEach((record) => {
-    const bucket = hourly.get(record.hour)
-    if (!bucket) return
-    RESOURCE_LEDGER_KEYS.forEach((key) => {
-      const value = Number(record.data[RESOURCE_INDEXES[key]]) || 0
-      if (value > 0) bucket.gained[key] += value
-      if (value < 0) bucket.spent[key] += Math.abs(value)
-      bucket.net[key] += value
-    })
-  })
-
-  const summary = Object.fromEntries(
-    RESOURCE_LEDGER_KEYS.map((key) => {
-      const values = [...hourly.values()].reduce(
-        (total, item) => ({
-          gained: total.gained + item.gained[key],
-          spent: total.spent + item.spent[key],
-          net: total.net + item.net[key],
-        }),
-        { gained: 0, spent: 0, net: 0 },
-      )
-      return [key, { ...values, current: snapshot.current[key] }]
-    }),
-  ) as ResourceLedgerSummary['summary']
+  const bucketStartForRecord = (record: ResourceLedgerRecord): number | null => {
+    const recordMinute =
+      typeof record.minute === 'number' && Number.isFinite(record.minute)
+        ? record.minute
+        : record.hour * 60
+    if (recordMinute < startMinute || recordMinute >= endMinuteExclusive) return null
+    return startMinute + Math.floor((recordMinute - startMinute) / bucketMinutes) * bucketMinutes
+  }
 
   const sourceMap = new Map<
     string,
@@ -299,7 +338,18 @@ export const summarizeResourceLedger = ({
       net: Record<ResourceLedgerKey, number>
     }
   >()
+  const summaryTotals = Object.fromEntries(
+    RESOURCE_LEDGER_KEYS.map((key) => [key, { gained: 0, spent: 0, net: 0 }]),
+  ) as Record<ResourceLedgerKey, { gained: number; spent: number; net: number }>
+  let visibleEntryCount = 0
+
   snapshot.records.forEach((record) => {
+    const bucketStart = bucketStartForRecord(record)
+    if (bucketStart === null) return
+    const bucket = buckets.get(bucketStart)
+    if (!bucket) return
+    visibleEntryCount += 1
+
     const key = sourceCategory(record.type)
     if (!sourceMap.has(key)) {
       sourceMap.set(key, {
@@ -318,8 +368,21 @@ export const summarizeResourceLedger = ({
       if (value > 0) source.gained[resourceKey] += value
       if (value < 0) source.spent[resourceKey] += Math.abs(value)
       source.net[resourceKey] += value
+      if (value > 0) bucket.gained[resourceKey] += value
+      if (value < 0) bucket.spent[resourceKey] += Math.abs(value)
+      bucket.net[resourceKey] += value
+      if (value > 0) summaryTotals[resourceKey].gained += value
+      if (value < 0) summaryTotals[resourceKey].spent += Math.abs(value)
+      summaryTotals[resourceKey].net += value
     })
   })
+
+  const summary = Object.fromEntries(
+    RESOURCE_LEDGER_KEYS.map((key) => [
+      key,
+      { ...summaryTotals[key], current: snapshot.current[key] },
+    ]),
+  ) as ResourceLedgerSummary['summary']
 
   const materialSnapshots = [...snapshot.materialSnapshots].sort(
     (left, right) => left.hour - right.hour,
@@ -330,26 +393,35 @@ export const summarizeResourceLedger = ({
   const snapshotValues = emptyNullableValues()
   let materialIndex = 0
   let consumableIndex = 0
-  const inventoryHours: { hour: number; values: NullableResourceLedgerValues }[] = []
-  for (let hour = snapshot.startHour; hour < snapshot.endHourExclusive; hour += 1) {
+  const inventoryHours: {
+    hour: number
+    startMinute: number
+    endMinuteExclusive: number
+    values: NullableResourceLedgerValues
+  }[] = []
+  for (const bucket of buckets.values()) {
     while (
       materialIndex < materialSnapshots.length &&
-      materialSnapshots[materialIndex].hour <= hour
+      materialSnapshots[materialIndex].hour * 60 <= bucket.startMinute
     ) {
       Object.assign(snapshotValues, materialSnapshots[materialIndex].values)
       materialIndex += 1
     }
     while (
       consumableIndex < consumableSnapshots.length &&
-      consumableSnapshots[consumableIndex].hour <= hour
+      consumableSnapshots[consumableIndex].hour * 60 <= bucket.startMinute
     ) {
       Object.assign(snapshotValues, consumableSnapshots[consumableIndex].values)
       consumableIndex += 1
     }
-    if (hour === snapshot.currentHour && range !== 'yesterday') {
+    if (
+      range !== 'yesterday' &&
+      bucket.startMinute <= currentMinute &&
+      currentMinute < bucket.endMinuteExclusive
+    ) {
       Object.assign(snapshotValues, snapshot.current)
     }
-    inventoryHours.push({ hour, values: { ...snapshotValues } })
+    inventoryHours.push({ ...bucket, values: { ...snapshotValues } })
   }
 
   const hourFormatter = new Intl.DateTimeFormat('zh-TW', {
@@ -357,23 +429,36 @@ export const summarizeResourceLedger = ({
     hour: '2-digit',
     hourCycle: 'h23',
   })
+  const minuteFormatter = new Intl.DateTimeFormat('zh-TW', {
+    timeZone: 'Asia/Tokyo',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  })
   const labelForHour = (hour: number): string => hourFormatter.format(new Date(hour * HOUR_MS))
+  const labelForMinute = (minute: number): string =>
+    minuteFormatter.format(new Date(minute * MINUTE_MS))
+  const labelForBucket = (bucket: { hour: number; startMinute: number }): string =>
+    normalizedGranularity === 'hourly'
+      ? labelForHour(bucket.hour)
+      : labelForMinute(bucket.startMinute)
 
   return {
     generatedAt: new Date(now).toISOString(),
-    entryCount: snapshot.records.length,
+    entryCount: visibleEntryCount,
     range: {
       key: range,
       start: new Date(snapshot.startHour * HOUR_MS).toISOString(),
       end: new Date(snapshot.endHourExclusive * HOUR_MS).toISOString(),
       timeZone: 'Asia/Tokyo',
     },
+    granularity: { key: normalizedGranularity, minutes: bucketMinutes },
     summary,
     sources: [...sourceMap.values()],
-    hours: [...hourly.values()].map((item) => ({ ...item, label: labelForHour(item.hour) })),
+    hours: [...buckets.values()].map((item) => ({ ...item, label: labelForBucket(item) })),
     inventoryHours: inventoryHours.map((item) => ({
       ...item,
-      label: labelForHour(item.hour),
+      label: labelForBucket(item),
     })),
   }
 }

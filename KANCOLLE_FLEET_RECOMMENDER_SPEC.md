@@ -1124,8 +1124,6 @@ export interface RecommendationPreferences {
 
   readonly reservedEquipmentIds?: readonly EquipmentInstanceId[]
 
-  readonly avoidCurrentFleetEquipment?: boolean
-
   readonly preserveEventTaggedShips?: boolean
 
   readonly maxResourceCostLevel?: 'low' | 'medium' | 'any'
@@ -2150,45 +2148,17 @@ objective。
 
 # 60. Equipment Opportunity Cost
 
-如果某件裝備：
+目前不對「已裝在現役艦隊」的裝備加入額外 penalty。
 
-```text
-目前在第一艦隊
-```
-
-可以給小 penalty。
-
-例如：
-
-```ts
-equipmentOpportunityCost += 2
-```
-
-但預設不得變成 hard constraint。
-
-使用者可以：
-
-```text
-鎖定裝備
-```
-
-才 hard-exclude。
+推薦目標是依照帳號完整持有裝備池找最佳配裝；每件裝備仍以 instance ID 分配，不可重複使用。
+如果推薦使用已裝在其他艦娘身上的裝備，UI 可以提示需要搬動的件數，但系統不自動換裝。
 
 ---
 
-# 61. Reserved Equipment
+# 61. Equipment Bonus Evaluation
 
-UI future：
-
-```text
-[✓] 保留目前第一艦隊裝備
-```
-
-映射：
-
-```ts
-reservedEquipmentIds
-```
+每件裝備都有 master stats、改修、熟練度與 instance ID。推薦器先產生合法候選，再由 KC3
+對完整配裝複算艦娘別／組合裝備加成、改修、適重命中與目標別有效火力，用於最終排序。
 
 ---
 

@@ -1,0 +1,46 @@
+{
+  "area": "1-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/1-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "1-4-guide-cvl2-dd3-ssv",
+      "name": "攻略網・軽空母潜母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["B", "C", "F", "E", "H", "L"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "軽空母2、駆逐3、潜水空母1。攻略網掲載のボス固定周回編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [14],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 77,
+          "recommended": 77
+        }
+      ]
+    }
+  ]
+}

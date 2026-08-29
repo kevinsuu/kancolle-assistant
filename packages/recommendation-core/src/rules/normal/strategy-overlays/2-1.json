@@ -1,0 +1,41 @@
+{
+  "area": "2-1",
+  "routes": [
+    {
+      "id": "2-1-burner-cvl-submarine",
+      "name": "高速建造材固定回收",
+      "category": "resource",
+      "objectives": ["resource-burner"],
+      "nodes": ["C", "E"],
+      "stableBoss": false,
+      "tags": ["retreat-after-e", "stable-resource", "carrier-opening", "burner-node-fixed"],
+      "desc": "軽空母2、潜水3、水母1。C戦後にE高速建造材を回収して帰投。",
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/2-1/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E8%A5%BF%E8%AB%B8%E5%B3%B6%E6%B5%B7%E5%9F%9F/2-1"
+      ],
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [13, 14],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

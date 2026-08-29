@@ -1,0 +1,56 @@
+{
+  "area": "6-1",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/6-1/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "6-1-guide-cv-cl-clt-ss3",
+      "name": "攻略網・空母潜水",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "F", "G", "H", "K"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "正規空母1、雷巡1、軽巡1、潜水艦3。攻略網掲載の標準編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [13, 14],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 69,
+          "recommended": 69
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 36
+        }
+      ]
+    }
+  ]
+}

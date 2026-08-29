@@ -1,0 +1,241 @@
+{
+  "area": "2-5",
+  "sources": [
+    "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E7%BE%A4%E5%B2%9B%E6%B5%B7%E5%9F%9F/2-5"
+  ],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "2-5-middle",
+      "name": "萌新中路-推圖推薦",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["C", "E", "I", "O"],
+      "stableBoss": true,
+      "tags": ["fast", "los-cn1-34", "fixed-route", "guide-primary"],
+      "desc": "正規／裝甲空母1、輕空母1、輕巡1、驅逐3。全高速，33式Cn1索敵34+；Boss制空42空優、84空確。",
+      "sources": [
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E7%BE%A4%E5%B2%9B%E6%B5%B7%E5%9F%9F/2-5"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 42,
+          "recommended": 84
+        },
+        {
+          "kind": "los",
+          "coefficient": 1,
+          "minimum": 34
+        }
+      ]
+    },
+    {
+      "id": "2-5-middle-veteran",
+      "name": "老提督-中路洗地流",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["C", "E", "I", "O"],
+      "stableBoss": true,
+      "tags": ["fast", "los-cn1-34", "fixed-route", "guide-alternative"],
+      "desc": "正規／裝甲空母1、輕空母1、輕巡1（可選先制雷擊艦）、驅逐3。夜戰空母為可選配置；全高速，33式Cn1索敵34+，Boss制空42空優、84空確。",
+      "sources": [
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E7%BE%A4%E5%B2%9B%E6%B5%B7%E5%9F%9F/2-5"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 42,
+          "recommended": 84
+        },
+        {
+          "kind": "los",
+          "coefficient": 1,
+          "minimum": 34
+        }
+      ]
+    },
+    {
+      "id": "2-5-north",
+      "name": "萌新-上路航戰流",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "F", "J", "O"],
+      "stableBoss": true,
+      "tags": [
+        "slow",
+        "los-cn1-49",
+        "drum-canister-required",
+        "drum-canister-modeled",
+        "drum-canister-carriers-2",
+        "bbv-seaplane-los-priority",
+        "guide-alternative"
+      ],
+      "desc": "航戰3、重巡／航巡2–3、輕巡0–1。兩艘可攜桶的輕巡／航巡各帶1桶，艦隊需含低速艦；33式Cn1索敵49+，Boss制空42空優、84空確。",
+      "sources": [
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E7%BE%A4%E5%B2%9B%E6%B5%B7%E5%9F%9F/2-5"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 5, 6],
+          "value": 3
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [5, 6],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3, 6],
+          "value": 2
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 42,
+          "recommended": 84
+        },
+        {
+          "kind": "los",
+          "coefficient": 1,
+          "minimum": 49
+        }
+      ]
+    },
+    {
+      "id": "2-5-fifth-squadron",
+      "name": "第五戰隊",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "J", "O"],
+      "stableBoss": true,
+      "tags": [
+        "slow",
+        "los-cn1-49",
+        "drum-canister-required",
+        "drum-canister-modeled",
+        "drum-canister-carriers-2",
+        "bbv-seaplane-los-priority",
+        "bbv-seaplane-air-priority"
+      ],
+      "desc": "妙高・那智・羽黒、航戦1、航巡/軽巡2。2隻にドラム缶1個ずつ、33式Cn1索敵49+、制空84+。",
+      "sources": ["https://yuikancolle.blog.fc2.com/blog-entry-182.html"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["妙高"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["那智"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 84,
+          "recommended": 84
+        },
+        {
+          "kind": "los",
+          "coefficient": 1,
+          "minimum": 49
+        }
+      ]
+    }
+  ]
+}

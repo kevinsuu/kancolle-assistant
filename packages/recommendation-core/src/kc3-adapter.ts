@@ -114,6 +114,18 @@ const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
       }
     },
   )
+  const openingAswRules = (Array.isArray(record.openingAswRules) ? record.openingAswRules : []).map(
+    (value, ruleIndex) => {
+      const rulePath = `${path}.openingAswRules[${ruleIndex}]`
+      const rule = asRecord(value, rulePath)
+      const kind = asString(rule.kind, `${rulePath}.kind`)
+      if (!['none', 'sonar'].includes(kind)) throw new Error(`${rulePath}.kind 無法辨識`)
+      return {
+        kind: kind as 'none' | 'sonar',
+        minimumAsw: asNumber(rule.minimumAsw, `${rulePath}.minimumAsw`),
+      }
+    },
+  )
   const nightCarrierPatterns = asArray(
     record.nightCarrierPatterns,
     `${path}.nightCarrierPatterns`,
@@ -154,6 +166,7 @@ const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
       record.regularEquipableMasterIds,
       `${path}.regularEquipableMasterIds`,
     ).map((id) => id as EquipmentMasterId),
+    openingAswRules,
     fastPlusPatterns,
     nightCarrierPatterns,
     locked: asBoolean(record.locked, `${path}.locked`),

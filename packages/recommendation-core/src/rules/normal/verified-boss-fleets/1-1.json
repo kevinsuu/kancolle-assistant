@@ -1,0 +1,29 @@
+{
+  "area": "1-1",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/1-1/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "1-1-guide-dd4",
+      "name": "攻略網・駆逐4",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["A", "C"],
+      "stableBoss": false,
+      "tags": ["verified-guide", "guide-primary", "random-routing"],
+      "desc": "駆逐4。ボス到達率70%で、ゲーム仕様上ルート固定不可。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ]
+    }
+  ]
+}

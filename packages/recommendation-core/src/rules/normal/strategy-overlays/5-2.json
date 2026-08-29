@@ -1,0 +1,30 @@
+{
+  "area": "5-2",
+  "sources": [
+    "https://en.kancollewiki.net/World_5/5-2",
+    "https://en.kancollewiki.net/Tutorial:Leveling"
+  ],
+  "routes": [
+    {
+      "id": "5-2-leveling-air-raid",
+      "name": "C空襲レベリング",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["C"],
+      "stableBoss": false,
+      "tags": ["retreat-after-c", "rocket-barrage-required", "risk-free"],
+      "desc": "航空艦/潜水1-6。噴進砲改二による対空噴進弾幕前提。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [6, 7, 10, 11, 13, 14, 16, 18],
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

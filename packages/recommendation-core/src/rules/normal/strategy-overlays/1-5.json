@@ -1,0 +1,147 @@
+{
+  "area": "1-5",
+  "sources": ["https://m.kcwiki.cn/wiki/%E9%95%87%E5%AE%88%E5%BA%9C%E6%B5%B7%E5%9F%9F/1-5"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "1-5-boss-de",
+      "name": "海防艦最軽量",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["A", "D", "E", "J"],
+      "stableBoss": true,
+      "tags": ["oasw", "fixed-route", "low-cost"],
+      "desc": "海防艦4。最も低燃費で固定進王。",
+      "lastVerified": "2026-08-25",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "opening-asw",
+          "minimum": 4
+        }
+      ]
+    },
+    {
+      "id": "1-5-boss-light",
+      "name": "軽巡駆逐対潜",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["A", "D", "F", "G", "J"],
+      "stableBoss": true,
+      "tags": ["oasw", "fixed-route"],
+      "desc": "軽巡/練巡0-2、駆逐/海防2-4、計4隻。",
+      "lastVerified": "2026-08-25",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1, 2, 3, 21],
+          "value": 4
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [1, 2],
+          "value": 2
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [3, 21],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "opening-asw",
+          "minimum": 4
+        }
+      ]
+    },
+    {
+      "id": "1-5-boss-heavy",
+      "name": "航戦二巡対潜",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["A", "D", "F", "G", "J"],
+      "stableBoss": true,
+      "tags": ["asw", "asw-loadout", "second-shelling"],
+      "desc": "航戦1、軽巡2、駆逐1。初心者向けの砲撃二巡対潜編成（先制対潜は必須ではない）。",
+      "lastVerified": "2026-08-25",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2, 3, 10],
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "1-5-leveling-asw",
+      "name": "対潜レベリング",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["A", "D", "F", "G", "J"],
+      "stableBoss": false,
+      "tags": ["oasw", "sparkle"],
+      "desc": "先制対潜可能な軽巡/駆逐/海防を旗艦にして対潜育成。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [1, 2, 3, 21],
+          "value": 3
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [7, 10],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "opening-asw",
+          "minimum": 1
+        }
+      ]
+    }
+  ]
+}

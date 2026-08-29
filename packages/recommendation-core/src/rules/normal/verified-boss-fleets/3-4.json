@@ -1,0 +1,56 @@
+{
+  "area": "3-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/3-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "3-4-guide-heavy-carrier",
+      "name": "攻略網・重量空母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "C", "E", "G", "J", "P"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "戦艦1、正規空母2、軽空母1、軽巡1、水母1。初攻略向け掲載編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 175,
+          "recommended": 175
+        }
+      ]
+    }
+  ]
+}

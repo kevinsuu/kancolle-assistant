@@ -1,0 +1,46 @@
+{
+  "area": "5-3",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/5-3/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "5-3-guide-ca5-cl",
+      "name": "攻略網・重巡級5",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["D", "G", "I", "O", "K", "E", "Q"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "night-battle"],
+      "desc": "航巡2、重巡3、軽巡1。攻略網掲載の重巡級5固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 71,
+          "recommended": 71
+        }
+      ]
+    }
+  ]
+}

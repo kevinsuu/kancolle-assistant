@@ -1,0 +1,316 @@
+{
+  "area": "5-6",
+  "name": "ラバウル方面海域",
+  "sources": [
+    "https://kankorekore.2-d.jp/5-6_2nd/",
+    "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6"
+  ],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "5-6-p1-transport",
+      "name": "第一輸送・駆逐4",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P1",
+      "nodes": ["A", "C2", "D", "E", "G"],
+      "stableBoss": true,
+      "tags": ["transport", "pt", "aaci", "los-cn4-57", "air-power-45", "new-map"],
+      "desc": "航巡1、水母1、駆逐4。輸送・PT・防空を両立、制空45+、Cn4索敵57+。",
+      "sources": [
+        "https://kankorekore.2-d.jp/5-6_2nd/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6",
+        "https://yuikancolle.blog.fc2.com/blog-entry-258.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 45,
+          "recommended": 45
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 57
+        }
+      ]
+    },
+    {
+      "id": "5-6-p1-torpedo-squadron",
+      "name": "第一輸送・水雷戦隊",
+      "category": "boss",
+      "objectives": ["low-cost", "balanced"],
+      "phase": "P1",
+      "nodes": ["A", "C2", "D", "E", "G"],
+      "stableBoss": true,
+      "tags": ["transport", "torpedo-squadron", "los-cn4-57", "air-power-45", "new-map"],
+      "desc": "軽巡旗艦1、駆逐5。精鋭水雷司令部向け、制空45+、Cn4索敵57+。",
+      "sources": [
+        "https://kankorekore.2-d.jp/5-6_2nd/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 5
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 45,
+          "recommended": 45
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 57
+        }
+      ]
+    },
+    {
+      "id": "5-6-p2-surface",
+      "name": "第二戦力・水上",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P2",
+      "nodes": ["I", "J", "K", "L", "N"],
+      "stableBoss": true,
+      "tags": ["fast", "los-cn4-80", "air-power-510", "new-map"],
+      "desc": "空母2、航巡1、軽巡1、駆逐2。全高速、制空510+、Cn4索敵80+。",
+      "sources": [
+        "https://kankorekore.2-d.jp/5-6_2nd/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6",
+        "https://yuikancolle.blog.fc2.com/blog-entry-258.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 510,
+          "recommended": 510
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-6-p3-fast-plus-cv3",
+      "name": "第三戦力・高速＋空母3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P3",
+      "nodes": ["I", "O", "Q", "U", "X", "Z"],
+      "stableBoss": true,
+      "tags": ["fast+", "boss-support", "los-cn4-88", "air-power-730", "new-map"],
+      "desc": "戦艦2、空母系3、航巡1。高速＋、制空730+、Cn4索敵88+。",
+      "sources": [
+        "https://kankorekore.2-d.jp/5-6_2nd/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 3
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 730,
+          "recommended": 730
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 88
+        }
+      ]
+    },
+    {
+      "id": "5-6-p3-fast-plus-cv4",
+      "name": "第三戦力・高速＋空母4",
+      "category": "boss",
+      "objectives": ["balanced"],
+      "phase": "P3",
+      "nodes": ["I", "O", "Q", "U", "X", "Z"],
+      "stableBoss": true,
+      "tags": [
+        "fast+",
+        "boss-support",
+        "low-night-power",
+        "los-cn4-88",
+        "air-power-730",
+        "new-map"
+      ],
+      "desc": "戦艦2、空母系4。高速＋、制空730+、Cn4索敵88+。夜戦火力不足に注意。",
+      "sources": [
+        "https://kankorekore.2-d.jp/5-6_2nd/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6",
+        "https://yuikancolle.blog.fc2.com/blog-entry-258.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 730,
+          "recommended": 730
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 88
+        }
+      ]
+    },
+    {
+      "id": "5-6-p3-fast-night",
+      "name": "第三戦力・正攻",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "phase": "P3",
+      "nodes": ["I", "O", "Q", "U", "X", "Z"],
+      "stableBoss": true,
+      "tags": ["fast", "boss-support", "last-dance", "los-cn4-88", "air-power-165", "new-map"],
+      "desc": "戦艦2、空母1、軽巡1、駆逐2。Yui第三戦力正攻、全高速、制空165+、Cn4索敵88+。",
+      "sources": [
+        "https://kankorekore.2-d.jp/5-6_2nd/",
+        "https://wikiwiki.jp/kancolle/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-6",
+        "https://yuikancolle.blog.fc2.com/blog-entry-258.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 165,
+          "recommended": 165
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 88
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "area": "1-2",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/1-2/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "1-2-guide-cl-dd4",
+      "name": "攻略網・軽巡駆逐",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["A", "E"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "fast"],
+      "desc": "軽巡1、駆逐4、高速統一。攻略網掲載の固定進王編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ]
+    }
+  ]
+}

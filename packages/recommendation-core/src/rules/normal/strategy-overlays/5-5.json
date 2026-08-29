@@ -1,0 +1,1218 @@
+{
+  "area": "5-5",
+  "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "5-5-middle",
+      "name": "常規EO/中路戰巡流",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "air-power", "special-attack", "special-attack-modeled"],
+      "desc": "大和改二系と友軍戦艦1、航巡1、軽巡1、駆逐2。Yui常規EO/中路戰巡流、制空138+、Cn2索敵66+。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-185.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏", "Iowa", "Bismarck", "Richelieu"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 138,
+          "recommended": 138
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-supply-smoke",
+      "name": "補給王煙流",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": [
+        "los-cn2-66",
+        "air-power",
+        "special-attack",
+        "special-attack-modeled",
+        "smoke-screen"
+      ],
+      "desc": "大和改二重、武蔵改二、空母1、補給艦1、駆逐2。Yui補給王煙流、三重煙幕、制空300+、Cn2索敵66+。",
+      "sources": ["https://yuikancolle.blog.fc2.com/blog-entry-185.html"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [22],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 300,
+          "recommended": 300
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-submarine-snipe",
+      "name": "KCWiki + Yui｜潛艇配置",
+      "category": "boss",
+      "objectives": ["low-cost"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": false,
+      "tags": ["random-routing", "los-cn2-80", "low-cost", "submarine-los-priority"],
+      "desc": "潜水/潜母6。P→S固定ではない低資源狙い、Cn2索敵80+。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-185.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [13, 14],
+          "value": 6
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-yamato-night-carrier",
+      "name": "KCWiki｜上路武大夜母配置",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-80", "air-power", "special-attack", "special-attack-modeled"],
+      "desc": "大和改二系＋武蔵改二、正規/装甲空母2、重巡/航巡2。KCWiki上路武大夜母配置、P→SはCn2索敵80+、画像と備考からBoss優勢392+を検査する。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-cav",
+      "name": "KCWiki｜上路帶路配置",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-80", "air-power"],
+      "desc": "赤城改二戊＋戦艦3＋航巡2のKCWiki上路帶路配置。画像例は制空416、索敵Cn1 44.87で、二期P→SはCn2索敵80+として検査する。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-nelson",
+      "name": "KCWiki｜上路納爾遜",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-80", "air-power", "special-attack", "special-attack-modeled"],
+      "desc": "Nelson/Rodney改、戦艦1、正規/装甲空母2、航巡2。KCWiki上路納爾遜、出門制空410+推奨、P→SはCn2索敵80+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["Nelson", "Rodney", "ネルソン", "ロドニー"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-night-carrier",
+      "name": "KCWiki｜上路夜母",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-80", "air-power", "night-carrier"],
+      "desc": "夜戦空母1を含む正規/装甲空母2、戦艦2、航巡2。KCWiki上路夜母、夜母を旗艦保護する想定で、P→SはCn2索敵80+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-kongou-touch",
+      "name": "KCWiki｜上路金剛改二丙",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-80", "air-power", "special-attack", "boss-support"],
+      "desc": "金剛改二丙＋比叡改二丙/榛名改二/霧島改二、正規/装甲空母2、航巡2。僚艦夜戦突撃と支援は手動確認、P→SはCn2索敵80+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["金剛", "金刚", "Kongou", "Kongo"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["比叡", "比睿", "榛名", "霧島", "雾岛", "Hiei", "Haruna", "Kirishima"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-random-nelson",
+      "name": "KCWiki｜上路隨機配置1",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": false,
+      "tags": [
+        "random-routing",
+        "los-cn2-80",
+        "air-power",
+        "special-attack",
+        "special-attack-modeled"
+      ],
+      "desc": "Nelson/Rodney改＋正規/装甲空母3＋戦艦2。KCWiki上路隨機配置1、P後に逸れがあるため手動選択用。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["Nelson", "Rodney", "ネルソン", "ロドニー"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-upper-random-nagato",
+      "name": "KCWiki｜上路隨機配置2",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": false,
+      "tags": [
+        "random-routing",
+        "los-cn2-80",
+        "air-power",
+        "special-attack",
+        "special-attack-modeled"
+      ],
+      "desc": "長門改二＋陸奥改二＋正規/装甲空母4。KCWiki上路隨機配置2、胸熱砲撃だがP後に逸れがあるため手動選択用。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長門", "Nagato"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["陸奥", "陸奧", "Mutsu"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-middle-yamato-smoke",
+      "name": "KCWiki｜中路武大拉煙流",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": [
+        "los-cn2-66",
+        "air-power",
+        "special-attack",
+        "special-attack-modeled",
+        "smoke-screen"
+      ],
+      "desc": "大和改二系＋武蔵改二、夜戦空母/空母1、補給艦1、駆逐2。KCWiki中路武大拉煙流、三重煙幕は手動確認、H点制空136均衡/138空確率確保。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [22],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 136,
+          "recommended": 138
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-middle-yamato-mogami-yahagi",
+      "name": "KCWiki｜中路武大最矢流",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "air-power", "special-attack", "special-attack-modeled"],
+      "desc": "大和改二系＋武蔵改二、最上、矢矧、駆逐2。KCWiki中路武大最矢流、H点制空136均衡/138空確率確保、Cn2索敵66+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["最上", "Mogami"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["矢矧", "Yahagi"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 136,
+          "recommended": 138
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-middle-yamato-supply",
+      "name": "KCWiki｜中路武大補給流",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "air-power", "special-attack", "special-attack-modeled"],
+      "desc": "大和改二系＋武蔵改二、空母1、補給艦1、駆逐2。KCWiki中路武大補給流、H点制空136均衡/138空確率確保、Cn2索敵66+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [22],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 136,
+          "recommended": 138
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-middle-nelson",
+      "name": "KCWiki｜中路納爾遜",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "air-power", "special-attack", "special-attack-modeled"],
+      "desc": "Nelson改、戦艦1、駆逐2、CA/CAV/雷巡2のKCWiki中路Nelson。制空176でBoss均勢、188以上でH優勢寄り、Cn2索敵66+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["Nelson", "Rodney", "ネルソン", "ロドニー"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4, 5, 6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 176,
+          "recommended": 188
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-middle-transfer-south",
+      "name": "KCWiki｜中轉下摸流",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "M", "O", "S"],
+      "stableBoss": true,
+      "tags": ["routing-manual", "los-cn5-162", "air-power", "boss-support"],
+      "desc": "戦艦2、正規/装甲空母1、重巡/航巡/雷巡1、駆逐2で中路からM夜戦へ回るKCWiki中轉下摸流。H/N分岐は手動確認、O→SはCn5索敵162+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4, 5, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 224,
+          "recommended": 306
+        },
+        {
+          "kind": "los",
+          "coefficient": 5,
+          "minimum": 162
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-middle-heavy-cruiser",
+      "name": "KCWiki｜中路重巡配置",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": [
+        "los-cn2-66",
+        "air-power",
+        "special-attack",
+        "special-attack-modeled",
+        "boss-support"
+      ],
+      "desc": "長門改二＋陸奥改二、重巡1、航巡1、駆逐2。KCWiki中路重巡配置、4水戦でH点均衡を狙い、支援は手動確認。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長門", "Nagato"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["陸奥", "陸奧", "Mutsu"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 136,
+          "recommended": 176
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-south-dd",
+      "name": "KCWiki + Yui｜中路水雷退避流",
+      "category": "boss",
+      "objectives": ["low-cost", "balanced", "boss-clear"],
+      "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "night-battle", "elite-torpedo-squadron-command-facility", "oasw"],
+      "desc": "軽巡1、雷巡1、駆逐4。水雷退避流、夜瑞雲/瑞雲の制空1+は推奨値として扱い、双レ編成は回避推奨。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-185.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2, 3, 4],
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-south-yamato-dd",
+      "name": "KCWiki｜下路武大4DD",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "night-battle", "special-attack", "special-attack-modeled"],
+      "desc": "武蔵改二＋大和改二系＋駆逐4。KCWiki下路推薦配置、夜戦火力重視、Cn2索敵66+を硬条件とする。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["大和"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["武蔵", "武藏"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-south-night-carrier-dd",
+      "name": "KCWiki｜下路夜母2CV4DD",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "night-battle", "night-carrier"],
+      "desc": "夜戦空母を含む正規/装甲空母2＋駆逐4。KCWiki下路推薦配置、空母偵察機で駆逐の索敵負担を下げる想定。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-south-bbv-cav-drums",
+      "name": "KCWiki｜下路航戰航巡",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+      "stableBoss": true,
+      "tags": [
+        "los-cn2-66",
+        "air-power",
+        "night-battle",
+        "drum-canister-required",
+        "drum-canister-modeled",
+        "drum-canister-carriers-4",
+        "bbv-seaplane-air-priority"
+      ],
+      "desc": "正規/装甲空母1、航空戦艦1、航巡2、駆逐2。KCWiki下路Saratoga/伊勢/Ташкент系例、4艘にドラム缶を載せてAへ入り、Boss優勢とCn2索敵66+を検査する。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-south-nagato-dd",
+      "name": "KCWiki｜下路長陸4DD",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["A", "C", "E", "G", "I", "M", "O", "S"],
+      "stableBoss": true,
+      "tags": ["los-cn2-66", "night-battle", "special-attack", "special-attack-modeled"],
+      "desc": "長門改二＋陸奥改二＋駆逐4のKCWiki下路夜戦流。索敵が非常に厳しいためCn2索敵66+を硬条件とし、支援と対潜は出撃時の推奨確認に残す。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長門", "Nagato"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["陸奥", "陸奧", "Mutsu"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-newbie-nagato",
+      "name": "新手長陸",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "F", "D", "H", "N", "O", "S"],
+      "stableBoss": true,
+      "tags": [
+        "los-cn2-66",
+        "air-power",
+        "special-attack",
+        "special-attack-modeled",
+        "boss-support"
+      ],
+      "desc": "長門・陸奥、航巡2、駆逐2。Yui新手長陸、道中/決戦砲撃支援、制空136+、Cn2索敵66+。",
+      "sources": ["https://yuikancolle.blog.fc2.com/blog-entry-185.html"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長門"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["陸奥"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 136,
+          "recommended": 136
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 66
+        }
+      ]
+    },
+    {
+      "id": "5-5-kcwiki-bahamut-random-heavy",
+      "name": "KCWiki + 巴哈｜上路六大船隨機",
+      "category": "boss",
+      "objectives": ["boss-clear"],
+      "nodes": ["B", "K", "P", "S"],
+      "stableBoss": false,
+      "tags": ["random-routing", "los-cn2-80", "air-power", "boss-support"],
+      "desc": "KCWiki任意6艘戦艦/空母系と巴哈2014一期3BB3CV/3BB2CVL重火力参考。二期ではP後に約35%逸れるため、現行は手動選択用の隨機上路として扱う。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E5%8D%97%E6%96%B9%E6%B5%B7%E5%9F%9F/5-5",
+        "https://home.gamer.com.tw/artwork.php?sn=2661813"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 8, 9, 10, 11, 12, 18],
+          "value": 6
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 392,
+          "recommended": 410
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 80
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "area": "4-3",
+  "sources": [
+    "https://en.kancollewiki.net/World_4/4-3",
+    "https://en.kancollewiki.net/Resource_Farming"
+  ],
+  "routes": [
+    {
+      "id": "4-3-bauxite",
+      "name": "鋁土回収",
+      "category": "resource",
+      "objectives": ["resource-bauxite", "resource-fuel"],
+      "nodes": ["A", "B", "G", "J"],
+      "stableBoss": false,
+      "tags": ["fast", "midget-submarine", "landing-craft"],
+      "desc": "水母/補給1、軽巡1、駆逐2、雷巡2。J鋁土50-100。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [16, 22],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [4],
+          "value": 2
+        }
+      ]
+    }
+  ]
+}

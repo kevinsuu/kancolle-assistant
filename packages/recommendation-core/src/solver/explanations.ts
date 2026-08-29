@@ -98,6 +98,12 @@ export const recommendationMessages = (
   const antiInstallationShellCount = antiInstallationShellTag
     ? Number(antiInstallationShellTag.match(/(\d+)$/)?.[1] ?? 0)
     : 0
+  const antiInstallationSurfaceTag = route.tags.find((tag) =>
+    tag.startsWith('anti-installation-surface-gears-'),
+  )
+  const antiInstallationSurfaceCount = antiInstallationSurfaceTag
+    ? Number(antiInstallationSurfaceTag.match(/(\d+)$/)?.[1] ?? 0)
+    : 0
   const antiInstallationCarrierTag = route.tags.find((tag) =>
     tag.startsWith('anti-installation-carriers-'),
   )
@@ -109,6 +115,13 @@ export const recommendationMessages = (
       code: 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
       message: `已為 ${antiInstallationShellCount} 艘戰艦／重巡級配置三式彈系裝備，符合此路線的對陸配置模型。`,
       values: { minimum: antiInstallationShellCount },
+    })
+  }
+  if (antiInstallationSurfaceCount > 0) {
+    reasons.push({
+      code: 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
+      message: `已為 ${antiInstallationSurfaceCount} 艘水上艦配置三式彈系或戰車／登陸艇系裝備，符合此路線的對陸配置模型。`,
+      values: { minimum: antiInstallationSurfaceCount },
     })
   }
   if (antiInstallationCarrierCount > 0) {

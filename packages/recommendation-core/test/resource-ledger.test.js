@@ -77,3 +77,59 @@ test('summarizes sources and carries inventory snapshots forward', () => {
   assert.equal(result.inventoryHours.at(-1).values.fuel, 1000)
   assert.equal(result.inventoryHours.at(-1).values.bucket, 21)
 })
+
+test('summarizes records into minute, five-minute, and thirty-minute buckets', () => {
+  const window = getResourceLedgerWindow('today', NOW)
+  const startMinute = window.startHour * 60
+  const data = (index, value) => {
+    const result = Array.from({ length: 8 }, () => 0)
+    result[index] = value
+    return result
+  }
+  const snapshot = parseKC3ResourceLedgerSnapshot({
+    generatedAt: new Date(NOW).toISOString(),
+    ...window,
+    current: values({ fuel: 1000 }),
+    records: [
+      { hour: window.startHour, minute: startMinute + 1, type: 'exped-return', data: data(0, 10) },
+      { hour: window.startHour, minute: startMinute + 4, type: 'quest', data: data(0, 2) },
+      { hour: window.startHour, minute: startMinute + 5, type: 'repair-dock', data: data(0, -3) },
+      { hour: window.startHour, minute: startMinute + 31, type: 'quest', data: data(0, 7) },
+    ],
+    materialSnapshots: [],
+    consumableSnapshots: [],
+  })
+
+  const byMinute = summarizeResourceLedger({
+    snapshot,
+    range: 'today',
+    now: NOW,
+    granularity: 'minute',
+  })
+  assert.equal(byMinute.granularity.minutes, 1)
+  assert.equal(byMinute.hours[1].gained.fuel, 10)
+  assert.equal(byMinute.hours[4].gained.fuel, 2)
+  assert.equal(byMinute.hours[5].spent.fuel, 3)
+
+  const byFiveMinutes = summarizeResourceLedger({
+    snapshot,
+    range: 'today',
+    now: NOW,
+    granularity: 'fiveMinute',
+  })
+  assert.equal(byFiveMinutes.granularity.minutes, 5)
+  assert.equal(byFiveMinutes.hours[0].gained.fuel, 12)
+  assert.equal(byFiveMinutes.hours[1].spent.fuel, 3)
+  assert.equal(byFiveMinutes.hours[6].gained.fuel, 7)
+
+  const byThirtyMinutes = summarizeResourceLedger({
+    snapshot,
+    range: 'today',
+    now: NOW,
+    granularity: 'thirtyMinute',
+  })
+  assert.equal(byThirtyMinutes.granularity.minutes, 30)
+  assert.equal(byThirtyMinutes.hours[0].gained.fuel, 12)
+  assert.equal(byThirtyMinutes.hours[0].spent.fuel, 3)
+  assert.equal(byThirtyMinutes.hours[1].gained.fuel, 7)
+})

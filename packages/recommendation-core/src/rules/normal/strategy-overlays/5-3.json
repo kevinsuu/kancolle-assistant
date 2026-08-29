@@ -1,0 +1,40 @@
+{
+  "area": "5-3",
+  "sources": [
+    "https://en.kancollewiki.net/World_5/5-3",
+    "https://en.kancollewiki.net/Tutorial:Leveling"
+  ],
+  "routes": [
+    {
+      "id": "5-3-leveling-p",
+      "name": "P夜戦レベリング",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["D", "G", "I", "P"],
+      "stableBoss": false,
+      "tags": ["retreat-after-p", "night-battle", "no-carrier"],
+      "desc": "育成艦1、軽巡0-1、駆逐4-5。P夜戦後撤退。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [7, 10, 11, 18],
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

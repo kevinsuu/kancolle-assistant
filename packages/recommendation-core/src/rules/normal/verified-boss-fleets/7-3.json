@@ -1,0 +1,83 @@
+{
+  "area": "7-3",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/7-3/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "7-3-guide-p1-haguro-dd3",
+      "name": "攻略網・第一ゲージ羽黒",
+      "phase": "第一ゲージ",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["A", "C", "E"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route"],
+      "desc": "羽黒1、駆逐3。第一ゲージ初攻略の固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒", "Haguro"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "7-3-guide-p2-haguro-ashigara",
+      "name": "攻略網・第二ゲージ重巡",
+      "phase": "第二ゲージ",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "C", "D", "G", "J", "P"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "fast", "smoke-screen", "oasw"],
+      "desc": "羽黒、足柄、航巡1、駆逐3、高速統一。潜水Jマスは煙幕または対潜装備。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 2
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒", "Haguro"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["足柄", "Ashigara"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ]
+    }
+  ]
+}

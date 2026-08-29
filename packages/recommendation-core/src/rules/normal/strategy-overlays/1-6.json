@@ -1,0 +1,35 @@
+{
+  "area": "1-6",
+  "sources": [
+    "https://en.kancollewiki.net/World_1/1-6",
+    "https://en.kancollewiki.net/Resource_Farming"
+  ],
+  "routes": [
+    {
+      "id": "1-6-monthly-resource",
+      "name": "月常資源回収",
+      "category": "resource",
+      "objectives": ["resource-fuel", "resource-ammo", "resource-steel", "resource-bauxite"],
+      "nodes": ["A", "E", "G", "F", "B", "N"],
+      "stableBoss": false,
+      "tags": ["monthly-seven-runs", "landing-craft"],
+      "desc": "軽巡1駆逐5。月7回の終点資源を低燃費で回収。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 5
+        }
+      ]
+    }
+  ]
+}

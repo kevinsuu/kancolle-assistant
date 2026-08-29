@@ -13,6 +13,7 @@ const LOS_MULTIPLIERS: Readonly<Record<number, number>> = {
   10: 1.2,
   11: 1.1,
   49: 1,
+  51: 0.6,
   58: 0.8,
   59: 1,
   94: 1,
@@ -71,11 +72,24 @@ export const calculateLos33 = (
 
 const calculateOpeningAswCount = (builds: readonly RecommendedShipBuild[]): number =>
   builds.filter((build) => {
+    if (typeof build.combat?.openingAswCapable === 'boolean') {
+      return build.combat.openingAswCapable
+    }
     const equipment = [...build.equipment, build.expansionSlot].filter((gear) => gear !== null)
     const hasSonar = equipment.some((gear) => [14, 40].includes(gear.typeId))
     const equipmentAsw = equipment.reduce((total, gear) => total + gear.stats.asw, 0)
+    const totalAsw = build.ship.stats.asw + equipmentAsw
+    const openingAswRules = build.ship.openingAswRules ?? []
+    if (openingAswRules.length > 0) {
+      return openingAswRules.some((rule) => {
+        if (totalAsw < rule.minimumAsw) return false
+        if (rule.kind === 'none') return true
+        if (rule.kind === 'sonar') return hasSonar
+        return false
+      })
+    }
     const minimumAsw = build.ship.shipTypeId === 1 ? 60 : 100
-    return hasSonar && build.ship.stats.asw + equipmentAsw >= minimumAsw
+    return hasSonar && totalAsw >= minimumAsw
   }).length
 
 const calculateNightCutInCandidates = (builds: readonly RecommendedShipBuild[]): number =>

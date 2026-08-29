@@ -1,0 +1,34 @@
+{
+  "area": "2-3",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/2-3/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "2-3-guide-ca5-cl",
+      "name": "攻略網・重巡5軽巡1",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/B", "N"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "boss-fixed", "random-routing"],
+      "desc": "軽巡1、重巡5。途中の経路は分岐するが、ぜかまし掲載のボス到達固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

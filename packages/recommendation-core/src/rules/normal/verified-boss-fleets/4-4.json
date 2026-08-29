@@ -1,0 +1,60 @@
+{
+  "area": "4-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/4-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "4-4-guide-bb-cv2-ca-dd-de",
+      "name": "攻略網・戦艦空母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "E", "I", "K"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening", "oasw"],
+      "desc": "戦艦1、正規空母2、重巡1、駆逐1、海防1。攻略網掲載の固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 80,
+          "recommended": 80
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 1
+        }
+      ]
+    }
+  ]
+}

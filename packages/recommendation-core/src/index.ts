@@ -1,5 +1,32 @@
 export { parseKC3AccountSnapshot } from './kc3-adapter'
-export { parseKC3ExpeditionPlannerSnapshot, planExpeditions } from './expedition'
+export {
+  calculateBucketExpectedPerRun,
+  calculateCombinationScore,
+  calculatePlanScoreDetails,
+  calculateResourceBenchmarks,
+  calculateResourceYieldMaximums,
+  calculateSatisfaction,
+  calculateTotalWeight,
+  calculateUtilityScore,
+  clampSatisfaction,
+  compareOptimizationCombinations,
+  explainWinner,
+  normalizeResourceWeights,
+  normalizeResourceYield,
+  parseKC3ExpeditionPlannerSnapshot,
+  planExpeditions,
+  PRIORITY_WEIGHT_BY_RANK,
+  priorityPreferenceToWeights,
+  priorityRankToWeight,
+  resourceConstraintViolations,
+  resourcePreferencesFromPriorityMap,
+  resourcePreferencesToWeights,
+  resourceUtility,
+  satisfiesResourceConstraints,
+  validateResourcePriorityMap,
+  validateResourcePreferenceMap,
+  validateOptimizationDebugReport,
+} from './expedition'
 export {
   calculateBuildSpeed,
   calculateFleetAirPower,
@@ -8,6 +35,7 @@ export {
 } from './metrics'
 export {
   getResourceLedgerWindow,
+  normalizeResourceLedgerGranularity,
   parseKC3ResourceLedgerSnapshot,
   summarizeResourceLedger,
 } from './resource-ledger'

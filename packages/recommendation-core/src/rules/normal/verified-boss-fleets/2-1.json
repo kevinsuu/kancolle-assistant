@@ -1,0 +1,95 @@
+{
+  "area": "2-1",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/2-1/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "2-1-guide-cl-dd4-av",
+      "name": "攻略網・最短水雷",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["C", "E", "H"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "fast"],
+      "desc": "軽巡1、駆逐4、水母1、高速統一。道中1戦の固定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 81,
+          "recommended": 81
+        }
+      ]
+    },
+    {
+      "id": "2-1-guide-carrier-cruisers",
+      "name": "攻略網・空母巡洋艦穩定",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "E", "D", "H"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-boss", "carrier-opening"],
+      "desc": "正規空母1、空母1、重巡2、軽巡2。C→DまたはC→E→Dからボスへ固定する安定編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 2
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [10, 22],
+          "value": 0
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 81,
+          "recommended": 162
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,554 @@
+{
+  "area": "4-5",
+  "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "4-5-fast-plus-night-carrier",
+      "name": "KCWiki｜高速＋夜母配置（正攻／撈油／戰果衝刺）",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "fast+",
+        "night-carrier",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "anti-installation-carriers-3",
+        "fixed-route",
+        "carrier-opening",
+        "flexible-carrier-air-priority",
+        "ranking"
+      ],
+      "desc": "正規/装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航戦1。全艦高速＋、制空414+。攻略・周回・戦果向け。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 414,
+          "recommended": 414
+        }
+      ]
+    },
+    {
+      "id": "4-5-kcwiki-night-carrier-small",
+      "name": "KCWiki｜夜母小船配置",
+      "category": "boss",
+      "objectives": ["low-cost", "balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "night-carrier",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-surface-gears-2",
+        "oasw",
+        "fixed-route",
+        "carrier-opening"
+      ],
+      "desc": "夜戦軽空母1を含む軽空母2、軽巡1、駆逐3。対地駆逐2、先制対潜3、制空207+の低消費最短編成。周回より攻略向け。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 207,
+          "recommended": 215
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 3
+        }
+      ]
+    },
+    {
+      "id": "4-5-kcwiki-fast-plus-special-attack",
+      "name": "KCWiki｜高速＋特攻配置",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "fast+",
+        "special-attack",
+        "special-attack-modeled",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "anti-installation-carriers-3",
+        "fixed-route",
+        "carrier-opening",
+        "flexible-carrier-air-priority"
+      ],
+      "desc": "Nelson改、空母系3、重巡1、雷巡1。全艦高速＋、HマスNelson Touch、制空207+。斬殺時は高速戦艦への変更も手動候補。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["Nelson", "ネルソン"],
+          "count": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 207,
+          "recommended": 220
+        }
+      ]
+    },
+    {
+      "id": "4-5-kcwiki-detour",
+      "name": "KCWiki｜繞路配置",
+      "category": "boss",
+      "objectives": ["balanced"],
+      "nodes": ["A-B-E-M-R-N-T / C-F-I-J-H-T"],
+      "stableBoss": true,
+      "tags": [
+        "fast",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "anti-installation-carriers-2",
+        "carrier-opening",
+        "flexible-carrier-air-priority"
+      ],
+      "desc": "高速戦艦1、正規/装甲空母2、軽巡1、駆逐2。A-B-E-M-R-N-TまたはC-F-I-J-H-Tを通る削り専用の迂回編成、制空207+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 207,
+          "recommended": 220
+        }
+      ]
+    },
+    {
+      "id": "4-5-standard-balanced",
+      "name": "Yui・新手斬殺",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "K", "T"],
+      "stableBoss": true,
+      "tags": [
+        "los-cn2-70",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-4",
+        "heavy-fleet",
+        "smoke-screen"
+      ],
+      "desc": "戦艦1、正規/装甲空母2、航巡3。Yui新手斬殺、Kマス煙幕、制空270+、Cn2索敵70+。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 270,
+          "recommended": 270
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 70
+        }
+      ]
+    },
+    {
+      "id": "4-5-small-ship",
+      "name": "軽空母小型艦・最短",
+      "category": "boss",
+      "objectives": ["low-cost", "balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": ["anti-installation", "oasw", "fixed-route", "carrier-opening"],
+      "desc": "正規/装甲空母0-1、軽空母1-2、軽巡1、駆逐3。HからT直行、制空215+。対地DD・先制対潜・長射程空母装備は手動確認。",
+      "lastVerified": "2026-08-29",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+      ],
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2, 3, 7, 11, 18],
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 2
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 215,
+          "recommended": 215
+        }
+      ]
+    },
+    {
+      "id": "4-5-fast-plus-battleship-carrier",
+      "name": "高速＋戦艦1空母3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "fast+",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "anti-installation-carriers-3",
+        "fixed-route"
+      ],
+      "desc": "戦艦1、空母系3、雷巡1、航巡1。全艦高速＋、Yui中配、制空220+。",
+      "lastVerified": "2026-08-29",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+      ],
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 220,
+          "recommended": 220
+        }
+      ]
+    },
+    {
+      "id": "4-5-fast-plus-carrier",
+      "name": "高速＋空母3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "fast+",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-surface-gears-1",
+        "anti-installation-carriers-3",
+        "fixed-route",
+        "carrier-opening",
+        "flexible-carrier-air-priority",
+        "surface-seaplane-air-priority"
+      ],
+      "desc": "空母系3、雷巡2、航巡/航戦1。高配高速＋、制空430+。高速＋装備後は制空達成を優先し、余剰空母枠を艦攻／対地艦爆へ配分。水上艦は小スロットで対地装備と高速＋装備を受け、残りを水戦優先。",
+      "lastVerified": "2026-08-29",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+      ],
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6, 10],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 430,
+          "recommended": 430
+        }
+      ]
+    },
+    {
+      "id": "4-5-cl-dd-heavy",
+      "name": "軽巡駆逐・重量最短",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": ["anti-installation", "fixed-route", "quest-friendly"],
+      "desc": "空母1以上を含む戦艦/空母2、軽巡1、駆逐3。HからT直行、制空215+。",
+      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 8, 9, 10, 11, 12, 18],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 215,
+          "recommended": 215
+        }
+      ]
+    },
+    {
+      "id": "4-5-cl-dd-light",
+      "name": "Yui・新手磨血",
+      "category": "boss",
+      "objectives": ["low-cost", "balanced", "boss-clear"],
+      "nodes": ["A/C", "B/F", "E/I", "M/J", "N/H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "fast",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-type3-shells-1",
+        "quest-friendly"
+      ],
+      "desc": "高速戦艦1、正規/装甲空母2、軽巡1、駆逐2。Yui新手磨血、初手分岐あり、制空220+。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+      ],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 220,
+          "recommended": 220
+        }
+      ]
+    }
+  ]
+}

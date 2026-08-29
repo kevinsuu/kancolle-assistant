@@ -1,0 +1,58 @@
+{
+  "area": "6-4",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/6-4/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "6-4-guide-fast-left",
+      "name": "攻略網・高速左路",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "D", "C", "F", "N"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-primary",
+        "fixed-route",
+        "fast",
+        "anti-installation",
+        "lbas"
+      ],
+      "desc": "軽巡1、戦艦1、航巡1、駆逐3、高速統一。基地航空隊と対地装備前提。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 35,
+          "recommended": 35
+        }
+      ]
+    }
+  ]
+}

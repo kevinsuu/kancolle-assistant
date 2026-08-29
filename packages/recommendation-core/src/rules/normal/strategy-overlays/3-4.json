@@ -1,0 +1,45 @@
+{
+  "area": "3-4",
+  "sources": [
+    "https://en.kancollewiki.net/World_3/3-4",
+    "https://en.kancollewiki.net/Tutorial:Leveling"
+  ],
+  "routes": [
+    {
+      "id": "3-4-leveling-carrier",
+      "name": "空母系戦果レベリング",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["D", "H", "L", "J", "P"],
+      "stableBoss": false,
+      "tags": ["carrier-opening", "ranking", "high-bauxite"],
+      "desc": "正規空母2、軽空母2、軽巡1、水母1。開幕航空重視。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [11, 18],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

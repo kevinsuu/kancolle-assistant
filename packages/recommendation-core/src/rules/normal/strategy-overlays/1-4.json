@@ -1,0 +1,45 @@
+{
+  "area": "1-4",
+  "sources": [
+    "https://en.kancollewiki.net/World_1/1-4",
+    "https://en.kancollewiki.net/Resource_Farming"
+  ],
+  "routes": [
+    {
+      "id": "1-4-steel-light",
+      "name": "鋼材回收・軽量艦隊",
+      "category": "resource",
+      "objectives": ["resource-steel"],
+      "nodes": ["B", "C", "F", "E", "H"],
+      "stableBoss": false,
+      "tags": ["landing-craft", "random-south-branch"],
+      "desc": "水母0-1、軽空母1-2、駆逐3、潜水1。Cで燃料・鋼材を回収。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [13, 14],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

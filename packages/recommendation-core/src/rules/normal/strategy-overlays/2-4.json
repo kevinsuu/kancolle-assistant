@@ -1,0 +1,71 @@
+{
+  "area": "2-4",
+  "sources": [
+    "https://en.kancollewiki.net/World_2/2-4",
+    "https://en.kancollewiki.net/Resource_Farming"
+  ],
+  "routes": [
+    {
+      "id": "2-4-bucket",
+      "name": "高速修復材回収",
+      "category": "resource",
+      "objectives": ["resource-bucket"],
+      "nodes": ["B", "C", "F", "A"],
+      "stableBoss": false,
+      "tags": ["resource-routing-50pct", "landing-craft", "surface-radar"],
+      "desc": "正規空母3、重巡/航巡/軽巡/潜水2-3、駆逐0-1。A水桶はC分岐50%。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [11, 18],
+          "value": 3
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3, 5, 6, 13, 14],
+          "value": 2
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "2-4-devmat",
+      "name": "開發資材回収",
+      "category": "resource",
+      "objectives": ["resource-devmat"],
+      "nodes": ["B", "G", "H", "I"],
+      "stableBoss": false,
+      "tags": ["resource-routing-variable", "surface-radar"],
+      "desc": "補給艦1、軽空母2、軽巡/雷巡3。G開發資材へ進む構成。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [22],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3, 4],
+          "value": 3
+        }
+      ]
+    }
+  ]
+}

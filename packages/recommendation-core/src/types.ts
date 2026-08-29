@@ -74,6 +74,7 @@ export interface OwnedShip {
   readonly expansionSlotUnlocked: boolean
   readonly expansionEquipableEquipmentIds: readonly EquipmentInstanceId[]
   readonly regularEquipableMasterIds: readonly EquipmentMasterId[]
+  readonly openingAswRules: readonly OpeningAswRule[]
   readonly fastPlusPatterns: readonly FastPlusPattern[]
   readonly nightCarrierPatterns: readonly NightCarrierPattern[]
   readonly locked: boolean
@@ -81,6 +82,11 @@ export interface OwnedShip {
   readonly eventTag?: number | null
   readonly fuelCost: number
   readonly ammoCost: number
+}
+
+export interface OpeningAswRule {
+  readonly kind: 'none' | 'sonar'
+  readonly minimumAsw: number
 }
 
 export interface FastPlusPattern {
@@ -184,6 +190,7 @@ export interface RouteTemplate {
   readonly resourceProfile?: RouteResourceProfile
   readonly metadata: {
     readonly source: readonly string[]
+    readonly guideSources: readonly string[]
     readonly confidence: 'verified' | 'community' | 'experimental'
     readonly lastVerified: string
     readonly ruleVersion: string
@@ -221,6 +228,8 @@ export interface BuildCombatEvaluation {
   readonly nightSurfacePower: number
   readonly antiInstallationDayPower: number
   readonly antiInstallationNightPower: number
+  readonly antiSubmarineAttackCapable: boolean
+  readonly openingAswCapable: boolean
   readonly antiSubmarinePower: number
   readonly shellingAccuracy: number
 }
@@ -294,16 +303,31 @@ export interface UnsatisfiedRequirement {
   readonly values?: Readonly<Record<string, string | number>>
 }
 
+export interface RecommendationDiagnostics {
+  readonly routeCandidateCount: number
+  readonly availableRouteCount: number
+  readonly evaluatedFleetCandidateCount: number
+  readonly gearSolutionCount: number
+  readonly recommendationCandidateCount: number
+  readonly bestAirPower: number
+  readonly airPowerMinimum: number | null
+  readonly bestOpeningAsw?: number
+  readonly openingAswMinimum?: number | null
+  readonly reasonCodes: readonly string[]
+}
+
 export type RecommendFleetResult =
   | {
       readonly status: 'success'
       readonly recommendations: readonly FleetRecommendation[]
+      readonly diagnostics: RecommendationDiagnostics
       readonly elapsedMs: number
       readonly solverVersion: string
     }
   | {
       readonly status: 'no-solution'
       readonly analysis: { readonly reasons: readonly UnsatisfiedRequirement[] }
+      readonly diagnostics: RecommendationDiagnostics
       readonly elapsedMs: number
       readonly solverVersion: string
     }
@@ -328,6 +352,7 @@ export interface MapRouteOption {
   readonly category: StrategyCategory
   readonly objectives: readonly RecommendationObjective[]
   readonly nodes: readonly string[]
+  readonly sources: readonly string[]
   readonly stableBoss: boolean
   readonly automaticReady: boolean
   readonly description: string

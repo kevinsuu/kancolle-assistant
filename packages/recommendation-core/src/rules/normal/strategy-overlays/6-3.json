@@ -1,0 +1,40 @@
+{
+  "area": "6-3",
+  "sources": [
+    "https://en.kancollewiki.net/World_6/6-3",
+    "https://en.kancollewiki.net/Resource_Farming"
+  ],
+  "routes": [
+    {
+      "id": "6-3-devmat",
+      "name": "航空偵察・開發資材",
+      "category": "resource",
+      "objectives": ["resource-devmat", "resource-ammo", "resource-bauxite"],
+      "nodes": ["A", "C", "E", "G", "H", "J"],
+      "stableBoss": false,
+      "tags": ["aerial-recon", "boss-b-rank-required", "high-risk"],
+      "desc": "水母1、軽巡1、駆逐4。大型飛行艇・水偵で偵察報酬増加。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [2],
+          "value": 4
+        }
+      ]
+    }
+  ]
+}

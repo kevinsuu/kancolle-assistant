@@ -1,0 +1,56 @@
+{
+  "area": "6-2",
+  "sources": ["https://zekamashi.net/kancolle-kouryaku/6-2/"],
+  "replaceSourceRoutes": true,
+  "routes": [
+    {
+      "id": "6-2-guide-bb-cv-clt2-dd2",
+      "name": "攻略網・戦艦空母雷巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "E", "J", "K"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
+      "desc": "戦艦1、正規空母1、雷巡2、駆逐2。攻略網掲載の初攻略編成。",
+      "lastVerified": "2026-08-26",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 155,
+          "recommended": 155
+        },
+        {
+          "kind": "los",
+          "coefficient": 3,
+          "minimum": 50
+        }
+      ]
+    }
+  ]
+}
