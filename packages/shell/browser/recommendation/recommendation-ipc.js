@@ -1,4 +1,13 @@
-import { getMapOptions, scoreFleet } from '@kancolle-assistant/recommendation-core'
+import {
+  getMapOptions,
+  getRouteTemplates,
+  normalizeResourceLedgerGranularity,
+  resourcePreferencesFromPriorityMap,
+  resourcePreferencesToWeights,
+  scoreFleet,
+  validateResourcePriorityMap,
+  validateResourcePreferenceMap,
+} from '@kancolle-assistant/recommendation-core'
 import {
   ACCOUNT_CHANNEL,
   EXPEDITION_PLAN_CHANNEL,
@@ -14,6 +23,48 @@ import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
 const EXACT_COMBAT_CANDIDATE_LIMIT = 18
+const SELECTED_ROUTE_CANDIDATE_LIMIT = 3
+const RECOMMENDATION_SLOW_THRESHOLD_MS = 3_000
+const EXPEDITION_WEIGHT_MIN = -5
+const EXPEDITION_WEIGHT_MAX = 20
+const EXPEDITION_WEIGHT_STEP = 5
+const sanitizedErrorMessage = (error) =>
+  (error?.message || String(error)).replace(/\s+/g, ' ').slice(0, 240)
+
+const isExpeditionWeightValue = (value) =>
+  Number.isInteger(value) &&
+  value >= EXPEDITION_WEIGHT_MIN &&
+  value <= EXPEDITION_WEIGHT_MAX &&
+  value % EXPEDITION_WEIGHT_STEP === 0
+
+const parsePriorityRank = (value) => {
+  if (value === null) return null
+  const rank = Number(value)
+  return Number.isInteger(rank) && rank >= 1 && rank <= 5 ? rank : undefined
+}
+
+const parseResourcePreference = (preference) => {
+  if (!preference || typeof preference !== 'object') return null
+  if (preference.mode === 'ignore') return { mode: 'ignore' }
+  if (preference.mode === 'constraint') {
+    const minimumNetYieldPerHour = Number(preference.minimumNetYieldPerHour ?? 0)
+    return Number.isFinite(minimumNetYieldPerHour)
+      ? { mode: 'constraint', minimumNetYieldPerHour }
+      : null
+  }
+  if (preference.mode === 'optimize') {
+    const rank = parsePriorityRank(preference.rank)
+    return rank === null || typeof rank === 'undefined' ? null : { mode: 'optimize', rank }
+  }
+  return null
+}
+
+const vectorToResourceWeights = (weights) => ({
+  fuel: weights.fuel,
+  ammo: weights.ammo,
+  steel: weights.steel,
+  bauxite: weights.bauxite,
+})
 
 const guidePriority = (recommendation) =>
   recommendation.route.tags.includes('guide-primary')
@@ -22,9 +73,34 @@ const guidePriority = (recommendation) =>
       ? 1
       : 2
 
-const applyCombatEvaluations = (result, evaluations, objective) => {
+const GUIDE_OBJECTIVE_PRIORITY = [
+  'balanced',
+  'boss-clear',
+  'low-cost',
+  'leveling',
+  'resource-fuel',
+  'resource-bauxite',
+  'resource-burner',
+  'resource-ammo',
+  'resource-steel',
+  'resource-bucket',
+  'resource-devmat',
+]
+
+const routeObjective = (route) =>
+  GUIDE_OBJECTIVE_PRIORITY.find((objective) => route.objectives?.includes(objective)) ??
+  route.objectives?.[0] ??
+  'balanced'
+
+export const applyCombatEvaluations = (
+  result,
+  evaluations,
+  objective,
+  { logger = () => {}, logContext = {}, elapsedMs = 0 } = {},
+) => {
   if (!Array.isArray(evaluations)) throw new Error('KC3 combat evaluation result is invalid')
   const evaluationsById = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation]))
+  const openingAswCandidates = []
   const enriched = result.recommendations.map((recommendation) => {
     const evaluation = evaluationsById.get(recommendation.id)
     if (!evaluation || evaluation.ships.length !== recommendation.ships.length) {
@@ -34,10 +110,24 @@ const applyCombatEvaluations = (result, evaluations, objective) => {
       ...build,
       combat: evaluation?.ships[index],
     }))
+    const exactOpeningAswCount = evaluation.ships.filter(
+      (ship) => ship?.openingAswCapable === true,
+    ).length
+    const metrics = recommendation.metrics.openingAswRequired
+      ? { ...recommendation.metrics, openingAswCount: exactOpeningAswCount }
+      : recommendation.metrics
+    if (metrics.openingAswRequired) {
+      openingAswCandidates.push({
+        routeId: recommendation.route.id,
+        count: exactOpeningAswCount,
+        minimum: metrics.openingAswMinimum,
+      })
+    }
     return {
       ...recommendation,
       ships,
-      score: scoreFleet(ships, recommendation.metrics, objective, recommendation.route),
+      metrics,
+      score: scoreFleet(ships, metrics, objective, recommendation.route),
       reasons: [
         ...recommendation.reasons,
         {
@@ -47,8 +137,64 @@ const applyCombatEvaluations = (result, evaluations, objective) => {
       ],
     }
   })
+  const eligible = enriched.filter(
+    (recommendation) =>
+      !recommendation.metrics.openingAswRequired ||
+      recommendation.metrics.openingAswCount >= recommendation.metrics.openingAswMinimum,
+  )
+  if (openingAswCandidates.length > 0) {
+    const rejectedCandidateCount = openingAswCandidates.filter(
+      ({ count, minimum }) => count < minimum,
+    ).length
+    const qualifyingCandidateCount = openingAswCandidates.length - rejectedCandidateCount
+    logger('recommendation.oasw-loadout-validation-completed', {
+      ...logContext,
+      operation: 'validate-complete-opening-asw-loadouts',
+      candidateCount: openingAswCandidates.length,
+      evaluatedShipCount: evaluations.reduce(
+        (total, evaluation) => total + evaluation.ships.length,
+        0,
+      ),
+      qualifyingCandidateCount,
+      rejectedCandidateCount,
+      bestObservedOpeningAsw: Math.max(...openingAswCandidates.map(({ count }) => count)),
+      requiredMinimum: Math.min(...openingAswCandidates.map(({ minimum }) => minimum)),
+      routeIds: [...new Set(openingAswCandidates.map(({ routeId }) => routeId))],
+      selectedBranch: 'kc3-complete-loadout',
+      outcome:
+        qualifyingCandidateCount > 0
+          ? 'passed'
+          : eligible.length > 0
+            ? 'oasw-rejected-non-oasw-remains'
+            : 'rejected-all',
+      reasonCodes: rejectedCandidateCount > 0 ? ['OASW_INSUFFICIENT'] : [],
+      elapsedMs,
+    })
+  }
+  if (enriched.length > 0 && eligible.length === 0) {
+    const best = Math.max(...openingAswCandidates.map(({ count }) => count), 0)
+    const minimum = Math.min(...openingAswCandidates.map(({ minimum }) => minimum))
+    const reason = {
+      code: 'OASW_INSUFFICIENT',
+      message: `KC3 依完整配裝驗證後，先制對潛可成立 ${best} 艘，最低需要 ${minimum} 艘。`,
+      values: { best, minimum },
+    }
+    return {
+      status: 'no-solution',
+      analysis: { reasons: [reason] },
+      diagnostics: {
+        ...(result.diagnostics ?? {}),
+        recommendationCandidateCount: 0,
+        bestOpeningAsw: best,
+        openingAswMinimum: minimum,
+        reasonCodes: [...new Set([...(result.diagnostics?.reasonCodes ?? []), reason.code])],
+      },
+      elapsedMs: result.elapsedMs,
+      solverVersion: result.solverVersion,
+    }
+  }
   const seenFleets = new Set()
-  const ranked = enriched
+  const ranked = eligible
     .sort(
       (left, right) =>
         guidePriority(left) - guidePriority(right) ||
@@ -92,12 +238,12 @@ const isAllowedStrategyRoomSender = (event, extensionId) => {
   }
 }
 
-const readAccount = async (event, getKc3ExtensionId, readAccountSnapshot) => {
-  if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
-    return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
-  }
+const getSnapshotExecutionTarget = (event) =>
+  typeof event.senderFrame?.executeJavaScript === 'function' ? event.senderFrame : event.sender
+
+const readAccountFromTarget = async (target, readAccountSnapshot, logger) => {
   try {
-    return await readAccountSnapshot(event.sender)
+    return await readAccountSnapshot(target, logger)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     const code =
@@ -113,28 +259,42 @@ const readAccount = async (event, getKc3ExtensionId, readAccountSnapshot) => {
   }
 }
 
+const readAccount = async (event, getKc3ExtensionId, readAccountSnapshot, logger) => {
+  if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
+    return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
+  }
+  return readAccountFromTarget(getSnapshotExecutionTarget(event), readAccountSnapshot, logger)
+}
+
 const parseRequest = (request) => {
   if (!request || typeof request !== 'object') return null
   if (typeof request.mapId !== 'string' || typeof request.objective !== 'string') return null
   const mapOption = getMapOptions().find((item) => item.id === request.mapId)
   if (!mapOption || !mapOption.objectives.includes(request.objective)) return null
-  if (
-    typeof request.avoidCurrentFleetEquipment !== 'undefined' &&
-    typeof request.avoidCurrentFleetEquipment !== 'boolean'
-  ) {
-    return null
-  }
   return {
     mapId: request.mapId,
     routeId: typeof request.routeId === 'string' ? request.routeId : undefined,
     objective: request.objective,
-    preferences: {
-      avoidCurrentFleetEquipment: request.avoidCurrentFleetEquipment === true,
-    },
   }
 }
 
+const recommendationCacheKey = (request) => JSON.stringify(request)
+
+const slowestRecommendationPhase = (timings) =>
+  Object.entries(timings).reduce(
+    (slowest, [phase, elapsedMs]) =>
+      elapsedMs > slowest.elapsedMs ? { phase, elapsedMs } : slowest,
+    { phase: 'unknown', elapsedMs: 0 },
+  )
+
+const recommendationLogContext = (parsedRequest) => ({
+  mapId: parsedRequest.mapId,
+  objective: parsedRequest.objective,
+  routeId: parsedRequest.routeId ?? null,
+})
+
 const RESOURCE_KEYS = ['fuel', 'ammo', 'steel', 'bauxite']
+const EXPEDITION_UTILITY_RESOURCE_KEYS = [...RESOURCE_KEYS, 'bucket']
 const ALLOWED_EXPEDITION_IDS = new Set([
   ...Array.from({ length: 40 }, (_, index) => index + 1),
   100,
@@ -143,25 +303,104 @@ const ALLOWED_EXPEDITION_IDS = new Set([
   110,
 ])
 const RESOURCE_LEDGER_RANGES = ['today', 'yesterday', 'rolling24']
-const parseExpeditionRequest = (request) => {
-  if (
-    !request ||
-    typeof request !== 'object' ||
-    !request.resourceWeights ||
-    !request.incomeModifier
-  ) {
-    return null
+const EXPEDITION_LOG_RESOURCE_KEYS = [...RESOURCE_KEYS, 'bucket']
+
+const parsePriorityPreference = (preference) => {
+  if (!preference || typeof preference !== 'object' || preference.mode !== 'priority') return null
+  if (preference.preferences && typeof preference.preferences === 'object') {
+    const preferences = Object.fromEntries(
+      EXPEDITION_UTILITY_RESOURCE_KEYS.map((key) => [
+        key,
+        parseResourcePreference(preference.preferences[key]),
+      ]),
+    )
+    if (Object.values(preferences).some((item) => item === null)) return null
+    if (!validateResourcePreferenceMap(preferences)) return null
+    return { mode: 'priority', preferences }
   }
-  const resourceWeights = Object.fromEntries(
-    RESOURCE_KEYS.map((key) => [key, Number(request.resourceWeights[key])]),
+  const priorities = Object.fromEntries(
+    EXPEDITION_UTILITY_RESOURCE_KEYS.map((key) => [
+      key,
+      parsePriorityRank(preference.priorities?.[key]),
+    ]),
   )
+  if (Object.values(priorities).some((rank) => typeof rank === 'undefined')) return null
+  if (!validateResourcePriorityMap(priorities)) return null
+  return { mode: 'priority', preferences: resourcePreferencesFromPriorityMap(priorities) }
+}
+
+const resourceLogValue = (values, key) =>
+  typeof values?.[key] === 'number' && Number.isFinite(values[key]) ? values[key] : null
+
+const expeditionScoringSummaryRows = (result) => {
+  if (result.status !== 'success') return []
+  return result.plans.map((plan, index) => ({
+    rank: index + 1,
+    expeditions: plan.pairings.map(({ expedition }) => expedition.displayNo).join(' + '),
+    expeditionNames: plan.pairings.map(({ expedition }) => expedition.name).join(' + '),
+    score: plan.scoreDetails.totalScore,
+    fuelPerHour: resourceLogValue(plan.scoreDetails.expectedNetYield, 'fuel'),
+    ammoPerHour: resourceLogValue(plan.scoreDetails.expectedNetYield, 'ammo'),
+    steelPerHour: resourceLogValue(plan.scoreDetails.expectedNetYield, 'steel'),
+    bauxitePerHour: resourceLogValue(plan.scoreDetails.expectedNetYield, 'bauxite'),
+    bucketPerHour: resourceLogValue(plan.scoreDetails.expectedNetYield, 'bucket'),
+  }))
+}
+
+const expeditionPlanScoringDebug = (plan, index) => ({
+  rank: index + 1,
+  expeditionIds: plan.pairings.map(({ expedition }) => expedition.displayNo),
+  expeditionNames: plan.pairings.map(({ expedition }) => expedition.name),
+  totalScore: plan.scoreDetails.totalScore,
+  resources: Object.fromEntries(
+    EXPEDITION_LOG_RESOURCE_KEYS.map((key) => [
+      key,
+      {
+        expectedNetYield: resourceLogValue(plan.scoreDetails.expectedNetYield, key),
+        benchmark: resourceLogValue(plan.scoreDetails.benchmark, key),
+        satisfaction: resourceLogValue(plan.scoreDetails.satisfaction, key),
+        utility: resourceLogValue(plan.scoreDetails.utility, key),
+        normalizedWeight: resourceLogValue(plan.scoreDetails.normalizedWeight, key),
+        weightedContribution: resourceLogValue(plan.scoreDetails.weightedContribution, key),
+      },
+    ]),
+  ),
+})
+
+const expeditionCompletedScoringDebug = (result) => ({
+  status: result.status,
+  candidateCount: result.candidateCount,
+  combinationCount: result.combinationCount,
+  prunedCombinationCount: result.prunedCombinationCount,
+  totalCombinationCount:
+    result.optimizationDebug?.context?.totalCombinationCount ?? result.combinationCount,
+  paretoRemovedCount:
+    result.optimizationDebug?.context?.paretoRemovedCount ??
+    result.combinationCount - result.prunedCombinationCount,
+  remainingCombinationCount:
+    result.optimizationDebug?.context?.remainingCombinationCount ?? result.prunedCombinationCount,
+  plans: result.plans.map(expeditionPlanScoringDebug),
+})
+
+const parseExpeditionRequest = (request) => {
+  if (!request || typeof request !== 'object' || !request.incomeModifier) return null
+  const priorityPreference = parsePriorityPreference(request.preference)
+  const priorityWeights = priorityPreference
+    ? resourcePreferencesToWeights(priorityPreference.preferences)
+    : null
+  const legacyResourceWeights =
+    !priorityPreference && request.resourceWeights
+      ? Object.fromEntries(RESOURCE_KEYS.map((key) => [key, Number(request.resourceWeights[key])]))
+      : null
+  const legacyBucketWeight = !priorityPreference ? Number(request.bucketWeight) : 0
+  const resourceWeights = priorityWeights
+    ? vectorToResourceWeights(priorityWeights)
+    : legacyResourceWeights
+  const bucketWeight = priorityWeights ? priorityWeights.bucket : legacyBucketWeight
   if (
-    RESOURCE_KEYS.some(
-      (key) =>
-        !Number.isInteger(resourceWeights[key]) ||
-        resourceWeights[key] < -5 ||
-        resourceWeights[key] > 20,
-    ) ||
+    !resourceWeights ||
+    (!priorityPreference &&
+      RESOURCE_KEYS.some((key) => !isExpeditionWeightValue(resourceWeights[key]))) ||
     !Number.isInteger(request.afkMinutes) ||
     request.afkMinutes < 0 ||
     request.afkMinutes > 2880 ||
@@ -169,9 +408,7 @@ const parseExpeditionRequest = (request) => {
     request.fleetCount < 1 ||
     request.fleetCount > 3 ||
     typeof request.incomeModifier.greatSuccess !== 'boolean' ||
-    !Number.isInteger(request.bucketWeight) ||
-    request.bucketWeight < -5 ||
-    request.bucketWeight > 20 ||
+    (!priorityPreference && !isExpeditionWeightValue(bucketWeight)) ||
     !Number.isInteger(request.incomeModifier.daihatsuCount) ||
     request.incomeModifier.daihatsuCount < 0 ||
     request.incomeModifier.daihatsuCount > 4 ||
@@ -188,7 +425,9 @@ const parseExpeditionRequest = (request) => {
     afkMinutes: request.afkMinutes,
     fleetCount: request.fleetCount,
     candidateIds,
-    bucketWeight: request.bucketWeight,
+    bucketWeight,
+    ...(priorityPreference ? { preference: priorityPreference } : {}),
+    debug: request.debug === true,
     incomeModifier: {
       greatSuccess: request.incomeModifier.greatSuccess,
       daihatsuCount: request.incomeModifier.daihatsuCount,
@@ -205,6 +444,7 @@ export const registerRecommendationIpc = ({
   logger,
   readAccountSnapshot = readKC3AccountSnapshot,
   readCombatEvaluations = readKC3CombatEvaluations,
+  recommendationSlowThresholdMs = RECOMMENDATION_SLOW_THRESHOLD_MS,
 }) => {
   const accountSummary = (snapshot) => ({
     shipCount: snapshot.ships.length,
@@ -214,6 +454,182 @@ export const registerRecommendationIpc = ({
   })
   const accountSnapshots = new WeakMap()
   const recommendationResults = new WeakMap()
+  let latestAccountSnapshot = null
+  let latestRecommendationSnapshot = null
+  let latestRecommendationResults = new Map()
+  const recommendationPromises = new Map()
+  const resetLatestRecommendations = () => {
+    latestRecommendationSnapshot = null
+    latestRecommendationResults = new Map()
+    recommendationPromises.clear()
+  }
+  const ensureLatestRecommendationCache = (snapshot) => {
+    if (latestRecommendationSnapshot === snapshot) return
+    latestRecommendationSnapshot = snapshot
+    latestRecommendationResults = new Map()
+    recommendationPromises.clear()
+  }
+  const calculateRecommendation = async ({ parsedRequest, snapshot, target }) => {
+    let result
+    const requestStartedAt = Date.now()
+    let solverElapsedMs = 0
+    let exactCombatElapsedMs = 0
+    const selectedRouteNeedsExactOpeningAsw = getRouteTemplates(
+      parsedRequest.mapId,
+      parsedRequest.objective,
+      parsedRequest.routeId,
+    ).some((route) =>
+      route.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw'),
+    )
+    const candidateLimit =
+      !parsedRequest.routeId || selectedRouteNeedsExactOpeningAsw
+        ? EXACT_COMBAT_CANDIDATE_LIMIT
+        : SELECTED_ROUTE_CANDIDATE_LIMIT
+    try {
+      const solverStartedAt = Date.now()
+      result = await recommend({
+        ...parsedRequest,
+        account: snapshot,
+        candidateLimit,
+      })
+      solverElapsedMs = Date.now() - solverStartedAt
+      if (result.status === 'success') {
+        try {
+          const exactCombatStartedAt = Date.now()
+          const evaluations = await readCombatEvaluations(
+            target,
+            result.recommendations,
+            snapshot.generatedAt,
+          )
+          exactCombatElapsedMs = Date.now() - exactCombatStartedAt
+          result = applyCombatEvaluations(result, evaluations, parsedRequest.objective, {
+            logger,
+            logContext: recommendationLogContext(parsedRequest),
+            elapsedMs: exactCombatElapsedMs,
+          })
+        } catch (error) {
+          const exactOpeningAswCandidateCount = result.recommendations.filter(
+            (recommendation) => recommendation.metrics.openingAswRequired,
+          ).length
+          const fallbackRecommendations = result.recommendations
+            .filter((recommendation) => !recommendation.metrics.openingAswRequired)
+            .slice(0, 3)
+          logger('recommendation.combat-evaluation-failed', {
+            ...recommendationLogContext(parsedRequest),
+            operation: 'evaluate-complete-loadouts',
+            candidateCount: result.recommendations.length,
+            exactOpeningAswCandidateCount,
+            affectedCandidateCount: result.recommendations.length,
+            fallbackResult:
+              fallbackRecommendations.length > 0
+                ? 'non-oasw-solver-ranking'
+                : 'error-no-unverified-oasw-output',
+            reasonCodes: ['KC3_COMBAT_EVALUATION_FAILED'],
+            message: sanitizedErrorMessage(error),
+          })
+          result =
+            fallbackRecommendations.length > 0
+              ? { ...result, recommendations: fallbackRecommendations }
+              : errorResult(
+                  'KC3_COMBAT_EVALUATION_FAILED',
+                  'KC3 無法驗證完成配裝的先制對潛條件，請重新同步後再試。',
+                )
+        }
+      }
+    } catch (error) {
+      const message = error?.message || String(error)
+      if (message.includes('timed out')) {
+        return errorResult(
+          'RECOMMENDATION_TIMEOUT',
+          '推薦計算逾時，請確認參考路線複雜度或重新同步後再試。',
+        )
+      }
+      logger('recommendation.failed', {
+        mapId: parsedRequest.mapId,
+        objective: parsedRequest.objective,
+        message,
+      })
+      return errorResult('SOLVER_FAILED', '推薦計算失敗，請稍後再試。')
+    }
+    if (result.status !== 'error') {
+      const totalElapsedMs = Date.now() - requestStartedAt
+      const timings = {
+        solverElapsedMs,
+        exactCombatElapsedMs,
+      }
+      const slowestPhase = slowestRecommendationPhase(timings)
+      const routeCount =
+        getMapOptions()
+          .find((map) => map.id === parsedRequest.mapId)
+          ?.routes.filter(
+            (route) =>
+              route.objectives.includes(parsedRequest.objective) &&
+              (!parsedRequest.routeId || route.id === parsedRequest.routeId),
+          ).length ?? 0
+      const diagnostics = result.diagnostics ?? {}
+      logger('recommendation.completed', {
+        mapId: parsedRequest.mapId,
+        objective: parsedRequest.objective,
+        routeId: parsedRequest.routeId ?? null,
+        searchMode: parsedRequest.routeId ? 'selected-route' : 'auto-compare',
+        routeCount,
+        status: result.status,
+        elapsedMs: result.elapsedMs,
+        solverElapsedMs,
+        exactCombatElapsedMs,
+        totalElapsedMs,
+        slowestPhase: slowestPhase.phase,
+        slowestPhaseElapsedMs: slowestPhase.elapsedMs,
+        recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
+        routeCandidateCount: diagnostics.routeCandidateCount ?? routeCount,
+        availableRouteCount: diagnostics.availableRouteCount ?? null,
+        evaluatedFleetCandidateCount: diagnostics.evaluatedFleetCandidateCount ?? null,
+        gearSolutionCount: diagnostics.gearSolutionCount ?? null,
+        recommendationCandidateCount: diagnostics.recommendationCandidateCount ?? null,
+        bestAirPower: diagnostics.bestAirPower ?? null,
+        airPowerMinimum: diagnostics.airPowerMinimum ?? null,
+        bestOpeningAsw: diagnostics.bestOpeningAsw ?? null,
+        openingAswMinimum: diagnostics.openingAswMinimum ?? null,
+        reasonCodes:
+          diagnostics.reasonCodes ??
+          (result.status === 'no-solution'
+            ? [...new Set(result.analysis.reasons.map(({ code }) => code))]
+            : []),
+      })
+      if (totalElapsedMs > recommendationSlowThresholdMs) {
+        logger('recommendation.slow-completed', {
+          ...recommendationLogContext(parsedRequest),
+          thresholdMs: recommendationSlowThresholdMs,
+          totalElapsedMs,
+          solverElapsedMs,
+          exactCombatElapsedMs,
+          slowestPhase: slowestPhase.phase,
+          slowestPhaseElapsedMs: slowestPhase.elapsedMs,
+        })
+      }
+    }
+    return toRecommendationRendererResult(result)
+  }
+  const getRecommendationCalculation = ({ parsedRequest, snapshot, target }) => {
+    ensureLatestRecommendationCache(snapshot)
+    const cacheKey = recommendationCacheKey(parsedRequest)
+    if (latestRecommendationResults.has(cacheKey)) {
+      const result = latestRecommendationResults.get(cacheKey)
+      return Promise.resolve(result)
+    }
+    if (recommendationPromises.has(cacheKey)) return recommendationPromises.get(cacheKey)
+    const promise = calculateRecommendation({ parsedRequest, snapshot, target }).then((result) => {
+      if (result.status !== 'error' && latestRecommendationSnapshot === snapshot) {
+        latestRecommendationResults.set(cacheKey, result)
+      }
+      return result
+    })
+    recommendationPromises.set(cacheKey, promise)
+    promise.finally(() => {
+      if (recommendationPromises.get(cacheKey) === promise) recommendationPromises.delete(cacheKey)
+    })
+    return promise
+  }
   const readCachedAccount = async (event, forceRefresh = false) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
@@ -222,10 +638,20 @@ export const registerRecommendationIpc = ({
     if (forceRefresh) {
       accountSnapshots.delete(sender)
       recommendationResults.delete(sender)
+      latestAccountSnapshot = null
+      resetLatestRecommendations()
     }
     if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
-    const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot)
-    if (snapshot.status !== 'error') accountSnapshots.set(sender, snapshot)
+    if (!forceRefresh && latestAccountSnapshot) {
+      accountSnapshots.set(sender, latestAccountSnapshot)
+      return latestAccountSnapshot
+    }
+    const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger)
+    if (snapshot.status !== 'error') {
+      accountSnapshots.set(sender, snapshot)
+      latestAccountSnapshot = snapshot
+      ensureLatestRecommendationCache(snapshot)
+    }
     return snapshot
   }
 
@@ -273,8 +699,28 @@ export const registerRecommendationIpc = ({
       logger('expedition-planner.completed', {
         fleetCount: parsedRequest.fleetCount,
         candidateCount: parsedRequest.candidateIds.length,
+        combinationCount: result.status === 'success' ? result.combinationCount : 0,
+        prunedCombinationCount: result.status === 'success' ? result.prunedCombinationCount : 0,
         status: result.status,
+        debug: parsedRequest.debug,
+        scoring: expeditionScoringSummaryRows(result),
       })
+      if (result.status === 'success') {
+        logger(
+          'expedition-planner.completed.scoring-json',
+          `\n${JSON.stringify(expeditionCompletedScoringDebug(result), null, 2)}`,
+        )
+      }
+      if (result.optimizationDebug) {
+        logger(
+          'expedition-planner.completed.optimization-debug-json',
+          `\n${JSON.stringify(result.optimizationDebug, null, 2)}`,
+        )
+      } else if (parsedRequest.debug) {
+        logger('expedition-planner.completed.optimization-debug-missing', {
+          message: 'debug request was enabled, but the planner did not return optimizationDebug.',
+        })
+      }
       return result
     } catch (error) {
       logger('expedition-planner.failed', { message: error?.message || String(error) })
@@ -289,12 +735,19 @@ export const registerRecommendationIpc = ({
     if (!request || !RESOURCE_LEDGER_RANGES.includes(request.range)) {
       return errorResult('INVALID_REQUEST', '資源統計期間格式不正確。')
     }
+    const granularity =
+      typeof request.granularity === 'undefined'
+        ? 'hourly'
+        : normalizeResourceLedgerGranularity(request.granularity)
+    if (!granularity) {
+      return errorResult('INVALID_REQUEST', '資源統計刻度格式不正確。')
+    }
     try {
       return {
         status: 'success',
         ...(await readKC3ResourceLedgerSummary(
           event.sender,
-          { range: request.range },
+          { range: request.range, granularity, forceRefresh: request.forceRefresh === true },
           summarizeResourceLedgerInWorker,
         )),
       }
@@ -311,83 +764,61 @@ export const registerRecommendationIpc = ({
     const parsedRequest = parseRequest(request)
     if (!parsedRequest) return errorResult('INVALID_REQUEST', '推薦條件格式不正確。')
 
-    const snapshot = await readCachedAccount(event)
-    if (snapshot.status === 'error') return snapshot
-    const cacheKey = JSON.stringify(parsedRequest)
-    const cachedResults = recommendationResults.get(event.sender)
-    if (cachedResults?.snapshot === snapshot && cachedResults.results.has(cacheKey)) {
-      return {
-        ...cachedResults.results.get(cacheKey),
-        account: accountSummary(snapshot),
-      }
-    }
-
-    let result
     const requestStartedAt = Date.now()
-    let exactCombatElapsedMs = 0
-    try {
-      result = await recommend({
-        ...parsedRequest,
-        account: snapshot,
-        candidateLimit: EXACT_COMBAT_CANDIDATE_LIMIT,
+    let activePhase = 'account-snapshot'
+    const slowTimer = setTimeout(() => {
+      logger('recommendation.slow', {
+        ...recommendationLogContext(parsedRequest),
+        thresholdMs: recommendationSlowThresholdMs,
+        elapsedMs: Date.now() - requestStartedAt,
+        activePhase,
       })
-      if (result.status === 'success') {
-        try {
-          const exactCombatStartedAt = Date.now()
-          const evaluations = await readCombatEvaluations(
-            event.sender,
-            result.recommendations,
-            snapshot.generatedAt,
-          )
-          exactCombatElapsedMs = Date.now() - exactCombatStartedAt
-          result = applyCombatEvaluations(result, evaluations, parsedRequest.objective)
-        } catch (error) {
-          logger('recommendation.combat-evaluation-failed', {
-            message: error?.message || String(error),
-          })
-          result = { ...result, recommendations: result.recommendations.slice(0, 3) }
+    }, recommendationSlowThresholdMs)
+    let accountElapsedMs = 0
+    let cacheHit = false
+    let rendererResult
+    try {
+      const snapshot = await readCachedAccount(event)
+      accountElapsedMs = Date.now() - requestStartedAt
+      if (snapshot.status === 'error') return snapshot
+      const cacheKey = recommendationCacheKey(parsedRequest)
+      const cachedResults = recommendationResults.get(event.sender)
+      if (cachedResults?.snapshot === snapshot && cachedResults.results.has(cacheKey)) {
+        cacheHit = true
+        rendererResult = cachedResults.results.get(cacheKey)
+      } else {
+        activePhase = 'solver-and-combat'
+        rendererResult = await getRecommendationCalculation({
+          parsedRequest,
+          snapshot,
+          target: event.sender,
+        })
+        if (rendererResult.status !== 'error') {
+          const cache =
+            cachedResults?.snapshot === snapshot ? cachedResults : { snapshot, results: new Map() }
+          cache.results.set(cacheKey, rendererResult)
+          recommendationResults.set(event.sender, cache)
         }
       }
-    } catch (error) {
-      logger('recommendation.failed', {
-        mapId: parsedRequest.mapId,
-        objective: parsedRequest.objective,
-        message: error?.message || String(error),
-      })
-      return errorResult('SOLVER_FAILED', '推薦計算失敗，請稍後再試。')
-    }
-    if (result.status !== 'error') {
-      const routeCount =
-        getMapOptions()
-          .find((map) => map.id === parsedRequest.mapId)
-          ?.routes.filter(
-            (route) =>
-              route.objectives.includes(parsedRequest.objective) &&
-              (!parsedRequest.routeId || route.id === parsedRequest.routeId),
-          ).length ?? 0
-      logger('recommendation.completed', {
-        mapId: parsedRequest.mapId,
-        objective: parsedRequest.objective,
-        routeId: parsedRequest.routeId ?? null,
-        searchMode: parsedRequest.routeId ? 'selected-route' : 'auto-compare',
-        routeCount,
-        status: result.status,
-        elapsedMs: result.elapsedMs,
-        exactCombatElapsedMs,
-        totalElapsedMs: Date.now() - requestStartedAt,
-        recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
-      })
-    }
-    const rendererResult = toRecommendationRendererResult(result)
-    if (result.status !== 'error') {
-      const cache =
-        cachedResults?.snapshot === snapshot ? cachedResults : { snapshot, results: new Map() }
-      cache.results.set(cacheKey, rendererResult)
-      recommendationResults.set(event.sender, cache)
-    }
-    return {
-      ...rendererResult,
-      account: accountSummary(snapshot),
+      const totalElapsedMs = Date.now() - requestStartedAt
+      if (
+        totalElapsedMs > recommendationSlowThresholdMs ||
+        accountElapsedMs > recommendationSlowThresholdMs
+      ) {
+        logger('recommendation.request-slow-completed', {
+          ...recommendationLogContext(parsedRequest),
+          thresholdMs: recommendationSlowThresholdMs,
+          totalElapsedMs,
+          accountElapsedMs,
+          cacheHit,
+        })
+      }
+      return {
+        ...rendererResult,
+        account: accountSummary(snapshot),
+      }
+    } finally {
+      clearTimeout(slowTimer)
     }
   })
 }

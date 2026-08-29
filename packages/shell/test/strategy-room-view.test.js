@@ -19,6 +19,7 @@ import {
 } from '../browser/recommendation/i18n.js'
 import { EXPEDITION_RESOURCES } from '../browser/recommendation/resource-metadata.js'
 import {
+  movePriorityResourceOrder,
   plannerMarkup,
   styles as expeditionStyles,
 } from '../browser/recommendation/views/expedition-goal-view.js'
@@ -26,6 +27,7 @@ import {
   panelMarkup as fleetMarkup,
   styles as fleetStyles,
 } from '../browser/recommendation/views/fleet-recommender-view.js'
+import { localizedRouteDescription } from '../browser/recommendation/strategy-room-ui.js'
 import {
   recentSectionMarkup,
   styles as recentStyles,
@@ -58,9 +60,12 @@ const translator =
 
 const viewSnapshot = (language) => {
   const t = translator(language)
-  const weightResources = ['fuel', 'steel', 'ammo', 'bauxite'].map((key) =>
-    EXPEDITION_RESOURCES.find((resource) => resource.key === key),
-  )
+  const weightResources = [
+    { key: 'bucket', color: '#3b9d91' },
+    ...['fuel', 'bauxite', 'ammo', 'steel'].map((key) =>
+      EXPEDITION_RESOURCES.find((resource) => resource.key === key),
+    ),
+  ]
   const output = [
     fleetMarkup(t),
     plannerMarkup(t, EXPEDITION_RESOURCES, weightResources, [[[1, '01', '00:15']]]),
@@ -75,11 +80,69 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '12ab915b306cb96a9bfffdbb980b9703976cce7c777bec72ec58e04cb98f7eb3',
-      jp: '067fae1ae371a0bc5bf73a07540d6bfc2ce44744dd9af0a46d57e3d0408908ad',
-      scn: 'feab33b29b46ebd9cd4786705e625532ffd99d7139a81b360553909aa6d185d8',
-      tcn: '5267562af9d6416aeeb4c3fee936840c01e4aeb108ec2c1964d2938026a8aa2e',
+      en: 'daf3412d9b2009ea4863ba742e39d9ff79e73b4e684912ae01bdb8f927f62690',
+      jp: '4d7f94bd0d5e61e99b4811f7eebf55bdd3ccd42006a85521ccd290e5c1929fb9',
+      scn: 'c0e2b5af8bc8e39d52bab40595eddb722565bc89a6c23bd7af73ed9be7c9a0d8',
+      tcn: 'ad27a5ea665a566a5a52b0dfd66110dbffb82684f26ffbb28d6f3db3e63a8fde',
     },
+  )
+})
+
+test('expedition preference view uses unique priority controls', () => {
+  const weightResources = [
+    { key: 'bucket', color: '#3b9d91' },
+    ...['fuel', 'bauxite', 'ammo', 'steel'].map((key) =>
+      EXPEDITION_RESOURCES.find((resource) => resource.key === key),
+    ),
+  ]
+  const markup = plannerMarkup(translator('tcn'), EXPEDITION_RESOURCES, weightResources, [
+    [[1, '01', '00:15']],
+  ])
+
+  assert.match(markup, /data-resource-mode="fuel"/)
+  assert.match(markup, /data-resource-priority="fuel"/)
+  assert.match(markup, /<option value="constraint">至少不虧<\/option>/)
+  assert.match(markup, /<option value="ignore">不考慮<\/option>/)
+  assert.doesNotMatch(markup, /data-resource-weight/)
+})
+
+test('priority order movement keeps ranks unique and continuous', () => {
+  const moved = movePriorityResourceOrder(
+    ['bucket', 'fuel', 'bauxite', 'ammo', 'steel'],
+    'steel',
+    0,
+  )
+
+  assert.deepEqual(moved, ['steel', 'bucket', 'fuel', 'bauxite', 'ammo'])
+})
+
+test('fleet recommender view uses guide selection without an objective control', () => {
+  const markup = fleetMarkup(translator('tcn'))
+  assert.match(markup, /id="dfr-route-select"/)
+  assert.doesNotMatch(markup, /dfr-objective/)
+})
+
+test('fleet route descriptions use localized copy with source fallback', () => {
+  assert.equal(
+    localizedRouteDescription(
+      { id: '5-5-south-dd', description: '軽巡1、雷巡1、駆逐4。' },
+      translator('tcn'),
+    ).startsWith('輕巡1、雷巡1、驅逐4。'),
+    true,
+  )
+  assert.match(
+    localizedRouteDescription(
+      { id: '4-5-kcwiki-fast-plus-special-attack', description: 'source description' },
+      translator('tcn'),
+    ),
+    /Nelson.*1／3／5.*H 點選複縱陣/,
+  )
+  assert.equal(
+    localizedRouteDescription(
+      { id: 'fixture-missing', description: 'source description' },
+      translator('tcn'),
+    ),
+    'source description',
   )
 })
 
@@ -97,6 +160,7 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
   })
   assert.match(fleetStyles, /\.dfr-root \{\s*width: 700px;/)
   assert.match(fleetStyles, /\.dfr-button\.is-loading:disabled/)
+  assert.match(fleetStyles, /\.dfr-source-list/)
   assert.match(fleetStyles, /@keyframes dfr-route-spin/)
   assert.match(expeditionStyles, /\.dep-root \{ width: 680px;/)
   assert.match(resourceCenterStyles, /\.drc-root \{ width: 700px;/)
@@ -142,7 +206,24 @@ test('fleet recommendation labels exist in all supported languages', () => {
       'fleet.speed.fast',
       'fleet.speed.fast+',
       'fleet.speed.fastest',
+      'fleet.sourceCount',
+      'fleet.noSources',
+      'fleet.strategyGuide',
+      'fleet.strategyShips',
+      'fleet.strategyEquipment',
+      'fleet.strategyNotes',
+      'fleet.strategyRoute',
+      'fleet.strategySpeed',
+      'fleet.strategyAirPower',
+      'fleet.strategyLos',
+      'fleet.strategyOpeningAsw',
+      'fleet.strategyResourceGain',
+      'fleet.strategyMinimumValue',
+      'fleet.strategyResourceValue',
+      'fleet.strategyNoDescription',
+      'fleet.routeUnknown',
       'fleet.role.torpedo-cruiser',
+      'fleet.noSolutionForRoute',
       'fleet.objective.resource-burner',
       'fleet.manualSetup',
       'message.NO_AUTOMATED_ROUTE',
@@ -171,6 +252,7 @@ test('expedition status safeguards exist in all supported languages', () => {
     'expedition.state.returnedAction',
     'expedition.perHourAfterDispatch',
     'expedition.supplyAfterReturn',
+    'expedition.weightTooltip',
   ]
   ;[en, jp, scn, tcn].forEach((catalog) => {
     keys.forEach((key) => assert.equal(typeof catalog[key], 'string', key))

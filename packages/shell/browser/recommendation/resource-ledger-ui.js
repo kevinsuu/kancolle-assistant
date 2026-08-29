@@ -109,14 +109,14 @@ const mount = (tab, invoke) => {
   let data = null
   let loadSequence = 0
 
-  const load = async () => {
+  const load = async ({ forceRefresh = false } = {}) => {
     const sequence = ++loadSequence
     refresh.disabled = true
     refresh.textContent = t('common.refreshing')
     root.querySelector('.drl-output').innerHTML =
       `<div class="drl-empty"><strong>${t('ledger.organizing')}</strong><span>${t('ledger.organizingDetail')}</span></div>`
     try {
-      const result = await invoke(RESOURCE_LEDGER_SUMMARY_CHANNEL, { range })
+      const result = await invoke(RESOURCE_LEDGER_SUMMARY_CHANNEL, { range, forceRefresh })
       if (sequence !== loadSequence) return
       data = result
     } catch {
@@ -148,7 +148,7 @@ const mount = (tab, invoke) => {
       render(root, data, metric)
     })
   })
-  refresh.addEventListener('click', () => void load())
+  refresh.addEventListener('click', () => void load({ forceRefresh: true }))
   void load()
 }
 

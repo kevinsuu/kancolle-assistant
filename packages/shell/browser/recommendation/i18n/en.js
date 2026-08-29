@@ -40,7 +40,7 @@ export const en = {
   'common.listSeparator': ', ',
 
   'fleet.menu': 'Map Recommendations',
-  'fleet.menuTitle': 'Generate map fleet and equipment recommendations from your KC3 account',
+  'fleet.menuTitle': 'Generate map ships, equipment, and strategy notes from your KC3 account',
   'fleet.title': 'Map Fleet Recommendations',
   'fleet.help.whatQuestion': 'What does this page do?',
   'fleet.help.whatAnswer':
@@ -60,17 +60,15 @@ export const en = {
   'fleet.sync': 'Resync',
   'fleet.conditions': 'Recommendation Conditions',
   'fleet.map': 'Map',
-  'fleet.route': 'Route / Phase',
-  'fleet.objective': 'Goal',
+  'fleet.route': 'Reference Site',
   'fleet.dataStatus': 'Data Status',
   'fleet.loading': 'Loading',
-  'fleet.keepEquipment': 'Keep equipment on the current fleets',
   'fleet.generate': 'Generate Recommendations',
   'fleet.generating': 'Generating…',
-  'fleet.results': 'Recommendations',
+  'fleet.results': 'Guide Summary',
   'fleet.idleTitle': 'No recommendations yet',
   'fleet.idleDetail':
-    'After syncing, select Generate Recommendations to view up to three valid plans.',
+    'Generate a guide-style summary with ships, equipment, and strategy notes for the selected route.',
   'fleet.resyncingTitle': 'Resynchronizing',
   'fleet.resyncingDetail':
     'Existing recommendations are invalid; KC3 ships and equipment are being loaded again.',
@@ -83,9 +81,9 @@ export const en = {
   'fleet.calculationFailed': 'Recommendation failed',
   'fleet.noSolutionFallback': 'Your current ships and equipment cannot satisfy this route.',
   'fleet.failedFallback': 'Try again after KC3 has finished synchronizing.',
-  'fleet.routeSummary': '{routeCount} matching routes · {stableCount} stable boss routes',
+  'fleet.sourceCount': '{count} reference sites',
+  'fleet.noSources': 'No reference sites for the current selection.',
   'fleet.routeOption': '{name} · {nodes} · {confidence}',
-  'fleet.autoRoutes': 'Automatically select the best calculable routes (Top 3)',
   'fleet.stable': 'Stable',
   'fleet.manualSetup': 'Manual check required',
   'fleet.source': 'Source {index}',
@@ -100,14 +98,81 @@ export const en = {
   'fleet.afterSortieCost': 'after same-resource sortie cost',
   'fleet.planNavigation': 'Recommendation plans',
   'fleet.planningTitle': 'Planning fleet',
-  'fleet.planningDetail':
-    'Comparing candidate ships, equipment instances, air power, and LoS requirements…',
+  'fleet.planningDetail': 'Matching guide routes against owned ships and equipment…',
   'fleet.noSolutionForObjective': 'This account cannot build a {mapId} “{objective}” fleet',
+  'fleet.noSolutionForRoute': 'This account cannot build the {mapId} “{route}” guide fleet',
   'fleet.incomplete': 'Recommendation incomplete',
   'fleet.serviceUnavailable': 'Recommendation service unavailable',
   'fleet.resyncIncomplete': 'Resynchronization incomplete',
   'fleet.recommendationTab': 'Plan {index}',
-  'fleet.score': 'Fit',
+  'fleet.strategyGuide': 'Strategy',
+  'fleet.strategyShips': 'Ships to Bring',
+  'fleet.strategyEquipment': 'Equipment to Equip',
+  'fleet.strategyNotes': 'Strategy Notes',
+  'fleet.strategyRoute': 'Route',
+  'fleet.strategySpeed': 'Fleet speed',
+  'fleet.strategyAirPower': 'Air power',
+  'fleet.strategyLos': 'LoS',
+  'fleet.strategyOpeningAsw': 'Opening ASW',
+  'fleet.strategyResourceGain': 'Expected {resource}',
+  'fleet.strategyMinimumValue': '{value} / min {minimum}',
+  'fleet.strategyResourceValue': '{gain} gained / {net} net',
+  'fleet.strategyNoDescription': 'Check the linked source for this route.',
+  'fleet.routeDescription.4-5-fast-plus-night-carrier':
+    'Two CV/CVB, including at least one night carrier, one CVL, two CLT, and one BBV. The entire fleet reaches Fast+ for A/C-D-H-T, checks air power 414+, and suits clears or repeated ranking runs.',
+  'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
+    'Two CVL, including one night carrier, one CL, and three DD. This low-cost shortest route checks air power 207+, three opening-ASW ships, and two anti-installation destroyers; the guide recommends it for clears rather than extended farming because of repair costs.',
+  'fleet.routeDescription.4-5-kcwiki-fast-plus-special-attack':
+    'Nelson Kai, three CV/CVB, one CA, and one CLT. The fleet reaches Fast+, places Nelson and two non-carriers in positions 1/3/5, and uses Double Line at H for Nelson Touch; air power 207+ is checked.',
+  'fleet.routeDescription.4-5-kcwiki-detour':
+    'One fast BB, two CV/CVB, one CL, and two DD. It follows A-B-E-M-R-N-T or C-F-I-J-H-T and checks air power 207+; the source recommends this detour only while chipping the gauge.',
+  'fleet.routeDescription.5-5-middle':
+    'Yamato Kai Ni-class, one friend battleship, one CAV, one CL, and two DD. Yui regular EO middle battleship-cruiser route; air power 138+ and Formula 33 Cn2 LoS 66+.',
+  'fleet.routeDescription.5-5-supply-smoke':
+    'Yamato Kai Ni Juu, Musashi Kai Ni, one carrier, one AO, and two DD. Yui supply boss smoke route; triple smoke screen is a manual sortie check, with air power 300+ and Formula 33 Cn2 LoS 66+.',
+  'fleet.routeDescription.5-5-submarine-snipe':
+    'Six SS/SSV. Low-resource snipe route; P to S is not fixed and requires Formula 33 Cn2 LoS 80+.',
+  'fleet.routeDescription.5-5-kcwiki-upper-yamato-night-carrier':
+    'Yamato Kai Ni-class plus Musashi Kai Ni, two CV/CVB, and two CA/CAV. KCWiki upper Yamato-Musashi night-carrier setup; checks Formula 33 Cn2 LoS 80+ for P to S and boss air superiority 392+ from the image notes.',
+  'fleet.routeDescription.5-5-kcwiki-upper-cav':
+    'Akagi Kai Ni Bo plus three battleships and two CAV for the KCWiki upper routing setup. The image example has air power 416 and Formula 33 Cn1 LoS 44.87; second-phase P to S is checked as Formula 33 Cn2 LoS 80+.',
+  'fleet.routeDescription.5-5-kcwiki-upper-nelson':
+    'Nelson/Rodney Kai, one battleship, two CV/CVB, and two CAV. KCWiki upper Nelson route; sortie air power 410+ is advised and P to S requires Formula 33 Cn2 LoS 80+.',
+  'fleet.routeDescription.5-5-kcwiki-upper-night-carrier':
+    'Two CV/CVB including one night carrier, two battleships, and two CAV. KCWiki upper night-carrier route; assumes the flagship night carrier is protected, and P to S requires Formula 33 Cn2 LoS 80+.',
+  'fleet.routeDescription.5-5-kcwiki-upper-kongou-touch':
+    'Kongou Kai Ni C plus Hiei Kai Ni C, Haruna Kai Ni, or Kirishima Kai Ni; two CV/CVB and two CAV. Friend fleet night assault and support fleet are manual checks; P to S requires Formula 33 Cn2 LoS 80+.',
+  'fleet.routeDescription.5-5-kcwiki-upper-random-nelson':
+    'Nelson/Rodney Kai, three CV/CVB, and two battleships. KCWiki upper random setup 1; it can branch away after P, so it is treated as a manual route.',
+  'fleet.routeDescription.5-5-kcwiki-upper-random-nagato':
+    'Nagato Kai Ni, Mutsu Kai Ni, and four CV/CVB. KCWiki upper random setup 2; supports the Nagato special attack but can branch away after P, so it is treated as a manual route.',
+  'fleet.routeDescription.5-5-kcwiki-middle-yamato-smoke':
+    'Yamato Kai Ni-class plus Musashi Kai Ni, one night carrier/carrier, one AO, and two DD. KCWiki middle Yamato-Musashi smoke route; triple smoke screen is a manual check, with H-node air parity at 136 and near air supremacy at 138.',
+  'fleet.routeDescription.5-5-kcwiki-middle-yamato-mogami-yahagi':
+    'Yamato Kai Ni-class plus Musashi Kai Ni, Mogami, Yahagi, and two DD. KCWiki middle Yamato-Musashi-Mogami-Yahagi route; H-node air parity at 136, near air supremacy at 138, and Formula 33 Cn2 LoS 66+.',
+  'fleet.routeDescription.5-5-kcwiki-middle-yamato-supply':
+    'Yamato Kai Ni-class plus Musashi Kai Ni, one carrier, one AO, and two DD. KCWiki middle Yamato-Musashi supply route; H-node air parity at 136, near air supremacy at 138, and Formula 33 Cn2 LoS 66+.',
+  'fleet.routeDescription.5-5-kcwiki-middle-nelson':
+    'Nelson Kai, one battleship, two DD, and two CA/CAV/CLT. KCWiki middle Nelson route; air power 176 gives boss parity, 188+ leans toward H-node superiority, and Formula 33 Cn2 LoS 66+ is required.',
+  'fleet.routeDescription.5-5-kcwiki-middle-transfer-south':
+    'Two battleships, one CV/CVB, one CA/CAV/CLT, and two DD. KCWiki middle-to-south route through the M night battle; H/N branching is a manual check, and O to S requires Formula 33 Cn5 LoS 162+.',
+  'fleet.routeDescription.5-5-kcwiki-middle-heavy-cruiser':
+    'Nagato Kai Ni plus Mutsu Kai Ni, one CA, one CAV, and two DD. KCWiki middle heavy-cruiser setup; uses four seaplane fighters to aim for H-node parity, while support fleet remains a manual check.',
+  'fleet.routeDescription.5-5-south-dd':
+    '1 CL, 1 CLT, and 4 DD. Torpedo-squadron retreat route; Night Zuiun/Zuiun air power 1+ is advice rather than a hard gate. Avoid double Re-class boss formations.',
+  'fleet.routeDescription.5-5-kcwiki-south-yamato-dd':
+    'Musashi Kai Ni plus Yamato Kai Ni-class and four DD. KCWiki lower recommended setup; emphasizes night battle power, with Formula 33 Cn2 LoS 66+ as a hard requirement.',
+  'fleet.routeDescription.5-5-kcwiki-south-night-carrier-dd':
+    'Two CV/CVB including a night carrier plus four DD. KCWiki lower recommended setup; carrier reconnaissance planes are expected to reduce the destroyers’ LoS burden.',
+  'fleet.routeDescription.5-5-kcwiki-south-bbv-cav-drums':
+    'One CV/CVB, one BBV, two CAV, and two DD. KCWiki lower Saratoga/Ise/Tashkent-style example; four ships carry drum canisters to enter A, then boss superiority and Formula 33 Cn2 LoS 66+ are checked.',
+  'fleet.routeDescription.5-5-kcwiki-south-nagato-dd':
+    'Nagato Kai Ni plus Mutsu Kai Ni and four DD for the KCWiki lower night-battle route. LoS is very tight, so Formula 33 Cn2 LoS 66+ is a hard requirement; support and ASW remain sortie advice.',
+  'fleet.routeDescription.5-5-newbie-nagato':
+    'Nagato, Mutsu, two CAV, and two DD. Yui beginner Nagato-Mutsu route; shelling support is advised for both route and boss, with air power 136+ and Formula 33 Cn2 LoS 66+.',
+  'fleet.routeDescription.5-5-kcwiki-bahamut-random-heavy':
+    'KCWiki any six battleship/carrier-class ships, with the Bahamut 2014 phase-one 3BB3CV/3BB2CVL heavy-firepower reference. In phase two it branches away after P about 35% of the time, so it is currently a manual random upper route.',
+  'fleet.routeUnknown': 'Check source',
   'fleet.airPower': 'Air Power',
   'fleet.los': 'LoS Formula 33',
   'fleet.fuelCost': 'Sortie Fuel',
@@ -128,7 +193,7 @@ export const en = {
   'fleet.speed.fastest': 'Fastest',
   'fleet.reasons': 'Why this plan',
   'fleet.warnings': 'Before sortie',
-  'fleet.sources': 'Sources',
+  'fleet.sources': 'Reference Sites',
   'fleet.objective.balanced': 'Balanced',
   'fleet.objective.boss-clear': 'Boss Clear',
   'fleet.objective.low-cost': 'Low Cost',
@@ -144,7 +209,7 @@ export const en = {
   'fleet.role.carrier-air-superiority': 'Air-Superiority Carrier',
   'fleet.role.utility-cruiser': 'LoS Cruiser',
   'fleet.role.escort-destroyer': 'Escort',
-  'fleet.role.anti-submarine': 'Opening ASW',
+  'fleet.role.anti-submarine': 'ASW Loadout',
   'fleet.role.submarine': 'Submarine',
   'fleet.role.resource-carrier': 'Resource Transport',
   'fleet.role.torpedo-cruiser': 'Torpedo Cruiser',
@@ -255,7 +320,7 @@ export const en = {
   'recent.openItem': 'Open {name}',
 
   'resource.menu': 'Resource Center',
-  'resource.menuTitle': 'View inventory, hourly flows, and resource sources in one place',
+  'resource.menuTitle': 'View inventory, time-bucketed flows, and resource sources in one place',
   'resource.title': 'Resource Center',
   'resource.help.flowQuestion': 'How are spent, gained, and net different?',
   'resource.help.flowAnswer':
@@ -265,25 +330,30 @@ export const en = {
     'Gains are above the zero line and spending is below. Select any resource or consumable to change the main chart.',
   'resource.help.timeQuestion': 'Which time zone does the data use?',
   'resource.help.timeAnswer':
-    'Statistics use KC3 Ledger hourly records, with date boundaries in Japan Standard Time.',
+    'Statistics use KC3 Ledger records and exact timestamps when available, with date boundaries in Japan Standard Time.',
   'resource.toolbar': 'Resource Center controls',
   'resource.range': 'Statistics period',
   'resource.preparing': 'Preparing KC3 resource records…',
   'resource.organizing': 'Building resource dashboard',
-  'resource.organizingDetail': 'Aggregating inventory, hourly flows, and uses…',
-  'resource.collecting': 'Aggregating KC3 hourly resource records…',
+  'resource.organizingDetail': 'Aggregating inventory, time-bucketed flows, and uses…',
+  'resource.collecting': 'Aggregating KC3 resource records…',
   'resource.unavailable': 'KC3 resource records could not be read.',
   'resource.notReady': 'Resource data is not ready',
   'resource.syncFirst': 'Return to the game home port to synchronize, then refresh.',
   'resource.connectionFailed': 'Could not connect to the resource statistics service.',
-  'resource.status': '{range} · {count} ledger entries · {updated} ({timezone})',
+  'resource.status': '{range} · {granularity} · {count} ledger entries · {updated} ({timezone})',
   'resource.mainResources': 'Main Resources',
   'resource.mainResourcesHint': 'Large values are inventory; ↑ gained / ↓ spent',
   'resource.currentInventory': 'Current inventory',
-  'resource.hourlyFlow': '{resource} · Hourly Flow',
-  'resource.hourlyChart': 'Hourly gains and spending for {resource}',
-  'resource.hourGain': '{hour}:00 | Gained {value}',
-  'resource.hourSpend': '{hour}:00 | Spent {value}',
+  'resource.granularity': 'Chart interval',
+  'resource.granularity.minute': '1 min',
+  'resource.granularity.fiveMinute': '5 min',
+  'resource.granularity.thirtyMinute': '30 min',
+  'resource.granularity.hourly': '1 h',
+  'resource.flowTitle': '{resource} · {granularity} Flow',
+  'resource.flowChart': '{granularity} gains and spending for {resource}',
+  'resource.bucketGain': '{time} | Gained {value}',
+  'resource.bucketSpend': '{time} | Spent {value}',
   'resource.noFlow': 'No {resource} ledger entries in this period',
   'resource.sourceTitle': 'Where {resource} changed',
   'resource.sourceHint': 'spending left / gains right',
@@ -337,10 +407,26 @@ export const en = {
   'expedition.area': 'Area {index}',
   'expedition.expand': 'Expand ▼',
   'expedition.collapse': 'Collapse ▲',
-  'expedition.resourceWeights': 'Resource and Bucket Weights',
-  'expedition.weightHint': 'Use 0 to ignore; -5 avoid, 20 prioritize',
+  'expedition.resourceWeights': 'Resource Acquisition Settings',
+  'expedition.weightHint':
+    'Optimized resources are ranked; break-even resources require non-negative hourly net yield.',
+  'expedition.weightTooltip':
+    'Optimize: participate in ranking. Break even: require hourly net yield >= 0 without rewarding more. Ignore: do not affect recommendations.',
+  'expedition.preferenceMode.optimize': 'Optimize',
+  'expedition.preferenceMode.constraint': 'Break even',
+  'expedition.preferenceMode.ignore': 'Ignore',
+  'expedition.priorityRank1': '1 Highest',
+  'expedition.priorityRank2': '2 High',
+  'expedition.priorityRank3': '3 Medium',
+  'expedition.priorityRank4': '4 Low',
+  'expedition.priorityRank5': '5 Lowest',
+  'expedition.priorityIgnored': 'Ignored',
+  'expedition.priorityMoveUp': 'Move priority up',
+  'expedition.priorityMoveDown': 'Move priority down',
+  'expedition.resourcePriorityFor': '{resource} priority',
+  'expedition.resourceModeFor': '{resource} setting',
   'expedition.bucketPerTrip': 'Up to +{count}/trip',
-  'expedition.bucketPlanSummary': 'Bucket weight {weight} · up to {value}/h',
+  'expedition.bucketPlanSummary': 'Bucket expected {value}/h',
   'expedition.schedule': 'Dispatch/collection interval',
   'expedition.scheduleHint':
     '0 minutes means continuously online; otherwise collect and redispatch at this interval',
@@ -355,7 +441,7 @@ export const en = {
   'expedition.maximum': 'maximum',
   'expedition.totalMultiplier': 'Income multiplier for this plan',
   'expedition.actionHint':
-    'Finds one best answer using candidate expeditions, five weights, operation interval, available fleets, and success/Daihatsu settings.',
+    'Finds one best answer using candidate expeditions, resource priorities, operation interval, available fleets, and success/Daihatsu settings.',
   'expedition.generate': 'Generate Best Pairing',
   'expedition.generating': 'Calculating pairing…',
   'expedition.idle': 'No pairing yet',
@@ -433,7 +519,8 @@ export const en = {
   'expedition.syncUnavailable': 'KC3 home-port resources could not be read.',
   'expedition.syncStatus': 'Synced {time} | Resource cap {maximum}',
   'expedition.error.afk': 'The dispatch/collection interval must be from 0 minutes to 48 hours.',
-  'expedition.error.weights': 'Resource and bucket weights must be integers from -5 to 20.',
+  'expedition.error.weights':
+    'Optimized resource priorities must be unique and continuous; other resources may break even or be ignored.',
   'expedition.error.candidates': 'Fewer expeditions are checked than available fleets.',
   'expedition.error.syncConnection': 'Could not connect to the expedition resource sync service.',
   'expedition.error.planConnection': 'Could not connect to the expedition pairing service.',
@@ -466,10 +553,12 @@ export const en = {
   'message.EXPEDITION_AFK_INVALID':
     'The dispatch/collection interval must be from 0 minutes to 48 hours.',
   'message.EXPEDITION_WEIGHTS_INVALID':
-    'Resource and bucket weights must be integers from -5 to 20.',
+    'Optimized resource priorities must be unique and continuous; other resources may break even or be ignored.',
   'message.EXPEDITION_CANDIDATES_INVALID': 'Fewer expeditions are checked than available fleets.',
   'expedition.reason.INSUFFICIENT_FLEETS':
     'KC3 has only {available} available expedition fleets, fewer than the requested {requested}.',
   'expedition.reason.INSUFFICIENT_EXPEDITIONS':
     'Not enough calculable expeditions can be assigned. Confirm candidates are unlocked and the account has enough ship types for Kancepts minimum-cost compositions.',
+  'expedition.reason.RESOURCE_CONSTRAINTS':
+    'No expedition combination currently satisfies every minimum income condition.',
 }

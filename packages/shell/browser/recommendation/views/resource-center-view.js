@@ -3,6 +3,7 @@ export const styles = `
   .drc-root *, .drc-root *::before, .drc-root *::after { box-sizing: border-box; }
   .drc-root button { font-family: inherit; }
   .drc-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .drc-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 10px; min-width: 0; }
   .drc-range { display: flex; align-items: center; gap: 4px; }
   .drc-range-label { margin-right: 4px; color: #888; font-size: 10px; }
   .drc-option, .drc-refresh, .drc-native-link {
@@ -104,6 +105,7 @@ export const styles = `
   @media (max-width: 720px) {
     .drc-root { width: 100%; }
     .drc-toolbar { align-items: flex-start; flex-direction: column; }
+    .drc-controls { align-items: flex-start; flex-direction: column; }
     .drc-resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .drc-lower-grid { grid-template-columns: 1fr; }
     .drc-native { align-items: flex-start; flex-direction: column; }
@@ -129,11 +131,20 @@ export const panelMarkup = (t) => `
       <div class="help_a">${t('resource.help.timeAnswer')}</div>
     </div>
     <section class="page_panel bscolor4 drc-toolbar" aria-label="${t('resource.toolbar')}">
-      <div class="drc-range" aria-label="${t('resource.range')}">
-        <span class="drc-range-label">${t('common.period')}</span>
-        <button class="drc-option" type="button" data-range="today" aria-pressed="true">${t('common.today')}</button>
-        <button class="drc-option" type="button" data-range="yesterday" aria-pressed="false">${t('common.yesterday')}</button>
-        <button class="drc-option" type="button" data-range="rolling24" aria-pressed="false">24 h</button>
+      <div class="drc-controls">
+        <div class="drc-range" aria-label="${t('resource.range')}">
+          <span class="drc-range-label">${t('common.period')}</span>
+          <button class="drc-option" type="button" data-range="today" aria-pressed="true">${t('common.today')}</button>
+          <button class="drc-option" type="button" data-range="yesterday" aria-pressed="false">${t('common.yesterday')}</button>
+          <button class="drc-option" type="button" data-range="rolling24" aria-pressed="false">24 h</button>
+        </div>
+        <div class="drc-range" aria-label="${t('resource.granularity')}">
+          <span class="drc-range-label">${t('resource.granularity')}</span>
+          <button class="drc-option" type="button" data-granularity="minute" aria-pressed="false">${t('resource.granularity.minute')}</button>
+          <button class="drc-option" type="button" data-granularity="fiveMinute" aria-pressed="false">${t('resource.granularity.fiveMinute')}</button>
+          <button class="drc-option" type="button" data-granularity="thirtyMinute" aria-pressed="false">${t('resource.granularity.thirtyMinute')}</button>
+          <button class="drc-option" type="button" data-granularity="hourly" aria-pressed="true">${t('resource.granularity.hourly')}</button>
+        </div>
       </div>
       <button class="drc-refresh" type="button">${t('common.refresh')}</button>
     </section>

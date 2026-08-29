@@ -224,9 +224,16 @@ export const kc3ExpeditionPlannerMainWorld = (request) => {
         master,
       )
       const rawInfo = expeditionInfo.findRawInfo(numericId) || {}
-      const bucketReward = [rawInfo.api_win_item1, rawInfo.api_win_item2].find(
-        (reward) => Array.isArray(reward) && Number(reward[0]) === 1,
-      )
+      const itemRewards = [
+        { itemSlot: 'left', reward: rawInfo.api_win_item1 },
+        { itemSlot: 'right', reward: rawInfo.api_win_item2 },
+      ].filter(({ reward }) => Array.isArray(reward) && Number(reward[0]) > 0)
+      const bucketReward = itemRewards.find(({ reward }) => Number(reward[0]) === 1)
+      const bucketMaxPerTrip = Number(bucketReward?.reward?.[1]) || 0
+      const bucketRewardRule =
+        bucketReward?.itemSlot === 'right' && itemRewards.length > 1
+          ? 'great-success-guaranteed'
+          : 'random'
       const fleetChecks = fleetSlots.map((slot) => {
         const fleetForEngine = makeFleetForRequirementEngine(slot.fleet, numericId)
         return {
@@ -252,7 +259,18 @@ export const kc3ExpeditionPlannerMainWorld = (request) => {
           name: String(master.api_name || ''),
           durationMinutes: Number(info.timeInMin),
           baseIncome: mapResources(info.resource),
-          bucketMaxPerTrip: Number(bucketReward?.[1]) || 0,
+          bucketMaxPerTrip,
+          bucketReward:
+            bucketMaxPerTrip > 0
+              ? {
+                  item: 'bucket',
+                  min: 0,
+                  max: bucketMaxPerTrip,
+                  itemSlot: bucketReward.itemSlot,
+                  rewardRule: bucketRewardRule,
+                  acquisitionProbability: null,
+                }
+              : null,
           fuelPercent: Number(master.api_use_fuel || 0),
           ammoPercent: Number(master.api_use_bull || 0),
           requirements,

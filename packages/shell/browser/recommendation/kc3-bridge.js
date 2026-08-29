@@ -11,6 +11,22 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
   }
 
   const yieldToRenderer = () => new Promise((resolve) => window.setTimeout(resolve, 0))
+  const snapshotStartedAt = window.performance.now()
+  const openingAswProbeDiagnostics = {
+    attemptedShipCount: 0,
+    failedShipIds: new Set(),
+    failureMessages: [],
+    noEquipmentRuleCount: 0,
+    sonarRuleCount: 0,
+  }
+  const recordOpeningAswProbeFailure = (ship, error) => {
+    const shipId = Number(ship?.rosterId || 0)
+    if (openingAswProbeDiagnostics.failedShipIds.has(shipId)) return
+    openingAswProbeDiagnostics.failedShipIds.add(shipId)
+    if (openingAswProbeDiagnostics.failureMessages.length >= 3) return
+    const message = error instanceof Error ? error.message : String(error)
+    openingAswProbeDiagnostics.failureMessages.push(message.replace(/\\s+/g, ' ').slice(0, 160))
+  }
   window.KC3ShipManager.load()
   await yieldToRenderer()
   window.KC3GearManager.load()
@@ -323,6 +339,72 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     return patterns
   }
 
+  const isSonarMaster = (master) => [14, 40].includes(Number(master?.api_type?.[2] || 0))
+  const openingAswRulesForShip = (ship, slotnum, capacities, regularEquipableMasterIds) => {
+    openingAswProbeDiagnostics.attemptedShipCount += 1
+    if (typeof window.KC3Ship !== 'function' || typeof window.KC3Gear !== 'function') {
+      recordOpeningAswProbeFailure(ship, new Error('KC3 OASW calculators are not ready'))
+      return []
+    }
+    const emptyGear = new window.KC3Gear()
+    const compatibleSonar = gearList.find((gear) => {
+      if (!regularEquipableMasterIds.includes(Number(gear.masterId))) return false
+      return isSonarMaster(window.KC3Master.slotitem(gear.masterId))
+    })
+    let probeFailed = false
+    const canDoOpeningAsw = (probeGears, visibleAsw) => {
+      if (probeFailed) return false
+      try {
+        const gearById = new Map(probeGears.map((gear) => [Number(gear.itemId), gear]))
+        const probeShip = new window.KC3Ship(ship, true)
+        const regularIds = probeGears.slice(0, slotnum).map((gear) => Number(gear.itemId))
+        while (regularIds.length < Math.max(slotnum, 5)) regularIds.push(-1)
+        probeShip.items = regularIds
+        probeShip.ex_item = 0
+        probeShip.slots = capacities.slice(0, slotnum).map(Number)
+        probeShip.slotsMax = capacities.slice(0, slotnum).map(Number)
+        probeShip.GearManager = {
+          get: (itemId) => gearById.get(Number(itemId)) || emptyGear,
+        }
+        probeShip.as = [
+          Number(visibleAsw),
+          Math.max(Number(visibleAsw), Number((ship.as || [0, 0])[1]) || 0),
+        ]
+        probeShip.statsCache = {}
+        return Boolean(probeShip.canDoOASW())
+      } catch (error) {
+        probeFailed = true
+        recordOpeningAswProbeFailure(ship, error)
+        return false
+      }
+    }
+    const minimumVisibleAsw = (probeGears) => {
+      if (!canDoOpeningAsw(probeGears, 220)) return null
+      let lower = 0
+      let upper = 220
+      while (lower < upper) {
+        const midpoint = Math.floor((lower + upper) / 2)
+        if (canDoOpeningAsw(probeGears, midpoint)) upper = midpoint
+        else lower = midpoint + 1
+      }
+      return lower
+    }
+    const rules = []
+    const noneMinimum = minimumVisibleAsw([])
+    if (noneMinimum !== null) {
+      rules.push({ kind: 'none', minimumAsw: noneMinimum })
+      openingAswProbeDiagnostics.noEquipmentRuleCount += 1
+    }
+    if (slotnum > 0 && compatibleSonar) {
+      const sonarMinimum = minimumVisibleAsw([compatibleSonar])
+      if (sonarMinimum !== null) {
+        rules.push({ kind: 'sonar', minimumAsw: sonarMinimum })
+        openingAswProbeDiagnostics.sonarRuleCount += 1
+      }
+    }
+    return rules
+  }
+
   const ships = await mapResponsively(shipList, (ship) => {
     const master = window.KC3Master.ship(ship.masterId)
     if (!master) throw new Error('Missing KC3 ship master: ' + ship.masterId)
@@ -369,6 +451,12 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       expansionSlotUnlocked,
       expansionEquipableEquipmentIds,
       regularEquipableMasterIds,
+      openingAswRules: openingAswRulesForShip(
+        ship,
+        slotnum,
+        capacities,
+        regularEquipableMasterIds,
+      ),
       fastPlusPatterns: fastPlusPatternsForShip(ship, master, slotnum, expansionSlotUnlocked),
       nightCarrierPatterns: nightCarrierPatternsForShip(
         ship,
@@ -444,18 +532,45 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       masterData: Boolean(window.KC3Master.available),
       currentFleet: Boolean(window.PlayerManager && Array.isArray(window.PlayerManager.fleets)),
     },
+    diagnostics: {
+      openingAswProbe: {
+        attemptedShipCount: openingAswProbeDiagnostics.attemptedShipCount,
+        failedShipCount: openingAswProbeDiagnostics.failedShipIds.size,
+        noEquipmentRuleCount: openingAswProbeDiagnostics.noEquipmentRuleCount,
+        sonarRuleCount: openingAswProbeDiagnostics.sonarRuleCount,
+        failureMessages: openingAswProbeDiagnostics.failureMessages,
+        elapsedMs: Math.round(window.performance.now() - snapshotStartedAt),
+      },
+    },
   }
 })()`
 
-export const readKC3AccountSnapshot = async (webContents) => {
+export const readKC3AccountSnapshot = async (webContents, logger = () => {}) => {
   const rawSnapshot = await webContents.executeJavaScript(KC3_ACCOUNT_SNAPSHOT_SCRIPT, true)
+  const diagnostics = rawSnapshot?.diagnostics?.openingAswProbe
+  if (diagnostics) {
+    logger('recommendation.oasw-snapshot-probe-completed', {
+      operation: 'derive-opening-asw-candidate-rules',
+      attemptedShipCount: Number(diagnostics.attemptedShipCount || 0),
+      failedShipCount: Number(diagnostics.failedShipCount || 0),
+      noEquipmentRuleCount: Number(diagnostics.noEquipmentRuleCount || 0),
+      sonarRuleCount: Number(diagnostics.sonarRuleCount || 0),
+      fallbackResult:
+        Number(diagnostics.failedShipCount || 0) > 0 ? 'generic-core-threshold' : 'not-needed',
+      reasonCodes: Number(diagnostics.failedShipCount || 0) > 0 ? ['KC3_OASW_PROBE_FAILED'] : [],
+      messages: Array.isArray(diagnostics.failureMessages)
+        ? diagnostics.failureMessages.slice(0, 3).map(String)
+        : [],
+      elapsedMs: Number(diagnostics.elapsedMs || 0),
+    })
+  }
   return parseKC3AccountSnapshot(rawSnapshot)
 }
 
 const combatEvaluationMode = (recommendation) => {
   if (recommendation.route.tags.includes('anti-installation')) return 'anti-installation'
   if (
-    recommendation.route.tags.includes('oasw') ||
+    recommendation.route.tags.includes('asw-loadout') ||
     recommendation.route.calculatedConstraints?.some(
       (constraint) => constraint.kind === 'opening-asw',
     )
@@ -609,17 +724,15 @@ const combatEvaluationScript = (recommendations, snapshotKey) => {
           : probe.nightBattlePower()
         nightSurfacePower = capPower(probe, nightPower, 'Night', 'Shelling')
       }
-      let antiSubmarinePower = 0
-      try {
-        if (build.mode === 'anti-submarine' && probe.canDoASW()) {
-          antiSubmarinePower = capPower(
-            probe,
-            probe.antiSubWarfarePower(),
-            'Day',
-            'Antisub',
-          )
-        }
-      } catch (_) {}
+      const openingAswCapable = build.mode === 'anti-submarine'
+        ? Boolean(probe.canDoOASW())
+        : false
+      const antiSubmarineAttackCapable = build.mode === 'anti-submarine'
+        ? Boolean(probe.canDoASW())
+        : false
+      const antiSubmarinePower = antiSubmarineAttackCapable
+        ? capPower(probe, probe.antiSubWarfarePower(), 'Day', 'Antisub')
+        : 0
       let shellingAccuracy = 0
       try {
         if (build.mode === 'surface') {
@@ -642,6 +755,8 @@ const combatEvaluationScript = (recommendations, snapshotKey) => {
           build.mode === 'anti-installation' ? averageAntiLandPower(false) : 0,
         antiInstallationNightPower:
           build.mode === 'anti-installation' ? averageAntiLandPower(true) : 0,
+        antiSubmarineAttackCapable,
+        openingAswCapable,
         antiSubmarinePower,
         shellingAccuracy,
       }

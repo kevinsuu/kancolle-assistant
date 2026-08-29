@@ -1,4 +1,5 @@
 const HOUR_MS = 60 * 60 * 1000
+const MINUTE_MS = 60 * 1000
 const FIXED_NOW = Date.parse('2026-08-24T17:15:00.000Z')
 
 const createShip = ({ rosterId, masterId, level, maxFuel, maxAmmo, morale = 49 }) => ({
@@ -221,8 +222,20 @@ export const createLedgerWindow = () => {
       con: {
         navaloverall: createTable([
           { hq, hour: yesterdayStartHour + 23, type: 'quest-reward', data: yesterday },
-          { hq, hour: todayStartHour, type: 'exped-return', data: first },
-          { hq, hour: todayStartHour + 1, type: 'repair-dock', data: second },
+          {
+            hq,
+            hour: todayStartHour,
+            timestamp: todayStartHour * HOUR_MS + 4 * MINUTE_MS,
+            type: 'exped-return',
+            data: first,
+          },
+          {
+            hq,
+            hour: todayStartHour + 1,
+            timestamp: (todayStartHour + 1) * HOUR_MS + 31 * MINUTE_MS,
+            type: 'repair-dock',
+            data: second,
+          },
           { hq: 'another-player', hour: todayStartHour, type: 'quest', data: first },
         ]),
         resource: createTable([

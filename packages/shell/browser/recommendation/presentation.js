@@ -1,5 +1,14 @@
 import { calculateBuildSpeed } from '@kancolle-assistant/recommendation-core'
 
+const HIDDEN_RENDERER_MESSAGE_CODES = new Set([
+  'EQUIPMENT_INSTANCES_UNIQUE',
+  'HEURISTIC_COMBAT_SCORE',
+  'KC3_COMBAT_EVALUATION_APPLIED',
+])
+
+const summarizeMessages = (messages) =>
+  messages.filter((message) => !HIDDEN_RENDERER_MESSAGE_CODES.has(message.code))
+
 const summarizeEquipment = (gear) =>
   gear
     ? {
@@ -20,7 +29,7 @@ const summarizeRecommendation = (recommendation) => ({
     phase: recommendation.route.phase,
     confidence: recommendation.route.metadata.confidence,
     description: recommendation.route.description,
-    sources: recommendation.route.metadata.source,
+    sources: recommendation.route.metadata.guideSources ?? recommendation.route.metadata.source,
     lastVerified: recommendation.route.metadata.lastVerified,
   },
   ships: recommendation.ships.map((build) => ({
@@ -43,6 +52,9 @@ const summarizeRecommendation = (recommendation) => ({
     los33: recommendation.metrics.los33,
     losRequired: recommendation.metrics.losRequired,
     losMinimum: recommendation.metrics.losMinimum,
+    openingAswCount: recommendation.metrics.openingAswCount,
+    openingAswRequired: recommendation.metrics.openingAswRequired,
+    openingAswMinimum: recommendation.metrics.openingAswMinimum,
     estimatedFuelCost: recommendation.metrics.estimatedFuelCost,
     estimatedAmmoCost: recommendation.metrics.estimatedAmmoCost,
     estimatedResourceGain: recommendation.metrics.estimatedResourceGain,
@@ -52,9 +64,8 @@ const summarizeRecommendation = (recommendation) => ({
     drumCount: recommendation.metrics.drumCount,
     finalSpeedClass: recommendation.metrics.finalSpeedClass,
   },
-  score: { total: recommendation.score.total },
-  reasons: recommendation.reasons,
-  warnings: recommendation.warnings,
+  reasons: summarizeMessages(recommendation.reasons),
+  warnings: summarizeMessages(recommendation.warnings),
 })
 
 export const toRecommendationRendererResult = (result) =>

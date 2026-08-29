@@ -8,6 +8,11 @@ let cachedAccountResult = null
 let cachedMapOptionsResult = null
 
 const formatDate = (value) => formatLocalizedDate(value, locale, { hour12: false }, '—')
+const HIDDEN_RESULT_MESSAGE_CODES = new Set([
+  'EQUIPMENT_INSTANCES_UNIQUE',
+  'HEURISTIC_COMBAT_SCORE',
+  'KC3_COMBAT_EVALUATION_APPLIED',
+])
 
 const formatEquipment = (gear) => {
   if (!gear) return `<span class="dfr-empty-gear">${t('fleet.emptySlot')}</span>`
@@ -32,24 +37,184 @@ const formatBuildSpeed = (ship) => {
     : t('fleet.speedTransition', { base, final })
 }
 
-const renderRecommendation = (recommendation, planIndex) => {
-  const metrics = recommendation.metrics
-  const sourceMarkup = recommendation.route.sources
+const factMarkup = (label, value) => `
+  <li class="bscolor4">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value)}</strong>
+  </li>
+`
+
+const sourceLinks = (sources) =>
+  sources
     .map(
       (source, index) =>
-        `<a href="${escapeHtml(source)}" target="_blank" rel="noreferrer">${t('fleet.source', { index: index + 1 })}</a>`,
+        `<li><a href="${escapeHtml(source)}" target="_blank" rel="noreferrer" aria-label="${escapeHtml(t('fleet.source', { index: index + 1 }))}">${escapeHtml(source)}</a></li>`,
     )
-    .join(' · ')
-  const resourceMetricMarkup =
-    metrics.estimatedResourceGain === null
-      ? `
-        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.estimatedFuel')}</span><strong>${metrics.estimatedFuelCost}</strong><small>${t('fleet.singleSortie')}</small></div>
-        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.estimatedAmmo')}</span><strong>${metrics.estimatedAmmoCost}</strong><small>${t('fleet.singleSortie')}</small></div>
-      `
-      : `
-        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.expectedResource', { resource: t(`common.${metrics.resourceTarget}`) || t('fleet.resourceFallback') })}</span><strong>${metrics.estimatedResourceGain}</strong><small>${t('fleet.includingArrivalRate')}</small></div>
-        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.expectedNetResource', { resource: t(`common.${metrics.resourceTarget}`) || t('fleet.resourceFallback') })}</span><strong>${metrics.estimatedNetResourceGain}</strong><small>${t('fleet.afterSortieCost')}</small></div>
-      `
+    .join('')
+
+const uniqueRouteSources = (routes) =>
+  Array.from(
+    new Set(routes.flatMap((route) => (Array.isArray(route.sources) ? route.sources : []))),
+  )
+
+const sourceSiteLabels = new Map([
+  ['zekamashi.net', 'ぜかまし'],
+  ['zh.kcwiki.cn', 'KCWiki'],
+  ['m.kcwiki.cn', 'KCWiki'],
+  ['forum.gamer.com.tw', '巴哈姆特'],
+  ['bbs.nga.cn', 'NGA'],
+  ['yuikancolle.blog.fc2.com', 'Yui'],
+  ['en.kancollewiki.net', 'Kancolle Wiki'],
+  ['wikiwiki.jp', 'Wikiwiki'],
+  ['kankorekore.2-d.jp', '艦これこれ'],
+])
+
+const sourceHost = (source) => {
+  try {
+    return new URL(source).hostname.replace(/^www\./, '')
+  } catch {
+    return String(source)
+      .replace(/^https?:\/\//, '')
+      .split('/')[0]
+      .replace(/^www\./, '')
+  }
+}
+
+const sourceSiteLabel = (source) => {
+  const host = sourceHost(source)
+  return sourceSiteLabels.get(host) ?? host
+}
+
+const routeSourceLabel = (route) => {
+  const sources = Array.isArray(route.sources) ? route.sources : []
+  const labels = Array.from(new Set(sources.map(sourceSiteLabel).filter(Boolean)))
+  return labels.length > 0 ? labels.join(' + ') : ''
+}
+
+const routeDisplayName = (route) =>
+  route.name.replace(
+    /^(?:(?:攻略網|KCWiki|艦娘百科|Kancolle Wiki|Wikiwiki|ぜかまし|Yui|NGA|巴哈姆特|艦これこれ)(?:\s*\+\s*|[・｜|:：\s]+))+/,
+    '',
+  )
+
+const routeOptionLabel = (route) => {
+  const guide = routeSourceLabel(route)
+  const name = route.phase ? `${route.phase}｜${routeDisplayName(route)}` : routeDisplayName(route)
+  return [guide, name].filter(Boolean).join('｜') || route.name
+}
+
+const GUIDE_OBJECTIVE_PRIORITY = [
+  'balanced',
+  'boss-clear',
+  'low-cost',
+  'leveling',
+  'resource-fuel',
+  'resource-bauxite',
+  'resource-burner',
+  'resource-ammo',
+  'resource-steel',
+  'resource-bucket',
+  'resource-devmat',
+]
+
+const routeObjective = (route) =>
+  GUIDE_OBJECTIVE_PRIORITY.find((objective) => route.objectives?.includes(objective)) ??
+  route.objectives?.[0] ??
+  'balanced'
+
+export const localizedRouteDescription = (route, translate = t) => {
+  const key = route?.id ? `fleet.routeDescription.${route.id}` : ''
+  const translated = key ? translate(key) : ''
+  return translated && translated !== key ? translated : route?.description || ''
+}
+
+const strategyFacts = (recommendation) => {
+  const metrics = recommendation.metrics
+  const route = recommendation.route
+  const facts = [
+    factMarkup(
+      t('fleet.strategyRoute'),
+      route.nodes.length ? route.nodes.join(' → ') : t('fleet.routeUnknown'),
+    ),
+    factMarkup(t('fleet.strategySpeed'), t(`fleet.speed.${metrics.finalSpeedClass}`)),
+  ]
+  if (metrics.airPowerRequired) {
+    facts.push(
+      factMarkup(
+        t('fleet.strategyAirPower'),
+        t('fleet.strategyMinimumValue', {
+          value: metrics.airPower,
+          minimum: metrics.airPowerMinimum,
+        }),
+      ),
+    )
+  }
+  if (metrics.losRequired) {
+    facts.push(
+      factMarkup(
+        t('fleet.strategyLos'),
+        t('fleet.strategyMinimumValue', {
+          value: metrics.los33.toFixed(1),
+          minimum: metrics.losMinimum,
+        }),
+      ),
+    )
+  }
+  if (metrics.openingAswRequired) {
+    facts.push(
+      factMarkup(
+        t('fleet.strategyOpeningAsw'),
+        t('fleet.strategyMinimumValue', {
+          value: metrics.openingAswCount,
+          minimum: metrics.openingAswMinimum,
+        }),
+      ),
+    )
+  }
+  if (metrics.estimatedResourceGain !== null) {
+    const resourceLabel = t(`common.${metrics.resourceTarget}`) || t('fleet.resourceFallback')
+    facts.push(
+      factMarkup(
+        t('fleet.strategyResourceGain', { resource: resourceLabel }),
+        t('fleet.strategyResourceValue', {
+          gain: metrics.estimatedResourceGain,
+          net: metrics.estimatedNetResourceGain,
+        }),
+      ),
+    )
+  }
+  return facts.join('')
+}
+
+const messageList = (messages) =>
+  messages
+    .filter((message) => !HIDDEN_RESULT_MESSAGE_CODES.has(message.code))
+    .map((message) => `<li>${escapeHtml(translateMessage(message))}</li>`)
+    .join('')
+
+const renderRecommendation = (recommendation, planIndex) => {
+  const route = recommendation.route
+  const routeTitle = routeOptionLabel(route)
+  const phase = route.phase ? `${route.phase} · ` : ''
+  const notes = messageList(recommendation.reasons)
+  const warnings = messageList(recommendation.warnings)
+  const notesMarkup = notes
+    ? `<section class="dfr-note-group bscolor3 fcolor2"><h4>${t('fleet.strategyNotes')}</h4><ul>${notes}</ul></section>`
+    : ''
+  const warningsMarkup = warnings
+    ? `<section class="dfr-note-group warning bscolor3 fcolor2"><h4>${t('fleet.warnings')}</h4><ul>${warnings}</ul></section>`
+    : ''
+  const rosterMarkup = recommendation.ships
+    .map(
+      (build, index) => `
+        <li class="bscolor3 fcolor2">
+          <span>${index + 1}</span>
+          <strong>${escapeHtml(build.ship.name)}</strong>
+          <small>Lv.${build.ship.level} · ${escapeHtml(t(`fleet.role.${build.role}`))} · ${escapeHtml(formatBuildSpeed(build.ship))}</small>
+        </li>
+      `,
+    )
+    .join('')
   const shipMarkup = recommendation.ships
     .map(
       (build) => `
@@ -72,44 +237,45 @@ const renderRecommendation = (recommendation, planIndex) => {
       `,
     )
     .join('')
-  const reasons = recommendation.reasons
-    .map((reason) => `<li>${escapeHtml(translateMessage(reason))}</li>`)
-    .join('')
-  const warnings = recommendation.warnings
-    .map((warning) => `<li>${escapeHtml(translateMessage(warning))}</li>`)
-    .join('')
 
   return `
     <article class="dfr-plan">
       <header class="dfr-plan-head">
-        <div><h2>${escapeHtml(`${recommendation.route.name} · ${t('fleet.recommendationTab', { index: planIndex + 1 })}`)}</h2><p>${escapeHtml(`${recommendation.route.phase ? `${recommendation.route.phase} · ` : ''}${recommendation.route.nodes.join(' → ')} · ${t(`fleet.confidence.${recommendation.route.confidence}`)} · ${t('fleet.fleetSpeed', { speed: t(`fleet.speed.${metrics.finalSpeedClass}`) })}`)} · ${sourceMarkup} · ${t('fleet.verifiedAt', { date: escapeHtml(recommendation.route.lastVerified) })}</p></div>
-        <div class="dfr-score bscolor3 fcolor2">${recommendation.score.total.toFixed(1)} <small>${t('fleet.score')} / 100</small></div>
+        <div>
+          <h2>${escapeHtml(`${routeTitle} · ${t('fleet.recommendationTab', { index: planIndex + 1 })}`)}</h2>
+          <p>${escapeHtml(`${phase}${t(`fleet.confidence.${route.confidence}`)} · ${t('fleet.verifiedAt', { date: route.lastVerified })}`)}</p>
+        </div>
       </header>
-      <div class="dfr-metrics">
-        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.airPower')}</span><strong>${metrics.airPower}</strong><small>${metrics.airPowerRequired ? t('common.minimum', { value: metrics.airPowerMinimum }) : t('common.noMinimum')}</small></div>
-        <div class="dfr-metric bscolor3 fcolor2"><span>${t('fleet.los')}</span><strong>${metrics.los33.toFixed(1)}</strong><small>${metrics.losRequired ? t('common.minimum', { value: metrics.losMinimum }) : t('common.noMinimum')}</small></div>
-        ${resourceMetricMarkup}
-      </div>
-      <div class="dfr-ship-grid">${shipMarkup}</div>
-      <footer class="dfr-notes">
-        <section class="dfr-note-group bscolor3 fcolor2"><h4>${t('fleet.reasons')}</h4><ul>${reasons}</ul></section>
-        <section class="dfr-note-group warning bscolor3 fcolor2"><h4>${t('fleet.warnings')}</h4><ul>${warnings}</ul></section>
-      </footer>
+      <section class="dfr-guide bscolor3 fcolor2">
+        <h3>${t('fleet.strategyGuide')}</h3>
+        <p>${escapeHtml(localizedRouteDescription(route) || t('fleet.strategyNoDescription'))}</p>
+        <ul class="dfr-facts">${strategyFacts(recommendation)}</ul>
+      </section>
+      <section class="dfr-roster-section">
+        <h3>${t('fleet.strategyShips')}</h3>
+        <ol class="dfr-roster">${rosterMarkup}</ol>
+      </section>
+      <section class="dfr-loadout-section">
+        <h3>${t('fleet.strategyEquipment')}</h3>
+        <div class="dfr-ship-grid">${shipMarkup}</div>
+      </section>
+      ${notesMarkup || warningsMarkup ? `<footer class="dfr-notes">${notesMarkup}${warningsMarkup}</footer>` : ''}
     </article>
   `
 }
 
-const renderResults = (output, result) => {
+const renderResults = (output, result, onActivePlanChange = () => {}) => {
   let activeIndex = 0
   const renderActivePlan = () => {
     const recommendation = result.recommendations[activeIndex]
+    onActivePlanChange(recommendation.route.sources || [])
     output.innerHTML = `
       <nav class="dfr-plan-tabs" aria-label="${t('fleet.planNavigation')}">
         ${result.recommendations
           .map(
             (item, index) => `
               <button class="dfr-plan-tab${index === activeIndex ? ' active' : ''}" data-plan-index="${index}" type="button">
-                <span>${escapeHtml(t('fleet.recommendationTab', { index: index + 1 }))}</span><strong>${item.score.total.toFixed(1)}</strong>
+                <span>${escapeHtml(t('fleet.recommendationTab', { index: index + 1 }))}</span><strong>${escapeHtml(routeOptionLabel(item.route))}</strong>
               </button>
             `,
           )
@@ -165,24 +331,25 @@ const mountPanel = (invoke) => {
   const detail = contentHtml.querySelector('#dfr-account-detail')
   const syncButton = contentHtml.querySelector('#dfr-sync')
   const generateButton = contentHtml.querySelector('#dfr-generate')
-  const preserveFleet = contentHtml.querySelector('#dfr-preserve-fleet')
   const mapSelect = contentHtml.querySelector('#dfr-map')
   const routeSelect = contentHtml.querySelector('#dfr-route-select')
-  const objectiveOptions = contentHtml.querySelector('#dfr-objective-options')
   const mapSummary = contentHtml.querySelector('#dfr-map-summary')
+  const mapSourceList = contentHtml.querySelector('#dfr-map-sources')
   const output = contentHtml.querySelector('#dfr-output')
+  let activePlanSources = null
   let accountReady = false
   let accountSyncing = true
   let mapOptionsReady = false
   let mapOptions = []
   let busyOperationCount = 0
-
   const updateBusy = () => {
     const busy = busyOperationCount > 0
+    const selectedOption = routeSelect.selectedOptions?.[0]
+    const routeReady = routeSelect.value.length > 0 && selectedOption?.disabled !== true
     syncButton.disabled = busy || accountSyncing
     mapSelect.disabled = busy || !mapOptionsReady
     routeSelect.disabled = busy || !mapOptionsReady
-    generateButton.disabled = busy || !accountReady || !mapOptionsReady
+    generateButton.disabled = busy || !mapOptionsReady || !routeReady
     generateButton.querySelector('span').textContent = busy
       ? t('fleet.generating')
       : t('fleet.generate')
@@ -208,35 +375,46 @@ const mountPanel = (invoke) => {
     })
   }
 
-  const renderMapObjectives = () => {
+  const renderMapRoutes = () => {
     const mapOption = mapOptions.find((item) => item.id === mapSelect.value)
     if (!mapOption) return
-    objectiveOptions.innerHTML = mapOption.objectives
-      .map(
-        (objective, index) => `
-          <label><input type="radio" name="dfr-objective" value="${escapeHtml(objective)}"${index === 0 ? ' checked' : ''}> ${escapeHtml(t(`fleet.objective.${objective}`))}</label>
-        `,
-      )
-      .join('')
+    activePlanSources = null
     renderRouteOptions()
   }
 
   const renderRouteOptions = () => {
     const mapOption = mapOptions.find((item) => item.id === mapSelect.value)
-    const objective = contentHtml.querySelector('input[name="dfr-objective"]:checked')?.value
-    if (!mapOption || !objective) return
-    const routes = mapOption.routes.filter((route) => route.objectives.includes(objective))
-    routeSelect.innerHTML = [
-      `<option value="">${t('fleet.autoRoutes')}</option>`,
-      ...routes.map(
+    if (!mapOption) return
+    const previousRouteId = routeSelect.value
+    const routes = mapOption.routes
+    routeSelect.innerHTML = routes
+      .map(
         (route) =>
-          `<option value="${escapeHtml(route.id)}">${escapeHtml(route.phase ? `${route.phase}｜${route.name}` : route.name)}${route.stableBoss ? `｜${t('fleet.stable')}` : ''}${route.automaticReady ? '' : `｜${t('fleet.manualSetup')}`}</option>`,
-      ),
-    ].join('')
-    mapSummary.textContent = t('fleet.routeSummary', {
-      routeCount: mapOption.routeCount,
-      stableCount: mapOption.stableBossRouteCount,
-    })
+          `<option value="${escapeHtml(route.id)}" title="${escapeHtml(routeOptionLabel(route))}">${escapeHtml(routeOptionLabel(route))}</option>`,
+      )
+      .join('')
+    routeSelect.value = routes.some((route) => route.id === previousRouteId)
+      ? previousRouteId
+      : routes[0]?.id || ''
+    renderSourceStatus()
+    updateBusy()
+  }
+
+  const renderSourceStatus = () => {
+    const mapOption = mapOptions.find((item) => item.id === mapSelect.value)
+    if (!mapOption) {
+      mapSummary.textContent = t('fleet.loading')
+      mapSourceList.innerHTML = ''
+      return
+    }
+    const selectedRouteId = routeSelect.value
+    const selectedRoute = mapOption.routes.find((route) => route.id === selectedRouteId)
+    const routes = selectedRoute ? [selectedRoute] : []
+    const sources = activePlanSources ?? uniqueRouteSources(routes)
+    mapSummary.textContent = t('fleet.sourceCount', { count: sources.length })
+    mapSourceList.innerHTML = sources.length
+      ? sourceLinks(sources)
+      : `<li>${escapeHtml(t('fleet.noSources'))}</li>`
   }
 
   const loadMapOptions = async () => {
@@ -245,6 +423,7 @@ const mountPanel = (invoke) => {
       const result = cachedMapOptionsResult ?? (await invoke(MAP_OPTIONS_CHANNEL))
       if (result.status !== 'success') {
         mapSummary.textContent = translateMessage(result.error, 'fleet.mapUnavailableDetail')
+        mapSourceList.innerHTML = ''
         return
       }
       cachedMapOptionsResult = result
@@ -257,7 +436,7 @@ const mountPanel = (invoke) => {
         .join('')
       if (mapOptions.some((item) => item.id === '1-1')) mapSelect.value = '1-1'
       mapOptionsReady = true
-      renderMapObjectives()
+      renderMapRoutes()
     } finally {
       updateBusy()
     }
@@ -322,11 +501,20 @@ const mountPanel = (invoke) => {
   syncButton.addEventListener('click', () =>
     syncAccount({ invalidateResults: true, forceRefresh: true }),
   )
-  mapSelect.addEventListener('change', renderMapObjectives)
-  objectiveOptions.addEventListener('change', renderRouteOptions)
+  mapSelect.addEventListener('change', () => {
+    renderMapRoutes()
+  })
+  routeSelect.addEventListener('change', () => {
+    activePlanSources = null
+    renderSourceStatus()
+  })
   generateButton.addEventListener('click', async () => {
-    const objective = contentHtml.querySelector('input[name="dfr-objective"]:checked').value
     const mapId = mapSelect.value
+    const mapOption = mapOptions.find((item) => item.id === mapId)
+    const routeId = routeSelect.value
+    const route = mapOption?.routes.find((item) => item.id === routeId)
+    if (!route) return
+    const objective = routeObjective(route)
     beginBusy()
     generateButton.classList.add('is-loading')
     generateButton.setAttribute('aria-busy', 'true')
@@ -337,25 +525,33 @@ const mountPanel = (invoke) => {
       const result = await invoke(RECOMMEND_CHANNEL, {
         mapId,
         objective,
-        routeId: routeSelect.value || undefined,
-        avoidCurrentFleetEquipment: preserveFleet.checked,
+        routeId,
       })
       if (result.account) showAccountSummary(result.account)
       if (result.status === 'success') {
-        renderResults(output, result)
+        renderResults(output, result, (sources) => {
+          activePlanSources = sources
+          renderSourceStatus()
+        })
       } else if (result.status === 'no-solution') {
+        activePlanSources = null
+        renderSourceStatus()
         renderError(
           output,
-          t('fleet.noSolutionForObjective', {
+          t('fleet.noSolutionForRoute', {
             mapId,
-            objective: t(`fleet.objective.${objective}`),
+            route: routeOptionLabel(route),
           }),
           result.analysis.reasons.map((reason) => translateMessage(reason)),
         )
       } else {
+        activePlanSources = null
+        renderSourceStatus()
         renderError(output, t('fleet.incomplete'), [translateMessage(result.error)])
       }
     } catch {
+      activePlanSources = null
+      renderSourceStatus()
       renderError(output, t('fleet.serviceUnavailable'), [t('fleet.failedFallback')])
     } finally {
       generateButton.classList.remove('is-loading')
@@ -370,6 +566,7 @@ const mountPanel = (invoke) => {
       await loadMapOptions()
     } catch {
       mapSummary.textContent = t('fleet.mapUnavailableDetail')
+      mapSourceList.innerHTML = ''
       mapOptionsReady = false
       updateBusy()
     }

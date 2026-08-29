@@ -10,6 +10,8 @@ import { injectResourceCenter } from './browser/recommendation/resource-center-u
 import { initializeDmmCredentialAutofill } from './browser/security/dmm-credential-autofill.js'
 
 console.log('Trying to inject into', location.pathname)
+const invoke = (channel, data) => ipcRenderer.invoke(channel, data)
+
 // Inject <browser-action-list> element into WebUI
 const localPages = [
   '/new-tab.html',
@@ -30,7 +32,6 @@ if (
 ) {
   window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-      const invoke = (channel, data) => ipcRenderer.invoke(channel, data)
       injectFleetRecommender(invoke)
       injectExpeditionGoalPlanner(invoke)
       injectResourceCenter(invoke)
@@ -43,6 +44,6 @@ if (
 
 if (location.protocol === 'https:' && location.hostname === 'accounts.dmm.com') {
   window.addEventListener('DOMContentLoaded', () => {
-    void initializeDmmCredentialAutofill((channel, data) => ipcRenderer.invoke(channel, data))
+    void initializeDmmCredentialAutofill(invoke)
   })
 }

@@ -42,7 +42,7 @@ export const jp = {
   'common.jst': '日本時間',
   'common.listSeparator': '、',
   'fleet.menu': '海域編成提案',
-  'fleet.menuTitle': 'KC3アカウントから海域向けの艦隊・装備案を作成',
+  'fleet.menuTitle': 'KC3アカウントから海域向けの艦娘・装備・攻略メモを作成',
   'fleet.title': '海域艦隊編成提案',
   'fleet.help.whatQuestion': 'このページの機能は？',
   'fleet.help.whatAnswer':
@@ -61,16 +61,14 @@ export const jp = {
   'fleet.sync': '再同期',
   'fleet.conditions': '提案条件',
   'fleet.map': '海域',
-  'fleet.route': 'ルート／段階',
-  'fleet.objective': '目的',
+  'fleet.route': '参考サイト',
   'fleet.dataStatus': 'データ状態',
   'fleet.loading': '読み込み中',
-  'fleet.keepEquipment': '現在の艦隊装備を維持',
   'fleet.generate': '提案を作成',
   'fleet.generating': '作成中…',
-  'fleet.results': '提案結果',
+  'fleet.results': '攻略メモ',
   'fleet.idleTitle': '提案はまだありません',
-  'fleet.idleDetail': '同期後、「提案を作成」を押すと最大3件の有効な案を表示します。',
+  'fleet.idleDetail': '選択中のルートについて艦娘、装備、攻略メモを表示します。',
   'fleet.resyncingTitle': '再同期中',
   'fleet.resyncingDetail': '既存の提案を破棄し、KC3の艦娘と装備を再読み込みしています。',
   'fleet.updatedTitle': 'アカウントデータを更新しました',
@@ -81,8 +79,8 @@ export const jp = {
   'fleet.calculationFailed': '提案の計算に失敗しました',
   'fleet.noSolutionFallback': '所持艦娘と装備ではこのルートの条件を満たせません。',
   'fleet.failedFallback': 'KC3の同期完了後に再試行してください。',
-  'fleet.routeSummary': '該当ルート {routeCount} 件 · ボス固定 {stableCount} 件',
-  'fleet.autoRoutes': '計算可能な最適ルートを自動選択（上位3件）',
+  'fleet.sourceCount': '参考サイト {count} 件',
+  'fleet.noSources': '現在の選択に参考サイトはありません。',
   'fleet.stable': '安定',
   'fleet.manualSetup': '手動確認が必要',
   'fleet.source': '情報源 {index}',
@@ -97,13 +95,81 @@ export const jp = {
   'fleet.afterSortieCost': '同資源の出撃消費控除後',
   'fleet.planNavigation': '提案一覧',
   'fleet.planningTitle': '艦隊を編成中',
-  'fleet.planningDetail': '候補艦、装備インスタンス、制空値、索敵条件を比較しています…',
+  'fleet.planningDetail': '攻略ルートを所持艦娘・装備と照合しています…',
   'fleet.noSolutionForObjective': 'このアカウントでは{mapId}「{objective}」艦隊を編成できません',
+  'fleet.noSolutionForRoute': 'このアカウントでは{mapId}「{route}」攻略編成を組めません',
   'fleet.incomplete': '提案が不完全です',
   'fleet.serviceUnavailable': '提案サービスを利用できません',
   'fleet.resyncIncomplete': '再同期が完了しませんでした',
   'fleet.recommendationTab': '案 {index}',
-  'fleet.score': '適合度',
+  'fleet.strategyGuide': '攻略メモ',
+  'fleet.strategyShips': '連れていく艦娘',
+  'fleet.strategyEquipment': '装備',
+  'fleet.strategyNotes': '補足',
+  'fleet.strategyRoute': 'ルート',
+  'fleet.strategySpeed': '艦隊速力',
+  'fleet.strategyAirPower': '制空',
+  'fleet.strategyLos': '索敵',
+  'fleet.strategyOpeningAsw': '先制対潜',
+  'fleet.strategyResourceGain': '予想{resource}',
+  'fleet.strategyMinimumValue': '{value}／最低 {minimum}',
+  'fleet.strategyResourceValue': '{gain} 獲得／{net} 純利益',
+  'fleet.strategyNoDescription': 'このルートはリンク先の情報源を確認してください。',
+  'fleet.routeDescription.4-5-fast-plus-night-carrier':
+    '正規／装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航戦1。全艦高速＋で A／C-D-H-T 最短、制空414+を検査し、攻略・周回・戦果周回に対応します。',
+  'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
+    '夜戦軽空母1を含む軽空母2、軽巡1、駆逐3。低消費の最短編成で、制空207+、先制対潜3隻、対地駆逐2隻を検査します。バケツ消費が多いため長時間周回より攻略向けです。',
+  'fleet.routeDescription.4-5-kcwiki-fast-plus-special-attack':
+    'Nelson改、正規／装甲空母3、重巡1、雷巡1。全艦高速＋で最短を通り、Nelsonと非空母2隻を1／3／5番艦に配置してHマス複縦陣でNelson Touchを狙います。制空207+を検査します。',
+  'fleet.routeDescription.4-5-kcwiki-detour':
+    '高速戦艦1、正規／装甲空母2、軽巡1、駆逐2。初手分岐により A-B-E-M-R-N-T または C-F-I-J-H-T、制空207+。出典ではゲージ削りのみ推奨されています。',
+  'fleet.routeDescription.5-5-middle':
+    '大和改二系と友軍戦艦1、航巡1、軽巡1、駆逐2。Yui常規EO/中路戰巡流、制空138+、Cn2索敵66+。',
+  'fleet.routeDescription.5-5-supply-smoke':
+    '大和改二重、武蔵改二、空母1、補給艦1、駆逐2。Yui補給王煙流、三重煙幕、制空300+、Cn2索敵66+。',
+  'fleet.routeDescription.5-5-submarine-snipe':
+    '潜水/潜母6。P→S固定ではない低資源狙い、Cn2索敵80+。',
+  'fleet.routeDescription.5-5-kcwiki-upper-yamato-night-carrier':
+    '大和改二系＋武蔵改二、正規/装甲空母2、重巡/航巡2。KCWiki上路武大夜母配置、P→SはCn2索敵80+、画像と備考からBoss優勢392+を検査する。',
+  'fleet.routeDescription.5-5-kcwiki-upper-cav':
+    '赤城改二戊＋戦艦3＋航巡2のKCWiki上路帶路配置。画像例は制空416、索敵Cn1 44.87で、二期P→SはCn2索敵80+として検査する。',
+  'fleet.routeDescription.5-5-kcwiki-upper-nelson':
+    'Nelson/Rodney改、戦艦1、正規/装甲空母2、航巡2。KCWiki上路納爾遜、出門制空410+推奨、P→SはCn2索敵80+。',
+  'fleet.routeDescription.5-5-kcwiki-upper-night-carrier':
+    '夜戦空母1を含む正規/装甲空母2、戦艦2、航巡2。KCWiki上路夜母、夜母を旗艦保護する想定で、P→SはCn2索敵80+。',
+  'fleet.routeDescription.5-5-kcwiki-upper-kongou-touch':
+    '金剛改二丙＋比叡改二丙/榛名改二/霧島改二、正規/装甲空母2、航巡2。僚艦夜戦突撃と支援は手動確認、P→SはCn2索敵80+。',
+  'fleet.routeDescription.5-5-kcwiki-upper-random-nelson':
+    'Nelson/Rodney改＋正規/装甲空母3＋戦艦2。KCWiki上路隨機配置1、P後に逸れがあるため手動選択用。',
+  'fleet.routeDescription.5-5-kcwiki-upper-random-nagato':
+    '長門改二＋陸奥改二＋正規/装甲空母4。KCWiki上路隨機配置2、胸熱砲撃だがP後に逸れがあるため手動選択用。',
+  'fleet.routeDescription.5-5-kcwiki-middle-yamato-smoke':
+    '大和改二系＋武蔵改二、夜戦空母/空母1、補給艦1、駆逐2。KCWiki中路武大拉煙流、三重煙幕は手動確認、H点制空136均衡/138空確率確保。',
+  'fleet.routeDescription.5-5-kcwiki-middle-yamato-mogami-yahagi':
+    '大和改二系＋武蔵改二、最上、矢矧、駆逐2。KCWiki中路武大最矢流、H点制空136均衡/138空確率確保、Cn2索敵66+。',
+  'fleet.routeDescription.5-5-kcwiki-middle-yamato-supply':
+    '大和改二系＋武蔵改二、空母1、補給艦1、駆逐2。KCWiki中路武大補給流、H点制空136均衡/138空確率確保、Cn2索敵66+。',
+  'fleet.routeDescription.5-5-kcwiki-middle-nelson':
+    'Nelson改、戦艦1、駆逐2、CA/CAV/雷巡2のKCWiki中路Nelson。制空176でBoss均勢、188以上でH優勢寄り、Cn2索敵66+。',
+  'fleet.routeDescription.5-5-kcwiki-middle-transfer-south':
+    '戦艦2、正規/装甲空母1、重巡/航巡/雷巡1、駆逐2で中路からM夜戦へ回るKCWiki中轉下摸流。H/N分岐は手動確認、O→SはCn5索敵162+。',
+  'fleet.routeDescription.5-5-kcwiki-middle-heavy-cruiser':
+    '長門改二＋陸奥改二、重巡1、航巡1、駆逐2。KCWiki中路重巡配置、4水戦でH点均衡を狙い、支援は手動確認。',
+  'fleet.routeDescription.5-5-south-dd':
+    '軽巡1、雷巡1、駆逐4。水雷退避流、夜瑞雲/瑞雲の制空1+は推奨値として扱い、双レ編成は回避推奨。',
+  'fleet.routeDescription.5-5-kcwiki-south-yamato-dd':
+    '武蔵改二＋大和改二系＋駆逐4。KCWiki下路推薦配置、夜戦火力重視、Cn2索敵66+を硬条件とする。',
+  'fleet.routeDescription.5-5-kcwiki-south-night-carrier-dd':
+    '夜戦空母を含む正規/装甲空母2＋駆逐4。KCWiki下路推薦配置、空母偵察機で駆逐の索敵負担を下げる想定。',
+  'fleet.routeDescription.5-5-kcwiki-south-bbv-cav-drums':
+    '正規/装甲空母1、航空戦艦1、航巡2、駆逐2。KCWiki下路Saratoga/伊勢/Ташкент系例、4艘にドラム缶を載せてAへ入り、Boss優勢とCn2索敵66+を検査する。',
+  'fleet.routeDescription.5-5-kcwiki-south-nagato-dd':
+    '長門改二＋陸奥改二＋駆逐4のKCWiki下路夜戦流。索敵が非常に厳しいためCn2索敵66+を硬条件とし、支援と対潜は出撃時の推奨確認に残す。',
+  'fleet.routeDescription.5-5-newbie-nagato':
+    '長門・陸奥、航巡2、駆逐2。Yui新手長陸、道中/決戦砲撃支援、制空136+、Cn2索敵66+。',
+  'fleet.routeDescription.5-5-kcwiki-bahamut-random-heavy':
+    'KCWiki任意6艘戦艦/空母系と巴哈2014一期3BB3CV/3BB2CVL重火力参考。二期ではP後に約35%逸れるため、現行は手動選択用の隨機上路として扱う。',
+  'fleet.routeUnknown': '情報源を確認',
   'fleet.airPower': '制空値',
   'fleet.los': '33式索敵',
   'fleet.fuelCost': '出撃燃料',
@@ -124,7 +190,7 @@ export const jp = {
   'fleet.speed.fastest': '最速',
   'fleet.reasons': '提案理由',
   'fleet.warnings': '出撃前の注意',
-  'fleet.sources': '情報源',
+  'fleet.sources': '参考サイト',
   'fleet.objective.balanced': 'バランス',
   'fleet.objective.boss-clear': 'ボス撃破',
   'fleet.objective.low-cost': '低コスト',
@@ -140,7 +206,7 @@ export const jp = {
   'fleet.role.carrier-air-superiority': '制空空母',
   'fleet.role.utility-cruiser': '索敵巡洋艦',
   'fleet.role.escort-destroyer': '護衛艦',
-  'fleet.role.anti-submarine': '先制対潜',
+  'fleet.role.anti-submarine': '対潜装備',
   'fleet.role.submarine': '潜水艦',
   'fleet.role.resource-carrier': '資源輸送',
   'fleet.role.torpedo-cruiser': '雷巡',
@@ -239,7 +305,7 @@ export const jp = {
   'recent.unpinItem': '{name}をピン留めから削除',
   'recent.openItem': '{name}を開く',
   'resource.menu': '資源センター',
-  'resource.menuTitle': '現在庫、時間別収支、資源の入手元をまとめて確認',
+  'resource.menuTitle': '現在庫、時間粒度別の収支、資源の入手元をまとめて確認',
   'resource.title': '資源センター',
   'resource.help.flowQuestion': '消費、獲得、純増減の違いは？',
   'resource.help.flowAnswer':
@@ -248,25 +314,31 @@ export const jp = {
   'resource.help.chartAnswer':
     'ゼロ線の上が獲得、下が消費です。資源または消耗品を選ぶとメイングラフが切り替わります。',
   'resource.help.timeQuestion': 'データの時間基準は？',
-  'resource.help.timeAnswer': 'KC3 Ledgerの時間別記録を集計し、日付境界は日本時間です。',
+  'resource.help.timeAnswer':
+    'KC3 Ledgerの記録を集計し、正確な時刻がある場合はその時刻を使います。日付境界は日本時間です。',
   'resource.toolbar': '資源センター操作',
   'resource.range': '集計期間',
   'resource.preparing': 'KC3資源記録を準備中…',
   'resource.organizing': '資源ダッシュボードを作成中',
-  'resource.organizingDetail': '在庫、時間別収支、用途を集計しています…',
-  'resource.collecting': 'KC3の時間別資源記録を集計中…',
+  'resource.organizingDetail': '在庫、時間粒度別の収支、用途を集計しています…',
+  'resource.collecting': 'KC3の資源記録を集計中…',
   'resource.unavailable': 'KC3資源記録を読み込めません。',
   'resource.notReady': '資源データの準備ができていません',
   'resource.syncFirst': 'ゲームの母港に戻って同期し、更新してください。',
   'resource.connectionFailed': '資源統計サービスに接続できません。',
-  'resource.status': '{range} · 収支記録 {count} 件 · 更新 {updated}（{timezone}）',
+  'resource.status': '{range} · {granularity} · 収支記録 {count} 件 · 更新 {updated}（{timezone}）',
   'resource.mainResources': '主要資源',
   'resource.mainResourcesHint': '大きな値は現在庫；↑ 獲得／↓ 消費',
   'resource.currentInventory': '現在庫',
-  'resource.hourlyFlow': '{resource} · 時間別収支',
-  'resource.hourlyChart': '{resource}の時間別獲得と消費',
-  'resource.hourGain': '{hour}時｜獲得 {value}',
-  'resource.hourSpend': '{hour}時｜消費 {value}',
+  'resource.granularity': 'グラフ間隔',
+  'resource.granularity.minute': '1 分',
+  'resource.granularity.fiveMinute': '5 分',
+  'resource.granularity.thirtyMinute': '30 分',
+  'resource.granularity.hourly': '1 時間',
+  'resource.flowTitle': '{resource} · {granularity}収支',
+  'resource.flowChart': '{resource}の{granularity}獲得と消費',
+  'resource.bucketGain': '{time}｜獲得 {value}',
+  'resource.bucketSpend': '{time}｜消費 {value}',
   'resource.noFlow': 'この期間に{resource}の収支記録はありません',
   'resource.sourceTitle': '{resource}の変動元',
   'resource.sourceHint': '左：消費／右：獲得',
@@ -318,10 +390,26 @@ export const jp = {
   'expedition.area': '海域 {index}',
   'expedition.expand': '展開 ▼',
   'expedition.collapse': '閉じる ▲',
-  'expedition.resourceWeights': '資源・バケツの重み',
-  'expedition.weightHint': '考慮しない項目は0；-5 回避、20 優先',
+  'expedition.resourceWeights': '資源入手設定',
+  'expedition.weightHint':
+    '優先する資源は順位で評価し、収支維持は毎時純収入が 0 以上になるよう要求します。',
+  'expedition.weightTooltip':
+    '優先入手：最適化の順位付けに使います。収支維持：多いほど加点せず、毎時純収入 0 以上を要求します。対象外：推薦結果に影響しません。',
+  'expedition.preferenceMode.optimize': '優先入手',
+  'expedition.preferenceMode.constraint': '収支維持',
+  'expedition.preferenceMode.ignore': '対象外',
+  'expedition.priorityRank1': '1 最優先',
+  'expedition.priorityRank2': '2 次優先',
+  'expedition.priorityRank3': '3 中',
+  'expedition.priorityRank4': '4 低め',
+  'expedition.priorityRank5': '5 最低',
+  'expedition.priorityIgnored': '対象外',
+  'expedition.priorityMoveUp': '優先順位を上げる',
+  'expedition.priorityMoveDown': '優先順位を下げる',
+  'expedition.resourcePriorityFor': '{resource}の優先順位',
+  'expedition.resourceModeFor': '{resource}の入手設定',
   'expedition.bucketPerTrip': '最大 +{count}／回',
-  'expedition.bucketPlanSummary': 'バケツ重み {weight} · 最大 {value}／時',
+  'expedition.bucketPlanSummary': 'バケツ期待値 {value}／時',
   'expedition.schedule': '出発／受取間隔',
   'expedition.scheduleHint':
     '0分は常時オンライン。それ以外は固定間隔で受け取り、再出発として計算します',
@@ -336,7 +424,7 @@ export const jp = {
   'expedition.maximum': '上限',
   'expedition.totalMultiplier': 'この計画の収入倍率',
   'expedition.actionHint':
-    '候補遠征、5項目の重み、操作間隔、使用可能艦隊、成功・大発設定から最適解を1件探します。',
+    '候補遠征、資源の優先順位、操作間隔、使用可能艦隊、成功・大発設定から最適解を1件探します。',
   'expedition.generate': '最適な組み合わせを作成',
   'expedition.generating': '組み合わせを計算中…',
   'expedition.idle': '組み合わせはまだありません',
@@ -413,7 +501,8 @@ export const jp = {
   'expedition.syncUnavailable': 'KC3母港資源を読み込めません。',
   'expedition.syncStatus': '同期 {time}｜資源上限 {maximum}',
   'expedition.error.afk': '出発／受取間隔は0分～48時間で入力してください。',
-  'expedition.error.weights': '資源・バケツの重みは-5～20の整数で入力してください。',
+  'expedition.error.weights':
+    '優先入手の資源順位は重複せず連続している必要があります。他は収支維持または対象外にできます。',
   'expedition.error.candidates': 'チェックした遠征数が使用可能艦隊数より少なくなっています。',
   'expedition.error.syncConnection': '遠征資源同期サービスに接続できません。',
   'expedition.error.planConnection': '遠征組み合わせサービスに接続できません。',
@@ -442,11 +531,14 @@ export const jp = {
   'message.EXPEDITION_SYNC_CONNECTION_FAILED': '遠征資源同期サービスに接続できません。',
   'message.EXPEDITION_PLAN_CONNECTION_FAILED': '遠征組み合わせサービスに接続できません。',
   'message.EXPEDITION_AFK_INVALID': '出発／受取間隔は0分～48時間で入力してください。',
-  'message.EXPEDITION_WEIGHTS_INVALID': '資源・バケツの重みは-5～20の整数で入力してください。',
+  'message.EXPEDITION_WEIGHTS_INVALID':
+    '優先入手の資源順位は重複せず連続している必要があります。他は収支維持または対象外にできます。',
   'message.EXPEDITION_CANDIDATES_INVALID':
     'チェックした遠征数が使用可能艦隊数より少なくなっています。',
   'expedition.reason.INSUFFICIENT_FLEETS':
     'KC3で使用可能な遠征艦隊は{available}隊のみで、設定した{requested}隊に足りません。',
   'expedition.reason.INSUFFICIENT_EXPEDITIONS':
     '選択艦隊に割り当てられる遠征が不足しています。候補が開放済みで、Kanceptsの最低コスト編成に必要な艦種を所持しているか確認してください。',
+  'expedition.reason.RESOURCE_CONSTRAINTS':
+    'すべての最低収入条件を満たす遠征組み合わせがありません。',
 }

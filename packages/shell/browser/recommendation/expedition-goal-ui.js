@@ -1,16 +1,45 @@
 import { EXPEDITION_PLAN_CHANNEL, EXPEDITION_SUMMARY_CHANNEL } from './channels'
 import { createStrategyRoomI18n } from './i18n'
+import {
+  installOptimizerDebugConsoleHelper,
+  isOptimizerDebugEnabled,
+  logOptimizationDebugReport,
+} from './expedition-optimizer-debug'
 import { EXPEDITION_RESOURCES } from './resource-metadata'
 import { escapeHtml, formatLocalizedDate, formatLocalizedNumber } from './strategy-room-format'
-import { plannerMarkup, styles } from './views/expedition-goal-view'
+import { movePriorityResourceOrder, plannerMarkup, styles } from './views/expedition-goal-view'
 
 let { locale, t, translateMessage } = createStrategyRoomI18n()
 
 const resources = EXPEDITION_RESOURCES
+const PRIORITY_RESOURCE_KEYS = ['bucket', 'fuel', 'bauxite', 'ammo', 'steel']
+const PRIORITY_RANKS = [1, 2, 3, 4, 5]
+const RESOURCE_PREFERENCE_MODES = ['optimize', 'constraint', 'ignore']
+const DEFAULT_MINIMUM_NET_YIELD_PER_HOUR = 0
 
-const weightResources = ['fuel', 'steel', 'ammo', 'bauxite'].map((key) =>
-  resources.find((resource) => resource.key === key),
-)
+const priorityResource = (key) =>
+  key === 'bucket' ? { key, color: '#3b9d91' } : resources.find((resource) => resource.key === key)
+
+const weightResources = PRIORITY_RESOURCE_KEYS.map(priorityResource)
+
+const isPriorityPreferenceValid = (preferences) => {
+  const activeRanks = PRIORITY_RESOURCE_KEYS.map((key) => preferences[key])
+    .filter((preference) => preference?.mode === 'optimize')
+    .map((preference) => preference.rank)
+    .sort((left, right) => left - right)
+  return (
+    PRIORITY_RESOURCE_KEYS.every((key) =>
+      RESOURCE_PREFERENCE_MODES.includes(preferences[key]?.mode),
+    ) &&
+    activeRanks.every((rank) => PRIORITY_RANKS.includes(rank)) &&
+    new Set(activeRanks).size === activeRanks.length &&
+    activeRanks.every((rank, index) => rank === index + 1) &&
+    PRIORITY_RESOURCE_KEYS.every((key) => {
+      const preference = preferences[key]
+      return preference.mode !== 'constraint' || Number.isFinite(preference.minimumNetYieldPerHour)
+    })
+  )
+}
 
 const expeditionGroups = [
   [
@@ -136,22 +165,116 @@ const selectedCandidateIds = (root) =>
     Number(input.dataset.expeditionId),
   )
 
+const priorityRows = (root) => [...root.querySelectorAll('[data-priority-resource]')]
+
+const priorityRowKey = (row) => row.dataset.priorityResource
+
+const optimizePriorityKeys = (root) =>
+  priorityRows(root)
+    .filter((row) => row.querySelector('[data-resource-mode]')?.value === 'optimize')
+    .map(priorityRowKey)
+
+const nonOptimizePriorityKeys = (root) =>
+  priorityRows(root)
+    .filter((row) => row.querySelector('[data-resource-mode]')?.value !== 'optimize')
+    .map(priorityRowKey)
+
+const setPriorityOrder = (root, activeKeys, inactiveKeys) => {
+  const list = root.querySelector('[data-priority-list]')
+  if (!list) return
+  const rowsByKey = new Map(priorityRows(root).map((row) => [priorityRowKey(row), row]))
+  ;[...activeKeys, ...inactiveKeys].forEach((key) => {
+    const row = rowsByKey.get(key)
+    if (row) list.append(row)
+  })
+  priorityRows(root).forEach((row) => {
+    const key = priorityRowKey(row)
+    const activeIndex = activeKeys.indexOf(key)
+    const rank = activeIndex >= 0 ? activeIndex + 1 : null
+    const mode = row.querySelector('[data-resource-mode]')?.value
+    const select = row.querySelector('[data-resource-priority]')
+    const rankText = row.querySelector('[data-priority-rank]')
+    const upButton = row.querySelector('[data-priority-move="up"]')
+    const downButton = row.querySelector('[data-priority-move="down"]')
+    if (select) {
+      select.value = rank === null ? '1' : String(rank)
+      select.disabled = mode !== 'optimize'
+    }
+    if (rankText)
+      rankText.textContent = rank === null ? (mode === 'constraint' ? '>=0' : '-') : String(rank)
+    if (upButton) upButton.disabled = mode !== 'optimize' || rank === null || rank === 1
+    if (downButton)
+      downButton.disabled = mode !== 'optimize' || rank === null || rank === activeKeys.length
+  })
+}
+
+const handlePriorityChange = (root, select) => {
+  const key = select.dataset.resourcePriority
+  const row = select.closest('[data-priority-resource]')
+  if (row?.querySelector('[data-resource-mode]')?.value !== 'optimize') return
+  const otherActiveKeys = priorityRows(root)
+    .filter((row) => priorityRowKey(row) !== key)
+    .filter((row) => row.querySelector('[data-resource-mode]')?.value === 'optimize')
+    .map(priorityRowKey)
+  const otherInactiveKeys = priorityRows(root)
+    .filter((row) => priorityRowKey(row) !== key)
+    .filter((row) => row.querySelector('[data-resource-mode]')?.value !== 'optimize')
+    .map(priorityRowKey)
+  const selectedRank = Number(select.value)
+  const nextActiveKeys = movePriorityResourceOrder([...otherActiveKeys, key], key, selectedRank - 1)
+  setPriorityOrder(root, nextActiveKeys, otherInactiveKeys)
+}
+
+const handleModeChange = (root, select) => {
+  const key = select.dataset.resourceMode
+  const otherActiveKeys = priorityRows(root)
+    .filter((row) => priorityRowKey(row) !== key)
+    .filter((row) => row.querySelector('[data-resource-mode]')?.value === 'optimize')
+    .map(priorityRowKey)
+  const otherInactiveKeys = priorityRows(root)
+    .filter((row) => priorityRowKey(row) !== key)
+    .filter((row) => row.querySelector('[data-resource-mode]')?.value !== 'optimize')
+    .map(priorityRowKey)
+  if (select.value === 'optimize') {
+    setPriorityOrder(root, [...otherActiveKeys, key], otherInactiveKeys)
+    return
+  }
+  setPriorityOrder(root, otherActiveKeys, [...otherInactiveKeys, key])
+}
+
+const priorityPreference = (root) => {
+  const optimizeKeys = optimizePriorityKeys(root)
+  const preferences = Object.fromEntries(
+    PRIORITY_RESOURCE_KEYS.map((key) => {
+      const mode = root.querySelector(`[data-resource-mode="${key}"]`)?.value
+      if (mode === 'constraint') {
+        return [
+          key,
+          { mode: 'constraint', minimumNetYieldPerHour: DEFAULT_MINIMUM_NET_YIELD_PER_HOUR },
+        ]
+      }
+      if (mode === 'optimize') {
+        return [key, { mode: 'optimize', rank: optimizeKeys.indexOf(key) + 1 }]
+      }
+      return [key, { mode: 'ignore' }]
+    }),
+  )
+  return {
+    mode: 'priority',
+    preferences,
+  }
+}
+
 const scorerSettings = (root) => {
   const hours = Number(root.querySelector('#dep-afk-hours')?.value || 0)
   const minutes = Number(root.querySelector('#dep-afk-minutes')?.value || 0)
   const fleetCount = Number(root.querySelector('input[name="dep-fleet-count"]:checked')?.value || 3)
-  const resourceWeights = Object.fromEntries(
-    resources.map(({ key }) => [
-      key,
-      Number(root.querySelector(`[data-resource-weight="${key}"]`)?.value),
-    ]),
-  )
+  const preference = priorityPreference(root)
   return {
     afkMinutes: Math.max(0, Math.round(hours * 60 + minutes)),
     fleetCount,
     candidateIds: selectedCandidateIds(root),
-    resourceWeights,
-    bucketWeight: Number(root.querySelector('#dep-bucket-weight')?.value),
+    preference,
   }
 }
 
@@ -462,7 +585,7 @@ const renderPlan = (plan) => {
       <section class="dep-dispatch-board page_panel bscolor4 fcolor2">
         <div class="dep-dispatch-title">
           <h3>${t('expedition.bestPlan')}</h3>
-          <span>${escapeHtml(modifierText(plan.pairings[0].expedition.modifier))}${plan.bucketWeight !== 0 ? ` · ${t('expedition.bucketPlanSummary', { weight: plan.bucketWeight, value: formatNumber(plan.bucketPotentialHourly, 2) })}` : ''}</span>
+          <span>${escapeHtml(modifierText(plan.pairings[0].expedition.modifier))}${plan.bucketWeight !== 0 ? ` · ${t('expedition.bucketPlanSummary', { value: formatNumber(plan.bucketPotentialHourly, 2) })}` : ''}</span>
         </div>
         <div class="dep-dispatch-steps">${plan.pairings.map(renderDispatchStep).join('')}</div>
       </section>
@@ -507,6 +630,7 @@ const mountPanel = (invoke) => {
   const content = document.querySelector('#content')
   const contentHtml = document.querySelector('#contentHtml')
   if (!content || !contentHtml) return
+  installOptimizerDebugConsoleHelper()
 
   content.style.display = 'block'
   contentHtml.innerHTML = plannerMarkup(t, resources, weightResources, expeditionGroups)
@@ -563,15 +687,25 @@ const mountPanel = (invoke) => {
     input.addEventListener('change', () => updateCandidateSummary(root))
   })
   updateCandidateSummary(root)
-  root.querySelectorAll('[data-resource-weight]').forEach((input) => {
-    input.addEventListener('input', () => {
-      root.querySelector(
-        `[data-resource-weight-value="${input.dataset.resourceWeight}"]`,
-      ).textContent = input.value
-    })
+  setPriorityOrder(root, optimizePriorityKeys(root), nonOptimizePriorityKeys(root))
+  root.querySelectorAll('[data-resource-mode]').forEach((select) => {
+    select.addEventListener('change', () => handleModeChange(root, select))
   })
-  root.querySelector('#dep-bucket-weight').addEventListener('input', (event) => {
-    root.querySelector('#dep-bucket-weight-value').textContent = event.currentTarget.value
+  root.querySelectorAll('[data-resource-priority]').forEach((select) => {
+    select.addEventListener('change', () => handlePriorityChange(root, select))
+  })
+  root.querySelectorAll('[data-priority-move]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const activeKeys = optimizePriorityKeys(root)
+      const currentIndex = activeKeys.indexOf(button.dataset.priorityKey)
+      if (currentIndex < 0) return
+      const targetIndex = currentIndex + (button.dataset.priorityMove === 'up' ? -1 : 1)
+      setPriorityOrder(
+        root,
+        movePriorityResourceOrder(activeKeys, button.dataset.priorityKey, targetIndex),
+        nonOptimizePriorityKeys(root),
+      )
+    })
   })
   root
     .querySelectorAll('input[name="dep-success-mode"], #dep-daihatsu-count')
@@ -585,14 +719,15 @@ const mountPanel = (invoke) => {
   generateButton.addEventListener('click', async () => {
     const settings = scorerSettings(root)
     const incomeModifier = incomeAssumption(root)
+    const debug = isOptimizerDebugEnabled()
     if (!Number.isInteger(settings.afkMinutes) || settings.afkMinutes > 2880) {
       renderPlans(root, { status: 'error', error: { code: 'EXPEDITION_AFK_INVALID' } })
       return
     }
     if (
-      [...Object.values(settings.resourceWeights), settings.bucketWeight].some(
-        (value) => !Number.isInteger(value) || value < -5 || value > 20,
-      )
+      !settings.preference ||
+      settings.preference.mode !== 'priority' ||
+      !isPriorityPreferenceValid(settings.preference.preferences)
     ) {
       renderPlans(root, {
         status: 'error',
@@ -614,7 +749,7 @@ const mountPanel = (invoke) => {
     try {
       let result
       try {
-        result = await invoke(EXPEDITION_PLAN_CHANNEL, { ...settings, incomeModifier })
+        result = await invoke(EXPEDITION_PLAN_CHANNEL, { ...settings, incomeModifier, debug })
       } catch {
         result = { status: 'error', error: { code: 'EXPEDITION_PLAN_CONNECTION_FAILED' } }
       }
@@ -627,6 +762,7 @@ const mountPanel = (invoke) => {
         })
       }
       renderPlans(root, result)
+      logOptimizationDebugReport(result)
     } finally {
       generateButton.disabled = false
       generateButton.textContent = t('expedition.generate')

@@ -1,8 +1,8 @@
 # Expedition Recommendation Planner
 
 The planner is an independent **遠征推薦** item in KC3Kai's Strategy Room expedition menu. It shows
-the current account resources and returns one best expedition set from the selected resource and
-bucket weights, with an explicit second-to-fourth fleet assignment. The original **Expedition
+the current account resources and returns one best expedition set from the selected resource
+preference settings, with an explicit second-to-fourth fleet assignment. The original **Expedition
 Scorer** page and its controls are left unchanged.
 
 The feature is advisory. It does not click the game, change a fleet, resupply ships, start an
@@ -41,16 +41,19 @@ The recommendation page owns its planning controls so changing them does not aff
 Scorer:
 
 - checked expeditions in worlds 1–5 are the candidate pool;
-- **資源與水桶權重** supplies fuel, ammunition, steel, bauxite, and bucket weights from -5 to 20;
+- **資源取得設定** assigns each resource to optimize, at-least-break-even, or ignored mode.
+  Optimized resources have a unique, continuous priority order; break-even resources require
+  non-negative hourly net yield; ignored resources do not affect ranking;
 - **派遣／收取間隔** supplies the repeated operation interval and selects one, two, or three
   expedition fleets;
 - **成功模式** selects normal or great success;
 - **大發系裝備** selects zero to four Daihatsu-type equipment items per fleet and displays the
   combined income multiplier, up to 1.8×.
 
-The weight controls use a fixed reading order: fuel and steel on the first row, ammunition and
-bauxite on the second row, and buckets on the third row. The bucket slider matches the four resource
-sliders and defaults to 5.
+The preference controls default to optimizing buckets, fuel, bauxite, ammunition, then steel.
+Changing a rank automatically reorders the other optimized resources so enabled ranks stay unique
+and continuous. Break-even resources currently use `minimumNetYieldPerHour = 0` and are reserved for
+future configurable minimums. Break-even and ignored resources do not participate in ranking.
 
 The selected success mode and Daihatsu count are applied uniformly to every candidate. Normal
 success has a factor of 1.0, great success has a factor of 1.5, and each Daihatsu-type item adds 5%
@@ -110,36 +113,213 @@ All candidate sets use the same comparison horizon: one hour for online mode or 
 operation interval otherwise. This prevents a long expedition from enlarging only its own comparison
 window and artificially increasing the projected income of the other fleets in that set.
 
-The four-resource ranking value follows the same weighted-resource approach as Expedition Scorer:
+The planner does not rank by raw resource amount multiplied by the sliders, and it does not add
+independent expedition scores. It first enumerates complete candidate sets for the selected fleet
+count. For each set, it sums the steady-state hourly fuel, ammunition, steel, bauxite, and bucket
+values after the success/Daihatsu income multiplier, effective collection interval, and estimated
+resupply cost.
+
+After every candidate set has been built, the planner calculates the best reachable complete-set
+benchmark for each resource:
 
 ```text
-weighted hourly efficiency = sum(net hourly resource income × resource priority)
+maxFuelPerHour = max(candidate set fuel/hour)
+maxAmmoPerHour = max(candidate set ammunition/hour)
+maxSteelPerHour = max(candidate set steel/hour)
+maxBauxitePerHour = max(candidate set bauxite/hour)
+maxBucketPerHour = max(candidate set bucket/hour)
 ```
 
-The planner normalizes each candidate set's fuel, ammunition, steel, bauxite, and bucket rates
-separately against the other candidate sets. Each normalized value is then multiplied directly by
-its matching slider:
+Each candidate set is converted into resource satisfaction against those per-resource benchmarks. A
+zero or negative benchmark means that objective cannot be positively optimized in the current
+candidate pool, so that satisfaction is treated as zero and never produces `NaN` or infinity.
+Negative net yield is preserved when the benchmark is positive, then clamped into `[-1, 1]` so a
+fuel-losing expedition set is worse than a zero-fuel set without letting an extreme value dominate:
 
 ```text
-preference score = sum(normalized hourly resource income × resource weight)
-                 + normalized bucket potential × bucket weight
+satisfactionFuel = clamp(fuelPerHour / maxFuelPerHour, -1, 1)
+satisfactionAmmo = clamp(ammoPerHour / maxAmmoPerHour, -1, 1)
+satisfactionSteel = clamp(steelPerHour / maxSteelPerHour, -1, 1)
+satisfactionBauxite = clamp(bauxitePerHour / maxBauxitePerHour, -1, 1)
+satisfactionBucket = clamp(bucketPerHour / maxBucketPerHour, -1, 1)
 ```
 
-This makes all five sliders comparable despite their unlike raw units: fuel 20 has four times the
-influence of buckets 5. Zero removes that dimension from ranking, while a negative value penalizes
-gaining it. Users who merely do not need a resource should select zero; negative values intentionally
-avoid expeditions that also earn that resource. Raw weighted resource efficiency, signed bucket
-potential, and the existing deterministic tie-breakers resolve equal preference scores.
+Satisfaction then goes through a concave diminishing-return utility:
 
-Bucket rewards come from KC3's expedition master-data item slots. Since that data supplies the
-maximum item count but not a drop probability, the result deliberately labels bucket income as
-**up to** a count per return and does not present it as an expected value. Great Success does not
-multiply item rewards.
+```text
+resourceUtility(s) = 1 - (1 - s)^2
+                   = 2s - s^2
+```
 
-Negative priorities penalize that resource, zero ignores it, and positive priorities reward it.
-Raw weighted resource efficiency, signed bucket potential, and current-fleet compatibility are
-deterministic tie-breakers. These internal tie-breakers do not override the user's five weight
-sliders.
+This rewards moving an important resource from starvation toward a reasonable share of its reachable
+best more strongly than squeezing the final few percentage points out of another resource. For
+example, a set with fuel satisfaction `0` and bauxite satisfaction `1` is less attractive than a set
+that reaches about `0.7` for both when fuel and bauxite have equal high weights.
+
+The user-facing preferences are applied before the existing normalized scoring pipeline runs:
+
+```text
+enumerate combinations
+calculate expected NET yield
+apply resource constraints
+remove infeasible combinations
+Pareto pruning over optimized resources
+calculate benchmarks for optimized resources
+satisfaction
+resourceUtility
+priority weights
+final combination score
+```
+
+Optimized resources convert their priority rank into internal weights:
+
+```text
+rank 1 = 100
+rank 2 = 70
+rank 3 = 45
+rank 4 = 25
+rank 5 = 10
+constraint = 0
+ignored = 0
+```
+
+Those internal weights are normalized before scoring:
+
+```text
+normalizedWeight = resourceWeight / sum(abs(all non-zero resource and bucket weights))
+score = sum(normalizedWeight × resourceUtility(satisfaction))
+```
+
+This makes optimized resources comparable despite their unlike raw units. A higher rank means the
+optimizer gives that resource efficiency more importance relative to its own reachable best value;
+it does not require the final resource amounts to follow the same ratio. Constraint resources are
+hard feasibility checks only: once a plan satisfies the minimum, extra yield contributes exactly
+zero to the score, benchmark, satisfaction, utility, and Pareto objective scope. Ignored resources
+also contribute exactly zero whether their yield is positive, zero, or negative. If priority mode has
+no optimized resources, utility scores remain zero instead of falling back to hidden resource
+weights.
+
+If two utility scores are effectively equal, deterministic tie-breakers are used in this order:
+weighted expected net hourly yield, fewer negative-yield resources, lower estimated resupply cost,
+then expedition ID order.
+
+## Optimization debug log
+
+The production planner does not print optimization logs by default. In a development console, enable
+the expedition optimizer report before pressing **產生最佳配對**:
+
+```js
+KancolleOptimizerDebug.enable()
+```
+
+The next run sends `debug: true` with the planner request and prints prefixed console output such as:
+
+```text
+[KancolleOptimizer] Context
+[KancolleOptimizer] Benchmarks
+[KancolleOptimizer] Pareto Statistics
+[KancolleOptimizer] Top 10
+[KancolleOptimizer] Rank #1 Breakdown 02 + 05 + 38
+[KancolleOptimizer] Rank #2 Breakdown A2 + 05 + 38
+[KancolleOptimizer] Rank #3 Breakdown 02 + A2 + 38
+[KancolleOptimizer] Compare 02+05+38 vs A2+05+38
+[KancolleOptimizer] Bucket Debug
+[KancolleOptimizer] FULL_SCORE_DEBUG
+[KancolleOptimizer] Why Rank #1 won
+```
+
+The report avoids relying only on Chrome's expandable object references. It prints flattened
+`console.table` views and a final copyable `JSON.stringify(..., null, 2)` block named
+`FULL_SCORE_DEBUG`. The JSON block contains the scoring context, preferences, normalized weights,
+optimize-scope resource benchmarks with the combination that produced each benchmark, constraint
+rejections, Pareto pruning statistics, the watched combinations, Top 10 score rows, and bucket debug
+rows. In priority mode, the context includes `preferenceMode: "priority"`, the full `preferences`
+map, and a `priorityOrder` array with each resource's mode, UI rank, internal weight, configured
+minimum, and normalized weight.
+
+The main-process IPC logger also avoids nested inspect output. Its
+`expedition-planner.completed` event keeps only flattened scoring summary rows. Complete copyable
+JSON is emitted separately as `expedition-planner.completed.scoring-json`; when debug mode is
+enabled and the worker returns the full report, `expedition-planner.completed.optimization-debug-json`
+contains the complete optimization debug payload.
+
+Pareto statistics use explicit names:
+
+```text
+totalCombinationCount = combinations before Pareto pruning
+paretoRemovedCount = combinations removed by Pareto pruning
+remainingCombinationCount = combinations scored after Pareto pruning
+```
+
+The watched-combination table always checks these sets when present in the candidate pool:
+
+```text
+02 + 05 + 38
+A2 + 05 + 38
+02 + A2 + 38
+05 + A2 + B1
+02 + A2 + B1
+```
+
+The bucket debug table always attempts to show these expedition IDs when their data is available in
+the ranked or watched debug combinations:
+
+```text
+02
+04
+09
+A2
+B1
+41
+```
+
+The requested-combination summary table prints `Fuel/h`, `Ammo/h`, `Steel/h`, `Bauxite/h`,
+`Bucket/h`, `Fuel Satisfaction`, `Bucket Satisfaction`, `Fuel Contribution`, `Bucket Contribution`,
+and `Total Score` for those watched combinations.
+
+For each watched set, the log shows whether it existed before pruning, whether it was Pareto
+dominated, whether it remained after pruning, and the first combination found to dominate it.
+
+The structured report includes the actual context used by scoring, normalized weights, complete-set
+resource benchmarks with the best combination for each resource, a Top 10 table, and detailed Rank
+1-5 breakdowns. Each detailed combination lists net yield per hour, benchmark, satisfaction, utility,
+raw weight, normalized weight, score contribution, and contribution ratio for fuel, ammunition,
+steel, bauxite, and buckets. The sum of resource contributions is checked against the total utility
+score with a small floating-point tolerance.
+
+For each detailed combination, every expedition also logs its per-run calculation:
+
+- base resource reward;
+- reward after the success multiplier;
+- reward after the Daihatsu multiplier as actually used by the planner;
+- bucket item value used by the current item-reward engine;
+- estimated fuel and ammunition resupply cost;
+- net reward per run and expected net per hour.
+
+After a debug run, compare any two combinations that were part of the scored candidate set:
+
+```js
+compareOptimizationCombinations(['02', '05', '38'], ['A2', '05', '38'])
+```
+
+The comparison table is based on score contribution differences rather than raw yield alone, so its
+main reasons match the ranking model. Debug mode also automatically compares the current winner
+against `A2 + 05 + 38`, `02 + A2 + 38`, `05 + A2 + B1`, and `02 + A2 + B1`, and also prints the
+fixed `02 + 05 + 38` baseline against the same challengers when that baseline is not already the winner.
+Those comparisons are printed when the combinations are available in the ranked or watched debug
+data. Disable logging with:
+
+```js
+KancolleOptimizerDebug.disable()
+```
+
+Bucket rewards come from KC3's expedition master-data item slots. Since that data supplies the item
+count but not a drop probability, the planner converts bucket items into an expected value before
+scoring. A single item reward, and the left item when two rewards are shown, remains random on both
+normal success and Great Success. When no explicit probability is available, a `0..1` bucket reward
+is treated as `0.5` expected buckets per run. The right item in a two-item reward is expected only on
+Great Success: `max` per run when Great Success is selected and `0` on normal success. Great Success
+and Daihatsu multipliers never multiply item rewards.
 
 ## Fleet pairing and conditions
 
@@ -207,12 +387,16 @@ Two fixed IPC commands are accepted only from the currently loaded KC3 Strategy 
 - `recommendation:expedition-summary`
 - `recommendation:expedition-plan`
 
-The plan request accepts only integer resource and bucket priorities from -5 to 20, an operation
-interval from 0 to 2,880 minutes, one to three fleets, a boolean great-success mode, a Daihatsu count
-from zero to four, and unique candidate IDs from 1 to 40 plus the internal IDs 100, 101, 102, and 110
-for A1, A2, A3, and B1 respectively. The main process executes a fixed planner function in the KC3
-page context; request data is validated before it crosses that boundary.
+The plan request accepts a priority preference map where each resource is `optimize`, `constraint`,
+or `ignore`. Optimized resources must use unique continuous ranks from 1 to 5. Constraint resources
+currently default to `minimumNetYieldPerHour = 0`. The legacy custom-weight shape remains accepted
+for compatibility. The request also accepts an operation
+interval from 0 to 2,880 minutes, one to three fleets, a boolean great-success mode, a Daihatsu
+count from zero to four, and unique candidate IDs from 1 to 40 plus the internal IDs 100, 101, 102,
+and 110 for A1, A2, A3, and B1 respectively. The main process executes a fixed planner function in
+the KC3 page context; request data is validated before it crosses that boundary.
 
-The income model follows the existing KC3 Scorer and Kancepts weighted-resource approach. Kancepts
-is available at <https://javran.github.io/kancepts/> and its source is at
+The income and cost model follows the existing KC3 Scorer and Kancepts resource calculations where
+available, but final ranking uses the normalized utility score above instead of raw weighted
+resource totals. Kancepts is available at <https://javran.github.io/kancepts/> and its source is at
 <https://github.com/Javran/kancepts>.

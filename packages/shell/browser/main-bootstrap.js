@@ -26,18 +26,11 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
     registerRecommendationIpc({
       ipcMain,
       getKc3ExtensionId,
-      recommend: (input) => recommendationService.recommend(input),
+      recommend: (input, options) => recommendationService.recommend(input, options),
       planExpeditions: (input) => recommendationService.planExpeditions(input),
       summarizeResourceLedger: (input) => recommendationService.summarizeResourceLedger(input),
       logger,
     })
-    try {
-      recommendationService.warmUp()
-    } catch (error) {
-      logger('recommendation.worker-warmup-failed', {
-        message: error?.message || String(error),
-      })
-    }
   }
 
   const registerWebUi = ({ ipcMain, getWebUiExtensionId, routerDependencies }) => {

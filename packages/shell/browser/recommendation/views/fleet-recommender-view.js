@@ -25,27 +25,30 @@ export const styles = `
   body.dark .dfr-button { border: 1px solid #444; background: #121212; color: #ccc; }
   body:not(.dark) .dfr-button { border: 1px solid #ace; border-radius: 8px; background: #def; color: #369; }
   .dfr-button:focus-visible, .dfr-root input:focus-visible, .dfr-root select:focus-visible,
-  .dfr-plan-tab:focus-visible { outline: 2px solid #69c; outline-offset: 1px; }
+  .dfr-plan-tab:focus-visible, .dfr-route-row summary:focus-visible { outline: 2px solid #69c; outline-offset: 1px; }
   .dfr-controls { margin-bottom: 16px; }
   .dfr-control-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 8px; }
-  .dfr-field > span, .dfr-objectives legend, .dfr-field-label { display: block; font-weight: bold; font-size: 12px; }
+  .dfr-field > span, .dfr-field-label { display: block; font-weight: bold; font-size: 12px; }
   .dfr-field select { width: 218px; height: 26px; margin-top: 4px; }
-  .dfr-objectives { margin: 0; padding: 0; border: 0; }
-  .dfr-objectives legend { margin-bottom: 5px; }
-  .dfr-objectives label { margin-right: 12px; font-size: 12px; font-weight: normal; cursor: pointer; }
-  .dfr-route-row { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 10px; font-size: 11px; }
+  .dfr-field-route select { width: 300px; }
+  .dfr-route-row { min-height: 36px; padding: 0; font-size: 11px; }
+  body:not(.dark) .dfr-route-row { border-radius: 8px; }
+  .dfr-route-row summary { min-height: 36px; padding: 6px 10px; cursor: pointer; list-style-position: inside; }
+  .dfr-route-summary-copy { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
   .dfr-route { min-width: 105px; font-size: 13px; white-space: nowrap; }
   body.dark .dfr-route { color: #fc0; }
   body:not(.dark) .dfr-route { color: #069; }
-  .dfr-action-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-  .dfr-check { font-size: 12px; cursor: pointer; }
+  .dfr-source-list { margin: 0; padding: 0 10px 8px 34px; font-size: 10px; line-height: 1.45; }
+  .dfr-source-list li { margin: 1px 0; }
+  .dfr-source-list a { overflow-wrap: anywhere; }
+  .dfr-action-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 8px; }
   .dfr-output { padding-bottom: 20px; }
   .dfr-idle { min-height: 52px; padding: 10px; font-size: 11px; text-align: center; }
   .dfr-idle strong { display: block; margin-bottom: 3px; font-size: 12px; }
   .dfr-plan-tabs { display: flex; gap: 5px; margin-bottom: 8px; }
   .dfr-plan-tab { flex: 1; min-height: 34px; padding: 4px 8px; cursor: pointer; text-align: left; }
-  .dfr-plan-tab span { font-size: 11px; }
-  .dfr-plan-tab strong { float: right; font-size: 14px; }
+  .dfr-plan-tab span { font-size: 10px; }
+  .dfr-plan-tab strong { display: block; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
   body.dark .dfr-plan-tab { border: 1px solid #444; background: #121212; color: #aaa; }
   body.dark .dfr-plan-tab.active { border-color: #777; color: #fc0; background: #000; }
   body:not(.dark) .dfr-plan-tab { border: 1px solid #ace; border-radius: 8px; background: #def; color: #79b; }
@@ -53,16 +56,25 @@ export const styles = `
   .dfr-plan { width: 680px; }
   body.dark .dfr-plan { border-bottom: 1px solid #777; padding-bottom: 10px; }
   body:not(.dark) .dfr-plan { padding: 0 5px 5px; border-radius: 12px; background: #def; }
-  .dfr-plan-head { display: flex; justify-content: space-between; align-items: center; min-height: 35px; padding: 5px; }
+  .dfr-plan-head { min-height: 35px; padding: 5px; }
   .dfr-plan-head h2 { display: inline; margin: 0 8px 0 0; font-size: 14px; }
   .dfr-plan-head p { display: inline; margin: 0; font-size: 11px; }
-  .dfr-score { min-width: 82px; height: 25px; padding: 4px 6px; font-size: 14px; font-weight: bold; text-align: center; }
-  .dfr-score small { font-size: 9px; font-weight: normal; }
-  .dfr-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin: 0 4px 6px; }
-  .dfr-metric { min-height: 43px; padding: 5px 7px; }
-  .dfr-metric span { display: block; font-size: 10px; }
-  .dfr-metric strong { margin-right: 4px; font-size: 15px; }
-  .dfr-metric small { font-size: 9px; }
+  .dfr-guide { margin: 0 4px 6px; padding: 7px 8px; }
+  body:not(.dark) .dfr-guide { border-radius: 8px; }
+  .dfr-guide h3, .dfr-roster-section h3, .dfr-loadout-section h3 { margin: 0 0 5px; font-size: 11px; }
+  .dfr-guide p { margin: 0; font-size: 11px; line-height: 1.45; }
+  .dfr-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
+  .dfr-facts li { min-width: 0; min-height: 30px; padding: 4px 6px; font-size: 10px; line-height: 1.35; }
+  body:not(.dark) .dfr-facts li { border-radius: 6px; }
+  .dfr-facts span { display: block; color: #777; font-size: 9px; }
+  .dfr-facts strong { display: block; overflow-wrap: anywhere; font-size: 11px; font-weight: bold; }
+  .dfr-roster-section, .dfr-loadout-section { margin: 0 4px 6px; }
+  .dfr-roster { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 0; padding: 0; list-style: none; }
+  .dfr-roster li { display: grid; grid-template-columns: 18px minmax(0, 1fr); column-gap: 5px; min-width: 0; min-height: 43px; padding: 5px 7px; }
+  body:not(.dark) .dfr-roster li { border-radius: 8px; }
+  .dfr-roster li > span { grid-row: 1 / 3; color: #777; font-size: 10px; }
+  .dfr-roster strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+  .dfr-roster small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #777; font-size: 9px; }
   .dfr-ship-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin: 0 4px; }
   .dfr-ship { min-width: 0; padding: 6px 8px; }
   body:not(.dark) .dfr-ship { border-radius: 8px; }
@@ -100,10 +112,11 @@ export const styles = `
   @media (max-width: 720px) {
     .dfr-root, .dfr-plan { width: 100%; }
     .dfr-control-row { display: block; }
-    .dfr-objectives { margin-top: 8px; }
+    .dfr-field select, .dfr-field-route select { width: 100%; }
     .dfr-route-row { align-items: flex-start; flex-direction: column; gap: 2px; }
     .dfr-plan-tabs { flex-direction: column; }
-    .dfr-metrics { grid-template-columns: repeat(2, 1fr); }
+    .dfr-facts { grid-template-columns: 1fr; }
+    .dfr-roster { grid-template-columns: 1fr; }
     .dfr-ship-grid { grid-template-columns: 1fr; }
     .dfr-notes { grid-template-columns: 1fr; }
   }
@@ -146,24 +159,21 @@ export const panelMarkup = (t) => `
             <span>${t('fleet.map')}</span>
             <select id="dfr-map" class="control_input" disabled></select>
           </label>
-          <label class="dfr-field">
+          <label class="dfr-field dfr-field-route">
             <span>${t('fleet.route')}</span>
             <select id="dfr-route-select" class="control_input" disabled></select>
           </label>
-          <fieldset class="dfr-objectives">
-            <legend>${t('fleet.objective')}</legend>
-            <div id="dfr-objective-options"></div>
-          </fieldset>
         </div>
-        <div class="dfr-route-row bscolor3 fcolor2">
-          <span class="dfr-field-label">${t('fleet.dataStatus')}</span>
-          <strong id="dfr-map-summary" class="dfr-route">${t('fleet.loading')}</strong>
-        </div>
+        <details class="dfr-route-row bscolor3 fcolor2">
+          <summary>
+            <span class="dfr-route-summary-copy">
+              <span class="dfr-field-label">${t('fleet.dataStatus')}</span>
+              <strong id="dfr-map-summary" class="dfr-route">${t('fleet.loading')}</strong>
+            </span>
+          </summary>
+          <ol id="dfr-map-sources" class="dfr-source-list"></ol>
+        </details>
         <div class="dfr-action-row">
-          <label class="dfr-check">
-            <input id="dfr-preserve-fleet" type="checkbox">
-            ${t('fleet.keepEquipment')}
-          </label>
           <button id="dfr-generate" class="dfr-button" type="button" disabled>
             <span>${t('fleet.generate')}</span>
           </button>

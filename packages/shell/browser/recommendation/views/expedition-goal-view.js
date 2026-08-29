@@ -1,3 +1,13 @@
+export const movePriorityResourceOrder = (order, resourceKey, targetIndex) => {
+  const uniqueOrder = order.filter((key, index) => order.indexOf(key) === index)
+  const currentIndex = uniqueOrder.indexOf(resourceKey)
+  if (currentIndex < 0) return uniqueOrder
+  const nextOrder = uniqueOrder.filter((key) => key !== resourceKey)
+  const boundedIndex = Math.max(0, Math.min(targetIndex, nextOrder.length))
+  nextOrder.splice(boundedIndex, 0, resourceKey)
+  return nextOrder
+}
+
 export const styles = `
   .dep-root { width: 680px; margin: 0 0 24px; font-size: 13px; line-height: 1.5; }
   .dep-root *, .dep-root *::before, .dep-root *::after { box-sizing: border-box; }
@@ -39,11 +49,14 @@ export const styles = `
   .dep-candidate small { color: #888; font: 10px monospace; text-align: right; }
   .dep-settings-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(220px, 1fr); gap: 8px; margin-top: 8px; }
   .dep-setting-panel { padding: 10px 12px; }
-  .dep-weight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
-  .dep-weight { display: grid; grid-template-columns: 42px minmax(0, 1fr) 28px; align-items: center; gap: 5px; }
-  .dep-weight span { font-size: 12px; font-weight: bold; }
-  .dep-weight output { font: bold 13px monospace; text-align: right; }
-  .dep-weight input { width: 100%; min-width: 0; }
+  .dep-priority-list { display: grid; gap: 6px; }
+  .dep-priority-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) 94px 98px 54px; align-items: center; gap: 6px; min-height: 30px; }
+  .dep-priority-rank { color: var(--dep-resource); font: bold 13px monospace; text-align: center; }
+  .dep-priority-name { min-width: 0; font-size: 12px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dep-priority-select, .dep-mode-select { width: 100%; min-width: 0; height: 28px; color: inherit; font-size: 12px; }
+  .dep-priority-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+  .dep-priority-move { min-width: 0; min-height: 26px; padding: 0; border: 1px solid rgba(128,128,128,.45); background: transparent; color: inherit; cursor: pointer; font-size: 12px; line-height: 1; }
+  .dep-priority-move:disabled { cursor: not-allowed; opacity: .35; }
   .dep-schedule { display: grid; grid-template-columns: 1fr; gap: 9px; }
   .dep-time-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .dep-time-inputs label { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; font-size: 11px; }
@@ -136,7 +149,7 @@ export const styles = `
     .dep-root { width: 100%; }
     .dep-candidate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .dep-settings-grid { grid-template-columns: 1fr; }
-    .dep-weight-grid { grid-template-columns: 1fr; }
+    .dep-priority-row { grid-template-columns: 36px minmax(0, 1fr) 88px 92px 52px; }
     .dep-resources { grid-template-columns: repeat(2, 1fr); }
     .dep-success-panel { grid-template-columns: minmax(0, 1fr); }
     .dep-dispatch-steps { grid-template-columns: 1fr; }
@@ -149,6 +162,22 @@ export const styles = `
     .dep-button-primary.is-loading::before { border-right-color: currentColor; animation: none; opacity: .55; }
   }
 `
+
+const priorityOptionsMarkup = (t, selectedRank) =>
+  [1, 2, 3, 4, 5]
+    .map(
+      (rank) =>
+        `<option value="${rank}"${rank === selectedRank ? ' selected' : ''}>${t(`expedition.priorityRank${rank}`)}</option>`,
+    )
+    .join('')
+
+const modeOptionsMarkup = (t, selectedMode) =>
+  ['optimize', 'constraint', 'ignore']
+    .map(
+      (mode) =>
+        `<option value="${mode}"${mode === selectedMode ? ' selected' : ''}>${t(`expedition.preferenceMode.${mode}`)}</option>`,
+    )
+    .join('')
 
 export const plannerMarkup = (t, resources, weightResources, expeditionGroups) => `
   <section class="dep-root" aria-label="${t('expedition.title')}">
@@ -210,24 +239,28 @@ export const plannerMarkup = (t, resources, weightResources, expeditionGroups) =
     </details>
     <div class="dep-settings-grid">
       <section class="dep-setting-panel page_panel bscolor4 fcolor2" aria-labelledby="dep-weight-title">
-        <div class="dep-section-head"><div><h3 id="dep-weight-title">${t('expedition.resourceWeights')}</h3><p>${t('expedition.weightHint')}</p></div></div>
-        <div class="dep-weight-grid">
+        <div class="dep-section-head"><div><h3 id="dep-weight-title">${t('expedition.resourceWeights')}</h3><p title="${t('expedition.weightTooltip')}">${t('expedition.weightHint')}</p></div></div>
+        <div class="dep-priority-list" data-priority-list>
           ${weightResources
             .map(
-              (resource) => `
-                <label class="dep-weight" style="--dep-resource:${resource.color}">
-                  <span>${t(`common.${resource.key}`)}</span>
-                  <input data-resource-weight="${resource.key}" min="-5" max="20" step="1" type="range" value="5">
-                  <output data-resource-weight-value="${resource.key}">5</output>
-                </label>
+              (resource, index) => `
+                <div class="dep-priority-row" data-priority-resource="${resource.key}" style="--dep-resource:${resource.color}">
+                  <span class="dep-priority-rank" data-priority-rank="${resource.key}">${index + 1}</span>
+                  <span class="dep-priority-name">${t(`common.${resource.key}`)}</span>
+                  <select class="dep-mode-select" data-resource-mode="${resource.key}" aria-label="${t('expedition.resourceModeFor', { resource: t(`common.${resource.key}`) })}">
+                    ${modeOptionsMarkup(t, 'optimize')}
+                  </select>
+                  <select class="dep-priority-select" data-resource-priority="${resource.key}" aria-label="${t('expedition.resourcePriorityFor', { resource: t(`common.${resource.key}`) })}">
+                    ${priorityOptionsMarkup(t, index + 1)}
+                  </select>
+                  <span class="dep-priority-moves">
+                    <button class="dep-priority-move" data-priority-move="up" data-priority-key="${resource.key}" type="button" title="${t('expedition.priorityMoveUp')}">▲</button>
+                    <button class="dep-priority-move" data-priority-move="down" data-priority-key="${resource.key}" type="button" title="${t('expedition.priorityMoveDown')}">▼</button>
+                  </span>
+                </div>
               `,
             )
             .join('')}
-          <label class="dep-weight" style="--dep-resource:#3b9d91">
-            <span>${t('common.bucket')}</span>
-            <input id="dep-bucket-weight" min="-5" max="20" step="1" type="range" value="5">
-            <output id="dep-bucket-weight-value">5</output>
-          </label>
         </div>
       </section>
       <section class="dep-setting-panel page_panel bscolor4 fcolor2" aria-labelledby="dep-schedule-title">

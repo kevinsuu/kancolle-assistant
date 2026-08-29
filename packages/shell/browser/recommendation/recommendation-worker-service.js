@@ -54,8 +54,9 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
     return nextWorker
   }
 
-  const run = (operation, input) =>
+  const run = (operation, input, options = {}) =>
     new Promise((resolve, reject) => {
+      const operationTimeoutMs = options.timeoutMs ?? requestTimeoutMs
       const requestId = nextRequestId
       nextRequestId += 1
       let targetWorker
@@ -66,10 +67,10 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
         return
       }
       const timer = setTimeout(() => {
-        const error = new Error(`Recommendation worker timed out after ${requestTimeoutMs}ms`)
-        logger('recommendation.worker-timeout', { requestId, timeoutMs: requestTimeoutMs })
+        const error = new Error(`Recommendation worker timed out after ${operationTimeoutMs}ms`)
+        logger('recommendation.worker-timeout', { requestId, timeoutMs: operationTimeoutMs })
         discardWorker(error, targetWorker)
-      }, requestTimeoutMs)
+      }, operationTimeoutMs)
       pending.set(requestId, { resolve, reject, timer })
       try {
         targetWorker.postMessage({ type: 'recommendation:run', id: requestId, operation, input })
@@ -83,11 +84,8 @@ export const createRecommendationWorkerService = ({ createWorker, logger, timeou
     if (worker) discardWorker(new Error('Recommendation worker service disposed'), worker)
   }
 
-  const recommendFleet = (input) => run('fleet', input)
+  const recommendFleet = (input, options) => run('fleet', input, options)
   return {
-    warmUp: () => {
-      getWorker()
-    },
     recommend: recommendFleet,
     recommendFleet,
     planExpeditions: (input) => run('expedition', input),

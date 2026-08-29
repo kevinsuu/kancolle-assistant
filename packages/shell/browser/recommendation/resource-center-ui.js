@@ -7,6 +7,7 @@ import { panelMarkup, styles } from './views/resource-center-view'
 let { locale, t, translateMessage } = createStrategyRoomI18n()
 
 const resources = RESOURCE_CENTER_RESOURCES
+const granularityLabel = (key) => t(`resource.granularity.${key || 'hourly'}`)
 
 const resourceLabel = (resource, short = false) =>
   t(`common.${resource.key === 'bucket' && !short ? 'bucketFull' : resource.key}`)
@@ -64,7 +65,7 @@ const flowChart = (data, resource) => {
     ...hours.flatMap((hour) => [hour.gained?.[resource.key] || 0, hour.spent?.[resource.key] || 0]),
   )
   const step = hours.length > 0 ? plotWidth / hours.length : plotWidth
-  const barWidth = Math.max(2, Math.min(9, step * 0.3))
+  const barWidth = Math.max(0.5, Math.min(9, step * 0.55))
   const labelEvery = Math.max(1, Math.ceil(hours.length / 6))
   const grid = [0.5, 1]
     .map((ratio) => {
@@ -85,8 +86,8 @@ const flowChart = (data, resource) => {
           : ''
       return `
         <g>
-          <rect class="drc-chart-gain" x="${center - barWidth - 1}" y="${baseline - gainedHeight}" width="${barWidth}" height="${Math.max(gained > 0 ? 1 : 0, gainedHeight)}" rx="1"><title>${t('resource.hourGain', { hour: escapeHtml(hour.label), value: formatNumber(gained) })}</title></rect>
-          <rect class="drc-chart-spend" x="${center + 1}" y="${baseline}" width="${barWidth}" height="${Math.max(spent > 0 ? 1 : 0, spentHeight)}" rx="1"><title>${t('resource.hourSpend', { hour: escapeHtml(hour.label), value: formatNumber(spent) })}</title></rect>
+          <rect class="drc-chart-gain" x="${center - barWidth / 2}" y="${baseline - gainedHeight}" width="${barWidth}" height="${Math.max(gained > 0 ? 1 : 0, gainedHeight)}" rx="1"><title>${t('resource.bucketGain', { time: escapeHtml(hour.label), value: formatNumber(gained) })}</title></rect>
+          <rect class="drc-chart-spend" x="${center - barWidth / 2}" y="${baseline}" width="${barWidth}" height="${Math.max(spent > 0 ? 1 : 0, spentHeight)}" rx="1"><title>${t('resource.bucketSpend', { time: escapeHtml(hour.label), value: formatNumber(spent) })}</title></rect>
           ${label}
         </g>
       `
@@ -98,7 +99,7 @@ const flowChart = (data, resource) => {
     ? `<text class="drc-chart-empty" x="${left + plotWidth / 2}" y="${baseline + 4}">${t('resource.noFlow', { resource: escapeHtml(resourceLabel(resource)) })}</text>`
     : ''
   return `
-    <svg class="drc-flow-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${t('resource.hourlyChart', { resource: escapeHtml(resourceLabel(resource)) })}">
+    <svg class="drc-flow-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${t('resource.flowChart', { resource: escapeHtml(resourceLabel(resource)), granularity: granularityLabel(data.granularity?.key) })}">
       ${grid}
       <line class="drc-chart-zero" x1="${left}" y1="${baseline}" x2="${width - right}" y2="${baseline}"></line>
       <text class="drc-chart-zero-label" x="2" y="${baseline - halfHeight + 3}">+${formatNumber(maximum)}</text>
@@ -195,6 +196,7 @@ const render = (root, data, selectedResource) => {
   status.classList.remove('error')
   status.textContent = t('resource.status', {
     range: t(`common.${data.range.key}`),
+    granularity: granularityLabel(data.granularity?.key),
     count: formatNumber(data.entryCount),
     updated: formatTime(data.generatedAt),
     timezone: t('common.jst'),
@@ -210,7 +212,7 @@ const render = (root, data, selectedResource) => {
     </section>
     <section class="drc-chart-panel bscolor3 fcolor2" style="--drc-accent:${selected.color}" aria-labelledby="drc-chart-title">
       <div class="drc-section-head">
-        <h2 id="drc-chart-title">${t('resource.hourlyFlow', { resource: resourceLabel(selected) })}</h2>
+        <h2 id="drc-chart-title">${t('resource.flowTitle', { resource: resourceLabel(selected), granularity: granularityLabel(data.granularity?.key) })}</h2>
         <div class="drc-chart-legend"><span><i style="background:${selected.color}"></i>${t('common.gained')} ${formatNumber(selectedValues.gained)}</span><span><i style="background:var(--drc-spend)"></i>${t('common.spent')} ${formatNumber(selectedValues.spent)}</span><strong>${t('common.net')} ${formatSigned(selectedValues.net)}</strong></div>
       </div>
       ${flowChart(data, selected)}
@@ -248,6 +250,7 @@ const mountPanel = (invoke) => {
   const root = contentHtml.querySelector('.drc-root')
   const refresh = root.querySelector('.drc-refresh')
   let range = 'today'
+  let granularity = 'hourly'
   let selectedResource = 'fuel'
   let data = null
   let loadSequence = 0
@@ -267,7 +270,7 @@ const mountPanel = (invoke) => {
     })
   }
 
-  const load = async () => {
+  const load = async ({ forceRefresh = false } = {}) => {
     const sequence = ++loadSequence
     refresh.disabled = true
     refresh.textContent = t('common.refreshing')
@@ -275,7 +278,11 @@ const mountPanel = (invoke) => {
     root.querySelector('.drc-output').innerHTML =
       `<div class="drc-loading bscolor3 fcolor2"><strong>${t('resource.organizing')}</strong><span>${t('resource.organizingDetail')}</span></div>`
     try {
-      const result = await invoke(RESOURCE_LEDGER_SUMMARY_CHANNEL, { range })
+      const result = await invoke(RESOURCE_LEDGER_SUMMARY_CHANNEL, {
+        range,
+        granularity,
+        forceRefresh,
+      })
       if (sequence !== loadSequence) return
       data = result
     } catch {
@@ -299,7 +306,16 @@ const mountPanel = (invoke) => {
       void load()
     })
   })
-  refresh.addEventListener('click', () => void load())
+  root.querySelectorAll('[data-granularity]').forEach((button) => {
+    button.addEventListener('click', () => {
+      granularity = button.dataset.granularity
+      root.querySelectorAll('[data-granularity]').forEach((item) => {
+        item.setAttribute('aria-pressed', String(item === button))
+      })
+      void load()
+    })
+  })
+  refresh.addEventListener('click', () => void load({ forceRefresh: true }))
   void load()
 }
 

@@ -22,6 +22,7 @@ const languageAliases = {
 const catalogs = { en, tcn: { ...en, ...tcn }, scn: { ...en, ...scn }, jp: { ...en, ...jp } }
 
 const readConfiguredLanguage = () => {
+  if (typeof window === 'undefined') return DEFAULT_LANGUAGE
   try {
     const key = window.ConfigManager?.keyName?.() || 'config'
     const stored = JSON.parse(window.localStorage.getItem(key) || '{}')
@@ -29,7 +30,9 @@ const readConfiguredLanguage = () => {
   } catch {
     // Fall through to KC3's in-memory configuration and document locale.
   }
-  return window.ConfigManager?.language || document.documentElement?.lang || DEFAULT_LANGUAGE
+  const documentLanguage =
+    typeof document === 'undefined' ? undefined : document.documentElement?.lang
+  return window.ConfigManager?.language || documentLanguage || DEFAULT_LANGUAGE
 }
 
 export const getStrategyRoomLanguage = () => {
@@ -39,7 +42,7 @@ export const getStrategyRoomLanguage = () => {
 
 export const getStrategyRoomLocale = () => {
   const configured = String(readConfiguredLanguage())
-  if (typeof window.KC3Translation?.getLocale === 'function') {
+  if (typeof window !== 'undefined' && typeof window.KC3Translation?.getLocale === 'function') {
     return window.KC3Translation.getLocale(configured)
   }
   return { en: 'en', tcn: 'zh-Hant', scn: 'zh-Hans-CN', jp: 'ja' }[getStrategyRoomLanguage()]

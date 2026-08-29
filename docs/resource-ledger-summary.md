@@ -4,8 +4,8 @@ The integration keeps KC3Kai's existing **Resource History**, **Consumables**, a
 Ledger** pages intact. It adds two read-only views without modifying the downloaded KC3 extension:
 
 - **Resource Center** is a dedicated Strategy Room dashboard placed before Resource History. It
-  combines current holdings, separated acquisition and consumption, hourly activity, inventory
-  sparklines, and categorized sources.
+  combines current holdings, separated acquisition and consumption, selectable activity intervals,
+  inventory sparklines, and categorized sources.
 - **Ledger Summary** remains embedded above KC3's Resource History chart as a compact alternative.
 
 Resource Center covers fuel, ammunition, steel, bauxite, instant construction, instant repair,
@@ -20,10 +20,10 @@ KC3's language.
 
 ## Dashboard behavior
 
-The main hourly chart uses a fixed zero line. Gross acquisition rises above the line and gross
+The main flow chart uses a fixed zero line. Gross acquisition rises above the line and gross
 consumption falls below it, so simultaneous acquisition and consumption remain visible instead of
 cancelling each other. Selecting any resource or consumable updates both this chart and the source
-breakdown.
+breakdown. The chart can be bucketed by 1 minute, 5 minutes, 30 minutes, or 1 hour.
 
 Source rows group KC3 ledger types into sortie, PvP, expedition, quest, repair, arsenal, disposal,
 land-base, natural-recovery, item-use, and other categories. Each row uses a diverging bar with
@@ -39,20 +39,26 @@ Resources Ledger pages for long-range graphs and advanced filtering.
 
 ## Period and metric options
 
-The summary offers three fixed periods, all evaluated in Japan Standard Time:
+Resource Center offers three fixed periods, all evaluated in Japan Standard Time:
 
 - **Today**: midnight JST through the current hour;
 - **Yesterday**: the previous JST calendar day;
-- **Last 24 hours**: the current partial hour and the preceding 23 hourly buckets.
+- **Last 24 hours**: the current partial hour and the preceding 23 hours.
+
+Resource Center can display the selected period as **1 minute**, **5 minute**, **30 minute**, or
+**1 hour** chart buckets. The default remains **1 hour** so existing behavior and screenshots stay
+familiar. When KC3 records include exact timestamps, entries are assigned to the matching minute
+bucket. Older or incomplete records that only have KC3's `hour` field are placed at the start of
+that hour rather than inventing a more precise time.
 
 Each period can display gross consumption, gross acquisition, or net change. Gross consumption is
 the absolute sum of negative ledger values, gross acquisition is the sum of positive values, and
 net change is their signed sum. Gains and spending therefore do not cancel each other until net
 change is selected.
 
-Each compact summary card also shows the latest KC3-held amount and an hourly activity strip. KC3's
-ledger stores timestamps as whole UTC hours, so neither view implies minute-level precision.
-Existing history cannot be reconstructed at five-minute granularity.
+Each compact summary card also shows the latest KC3-held amount and an hourly activity strip. The
+embedded Ledger Summary remains hourly; the finer 1-, 5-, and 30-minute buckets are available in
+Resource Center.
 
 ## Data source and limitations
 
@@ -62,10 +68,11 @@ land-base operations, and natural regeneration. Instant-repair bucket use is the
 the ledger's eight-value material array.
 
 Both Resource Center and the embedded Ledger Summary reload `PlayerManager.hq` and KC3's
-consumable state before every request. Their **Refresh** buttons therefore re-read the current
-account and latest locally synchronized holdings instead of reusing the Strategy Room's in-memory
-player snapshot. The displayed values can still only be as current as the latest game API update
-that KC3 has received and saved.
+consumable state when reading a fresh snapshot. Recent snapshots for the same Strategy Room time
+window are reused briefly so switching chart granularity does not repeat the same IndexedDB reads.
+Their **Refresh** buttons bypass this short cache and re-read the current account and latest
+locally synchronized holdings. The displayed values can still only be as current as the latest game
+API update that KC3 has received and saved.
 
 The summary is only as complete as the KC3 ledger. Activity performed while KC3 was not recording,
 or an API action KC3 does not classify, cannot be recovered by KanColle Assistant. Current holdings
@@ -81,6 +88,7 @@ fixed IPC command:
 recommendation:resource-ledger-summary
 ```
 
-The main process accepts only `today`, `yesterday`, or `rolling24` and only from the currently loaded
-KC3 Strategy Room origin. It executes a fixed reader in the KC3 page context; arbitrary script,
-table, player, and date-range input are not accepted.
+The main process accepts only `today`, `yesterday`, or `rolling24`, plus the whitelisted chart
+granularities `minute`, `fiveMinute`, `thirtyMinute`, and `hourly`, and only from the currently
+loaded KC3 Strategy Room origin. It executes a fixed reader in the KC3 page context; arbitrary
+script, table, player, and date-range input are not accepted.
