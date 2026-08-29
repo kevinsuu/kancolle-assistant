@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-29:
 7-1 .. 7-5
 ```
 
-It normalizes 158 canonical strategy templates with explicit source references. A canonical
+It normalizes 162 canonical strategy templates with explicit source references. A canonical
 template represents a different routing condition, phase, or gameplay objective; swapping one ship
 for another of the same accepted type does not create another template. Unsourced resource,
 leveling, or broad heuristic templates are omitted until a direct guide or map reference is added.
@@ -53,14 +53,17 @@ does not override a newer routing rule by itself. Every reviewed community varia
 URL in route metadata. NGA pages that cannot be fetched are not marked as directly verified; their
 tables must be supplied or corroborated by another accessible source before being normalized.
 
-The selectable routes prefixed with `巴哈姆特・行飛` are the 30 non-duplicate fleet skeletons
+The selectable routes prefixed with `巴哈姆特・行飛` are the 34 non-duplicate fleet skeletons
 reviewed from 行飛's illustrated normal-map guide. Existing catalog compositions with the same
 fleet shape were deliberately retained without a second copy. The imported variants cover 1-4
 through 6-5; the supplied article only points elsewhere for 5-6 and World 7, so no unsupported
 configuration was inferred for those maps. Each variant is stored directly in its map's existing
 `verified-boss-fleets` or `strategy-overlays` JSON and carries its own article URL, keeping map
 maintenance local without attributing the community source to unrelated routes. Image-specific
-sortie requirements remain explicit:
+sortie requirements remain explicit: the 3-3 北方海域警備 variant preserves its required light
+cruiser instead of merging it into the generic two-cruiser route; the 3-4 carrier sweep and 3-5
+Hayasui fleet preserve their pictured ship-type counts; the 5-3 Mikawa variant requires four
+eligible quest ships instead of relying on a matching cruiser silhouette;
 the 3-2 速吸 fleet requires manual Fastest-speed and four-radar confirmation, while anti-installation
 and LBAS routes keep manual setup warnings whenever the solver cannot fully validate the pictured
 loadout.

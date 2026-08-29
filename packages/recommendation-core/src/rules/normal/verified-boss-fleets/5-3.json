@@ -41,6 +41,51 @@
           "recommended": 71
         }
       ]
+    },
+    {
+      "id": "5-3-bahamut-mikawa-quarterly",
+      "name": "巴哈姆特・行飛・季任三川",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["D", "G", "I", "O", "K", "E", "Q"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "night-battle", "quest-friendly"],
+      "desc": "航巡2、重巡3、軽巡1。鳥海・青葉・衣笠・加古・古鷹・天龍・夕張から4隻を含む季任三川向け。D-G-I-O-K-E-Q、ボス航空優勢71+、確保141+。",
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["鳥海", "青葉", "衣笠", "加古", "古鷹", "天龍", "夕張"],
+          "count": 4
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 71,
+          "recommended": 141
+        }
+      ]
     }
   ]
 }

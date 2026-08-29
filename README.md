@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.8`    | `2026-08-29`   |
+| `v1.0.9`    | `2026-08-29`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,14 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.9 highlights (since v1.0.8)
+
+- Normal-map recommendations correct four Bahamut variants that were previously mistaken for
+  duplicates: the 3-3 Northern Security light-cruiser fleet, 3-4 fast carrier sweep, 3-5
+  Hayasui/Yamashio Maru fleet with its current random start, and 5-3 quarterly Mikawa fleet with
+  four required quest ships. The reviewed catalog now contains 162 templates, including 34
+  directly sourced Bahamut variants.
 
 ### v1.0.8 highlights (since v1.0.7)
 
@@ -74,13 +82,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Automatic Top 3 now falls back to calculable warning-bearing routes when a map has no completely
   validated alternative, so maps such as 7-4 no longer require manual route selection merely to
   generate a fleet.
-- KC3's Daily Improvements page now starts with its native improvable-equipment filter enabled;
-  the user can still toggle the complete list back on.
-
-### v1.0.4 highlights (since v1.0.3)
-
-- Automatic 4-5 recommendations now reserve three unique owned Type 3 Shell-family items on
-  compatible ships and explain when the account cannot satisfy that setup.
 - KC3's Daily Improvements page now starts with its native improvable-equipment filter enabled;
   the user can still toggle the complete list back on.
 

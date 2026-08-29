@@ -455,7 +455,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 158)
+  assert.equal(NORMAL_MAP_ROUTES.length, 162)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -610,6 +610,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       '3-5-kcwiki-lower-yubari-clt',
       '3-5-kcwiki-lower-opening-torpedo-six',
       '3-5-kcwiki-lower-hayasui',
+      '3-5-bahamut-hayasui-av3-cl-dd',
       '3-5-kcwiki-lower-hayasui-yamashio',
       '3-5-kcwiki-lower-yamashio-av3',
     ],
@@ -1257,13 +1258,14 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
     )
   const verifiedRawRoutes = rawRoutesFrom(verifiedBossFleetCatalog)
   const overlayRawRoutes = rawRoutesFrom(strategyOverlayCatalog)
-  assert.equal(verifiedRawRoutes.length, 24)
+  assert.equal(verifiedRawRoutes.length, 27)
   assert.ok(verifiedRawRoutes.every(({ route }) => route.category === 'boss'))
   assert.deepEqual(
     overlayRawRoutes.map(({ route }) => route.id),
     [
       '2-4-bahamut-submarine-bucket',
       '2-5-bahamut-water-counterattack',
+      '3-5-bahamut-hayasui-av3-cl-dd',
       '4-3-bahamut-av3-resource',
       '4-5-bahamut-fast-plus-cv4-cav2',
       '5-5-bahamut-cv4-cav-cl',
@@ -1294,7 +1296,10 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
       '2-5-bahamut-water-counterattack',
       '3-1-bahamut-bbv-cv-cav-cl-dd2',
       '3-2-bahamut-hayasui-fastest',
+      '3-3-bahamut-bbv-cv-cav-cl-dd2',
+      '3-4-bahamut-cv-cvl3-av-dd',
       '3-4-bahamut-light-fleet',
+      '3-5-bahamut-hayasui-av3-cl-dd',
       '4-1-bahamut-bbv-cav-cl2-dd2',
       '4-2-bahamut-cv2-cl-dd3',
       '4-3-bahamut-bbv2-cl-dd3',
@@ -1304,6 +1309,7 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
       '5-1-bahamut-water-strike-quest',
       '5-1-bahamut-mikawa-sixth',
       '5-2-bahamut-bbv2-cv2-cav-cl',
+      '5-3-bahamut-mikawa-quarterly',
       '5-4-bahamut-31st-sixth',
       '5-4-bahamut-31st-mikawa',
       '5-5-bahamut-cv4-cav-cl',
@@ -1325,6 +1331,107 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
   assert.equal(isAutomaticRouteReady(fastest32), false)
   assert.ok(fastest32.tags.includes('fastest-radar-setup'))
   assert.match(fastest32.description, /最速.*電探4隻/)
+
+  const northernSecurity33 = getRouteTemplates(
+    '3-3',
+    'balanced',
+    '3-3-bahamut-bbv-cv-cav-cl-dd2',
+  )[0]
+  assert.deepEqual(northernSecurity33.nodes, ['A', 'C', 'G', 'M'])
+  assert.deepEqual(
+    northernSecurity33.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[10], 1],
+      [[11, 18], 1],
+      [[6], 1],
+      [[3], 1],
+      [[2], 2],
+    ],
+  )
+  assert.deepEqual(
+    northernSecurity33.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 78, recommended: 156 },
+  )
+  assert.equal(isAutomaticRouteReady(northernSecurity33), true)
+
+  const carrierSweep34 = getRouteTemplates('3-4', 'balanced', '3-4-bahamut-cv-cvl3-av-dd')[0]
+  assert.deepEqual(carrierSweep34.nodes, ['A', 'C', 'E', 'G', 'J', 'P'])
+  assert.ok(carrierSweep34.tags.includes('fast'))
+  assert.deepEqual(
+    carrierSweep34.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[11, 18], 1],
+      [[7], 3],
+      [[16], 1],
+      [[2], 1],
+    ],
+  )
+  assert.deepEqual(
+    carrierSweep34.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 84, recommended: 168 },
+  )
+  assert.equal(isAutomaticRouteReady(carrierSweep34), true)
+
+  const hayasui35 = getRouteTemplates('3-5', 'balanced', '3-5-bahamut-hayasui-av3-cl-dd')[0]
+  assert.deepEqual(hayasui35.nodes, ['F-G-K / B-C-F-G-K'])
+  assert.deepEqual(
+    hayasui35.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[22], 1],
+      [[16], 3],
+      [[3], 1],
+      [[2], 1],
+    ],
+  )
+  assert.deepEqual(
+    hayasui35.fleetConstraints.find((constraint) => constraint.kind === 'specific-ship-name'),
+    {
+      kind: 'specific-ship-name',
+      names: ['速吸', '速吸改', 'Hayasui', 'Hayasui Kai', '山汐丸', 'Yamashio Maru'],
+      min: 1,
+    },
+  )
+  assert.deepEqual(
+    hayasui35.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 35, recommended: 69 },
+  )
+  assert.deepEqual(
+    hayasui35.calculatedConstraints.find((constraint) => constraint.kind === 'los'),
+    { kind: 'los', formula: '33', coefficient: 4, minimum: 28 },
+  )
+  assert.equal(isAutomaticRouteReady(hayasui35), false)
+
+  const mikawa53 = getRouteTemplates('5-3', 'balanced', '5-3-bahamut-mikawa-quarterly')[0]
+  assert.deepEqual(mikawa53.nodes, ['D', 'G', 'I', 'O', 'K', 'E', 'Q'])
+  assert.deepEqual(
+    mikawa53.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[6], 2],
+      [[5], 3],
+      [[3], 1],
+    ],
+  )
+  assert.deepEqual(
+    mikawa53.fleetConstraints.find((constraint) => constraint.kind === 'specific-ship-name'),
+    {
+      kind: 'specific-ship-name',
+      names: ['鳥海', '青葉', '衣笠', '加古', '古鷹', '天龍', '夕張'],
+      min: 4,
+    },
+  )
+  assert.deepEqual(
+    mikawa53.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 71, recommended: 141 },
+  )
+  assert.equal(isAutomaticRouteReady(mikawa53), true)
 
   const antiInstallation43 = getRouteTemplates('4-3', 'balanced', '4-3-bahamut-bbv2-cl-dd3')[0]
   assert.equal(isAutomaticRouteReady(antiInstallation43), false)
