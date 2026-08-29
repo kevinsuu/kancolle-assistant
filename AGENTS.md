@@ -19,3 +19,21 @@
   README files.
 - Before creating a tag, follow `docs/releasing.md`. The tag must be `v` followed by the exact app
   version.
+
+## Development diagnostics
+
+- Add focused structured logs for new or changed runtime behavior at input boundaries, important
+  decisions, external integration boundaries, and failure paths so production issues can be
+  diagnosed without reproducing them locally.
+- Log the identifiers, counts, thresholds, selected branch, outcome, and elapsed time needed to
+  explain a decision. For recommendation failures, include the map, route, objective, relevant
+  candidate counts, best observed metric, required minimum, and stable reason codes.
+- Never silently swallow an exception that changes behavior. When fallback is intentional, log the
+  operation, affected entity or aggregate count, fallback result, and sanitized error message.
+- Do not log credentials, cookies, tokens, full account snapshots, or other unnecessarily sensitive
+  player data. Prefer stable IDs and aggregate counts; include names or detailed payload fragments
+  only when they are essential and safe for diagnosis.
+- Keep diagnostics bounded: avoid per-candidate logs inside large solver loops. Aggregate repeated
+  failures and emit one summary per request or phase.
+- Add or update focused tests that assert diagnostically important events and fields for both the
+  success and failure paths of changed runtime behavior.
