@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-29:
 7-1 .. 7-5
 ```
 
-It normalizes 108 canonical strategy templates with explicit source references. A canonical
+It normalizes 158 canonical strategy templates with explicit source references. A canonical
 template represents a different routing condition, phase, or gameplay objective; swapping one ship
 for another of the same accepted type does not create another template. Unsourced resource,
 leveling, or broad heuristic templates are omitted until a direct guide or map reference is added.
@@ -42,6 +42,7 @@ The overlay catalog cross-checks current map and farming guidance from:
 - <https://wikiwiki.jp/kancolle/>
 - <https://zh.kcwiki.cn/>
 - <https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238>
+- <https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259>
 - <https://yuikancolle.blog.fc2.com/>
 - <https://zekamashi.net/category/kancolle-kouryaku/sigenkasegi/>
 - <https://kankorekore.2-d.jp/5-6_2nd/>
@@ -51,6 +52,18 @@ guides from 艦娘百科, Bahamut, and NGA are useful for practical fleet varian
 does not override a newer routing rule by itself. Every reviewed community variant keeps its page
 URL in route metadata. NGA pages that cannot be fetched are not marked as directly verified; their
 tables must be supplied or corroborated by another accessible source before being normalized.
+
+The selectable routes prefixed with `巴哈姆特・行飛` are the 30 non-duplicate fleet skeletons
+reviewed from 行飛's illustrated normal-map guide. Existing catalog compositions with the same
+fleet shape were deliberately retained without a second copy. The imported variants cover 1-4
+through 6-5; the supplied article only points elsewhere for 5-6 and World 7, so no unsupported
+configuration was inferred for those maps. Each variant is stored directly in its map's existing
+`verified-boss-fleets` or `strategy-overlays` JSON and carries its own article URL, keeping map
+maintenance local without attributing the community source to unrelated routes. Image-specific
+sortie requirements remain explicit:
+the 3-2 速吸 fleet requires manual Fastest-speed and four-radar confirmation, while anti-installation
+and LBAS routes keep manual setup warnings whenever the solver cannot fully validate the pictured
+loadout.
 
 5-6 was added after the base dataset. Its three phases are curated separately and marked
 `experimental` because routing and preferred compositions are still being refined by the
@@ -115,6 +128,13 @@ beginner upper image is fixed to three regular/armored carriers and three aviati
 KCWiki/Yui upper carrier route remains three regular/armored carriers, one CA/CAV, and two SS/SSV,
 with air power 420 and Cn4 LoS 40 as hard gates; the former rule that allowed one battleship plus
 two carriers was removed.
+
+4-1 keeps the existing guide-primary fleet and adds the two 艦娘百科 compositions as selectable
+alternatives. `KCWiki・常規配置` uses one regular/armored carrier, two aviation cruisers, one
+light cruiser, and two destroyers on A-B-D-H-J / C-F-D-H-J. `KCWiki・常規配置改` uses one
+regular carrier, one battleship-class ship, one heavy/aviation cruiser, one torpedo cruiser, and
+two destroyers on A-B-D-G-J / C-F-D-G-J to avoid the H-node flagship Ri-class ships. Both check
+the sourced J-node air-control line of 36 for air superiority and 72 for air supremacy.
 
 4-2 keeps the two 艦娘百科 guide fleets as separate Strategy Room options. The regular route uses
 two carriers, one torpedo cruiser, one light cruiser, and two destroyers on

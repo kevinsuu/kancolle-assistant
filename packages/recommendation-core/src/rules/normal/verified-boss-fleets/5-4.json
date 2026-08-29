@@ -46,6 +46,119 @@
           "minimum": 45
         }
       ]
+    },
+    {
+      "id": "5-4-bahamut-31st-sixth",
+      "name": "巴哈姆特・行飛・三一駆＋六水戦",
+      "category": "boss",
+      "objectives": ["boss-clear", "balanced"],
+      "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle"],
+      "desc": "航戦1、航巡1、軽巡2、駆逐2。夕張・由良と三一駆指定艦を併用するA-D-E-H-I-J-M-P、優勢140+。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["夕張"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["由良"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長波"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["高波", "沖波", "朝霜"],
+          "count": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 140,
+          "recommended": 140
+        }
+      ],
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
+    },
+    {
+      "id": "5-4-bahamut-31st-mikawa",
+      "name": "巴哈姆特・行飛・三一駆＋新三川",
+      "category": "boss",
+      "objectives": ["boss-clear", "balanced"],
+      "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle"],
+      "desc": "重巡3、軽巡1、駆逐2。新三川4隻と長波＋三一駆1隻を兼ねるA-D-E-H-I-J-M-P任務編成。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["鳥海", "青葉", "衣笠", "加古", "古鷹", "天龍", "夕張"],
+          "count": 4
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長波"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["高波", "沖波", "朝霜"],
+          "count": 1
+        }
+      ],
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
     }
   ]
 }

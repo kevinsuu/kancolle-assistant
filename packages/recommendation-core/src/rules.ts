@@ -27,6 +27,7 @@ export const EXTERNALLY_CONFIGURED_ROUTE_TAGS = [
   'rocket-barrage-required',
   'smoke-screen',
   'special-attack',
+  'fastest-radar-setup',
 ] as const
 
 const MODELED_EXTERNAL_ROUTE_TAGS: Readonly<

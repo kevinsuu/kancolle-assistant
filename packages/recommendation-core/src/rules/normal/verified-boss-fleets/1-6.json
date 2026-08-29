@@ -82,6 +82,56 @@
         { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
       ],
       "calculated": [{ "kind": "air-power", "minimum": 83, "recommended": 83 }]
+    },
+    {
+      "id": "1-6-bahamut-bbv-de",
+      "name": "巴哈姆特・行飛・強行輸送重編成",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "H", "K", "M", "J", "D", "N"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "quarterly-quest",
+        "seaplane-air-control",
+        "oasw"
+      ],
+      "desc": "航戦2、軽巡1、海防艦3。強行輸送任務の重量ルートで、J航空戦は優勢177+、海防艦3隻は先制対潜を狙う。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 177,
+          "recommended": 177
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 3
+        }
+      ],
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
     }
   ]
 }

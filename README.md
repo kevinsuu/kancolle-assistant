@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.7`    | `2026-08-29`   |
+| `v1.0.8`    | `2026-08-29`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,16 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.8 highlights (since v1.0.7)
+
+- Normal-map recommendations add 30 non-duplicate, directly sourced Bahamut guide variants from
+  1-4 through 6-5 and two reviewed 4-1 KCWiki alternatives. Per-route source attribution and
+  manual setup warnings keep older illustrated loadouts useful without weakening current routing
+  or equipment constraints, and the 3-4 carrier-leveling route now follows A-C-E-G-J-P.
+- The repository adds the project-local `kancolle-stage` skill for importing future guide URLs and
+  configuration images with duplicate checks, current map-condition validation, and explicit
+  questions whenever source material cannot be read reliably.
 
 ### v1.0.7 highlights (since v1.0.6)
 
@@ -73,18 +83,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   compatible ships and explain when the account cannot satisfy that setup.
 - KC3's Daily Improvements page now starts with its native improvable-equipment filter enabled;
   the user can still toggle the complete list back on.
-
-### v1.0.3 highlights (since v1.0.2)
-
-- Normal-map recommendations now use guide-verified fleet skeletons, limit automatic selection to
-  stable boss routes, validate opening ASW thresholds, and fill compatible expansion slots.
-- Expedition recommendations now rank adjustable resource and bucket weights, refresh KC3 resource
-  data before planning, model collection intervals, and distinguish active missions from the next
-  dispatch.
-- Shell runtime work now caches configuration reads, batches window-size persistence, manages tab
-  views safely, and isolates KCCacheProxy and extension host lifecycles.
-- Update checks also run when the game opens, while DevTools split-layout handling and packaged app
-  icons are more reliable across supported platforms.
 
 ### Project-specific highlights
 

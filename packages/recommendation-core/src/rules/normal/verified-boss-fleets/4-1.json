@@ -46,6 +46,152 @@
           "recommended": 75
         }
       ]
+    },
+    {
+      "id": "4-1-kcwiki-regular-cav",
+      "name": "KCWiki・常規配置",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A-B-D-H-J / C-F-D-H-J"],
+      "stableBoss": true,
+      "tags": ["verified-guide", "guide-alternative", "fixed-boss", "carrier-opening"],
+      "desc": "正規/装甲空母1、航巡2、軽巡1、駆逐2。始点はランダム、H経由でボス到達。J航空優勢36+（確保72+）。",
+      "sources": ["https://zh.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-1"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 36,
+          "recommended": 72
+        }
+      ]
+    },
+    {
+      "id": "4-1-kcwiki-regular-modified",
+      "name": "KCWiki・常規配置改",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A-B-D-G-J / C-F-D-G-J"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-alternative",
+        "fixed-boss",
+        "carrier-opening",
+        "avoid-flagship-ri"
+      ],
+      "desc": "正規空母1、戦艦系1、重巡/航巡1、雷巡1、駆逐2。Hの重巡リ級flagshipを避け、G経由でボス到達。J航空優勢36+（確保72+）。",
+      "sources": ["https://zh.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-1"],
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 36,
+          "recommended": 72
+        }
+      ]
+    },
+    {
+      "id": "4-1-bahamut-bbv-cav-cl2-dd2",
+      "name": "巴哈姆特・行飛・東方混成",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A-B/C-F", "D", "G", "J"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "random-routing", "seaplane-air-control", "opening-torpedo"],
+      "desc": "航戦1、航巡1、軽巡2、駆逐2。始点はA/B系に分岐しD-G-Jへ進む。ボス優勢36+、確保72+。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 36,
+          "recommended": 72
+        }
+      ],
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
     }
   ]
 }

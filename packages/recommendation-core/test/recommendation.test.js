@@ -48,6 +48,7 @@ const ZH_KCWIKI_WORLD_NAMES = {
   7: '南西海域',
 }
 const NORMAL_MAP_REFERENCE_SOURCE = 'https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238'
+const BAHAMUT_GS1314520_SOURCE = 'https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259'
 const YUIKANCOLLE_EO_GUIDE_SOURCES = {
   '2-5': 'https://yuikancolle.blog.fc2.com/blog-entry-182.html',
   '3-5': 'https://yuikancolle.blog.fc2.com/blog-entry-183.html',
@@ -454,7 +455,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 126)
+  assert.equal(NORMAL_MAP_ROUTES.length, 158)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -466,6 +467,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       '1-6-kcwiki-regular',
       '1-6-kcwiki-air-control',
       '1-6-kcwiki-quarterly',
+      '1-6-bahamut-bbv-de',
       '1-6-monthly-resource',
     ],
   )
@@ -502,22 +504,91 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.equal(quarterly16.stableBoss, false)
   assert.ok(quarterly16.tags.includes('random-routing'))
+  const routeOptions41 = maps.find((map) => map.id === '4-1').routes
+  assert.deepEqual(
+    routeOptions41.map((route) => route.id),
+    [
+      '4-1-guide-cv-ca2-cl-dd2',
+      '4-1-kcwiki-regular-cav',
+      '4-1-kcwiki-regular-modified',
+      '4-1-bahamut-bbv-cav-cl2-dd2',
+    ],
+  )
+  assert.deepEqual(
+    routeOptions41.slice(1, 3).map((route) => route.name),
+    ['KCWiki・常規配置', 'KCWiki・常規配置改'],
+  )
+  routeOptions41.slice(1, 3).forEach((route) => {
+    assert.deepEqual(route.sources, [zhKcwikiGuideSource('4-1')])
+  })
+  assert.equal(getRouteTemplates('4-1', 'balanced')[0].id, '4-1-guide-cv-ca2-cl-dd2')
+
+  const regular41 = getRouteTemplates('4-1', 'balanced', '4-1-kcwiki-regular-cav')[0]
+  assert.deepEqual(regular41.nodes, ['A-B-D-H-J / C-F-D-H-J'])
+  assert.deepEqual(
+    regular41.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[11, 18], 1],
+      [[6], 2],
+      [[3], 1],
+      [[2], 2],
+    ],
+  )
+  assert.deepEqual(
+    regular41.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 36, recommended: 72 },
+  )
+  assert.equal(isAutomaticRouteReady(regular41), true)
+
+  const modified41 = getRouteTemplates('4-1', 'balanced', '4-1-kcwiki-regular-modified')[0]
+  assert.deepEqual(modified41.nodes, ['A-B-D-G-J / C-F-D-G-J'])
+  assert.deepEqual(
+    modified41.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[11], 1],
+      [[8, 9, 10, 12], 1],
+      [[5, 6], 1],
+      [[4], 1],
+      [[2], 2],
+    ],
+  )
+  assert.deepEqual(
+    modified41.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 36, recommended: 72 },
+  )
+  assert.equal(isAutomaticRouteReady(modified41), true)
   const routeOptions42 = maps.find((map) => map.id === '4-2').routes
   assert.deepEqual(
     routeOptions42.map((route) => route.id),
-    ['4-2-guide-cv2-clt-cl-dd2', '4-2-guide-cv2-bb-cav-dd2'],
+    ['4-2-guide-cv2-clt-cl-dd2', '4-2-guide-cv2-bb-cav-dd2', '4-2-bahamut-cv2-cl-dd3'],
   )
-  routeOptions42.forEach((route) => {
+  routeOptions42.slice(0, 2).forEach((route) => {
     assert.deepEqual(route.sources, [zhKcwikiGuideSource('4-2')])
   })
   const routeOptions25 = maps.find((map) => map.id === '2-5').routes
   assert.deepEqual(
     routeOptions25.map((route) => route.id),
-    ['2-5-middle', '2-5-middle-veteran', '2-5-north', '2-5-fifth-squadron'],
+    [
+      '2-5-middle',
+      '2-5-middle-veteran',
+      '2-5-north',
+      '2-5-fifth-squadron',
+      '2-5-bahamut-water-counterattack',
+    ],
   )
   assert.deepEqual(
     routeOptions25.map((route) => route.name),
-    ['萌新中路-推圖推薦', '老提督-中路洗地流', '萌新-上路航戰流', '第五戰隊'],
+    [
+      '萌新中路-推圖推薦',
+      '老提督-中路洗地流',
+      '萌新-上路航戰流',
+      '第五戰隊',
+      '巴哈姆特・行飛・水上反撃部隊',
+    ],
   )
   assert.deepEqual(
     maps.find((map) => map.id === '3-5').routes.map((route) => route.id),
@@ -556,6 +627,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       '4-5-fast-plus-carrier',
       '4-5-cl-dd-heavy',
       '4-5-cl-dd-light',
+      '4-5-bahamut-fast-plus-cv4-cav2',
     ],
   )
   assert.deepEqual(
@@ -584,6 +656,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       '5-5-kcwiki-south-nagato-dd',
       '5-5-newbie-nagato',
       '5-5-kcwiki-bahamut-random-heavy',
+      '5-5-bahamut-cv4-cav-cl',
     ],
   )
   assert.deepEqual(
@@ -612,6 +685,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       'KCWiki｜下路長陸4DD',
       '新手長陸',
       'KCWiki + 巴哈｜上路六大船隨機',
+      '巴哈姆特・行飛・上路空母4',
     ],
   )
   assert.deepEqual(
@@ -627,7 +701,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.deepEqual(
     maps.find((map) => map.id === '6-5').routes.map((route) => route.id),
-    ['6-5-south'],
+    ['6-5-south', '6-5-bahamut-upper-carrier'],
   )
   assert.deepEqual(
     maps.find((map) => map.id === '7-5').routes.map((route) => route.id),
@@ -742,6 +816,10 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   extraOperationRoutes
     .filter((route) => route.category !== 'leveling')
     .forEach((route) => {
+      if (route.metadata.guideSources.includes(BAHAMUT_GS1314520_SOURCE)) {
+        assert.deepEqual(route.metadata.guideSources, [BAHAMUT_GS1314520_SOURCE])
+        return
+      }
       assert.ok(
         route.metadata.source.includes(X5_KCWIKI_SOURCES[route.mapId]),
         `missing kcwiki X-5 source: ${route.id}`,
@@ -751,7 +829,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   const verifiedGuideRoutes = NORMAL_MAP_ROUTES.filter((route) =>
     route.tags.includes('verified-guide'),
   )
-  assert.equal(verifiedGuideRoutes.length, 38)
+  assert.equal(verifiedGuideRoutes.length, 40)
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
     assert.ok(['2026-08-26', '2026-08-29'].includes(route.metadata.lastVerified))
@@ -1168,6 +1246,92 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     phaseThree75.calculatedConstraints.find((constraint) => constraint.kind === 'los').minimum,
     59,
   )
+})
+
+test('Bahamut illustrated guide adds only the reviewed non-duplicate configurations', () => {
+  const rawRoutesFrom = (catalog) =>
+    catalog.flatMap((map) =>
+      map.routes
+        .filter((route) => route.sources?.includes(BAHAMUT_GS1314520_SOURCE))
+        .map((route) => ({ mapId: map.area, route })),
+    )
+  const verifiedRawRoutes = rawRoutesFrom(verifiedBossFleetCatalog)
+  const overlayRawRoutes = rawRoutesFrom(strategyOverlayCatalog)
+  assert.equal(verifiedRawRoutes.length, 24)
+  assert.ok(verifiedRawRoutes.every(({ route }) => route.category === 'boss'))
+  assert.deepEqual(
+    overlayRawRoutes.map(({ route }) => route.id),
+    [
+      '2-4-bahamut-submarine-bucket',
+      '2-5-bahamut-water-counterattack',
+      '4-3-bahamut-av3-resource',
+      '4-5-bahamut-fast-plus-cv4-cav2',
+      '5-5-bahamut-cv4-cav-cl',
+      '6-5-bahamut-upper-carrier',
+    ],
+  )
+  ;[verifiedBossFleetCatalog, strategyOverlayCatalog].flat().forEach((map) => {
+    assert.equal(map.sources?.includes(BAHAMUT_GS1314520_SOURCE) ?? false, false)
+  })
+  ;[...verifiedRawRoutes, ...overlayRawRoutes].forEach(({ route }) => {
+    assert.deepEqual(route.sources, [BAHAMUT_GS1314520_SOURCE])
+  })
+
+  const routes = NORMAL_MAP_ROUTES.filter((route) =>
+    route.metadata.guideSources.includes(BAHAMUT_GS1314520_SOURCE),
+  )
+  assert.deepEqual(
+    routes.map((route) => route.id).sort(),
+    [
+      '1-4-bahamut-water-squadron',
+      '1-4-bahamut-cvl2-dd4',
+      '1-6-bahamut-bbv-de',
+      '2-1-bahamut-cvl2-av-dd3',
+      '2-1-bahamut-submarine6',
+      '2-2-bahamut-cvl2-av-dd3',
+      '2-3-bahamut-cvl2-av-dd3',
+      '2-4-bahamut-submarine-bucket',
+      '2-5-bahamut-water-counterattack',
+      '3-1-bahamut-bbv-cv-cav-cl-dd2',
+      '3-2-bahamut-hayasui-fastest',
+      '3-4-bahamut-light-fleet',
+      '4-1-bahamut-bbv-cav-cl2-dd2',
+      '4-2-bahamut-cv2-cl-dd3',
+      '4-3-bahamut-bbv2-cl-dd3',
+      '4-3-bahamut-av3-resource',
+      '4-4-bahamut-bb-cv2-cav-dd-de',
+      '4-5-bahamut-fast-plus-cv4-cav2',
+      '5-1-bahamut-water-strike-quest',
+      '5-1-bahamut-mikawa-sixth',
+      '5-2-bahamut-bbv2-cv2-cav-cl',
+      '5-4-bahamut-31st-sixth',
+      '5-4-bahamut-31st-mikawa',
+      '5-5-bahamut-cv4-cav-cl',
+      '6-1-bahamut-cv-cl-av-ss3',
+      '6-2-bahamut-bbv-cv-cav2-dd2',
+      '6-3-bahamut-av-cl2-dd3',
+      '6-4-bahamut-nagato-akitsushima',
+      '6-4-bahamut-right-carrier',
+      '6-5-bahamut-upper-carrier',
+    ].sort(),
+  )
+  routes.forEach((route) => {
+    assert.match(route.name, /^巴哈姆特・行飛・/)
+    assert.deepEqual(route.metadata.guideSources, [BAHAMUT_GS1314520_SOURCE])
+    assert.equal(route.metadata.confidence, 'community')
+  })
+
+  const fastest32 = getRouteTemplates('3-2', 'balanced', '3-2-bahamut-hayasui-fastest')[0]
+  assert.equal(isAutomaticRouteReady(fastest32), false)
+  assert.ok(fastest32.tags.includes('fastest-radar-setup'))
+  assert.match(fastest32.description, /最速.*電探4隻/)
+
+  const antiInstallation43 = getRouteTemplates('4-3', 'balanced', '4-3-bahamut-bbv2-cl-dd3')[0]
+  assert.equal(isAutomaticRouteReady(antiInstallation43), false)
+  assert.equal(antiInstallation43.tags.includes('anti-installation-modeled'), false)
+
+  const correctedLeveling34 = getRouteTemplates('3-4', 'leveling', '3-4-leveling-carrier')[0]
+  assert.deepEqual(correctedLeveling34.nodes, ['A', 'C', 'E', 'G', 'J', 'P'])
 })
 
 test('every normal map can build its primary balanced route with a capable account', () => {
@@ -1855,6 +2019,7 @@ test('4-5 KCWiki guide exposes four source-matched configurations', () => {
 test('4-5 automatic routes expose only modeled anti-installation setups', () => {
   const automatic45RouteIds = getRouteTemplates('4-5', 'balanced').map((route) => route.id)
   assert.deepEqual(automatic45RouteIds.sort(), [
+    '4-5-bahamut-fast-plus-cv4-cav2',
     '4-5-cl-dd-light',
     '4-5-fast-plus-battleship-carrier',
     '4-5-fast-plus-carrier',
@@ -3477,18 +3642,26 @@ test('solver is deterministic and only returns account-owned unique instances', 
   })
 })
 
-test('automatic recommendation returns warned fleets for maps without a boss-fixed route', () => {
+test('automatic fallback warns for random and externally configured routes', () => {
   const account = parseKC3AccountSnapshot(createAllNormalMapsSnapshot())
 
-  ;['1-1', '4-3'].forEach((mapId) => {
-    const result = recommendFleet({ mapId, objective: 'balanced', account })
-    assert.equal(result.status, 'success', `${mapId}: ${JSON.stringify(result)}`)
-    assert.ok(
-      result.recommendations.every((recommendation) =>
-        recommendation.warnings.some((warning) => warning.code === 'ROUTE_NOT_GUARANTEED'),
+  const randomResult = recommendFleet({ mapId: '1-1', objective: 'balanced', account })
+  assert.equal(randomResult.status, 'success', JSON.stringify(randomResult))
+  assert.ok(
+    randomResult.recommendations.every((recommendation) =>
+      recommendation.warnings.some((warning) => warning.code === 'ROUTE_NOT_GUARANTEED'),
+    ),
+  )
+
+  const installationResult = recommendFleet({ mapId: '4-3', objective: 'balanced', account })
+  assert.equal(installationResult.status, 'success', JSON.stringify(installationResult))
+  assert.ok(
+    installationResult.recommendations.every((recommendation) =>
+      recommendation.warnings.some((warning) =>
+        ['ROUTE_NOT_GUARANTEED', 'EXTERNAL_COMBAT_SETUP_REQUIRED'].includes(warning.code),
       ),
-    )
-  })
+    ),
+  )
 })
 
 test('large unrelated equipment inventories do not change recommendations', () => {

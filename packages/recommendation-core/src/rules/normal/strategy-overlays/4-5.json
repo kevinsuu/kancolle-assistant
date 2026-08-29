@@ -549,6 +549,50 @@
           "recommended": 220
         }
       ]
+    },
+    {
+      "id": "4-5-bahamut-fast-plus-cv4-cav2",
+      "name": "巴哈姆特・行飛・高速＋空母4",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A/C", "D", "H", "T"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "fast+",
+        "carrier-opening",
+        "anti-installation",
+        "anti-installation-modeled",
+        "anti-installation-carriers-4",
+        "flexible-carrier-air-priority"
+      ],
+      "desc": "正規/装甲/軽空母4、航巡2。全艦高速＋のC/A-D-H-T洗地編成。制空414+を満たし、空母4隻の対地攻撃能力を維持する。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 414,
+          "recommended": 414
+        }
+      ],
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
     }
   ]
 }

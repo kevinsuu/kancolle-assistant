@@ -29,6 +29,46 @@
           "value": 1
         }
       ]
+    },
+    {
+      "id": "2-3-bahamut-cvl2-av-dd3",
+      "name": "巴哈姆特・行飛・南西任務空母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["random", "N"],
+      "stableBoss": false,
+      "tags": ["guide-alternative", "random-routing", "carrier-opening", "quest-friendly"],
+      "desc": "軽空母2、水母1、駆逐3。南西・兵站線任務を兼ねるが途中分岐はランダム。制空81以上、確保目安162。",
+      "lastVerified": "2026-08-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 81,
+          "recommended": 162
+        }
+      ],
+      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
     }
   ]
 }

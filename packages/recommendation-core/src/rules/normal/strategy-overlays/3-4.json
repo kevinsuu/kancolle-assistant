@@ -10,10 +10,10 @@
       "name": "空母系戦果レベリング",
       "category": "leveling",
       "objectives": ["leveling"],
-      "nodes": ["D", "H", "L", "J", "P"],
+      "nodes": ["A", "C", "E", "G", "J", "P"],
       "stableBoss": false,
       "tags": ["carrier-opening", "ranking", "high-bauxite"],
-      "desc": "正規空母2、軽空母2、軽巡1、水母1。開幕航空重視。",
+      "desc": "正規空母2、軽空母2、軽巡1、水母1。開幕航空重視のA-C-E-G-J-P重量周回。",
       "fleet": [
         {
           "type": "ShipCount",
