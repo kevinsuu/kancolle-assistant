@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.5`    | `2026-08-26`   |
+| `v1.0.6`    | `2026-08-29`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,21 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.6 highlights (since v1.0.5)
+
+- Normal-map recommendations now calculate only the selected sourced guide template on demand,
+  keep Strategy Room responsive while KC3 reads large accounts, and show guide-first plans with
+  bounded diagnostics instead of running hidden all-map preloads.
+- The fleet solver now uses per-map rule modules, stronger Fast+ and carrier-aircraft allocation,
+  complete owned-equipment validation, and KC3-backed combat reranking for clearer legal results.
+- Expedition planning now compares complete fleet sets by normalized hourly efficiency, supports
+  optimized, break-even, and ignored resources, models collection intervals and resupply costs,
+  and provides an opt-in optimization debug report.
+- Resource Center adds 1-, 5-, and 30-minute activity buckets, refresh-aware snapshot reuse, and
+  clearer acquisition, consumption, source, and inventory-history displays.
+- Startup fitting no longer enlarges the game beyond its native scale, the default browser chrome
+  uses a neutral palette, and local packaging reports a missing KCCacheProxy cache without failing.
 
 ### v1.0.5 highlights (since v1.0.4)
 
@@ -71,23 +86,13 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Release tags no longer start a duplicate general CI run, and recommendation-core tests use
   explicit cross-platform paths so Windows release validation discovers every test file.
 
-### v1.0.1 highlights (since v1.0.0)
-
-- The game canvas now refits when the window is resized, without locking the window aspect ratio.
-- Fleet recommendations now validate owned Fast+ and night-carrier setups, rank post-conversion
-  combat capacity, and build coherent torpedo-cruiser loadouts.
-- Recommendation generation and Strategy Room navigation now reuse account and equipment indexes,
-  stop after enough legal candidates, and avoid repeated whole-page scans.
-- Normal-map and expedition accuracy includes refreshed Extra Operation routes, enforced slow-fleet
-  routing, cruiser seaplane assignments, and bucket-reward prioritization.
-
 ### Project-specific highlights
 
 Compared with the original project, this source adds or improves:
 
 1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
 2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later resizing keeps the full game visible when possible without locking the window aspect ratio.
-3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — KC3 Strategy Room can suggest up to three account-owned fleets for maps 1-1 through 7-5, including 5-6, without changing game state.
+3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — In KC3 Strategy Room, select a sourced guide template for maps 1-1 through 7-5, including 5-6, and generate up to three account-owned fleets on demand without changing game state.
 4. **[Expedition recommendations](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page shows current resources and uses adjustable resource and bucket weights, selected expeditions, success and Daihatsu settings, and fleets 2–4 to recommend one best pairing; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
 5. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
 6. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
@@ -233,12 +238,15 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] DMM-only local credential vault using operating-system encryption
 - [x] Responsive KanColle game-canvas auto-fit with a freely resizable window
 - [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, using linked
-      guide-verified fleet skeletons, preferring fully validated automatic routes and falling back
-      to calculable routes with explicit setup warnings, with validated
+      guide-verified fleet skeletons, requiring Strategy Room to choose a linked guide template
+      instead of a blank automatic route, with validated
       complete regular slots, a 2-1 carrier fallback and instant-construction-material route,
       current KC3 water-fighter/aircraft/ordnance categories, 2-5/5-5 drum routing, Fast+
-      equipment, expansion-slot assignments, night-carrier setups, and 4-5 mixed
-      anti-installation assignments, plus automatic 5-5 special-attack pairing, fleet order, and
+      equipment, expansion-slot assignments, night-carrier setups, source-matched 3-5 upper,
+      submarine, Nelson Touch, fixed-lower, and random-lower fleets, plus 4-5 Fast+
+      night-carrier, CVL small-ship, Nelson Touch, and detour configurations with air-power-first
+      flexible carrier aircraft allocation for mixed anti-installation assignments, plus automatic 5-5
+      special-attack pairing, fleet order, and
       formation guidance; final ranking uses KC3 complete-loadout bonuses and target-specific power
 - [x] Weighted expedition recommendations with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
