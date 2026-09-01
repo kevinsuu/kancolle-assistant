@@ -13,6 +13,7 @@ export const styles = `
   body:not(.dark) .dqr-toolbar-button { border: 1px solid #abc; border-radius: 7px; background: #edf6fa; color: #467080; }
   .dqr-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px 14px; padding-top: 7px; padding-bottom: 7px; border-top: 1px solid #8883; }
   .dqr-chapter-filter-block { display: grid; grid-column: 1 / -1; gap: 4px; padding-bottom: 7px; border-bottom: 1px solid #8883; }
+  .dqr-type-filter-block { display: grid; grid-column: 1 / -1; gap: 4px; padding-bottom: 7px; border-bottom: 1px solid #8883; }
   .dqr-chapter-filter-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
   .dqr-chapter-filter-note { color: var(--dqr-muted); }
   .dqr-chapter-filter-list { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -27,6 +28,15 @@ export const styles = `
   .dqr-filter[data-quest-filter="screws"].is-active { border-color: #39875d; background: #39875d14; color: #28764b; }
   .dqr-filter[data-quest-filter="equipmentMaterials"].is-active { border-color: #a36b22; background: #a36b2212; color: #8a5b21; }
   .dqr-filter[data-quest-chapter].is-active { border-color: #568da3; background: #568da322; color: #356e85; }
+  .dqr-filter[data-quest-type="all"] { --dqr-type-color: #356e85; }
+  .dqr-filter[data-quest-type="fleet"] { --dqr-type-color: #72509f; }
+  .dqr-filter[data-quest-type="sortie"] { --dqr-type-color: #2b8091; }
+  .dqr-filter[data-quest-type="exercise"] { --dqr-type-color: #397ba8; }
+  .dqr-filter[data-quest-type="expedition"] { --dqr-type-color: #39875d; }
+  .dqr-filter[data-quest-type="arsenal"] { --dqr-type-color: #9a633f; }
+  .dqr-filter[data-quest-type="modernization"] { --dqr-type-color: #9b5275; }
+  .dqr-filter[data-quest-type="other"] { --dqr-type-color: #607987; }
+  .dqr-filter[data-quest-type].is-active { border-color: var(--dqr-type-color); background: #568da318; color: var(--dqr-type-color); }
   .dqr-filter:disabled { cursor: wait; opacity: .5; }
   .dqr-filter:focus-visible, .dqr-sort:focus-visible { outline: 2px solid #69c; outline-offset: 2px; }
   .dqr-sort-block { display: grid; grid-template-columns: auto auto; align-items: center; gap: 4px 7px; }
@@ -39,6 +49,13 @@ export const styles = `
   body.dark .dqr-filter[data-quest-filter="screws"].is-active { color: #70cf95; }
   body.dark .dqr-filter[data-quest-filter="equipmentMaterials"].is-active { color: #d7a45f; }
   body.dark .dqr-filter[data-quest-chapter].is-active { color: #9acbdd; }
+  body.dark .dqr-filter[data-quest-type="all"], body.dark .dqr-filter[data-quest-type="sortie"] { --dqr-type-color: #62b7c5; }
+  body.dark .dqr-filter[data-quest-type="fleet"] { --dqr-type-color: #c89cff; }
+  body.dark .dqr-filter[data-quest-type="exercise"] { --dqr-type-color: #7db9e2; }
+  body.dark .dqr-filter[data-quest-type="expedition"] { --dqr-type-color: #70cf95; }
+  body.dark .dqr-filter[data-quest-type="arsenal"] { --dqr-type-color: #d7a45f; }
+  body.dark .dqr-filter[data-quest-type="modernization"] { --dqr-type-color: #e59abd; }
+  body.dark .dqr-filter[data-quest-type="other"] { --dqr-type-color: #9ba7ad; }
   body.dark .dqr-sort { background: #161616; }
   .dqr-status { min-height: 18px; margin: 8px 0 3px; color: #888; }
   .dqr-status.error { color: #c55b53; }
@@ -143,6 +160,11 @@ export const styles = `
   body.dark .dqr-priority.highest strong { color: #fc0; }
   body.dark .dqr-priority.priority strong { color: #c89cff; }
   body.dark .dqr-priority.recommended strong { color: #70cf95; }
+  .dqr-synergy-alternatives { margin: 0 8px 8px; border: 1px solid #2b809155; background: #2b809108; }
+  .dqr-synergy-alternatives > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 8px; padding: 6px 9px; border-bottom: 1px solid #2b809133; }
+  .dqr-synergy-alternatives > header strong { color: var(--dqr-teal); }
+  .dqr-synergy-alternatives > header span { color: var(--dqr-muted); }
+  .dqr-synergy-alternatives .dqr-synergy-detail + .dqr-synergy-detail { border-top-style: dashed; }
   .dqr-synergy-detail { padding: 7px 9px 8px 24px; border-top: 1px solid #d6a40044; background: #d6a4000d; }
   .dqr-plan-stage { position: relative; margin-top: 6px; padding: 6px 7px 6px 10px; border-left: 2px solid #2b8091; background: #fff8; }
   .dqr-plan-stage:first-child { margin-top: 0; }
@@ -213,6 +235,29 @@ export const panelMarkup = (t) => `
             .join('')}
         </div>
       </div>
+      <div class="dqr-type-filter-block">
+        <div class="dqr-chapter-filter-heading">
+          <span class="dqr-control-label">${t('quest.typeFilter.label')}</span>
+          <span class="dqr-chapter-filter-note">${t('quest.typeFilter.hint')}</span>
+        </div>
+        <div class="dqr-filter-list">
+          ${[
+            'all',
+            'fleet',
+            'sortie',
+            'exercise',
+            'expedition',
+            'arsenal',
+            'modernization',
+            'other',
+          ]
+            .map(
+              (typeKey) =>
+                `<button class="dqr-filter${typeKey === 'all' ? ' is-active' : ''}" type="button" data-quest-type="${typeKey}" aria-pressed="${typeKey === 'all'}">${t(`quest.type.${typeKey}`)}</button>`,
+            )
+            .join('')}
+        </div>
+      </div>
       <div class="dqr-filter-block">
         <span class="dqr-control-label">${t('quest.filter.label')}</span>
         <div class="dqr-filter-list">
@@ -228,6 +273,7 @@ export const panelMarkup = (t) => `
         <select class="dqr-sort">
           <option value="deadlineAsc">${t('quest.sort.deadlineAsc')}</option>
           <option value="deadlineDesc">${t('quest.sort.deadlineDesc')}</option>
+          <option value="priorityDesc">${t('quest.sort.priorityDesc')}</option>
           <option value="stepsAsc">${t('quest.sort.stepsAsc')}</option>
         </select>
         <span class="dqr-visible-count" aria-live="polite"></span>

@@ -449,7 +449,7 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
       quest: (id) => ({
         code: `F${id}`,
         name: `Localized title ${id}`,
-        desc: '',
+        desc: `Localized requirement ${id}`,
         memo: '',
         rewardConsumables: [0, 0, 0, 0],
       }),
@@ -457,13 +457,26 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
     KC3Translation: {
       getJSONWithOptions: (...args) => {
         japaneseRequests.push(args)
-        return { 680: { name: '対空兵装の整備拡充' } }
+        return {
+          680: {
+            name: '対空兵装の整備拡充',
+            desc: '「機銃」系装備x4を廃棄せよ！',
+          },
+        }
       },
     },
     KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
   })
 
   assert.equal(snapshot.quests.find(({ id }) => id === 680).name, '対空兵装の整備拡充')
+  assert.equal(
+    snapshot.quests.find(({ id }) => id === 680).synergyDescription,
+    '「機銃」系装備x4を廃棄せよ！',
+  )
+  assert.equal(
+    snapshot.quests.find(({ id }) => id === 681).synergyDescription,
+    'Localized requirement 681',
+  )
   assert.equal(snapshot.quests.find(({ id }) => id === 681).name, 'ゲームAPIの日本語題名')
   assert.deepEqual(japaneseRequests[0].slice(0, 4), ['/data/', 'quests', false, 'jp'])
   assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'available')
@@ -502,6 +515,7 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', () => {
   })
 
   assert.equal(snapshot.quests[0].name, 'Localized fallback')
+  assert.equal(snapshot.quests[0].synergyDescription, '')
   assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'failed')
   assert.equal(snapshot.diagnostics.questTitleSourceCounts.localizedFallback, 1)
   assert.match(snapshot.diagnostics.japaneseQuestMetadataMessage, /fixture metadata failure/)
@@ -603,8 +617,12 @@ test('quest recommendation IPC validates senders and logs success and failure ou
         rewardCategoryCounts: { medalBlueprint: 1, screws: 1 },
         groupCount: 1,
         combinedGroupCount: 1,
+        alternativeSynergyCount: 2,
         objectiveDerivedGroupCount: 1,
         objectiveProfiledQuestCount: 4,
+        arsenalProfiledQuestCount: 6,
+        derivedArsenalProfileCount: 3,
+        derivedOnlyArsenalProfileCount: 1,
         groups: [
           {
             id: 'synergy:fixture-synergy',
@@ -671,8 +689,12 @@ test('quest recommendation IPC validates senders and logs success and failure ou
   assert.equal(logs.at(-1).data.synchronizedQuestCount, 0)
   assert.equal(logs.at(-1).data.groupCount, 1)
   assert.equal(logs.at(-1).data.combinedGroupCount, 1)
+  assert.equal(logs.at(-1).data.alternativeSynergyCount, 2)
   assert.equal(logs.at(-1).data.objectiveDerivedGroupCount, 1)
   assert.equal(logs.at(-1).data.objectiveProfiledQuestCount, 4)
+  assert.equal(logs.at(-1).data.arsenalProfiledQuestCount, 6)
+  assert.equal(logs.at(-1).data.derivedArsenalProfileCount, 3)
+  assert.equal(logs.at(-1).data.derivedOnlyArsenalProfileCount, 1)
   assert.deepEqual(logs.at(-1).data.relationKindCounts, {})
   assert.deepEqual(logs.at(-1).data.rewardPriorityOrder, [
     'medalBlueprint',
@@ -1700,6 +1722,7 @@ test('KC3 account snapshot yields between expensive renderer batches', async () 
   assert.match(script, /await mapResponsively\(gearList/)
   assert.match(script, /window\.setTimeout\(resolve, 0\)/)
   assert.match(script, /currentFleetShipIdGroups/)
+  assert.match(script, /canonicalName: String\(master\.api_name \|\| ''\)/)
   assert.match(script, /ship\.equipmentTotalStats\('saku', true, true, true\)/)
   assert.doesNotThrow(() => new Function(script))
 })
@@ -1714,6 +1737,7 @@ test('KC3 account snapshot logs bounded opening-ASW probe fallback diagnostics',
         id: 1,
         masterId: 141,
         name: 'Fixture ship',
+        canonicalName: 'Fixture canonical ship',
         level: 99,
         shipTypeId: 3,
         shipType: 'CL',
@@ -1798,6 +1822,17 @@ test('KC3 account snapshot logs bounded opening-ASW probe fallback diagnostics',
   )
 
   assert.equal(account.ships.length, 1)
+  assert.equal(account.ships[0].name, 'Fixture ship')
+  assert.equal(account.ships[0].canonicalName, 'Fixture canonical ship')
+  const shipNamesCompleted = logs.find(
+    ({ eventName }) => eventName === 'recommendation.ship-name-snapshot-completed',
+  )
+  assert.equal(shipNamesCompleted.data.shipCount, 1)
+  assert.equal(shipNamesCompleted.data.localizedNameCount, 1)
+  assert.equal(shipNamesCompleted.data.canonicalNameMissingCount, 0)
+  assert.equal(shipNamesCompleted.data.fallbackResult, 'not-needed')
+  assert.deepEqual(shipNamesCompleted.data.reasonCodes, [])
+  assert.ok(shipNamesCompleted.data.elapsedMs >= 0)
   const completed = logs.find(
     ({ eventName }) => eventName === 'recommendation.oasw-snapshot-probe-completed',
   )
@@ -1807,6 +1842,20 @@ test('KC3 account snapshot logs bounded opening-ASW probe fallback diagnostics',
   assert.deepEqual(completed.data.reasonCodes, ['KC3_OASW_PROBE_FAILED'])
   assert.deepEqual(completed.data.messages, ['fixture calculator error'])
   assert.equal(completed.data.elapsedMs, 12)
+
+  delete rawSnapshot.ships[0].canonicalName
+  const fallbackLogs = []
+  const fallbackAccount = await readKC3AccountSnapshot(
+    { executeJavaScript: async () => rawSnapshot },
+    (eventName, data) => fallbackLogs.push({ eventName, data }),
+  )
+  assert.equal(fallbackAccount.ships[0].canonicalName, 'Fixture ship')
+  const fallback = fallbackLogs.find(
+    ({ eventName }) => eventName === 'recommendation.ship-name-snapshot-completed',
+  )
+  assert.equal(fallback.data.canonicalNameMissingCount, 1)
+  assert.equal(fallback.data.fallbackResult, 'localized-name')
+  assert.deepEqual(fallback.data.reasonCodes, ['KC3_CANONICAL_SHIP_NAME_MISSING'])
 })
 
 test('KC3 combat evaluation probes complete loadouts with current KC3 formulas', async () => {

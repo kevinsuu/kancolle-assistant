@@ -1,6 +1,6 @@
+import { createSharedQuestPlan, findCompatibleQuestSynergies } from './quest-synergy-engine'
+
 const MAX_FLEET_SIZE = 6
-const MAX_ACTIVE_QUEST_COUNT = 5
-const compatibilityCacheByQuestList = new WeakMap()
 
 const candidate = (id, ...tags) => ({ id, tags: new Set(tags) })
 
@@ -23,6 +23,10 @@ const FLEET_CANDIDATES = [
   candidate('arare', 'dd', 'arare'),
   candidate('kagerou', 'dd', 'kagerou'),
   candidate('shiranui', 'dd', 'shiranui'),
+  candidate('hatsuharu', 'dd', 'hatsuharu'),
+  candidate('nenohi', 'dd', 'nenohi'),
+  candidate('wakaba', 'dd', 'wakaba'),
+  candidate('hatsushimo', 'dd', 'hatsushimo'),
   candidate('fubuki', 'dd', 'fubuki'),
   candidate('shirayuki', 'dd', 'shirayuki'),
   candidate('hatsuyuki', 'dd', 'hatsuyuki'),
@@ -177,12 +181,27 @@ const OBJECTIVES_BY_CODE = {
   B147: objective('sortie', [fleet({ counts: [count('us', 2)] })]),
   B160: objective('sortie', [fleet({ flag: 'yukikaze' })]),
   Bq5: objective('sortie', [fleet({ counts: [count('cl', 1)] })]),
+  B21: objective('sortie', [
+    fleet({
+      counts: [count('arare', 1), count('kasumi', 1), count('kagerou', 1), count('shiranui', 1)],
+    }),
+  ]),
   B22: objective('sortie', [
     fleet({
       counts: [count('mutsuki', 1), count('kisaragi', 1), count('yayoi', 1), count('mochizuki', 1)],
     }),
   ]),
   B164: objective('sortie', [fleet({ flag: 'noshiro-kai-ni', counts: [count('dd', 3)] })]),
+  B37: objective('sortie', [
+    fleet({
+      counts: [
+        count('hatsuharu', 1),
+        count('nenohi', 1),
+        count('wakaba', 1),
+        count('hatsushimo', 1),
+      ],
+    }),
+  ]),
   By11: objective('sortie', [fleet({ counts: [count('usuk', 3)], forbidden: ['carrier'] })]),
   B140: objective('sortie', [fleet({ flag: 'yuubari-kai-ni' })]),
   B172: objective('sortie', [fleet({ flag: 'yamakaze', counts: [countAny(['dd', 'de'], 4)] })]),
@@ -369,16 +388,6 @@ const entriesAreCompatible = (entries) => {
   return fleetRulesAreCompatible(entries.map(({ objective: entry }) => entry.fleetVariants))
 }
 
-const participant = (quest) => ({
-  id: quest.id,
-  code: quest.code,
-  name: quest.name,
-  status: quest.status,
-  period: quest.period,
-  resetAt: quest.resetAt,
-  locked: false,
-})
-
 const planForEntries = (anchorQuest, entries) => {
   const action = sharedAction(entries)
   const quests = entries.map(({ quest }) => quest)
@@ -386,89 +395,35 @@ const planForEntries = (anchorQuest, entries) => {
   const relationKind = action.kind === 'exercise' ? 'sameExercise' : 'sameSortie'
   const fleetKey = action.kind === 'exercise' ? 'sharedExercise' : 'compatibleFleet'
   const instructionKey = action.kind === 'exercise' ? 'sharedExercise' : 'compatibleSortie'
-  const participants = quests.map(participant)
-  return {
+  return createSharedQuestPlan({
     id: `objective-${action.kind}-${questIds.join('-')}-${action.maps.join('-')}`,
     priority: 140,
-    relationKinds: [relationKind],
+    relationKind,
     mapIds: action.maps,
     fleetKey,
-    extraObjectiveKeys: [],
-    instructionKeys: [instructionKey],
-    companions: participants.filter(({ id }) => Number(id) !== Number(anchorQuest.id)),
-    stages: [
-      {
-        kind: relationKind,
-        questIds,
-        mapIds: action.maps,
-        fleetKey,
-        extraObjectiveKeys: [],
-        instructionKeys: [instructionKey],
-        participants,
-      },
-    ],
-  }
+    instructionKey,
+    anchorQuest,
+    quests,
+  })
 }
 
 export const findObjectiveSynergies = (anchorQuest, quests) => {
-  if (!anchorQuest || (anchorQuest.status !== 1 && anchorQuest.status !== 2)) return []
-  const anchorObjectives = normalizedObjectives(anchorQuest)
-  if (anchorObjectives.length === 0) return []
-
-  const compatibilityCache = compatibilityCacheByQuestList.get(quests) || new Map()
-  compatibilityCacheByQuestList.set(quests, compatibilityCache)
-  const areCompatible = (entries) => {
-    const key = entries
-      .map((entry) => entry.key)
-      .sort()
-      .join('|')
-    if (!compatibilityCache.has(key)) {
-      compatibilityCache.set(key, entriesAreCompatible(entries))
-    }
-    return compatibilityCache.get(key)
-  }
-  const openEntries = quests
-    .filter((quest) => quest && (quest.status === 1 || quest.status === 2))
-    .flatMap((quest) =>
-      normalizedObjectives(quest).map((entry, objectiveIndex) => ({
-        key: `${Number(quest.id)}:${objectiveIndex}`,
-        quest,
-        objective: entry,
-      })),
-    )
-  const plans = []
-
-  anchorObjectives.forEach((anchorObjective, objectiveIndex) => {
-    const anchorEntry = {
-      key: `${Number(anchorQuest.id)}:${objectiveIndex}`,
-      quest: anchorQuest,
-      objective: anchorObjective,
-    }
-    const candidates = openEntries.filter(
-      ({ quest, objective: entry }) =>
-        Number(quest.id) !== Number(anchorQuest.id) && entry.kind === anchorObjective.kind,
-    )
-    let best = [anchorEntry]
-
-    const visit = (index, selected) => {
-      if (selected.length > best.length) best = selected
-      if (best.length >= MAX_ACTIVE_QUEST_COUNT) return
-      for (let candidateIndex = index; candidateIndex < candidates.length; candidateIndex += 1) {
-        const candidateEntry = candidates[candidateIndex]
-        if (selected.some(({ quest }) => Number(quest.id) === Number(candidateEntry.quest.id))) {
-          continue
-        }
-        const next = [...selected, candidateEntry]
-        if (areCompatible(next)) visit(candidateIndex + 1, next)
-        if (best.length >= MAX_ACTIVE_QUEST_COUNT) return
-      }
-    }
-
-    visit(0, [anchorEntry])
-    if (best.length > 1) plans.push(planForEntries(anchorQuest, best))
+  return findCompatibleQuestSynergies({
+    anchorQuest,
+    quests,
+    objectivesForQuest: normalizedObjectives,
+    entriesAreCompatible,
+    planForEntries,
+    cacheNamespace: 'fleet-objectives',
   })
-
-  return [...new Map(plans.map((plan) => [plan.id, plan])).values()]
 }
 
 export const hasQuestObjective = (quest) => normalizedObjectives(quest).length > 0
+
+export const questObjectiveMapIds = (quest) => [
+  ...new Set(
+    normalizedObjectives(quest)
+      .filter((objectiveEntry) => objectiveEntry.kind === 'sortie')
+      .flatMap((objectiveEntry) => objectiveEntry.maps),
+  ),
+]

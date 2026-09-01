@@ -1,4 +1,9 @@
 import { findObjectiveSynergies } from './quest-objective-synergy'
+import {
+  createSharedQuestPlan,
+  findCompatibleQuestSynergies,
+  isOpenQuest,
+} from './quest-synergy-engine'
 
 // Curated quest plans distinguish sorties that can be shared, objectives that should be run in
 // sequence, and prerequisite unlocks. Quest IDs follow KC3's repeatable quest metadata.
@@ -303,6 +308,104 @@ const ARSENAL_PROFILE_BY_QUEST_ID = new Map([
   [1138, { masterIds: [120] }],
 ])
 
+// Generic discard categories are derived only from the bounded clause immediately before or after
+// a discard verb. Parsing stops before a preparation verb so completion supplies do not become a
+// false shared action. Japanese quest metadata is preferred by the snapshot, with localized CJK
+// labels retained as a bounded fallback.
+const ARSENAL_DISCARD_TYPE_RULES = [
+  { typeIds: [1], pattern: /小口径主砲|小口徑主砲|小口徑主炮|小口径主炮/u },
+  { typeIds: [2], pattern: /中口径主砲|中口徑主砲|中口徑主炮|中口径主炮/u },
+  { typeIds: [3], pattern: /大口径主砲|大口徑主砲|大口徑主炮|大口径主炮/u },
+  { typeIds: [4], pattern: /副砲|副炮/u },
+  { typeIds: [5, 32], pattern: /魚雷|鱼雷/u },
+  { typeIds: [6], pattern: /艦上戦闘機|艦上戰鬥機|舰上战斗机/u },
+  { typeIds: [7], pattern: /艦上爆撃機|艦上爆擊機|艦上轟炸機|舰上轰炸机/u },
+  { typeIds: [8], pattern: /艦上攻撃機|艦上攻擊機|舰上攻击机/u },
+  { typeIds: [10], pattern: /水上偵察機|水上侦察机/u },
+  { typeIds: [12, 13], pattern: /電探/u },
+  { typeIds: [21], pattern: /機銃|機槍|机枪/u },
+  {
+    typeIds: [30],
+    pattern: /ドラム缶(?:\(輸送用\))?|運輸桶|运输桶/u,
+  },
+]
+
+const discardContexts = (value) => {
+  const text = String(value || '')
+  const contexts = []
+  const discardPattern = /廃棄|廢棄|废弃/gu
+  let segmentStart = 0
+
+  for (const match of text.matchAll(discardPattern)) {
+    const prefix = text.slice(segmentStart, match.index)
+    const boundaryIndex = Math.max(
+      prefix.lastIndexOf('。'),
+      prefix.lastIndexOf('！'),
+      prefix.lastIndexOf('？'),
+      prefix.lastIndexOf('!'),
+      prefix.lastIndexOf('?'),
+      prefix.lastIndexOf('\n'),
+    )
+    contexts.push(prefix.slice(boundaryIndex + 1).slice(-600))
+    const suffix = text.slice(Number(match.index) + match[0].length)
+    const sentenceEndIndex = suffix.search(/[。！？!?\n]/u)
+    const sentenceSuffix = sentenceEndIndex >= 0 ? suffix.slice(0, sentenceEndIndex) : suffix
+    const preparationIndex = sentenceSuffix.search(/準備|用意/u)
+    contexts.push(
+      (preparationIndex >= 0 ? sentenceSuffix.slice(0, preparationIndex) : sentenceSuffix).slice(
+        0,
+        600,
+      ),
+    )
+    segmentStart = Number(match.index) + match[0].length
+  }
+
+  return contexts
+}
+
+const contextHasDiscardCategory = (context, pattern) => {
+  const globalPattern = new RegExp(pattern.source, `${pattern.flags}g`)
+  return [...context.matchAll(globalPattern)].some((match) => {
+    const trailingText = context.slice(Number(match.index) + match[0].length)
+    const nextCategoryIndex = trailingText.search(/[「『"“]/u)
+    const relationText =
+      nextCategoryIndex >= 0 ? trailingText.slice(0, nextCategoryIndex) : trailingText
+    return !/準備|用意/u.test(relationText)
+  })
+}
+
+const derivedArsenalDiscardProfile = (quest) => {
+  if (!/^F/i.test(String(quest?.code || ''))) return null
+  const contexts = discardContexts(quest?.synergyDescription || quest?.description)
+  if (contexts.length === 0) return null
+  const typeIds = [
+    ...new Set(
+      ARSENAL_DISCARD_TYPE_RULES.flatMap(({ typeIds: matchingTypeIds, pattern }) =>
+        contexts.some((context) => contextHasDiscardCategory(context, pattern))
+          ? matchingTypeIds
+          : [],
+      ),
+    ),
+  ]
+  return typeIds.length > 0 ? { typeIds } : null
+}
+
+const arsenalProfileForQuest = (quest) => {
+  const curated = ARSENAL_PROFILE_BY_QUEST_ID.get(Number(quest?.id)) || null
+  const derived = derivedArsenalDiscardProfile(quest)
+  if (!curated) return derived ? { profile: derived, source: 'derived' } : null
+  if (!derived || curated.operation) return { profile: curated, source: 'curated' }
+  return {
+    profile: {
+      ...curated,
+      typeIds: [...new Set([...(curated.typeIds || []), ...derived.typeIds])],
+    },
+    source: 'curatedAndDerived',
+  }
+}
+
+export const questArsenalProfileSource = (quest) => arsenalProfileForQuest(quest)?.source || null
+
 const GEAR_TYPE_BY_MASTER_ID = new Map([
   [3, 1],
   [4, 2],
@@ -318,18 +421,6 @@ const GEAR_TYPE_BY_MASTER_ID = new Map([
   [249, 7],
 ])
 
-const isOpenQuest = (quest) => quest && (quest.status === 1 || quest.status === 2)
-
-const questParticipant = (quest) => ({
-  id: quest.id,
-  code: quest.code,
-  name: quest.name,
-  status: quest.status,
-  period: quest.period,
-  resetAt: quest.resetAt,
-  locked: !isOpenQuest(quest),
-})
-
 const sharedActionPlan = (category, actionKey, anchorQuest, groupQuests) => {
   const questIds = groupQuests.map(({ id }) => Number(id)).sort((left, right) => left - right)
   const relationKind = {
@@ -342,86 +433,76 @@ const sharedActionPlan = (category, actionKey, anchorQuest, groupQuests) => {
     expedition: 'sharedExpedition',
     arsenal: 'sharedArsenal',
   }[category]
-  const participants = groupQuests.map(questParticipant)
-  return {
+  return createSharedQuestPlan({
     id: `shared-${category}-${actionKey}-${questIds.join('-')}`,
     priority: 120,
-    relationKinds: [relationKind],
-    mapIds: [],
+    relationKind,
     fleetKey,
-    extraObjectiveKeys: [],
-    instructionKeys: [fleetKey],
-    companions: participants.filter(({ id }) => Number(id) !== Number(anchorQuest.id)),
-    stages: [
-      {
-        kind: relationKind,
-        questIds,
-        mapIds: [],
-        fleetKey,
-        extraObjectiveKeys: [],
-        instructionKeys: [fleetKey],
-        participants,
-      },
-    ],
-  }
+    anchorQuest,
+    quests: groupQuests,
+  })
 }
 
-const exerciseSharedActionPlans = (anchorQuest, openQuests) => {
-  const anchorId = Number(anchorQuest?.id)
-  const isGenericAnchor = GENERIC_EXERCISE_QUEST_IDS.has(anchorId)
-  const isRestrictedAnchor = RESTRICTED_EXERCISE_QUEST_IDS.has(anchorId)
-  if (!isGenericAnchor && !isRestrictedAnchor) return []
+const sameActionEntriesAreCompatible = (entries) =>
+  new Set(entries.map(({ objective }) => objective.actionKey)).size === 1
 
-  const genericQuests = openQuests.filter(({ id }) => GENERIC_EXERCISE_QUEST_IDS.has(Number(id)))
-  const restrictedQuests = openQuests.filter(({ id }) =>
-    RESTRICTED_EXERCISE_QUEST_IDS.has(Number(id)),
+const sharedActionPlanForEntries = (category) => (anchorQuest, entries) =>
+  sharedActionPlan(
+    category,
+    entries[0].objective.actionKey,
+    anchorQuest,
+    entries.map(({ quest }) => quest),
   )
-  const groups = isRestrictedAnchor
-    ? [[...genericQuests, anchorQuest]]
-    : [genericQuests, ...restrictedQuests.map((quest) => [...genericQuests, quest])]
 
-  return groups
-    .map((quests) => [...new Map(quests.map((quest) => [Number(quest.id), quest])).values()])
-    .filter(
-      (quests) => quests.length > 1 && quests.some(({ id }) => Number(id) === Number(anchorId)),
-    )
-    .map((quests) => sharedActionPlan('exercise', 'victory', anchorQuest, quests))
+const exerciseObjectivesForQuest = (quest, quests) => {
+  const questId = Number(quest?.id)
+  const isGeneric = GENERIC_EXERCISE_QUEST_IDS.has(questId)
+  if (!isGeneric && !RESTRICTED_EXERCISE_QUEST_IDS.has(questId)) return []
+  if (!isGeneric) return [{ kind: 'exercise', actionKey: `restricted-${questId}` }]
+  const restrictedActionKeys = quests
+    .filter(isOpenQuest)
+    .map(({ id }) => Number(id))
+    .filter((id) => RESTRICTED_EXERCISE_QUEST_IDS.has(id))
+    .map((id) => `restricted-${id}`)
+  return ['victory', ...restrictedActionKeys].map((actionKey) => ({
+    kind: 'exercise',
+    actionKey,
+  }))
 }
 
-const expeditionSharedActionPlans = (anchorQuest, openQuests) => {
-  const anchorId = Number(anchorQuest?.id)
-  if (!EXPEDITION_MISSIONS_BY_QUEST_ID.has(anchorId)) return []
-  const profiledQuests = openQuests.filter(({ id }) =>
-    EXPEDITION_MISSIONS_BY_QUEST_ID.has(Number(id)),
-  )
-  const anchorMissions = EXPEDITION_MISSIONS_BY_QUEST_ID.get(anchorId)
-  const missionIds = anchorMissions || [
+const exerciseSharedActionPlans = (anchorQuest, quests) =>
+  findCompatibleQuestSynergies({
+    anchorQuest,
+    quests,
+    objectivesForQuest: exerciseObjectivesForQuest,
+    entriesAreCompatible: sameActionEntriesAreCompatible,
+    planForEntries: sharedActionPlanForEntries('exercise'),
+    cacheNamespace: 'shared-exercise-actions',
+  })
+
+const expeditionObjectivesForQuest = (quest, quests) => {
+  const missions = EXPEDITION_MISSIONS_BY_QUEST_ID.get(Number(quest?.id))
+  if (missions === undefined) return []
+  const missionIds = missions || [
     ...new Set(
-      profiledQuests.flatMap(({ id }) => EXPEDITION_MISSIONS_BY_QUEST_ID.get(Number(id)) || []),
+      quests
+        .filter(isOpenQuest)
+        .flatMap(({ id }) => EXPEDITION_MISSIONS_BY_QUEST_ID.get(Number(id)) || []),
     ),
   ]
-  const groups = missionIds.map((missionId) => ({
-    actionKey: String(missionId),
-    quests: profiledQuests.filter(({ id }) => {
-      const missions = EXPEDITION_MISSIONS_BY_QUEST_ID.get(Number(id))
-      return missions === null || missions.includes(missionId)
-    }),
-  }))
-  if (anchorMissions === null) {
-    groups.push({
-      actionKey: 'any',
-      quests: profiledQuests.filter(
-        ({ id }) => EXPEDITION_MISSIONS_BY_QUEST_ID.get(Number(id)) === null,
-      ),
-    })
-  }
-
-  return groups
-    .filter(
-      ({ quests }) => quests.length > 1 && quests.some(({ id }) => Number(id) === Number(anchorId)),
-    )
-    .map(({ actionKey, quests }) => sharedActionPlan('expedition', actionKey, anchorQuest, quests))
+  const actionKeys = missions === null ? ['any', ...missionIds.map(String)] : missionIds.map(String)
+  return actionKeys.map((actionKey) => ({ kind: 'expedition', actionKey }))
 }
+
+const expeditionSharedActionPlans = (anchorQuest, quests) =>
+  findCompatibleQuestSynergies({
+    anchorQuest,
+    quests,
+    objectivesForQuest: expeditionObjectivesForQuest,
+    entriesAreCompatible: sameActionEntriesAreCompatible,
+    planForEntries: sharedActionPlanForEntries('expedition'),
+    cacheNamespace: 'shared-expedition-actions',
+  })
 
 const arsenalProfileMatches = (profile, action) => {
   if (profile.operation || action.operation) return profile.operation === action.operation
@@ -429,49 +510,51 @@ const arsenalProfileMatches = (profile, action) => {
   return Number.isFinite(action.typeId) && (profile.typeIds || []).includes(action.typeId)
 }
 
-const arsenalSharedActionPlans = (anchorQuest, openQuests) => {
-  const anchorId = Number(anchorQuest?.id)
-  const anchorProfile = ARSENAL_PROFILE_BY_QUEST_ID.get(anchorId)
-  if (!anchorProfile) return []
-  const profiledQuests = openQuests.filter(({ id }) => ARSENAL_PROFILE_BY_QUEST_ID.has(Number(id)))
-  const actions = [
-    ...new Set(
-      [...ARSENAL_PROFILE_BY_QUEST_ID.values()].map(({ operation }) => operation).filter(Boolean),
-    ),
-  ].map((operation) => ({ operation, key: operation }))
-  ;[
-    ...new Set([...ARSENAL_PROFILE_BY_QUEST_ID.values()].flatMap(({ typeIds = [] }) => typeIds)),
-  ].forEach((typeId) => actions.push({ typeId, key: `type-${typeId}` }))
-  ;[
-    ...new Set(
-      [...ARSENAL_PROFILE_BY_QUEST_ID.values()].flatMap(({ masterIds = [] }) => masterIds),
-    ),
-  ].forEach((masterId) =>
+const arsenalActions = (quests) => {
+  const profiledQuests = quests
+    .filter(isOpenQuest)
+    .map((quest) => arsenalProfileForQuest(quest))
+    .filter(Boolean)
+  const profiles = profiledQuests.map(({ profile }) => profile)
+  const actions = [...new Set(profiles.map(({ operation }) => operation).filter(Boolean))].map(
+    (operation) => ({ operation, key: operation }),
+  )
+  ;[...new Set(profiles.flatMap(({ typeIds = [] }) => typeIds))].forEach((typeId) =>
+    actions.push({ typeId, key: `type-${typeId}` }),
+  )
+  ;[...new Set(profiles.flatMap(({ masterIds = [] }) => masterIds))].forEach((masterId) =>
     actions.push({
       masterId,
       typeId: GEAR_TYPE_BY_MASTER_ID.get(masterId),
       key: `item-${masterId}`,
     }),
   )
-
   return actions
-    .filter((action) => arsenalProfileMatches(anchorProfile, action))
-    .map((action) => ({
-      actionKey: action.key,
-      quests: profiledQuests.filter((quest) =>
-        arsenalProfileMatches(ARSENAL_PROFILE_BY_QUEST_ID.get(Number(quest.id)), action),
-      ),
-    }))
-    .filter(({ quests }) => quests.length > 1)
-    .map(({ actionKey, quests }) => sharedActionPlan('arsenal', actionKey, anchorQuest, quests))
 }
 
+const arsenalObjectivesForQuest = (quest, quests) => {
+  const entry = arsenalProfileForQuest(quest)
+  if (!entry) return []
+  return arsenalActions(quests)
+    .filter((action) => arsenalProfileMatches(entry.profile, action))
+    .map(({ key: actionKey }) => ({ kind: 'arsenal', actionKey }))
+}
+
+const arsenalSharedActionPlans = (anchorQuest, quests) =>
+  findCompatibleQuestSynergies({
+    anchorQuest,
+    quests,
+    objectivesForQuest: arsenalObjectivesForQuest,
+    entriesAreCompatible: sameActionEntriesAreCompatible,
+    planForEntries: sharedActionPlanForEntries('arsenal'),
+    cacheNamespace: 'shared-arsenal-actions',
+  })
+
 const findSharedActionSynergies = (anchorQuest, questList) => {
-  const openQuests = questList.filter(isOpenQuest)
   const plans = [
-    ...exerciseSharedActionPlans(anchorQuest, openQuests),
-    ...expeditionSharedActionPlans(anchorQuest, openQuests),
-    ...arsenalSharedActionPlans(anchorQuest, openQuests),
+    ...exerciseSharedActionPlans(anchorQuest, questList),
+    ...expeditionSharedActionPlans(anchorQuest, questList),
+    ...arsenalSharedActionPlans(anchorQuest, questList),
   ]
   const uniquePlans = new Map()
   plans.forEach((plan) => {

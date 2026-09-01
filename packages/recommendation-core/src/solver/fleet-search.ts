@@ -394,12 +394,12 @@ const isAkizukiClassAntiAirCandidate = (ship: OwnedShip): boolean =>
   )
 
 const shipMatchesNameConstraint = (
-  shipName: string,
+  ship: OwnedShip,
   constraintNames: readonly string[],
 ): boolean => {
-  const normalizedShipName = normalizeShipNameForMatch(shipName)
+  const normalizedShipNames = [ship.name, ship.canonicalName].map(normalizeShipNameForMatch)
   return constraintNames.some((name) =>
-    normalizedShipName.includes(normalizeShipNameForMatch(name)),
+    normalizedShipNames.some((shipName) => shipName.includes(normalizeShipNameForMatch(name))),
   )
 }
 
@@ -411,7 +411,7 @@ const satisfiesFleetConstraints = (
     if (constraint.kind === 'ship-count') return members.length === constraint.exact
     if (constraint.kind === 'specific-ship-name') {
       const count = members.filter((member) =>
-        shipMatchesNameConstraint(member.ship.name, constraint.names),
+        shipMatchesNameConstraint(member.ship, constraint.names),
       ).length
       return count >= constraint.min
     }
@@ -446,9 +446,9 @@ const requiredConstraintBonus = (
   route.fleetConstraints.reduce((bonus, constraint) => {
     if (constraint.kind === 'specific-ship-name') {
       const current = members.filter((member) =>
-        shipMatchesNameConstraint(member.ship.name, constraint.names),
+        shipMatchesNameConstraint(member.ship, constraint.names),
       ).length
-      const matches = shipMatchesNameConstraint(ship.name, constraint.names)
+      const matches = shipMatchesNameConstraint(ship, constraint.names)
       return bonus + (current < constraint.min && matches ? 2000 : 0)
     }
     if (constraint.kind !== 'ship-type-count') return bonus
@@ -480,7 +480,7 @@ const shipMatchesFleetConstraint = (
   constraint: CountedFleetConstraint,
 ): boolean =>
   constraint.kind === 'specific-ship-name'
-    ? shipMatchesNameConstraint(ship.name, constraint.names)
+    ? shipMatchesNameConstraint(ship, constraint.names)
     : constraint.shipTypeIds.includes(ship.shipTypeId)
 
 const createFleetCompletionChecker = (
@@ -607,7 +607,7 @@ const genericCandidatePool = (
     const isNamedRequirement = route.fleetConstraints.some(
       (constraint) =>
         constraint.kind === 'specific-ship-name' &&
-        shipMatchesNameConstraint(ship.name, constraint.names),
+        shipMatchesNameConstraint(ship, constraint.names),
     )
     if (count >= FLEET_CANDIDATES_PER_ROLE && !isNamedRequirement) return false
     byType.set(ship.shipTypeId, count + 1)
@@ -617,7 +617,7 @@ const genericCandidatePool = (
     const matchesNamedRequirement = route.fleetConstraints.some(
       (constraint) =>
         constraint.kind === 'specific-ship-name' &&
-        shipMatchesNameConstraint(ship.name, constraint.names),
+        shipMatchesNameConstraint(ship, constraint.names),
     )
     if (matchesNamedRequirement) return 2
     const matchesRequiredShipType = route.fleetConstraints.some((constraint) => {
@@ -772,7 +772,7 @@ export const analyzeFleetAvailability = (
   route.fleetConstraints.forEach((constraint) => {
     if (constraint.kind === 'specific-ship-name') {
       const count = account.ships.filter((ship) =>
-        shipMatchesNameConstraint(ship.name, constraint.names),
+        shipMatchesNameConstraint(ship, constraint.names),
       ).length
       if (count < constraint.min) {
         reasons.push({
@@ -783,7 +783,7 @@ export const analyzeFleetAvailability = (
       }
       if (fastRequired) {
         const fastCount = account.ships.filter(
-          (ship) => ship.speed !== 'slow' && shipMatchesNameConstraint(ship.name, constraint.names),
+          (ship) => ship.speed !== 'slow' && shipMatchesNameConstraint(ship, constraint.names),
         ).length
         if (count >= constraint.min && fastCount < constraint.min) {
           reasons.push({

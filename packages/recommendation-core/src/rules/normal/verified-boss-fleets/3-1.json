@@ -48,6 +48,149 @@
       ]
     },
     {
+      "id": "3-1-kankorekore-by11-bbv-ca-cl-dd",
+      "name": "艦これこれくと・日英米合同",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "F", "G"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "carrier-free", "yearly-by11"],
+      "desc": "航戦1、重巡級2、軽巡1、駆逐2。空母なし、米英艦3隻以上の日英米合同水上艦隊向けC-F-G編成。",
+      "lastVerified": "2026-09-01",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ContainsShipName",
+          "names": [
+            "Northampton",
+            "Houston",
+            "Minneapolis",
+            "Tuscaloosa",
+            "Brooklyn",
+            "Phoenix",
+            "General Belgrano",
+            "Honolulu",
+            "Helena",
+            "Atlanta",
+            "Fletcher",
+            "Johnston",
+            "Heywood L.E.",
+            "Richard P.Leary",
+            "Samuel B.Roberts",
+            "Sheffield",
+            "Jervis",
+            "Janus",
+            "Javelin"
+          ],
+          "count": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 85,
+          "recommended": 85
+        }
+      ],
+      "sources": ["https://kankorekore.2-d.jp/s089/"]
+    },
+    {
+      "id": "3-1-zekamashi-by11-cav-clt-cl-dd",
+      "name": "ぜかまし・日英米合同",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "F", "G"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-alternative",
+        "fixed-route",
+        "quest-friendly",
+        "carrier-free",
+        "yearly-by11"
+      ],
+      "desc": "航巡1、雷巡1、軽巡2、駆逐2。空母なし、米英艦3隻以上で日英米合同水上艦隊と北方海域警備を兼用するC-F-G編成。",
+      "lastVerified": "2026-09-01",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ContainsShipName",
+          "names": [
+            "Brooklyn",
+            "Phoenix",
+            "General Belgrano",
+            "Honolulu",
+            "Helena",
+            "Atlanta",
+            "Fletcher",
+            "Johnston",
+            "Heywood L.E.",
+            "Richard P.Leary",
+            "Samuel B.Roberts",
+            "Sheffield",
+            "Jervis",
+            "Janus",
+            "Javelin"
+          ],
+          "count": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 45,
+          "recommended": 45
+        }
+      ],
+      "sources": ["https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/"]
+    },
+    {
       "id": "3-1-bahamut-bbv-cv-cav-cl-dd2",
       "name": "巴哈姆特・行飛・北方警備混成",
       "category": "boss",
