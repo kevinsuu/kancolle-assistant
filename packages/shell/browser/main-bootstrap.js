@@ -17,6 +17,7 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
     ipcMain,
     logger,
     safeStorage,
+    syncQuestList,
   }) => {
     registerDmmCredentialVault({ app, dialog, ipcMain, safeStorage })
     recommendationService = createRecommendationWorkerService({
@@ -30,6 +31,7 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
       planExpeditions: (input) => recommendationService.planExpeditions(input),
       summarizeResourceLedger: (input) => recommendationService.summarizeResourceLedger(input),
       logger,
+      syncQuestList,
     })
   }
 

@@ -54,6 +54,7 @@ import {
   showKc3DevToolsPanel,
 } from './devtools/kc3-devtools'
 import { createMainBootstrap } from './main-bootstrap'
+import { createKC3QuestLiveSync } from './recommendation/kc3-quest-live-sync'
 
 import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
@@ -268,6 +269,7 @@ const isDmmRegionBlockUrl = (value) => {
 }
 const isDmmGamePageUrl = (value) =>
   value === DMMPageUrl || value.startsWith(`${DMMPageUrl}?`) || value.startsWith(`${DMMPageUrl}/`)
+const isKc3GamePageUrl = (value) => value === kc3StartPageUrl || isDmmGamePageUrl(value)
 const manifestExists = async (dirPath) => {
   if (!dirPath) return false
   const manifestPath = path.join(dirPath, 'manifest.json')
@@ -576,6 +578,7 @@ class Browser extends EventEmitter {
   kc3IsUpdating = false
   kccpModderIsUpdating = false
   isProxyEnabled = false
+  questLiveSync = null
   session = null
   startupDisplayMetrics = null
 
@@ -724,6 +727,35 @@ class Browser extends EventEmitter {
     return window ? this.getWindowFromBrowserWindow(window) : null
   }
 
+  async synchronizeQuestList(event) {
+    let senderWindow = null
+    try {
+      senderWindow = this.getWindowFromWebContents(event.sender)
+    } catch {
+      senderWindow = null
+    }
+    const focusedWindow = this.getFocusedWindow()
+    const candidateWindows = [senderWindow, focusedWindow, ...this.windows].filter(
+      (window, index, windows) => window && windows.indexOf(window) === index,
+    )
+    const gameTabs = candidateWindows.flatMap((window) => {
+      const tabs = window.tabs.tabList.filter(
+        (tab) => tab.webContents && isKc3GamePageUrl(tab.webContents.getURL()),
+      )
+      return window.tabs.selected && tabs.includes(window.tabs.selected)
+        ? [window.tabs.selected, ...tabs.filter((tab) => tab !== window.tabs.selected)]
+        : tabs
+    })
+    const gameTab =
+      gameTabs.find((tab) => this.questLiveSync?.hasContext(tab.webContents.id)) || gameTabs[0]
+    if (!gameTab || gameTab.webContents.isDestroyed()) {
+      throw Object.assign(new Error('No active KanColle game tab is available.'), {
+        code: 'KC3_QUEST_SYNC_GAME_TAB_UNAVAILABLE',
+      })
+    }
+    return this.questLiveSync.synchronize(gameTab.webContents.id)
+  }
+
   async init() {
     if (process.platform === 'darwin' && !app.isPackaged) {
       app.dock.setIcon(PATHS.APP_ICON)
@@ -732,6 +764,7 @@ class Browser extends EventEmitter {
     this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
     kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
+    this.questLiveSync = createKC3QuestLiveSync({ requestSession: this.session })
     setupMenu(this)
     mainBootstrap.registerCoreServices({
       app,
@@ -741,6 +774,7 @@ class Browser extends EventEmitter {
       ipcMain,
       logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
       safeStorage,
+      syncQuestList: (event) => this.synchronizeQuestList(event),
     })
     app.once('will-quit', () => mainBootstrap.dispose())
 
@@ -1067,6 +1101,17 @@ class Browser extends EventEmitter {
 
     this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
       if (details.url.startsWith('ws')) return
+      void this.questLiveSync?.observeRequest(details).catch((error) => {
+        kccp.logger.log(logSource, 'quest-recommendation.live-sync-context-capture-failed', {
+          operation: 'capture-game-api-context',
+          gameWebContentsId: Number(details.webContentsId || 0) || null,
+          outcome: 'failed',
+          reasonCodes: ['KC3_QUEST_SYNC_CONTEXT_CAPTURE_FAILED'],
+          message: String(error?.message || error)
+            .replace(/\s+/g, ' ')
+            .slice(0, 160),
+        })
+      })
       const url = new URL(details.url)
       const cfg = configStore.get('proxy')
 
@@ -1674,6 +1719,9 @@ class Browser extends EventEmitter {
     const browser = this
     const type = webContents.getType()
     const url = webContents.getURL()
+    const webContentsId = webContents.id
+
+    webContents.once('destroyed', () => browser.questLiveSync?.forget(webContentsId))
 
     webContents.setBackgroundThrottling(configStore.get('window.behavior.occlusion'))
 

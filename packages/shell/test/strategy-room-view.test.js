@@ -17,7 +17,24 @@ import {
   getStrategyRoomLanguage,
   getStrategyRoomLocale,
 } from '../browser/recommendation/i18n.js'
+import {
+  EXPEDITION_PLANNER_SETTINGS_STORAGE_KEY,
+  readExpeditionPlannerSettings,
+  writeExpeditionPlannerSettings,
+} from '../browser/recommendation/expedition-goal-ui.js'
 import { EXPEDITION_RESOURCES } from '../browser/recommendation/resource-metadata.js'
+import {
+  classifyQuestRewards,
+  extractNormalMapIds,
+  rankQuestRecommendations,
+} from '../browser/recommendation/quest-recommendation.js'
+import {
+  downloadQuestRecommendationMarkdown,
+  filterAndSortQuestRecommendationGroups,
+  QUEST_MAP_CHAPTER_KEYS,
+  questRecommendationMarkdown,
+  questRecommendationListMarkup,
+} from '../browser/recommendation/quest-recommendation-ui.js'
 import {
   movePriorityResourceOrder,
   plannerMarkup,
@@ -27,11 +44,18 @@ import {
   panelMarkup as fleetMarkup,
   styles as fleetStyles,
 } from '../browser/recommendation/views/fleet-recommender-view.js'
-import { localizedRouteDescription } from '../browser/recommendation/strategy-room-ui.js'
+import {
+  localizedRouteDescription,
+  routeOptionLabel,
+} from '../browser/recommendation/strategy-room-ui.js'
 import {
   recentSectionMarkup,
   styles as recentStyles,
 } from '../browser/recommendation/views/recent-tabs-view.js'
+import {
+  panelMarkup as questMarkup,
+  styles as questStyles,
+} from '../browser/recommendation/views/quest-recommendation-view.js'
 import {
   panelMarkup as resourceCenterMarkup,
   styles as resourceCenterStyles,
@@ -72,6 +96,7 @@ const viewSnapshot = (language) => {
     resourceCenterMarkup(t),
     resourceLedgerMarkup(t),
     recentSectionMarkup(t),
+    questMarkup(t),
   ].join('\n---view---\n')
   return createHash('sha256').update(output).digest('hex')
 }
@@ -80,11 +105,24 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: 'daf3412d9b2009ea4863ba742e39d9ff79e73b4e684912ae01bdb8f927f62690',
-      jp: '4d7f94bd0d5e61e99b4811f7eebf55bdd3ccd42006a85521ccd290e5c1929fb9',
-      scn: 'c0e2b5af8bc8e39d52bab40595eddb722565bc89a6c23bd7af73ed9be7c9a0d8',
-      tcn: 'ad27a5ea665a566a5a52b0dfd66110dbffb82684f26ffbb28d6f3db3e63a8fde',
+      en: '0afb90e0a6fc632f19557ad7fd628a42e099de29dc156f807b8d7d29d78e6c1d',
+      jp: '0b1ba8c4a00fc106f2b7f72f02b40f4c0fd72de36d184d62e6b194e9a7e9e947',
+      scn: '34cfa1120a0092fdb1c5f634b289b7ceb32e8031fe8ec4d7295a858d7dd5773c',
+      tcn: '2473aa440a010d9dfd8218c08d245e26f4edf95869205d12951187425817dd46',
     },
+  )
+})
+
+test('fleet route options show the guide name before source sites', () => {
+  assert.equal(
+    routeOptionLabel({
+      name: 'CoNye・長陸最矢流',
+      sources: [
+        'https://conye.hatenablog.com/entry/2021/08/13/180323',
+        'https://kamigame.jp/kancolle/fixture',
+      ],
+    }),
+    'CoNye・長陸最矢流｜conye.hatenablog.com + kamigame.jp',
   )
 })
 
@@ -114,6 +152,1159 @@ test('priority order movement keeps ranks unique and continuous', () => {
   )
 
   assert.deepEqual(moved, ['steel', 'bucket', 'fuel', 'bauxite', 'ammo'])
+})
+
+test('quest recommendations order by guidance, defer daily ties, then use deadline', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 1,
+        period: 'monthly',
+        status: 1,
+        resetAt: now + 23 * 60 * 60 * 1000,
+        memo: 'Rewards other materials.',
+      },
+      {
+        id: 2,
+        period: 'quarterly',
+        status: 2,
+        resetAt: now + 2 * 24 * 60 * 60 * 1000,
+        memo: 'Rewards a Medal.',
+      },
+      {
+        id: 3,
+        period: 'monthly',
+        status: 1,
+        resetAt: now + 3 * 24 * 60 * 60 * 1000,
+        memo: 'Rewards a Medal.',
+      },
+      {
+        id: 4,
+        period: 'daily',
+        status: 1,
+        resetAt: now + 4 * 60 * 60 * 1000,
+        memo: 'Rewards a Medal.',
+      },
+      {
+        id: 5,
+        period: 'weekly',
+        status: 1,
+        resetAt: now + 12 * 60 * 60 * 1000,
+        rewardConsumables: [0, 0, 0, 1],
+      },
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    result.recommendations.map(({ id }) => id),
+    [2, 3, 4, 5, 1],
+  )
+})
+
+test('quest recommendations use repeatability and effective reward as the primary value bands', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 7 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 1,
+        period: 'weekly',
+        status: 1,
+        resetAt,
+        memo: 'Rewards 2 Screws.',
+      },
+      {
+        id: 2,
+        period: 'oneTime',
+        status: 1,
+        memo: 'Rewards a Medal.',
+      },
+      { id: 3, period: 'monthly', status: 1, resetAt, memo: 'Rewards furniture.' },
+      { id: 4, period: 'oneTime', status: 1, memo: 'Rewards furniture.' },
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    result.recommendations.map(({ id, valueBand }) => ({ id, valueBand })),
+    [
+      { id: 1, valueBand: 4 },
+      { id: 2, valueBand: 3 },
+      { id: 3, valueBand: 2 },
+      { id: 4, valueBand: 1 },
+    ],
+  )
+  assert.equal(result.oneTimeCount, 2)
+})
+
+test('quest recommendations inherit valuable rewards through locked successor chains', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 7 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 10,
+        code: 'A10',
+        name: 'Small prerequisite',
+        period: 'oneTime',
+        status: 1,
+        memo: 'Rewards furniture.',
+        unlockIds: [11],
+      },
+      {
+        id: 11,
+        code: 'A11',
+        name: 'Middle prerequisite',
+        period: 'oneTime',
+        status: 0,
+        locked: true,
+        unlockIds: [12],
+      },
+      {
+        id: 12,
+        code: 'Bq6',
+        name: 'Action Report successor',
+        period: 'quarterly',
+        status: 0,
+        locked: true,
+        resetAt,
+        memo: 'Selectable Reward: Action Report x1.',
+      },
+      {
+        id: 20,
+        period: 'oneTime',
+        status: 1,
+        memo: 'Rewards 2 Screws.',
+      },
+      { id: 30, period: 'weekly', status: 1, resetAt, memo: 'Rewards furniture.' },
+      {
+        id: 40,
+        period: 'oneTime',
+        status: 1,
+        unlockIds: [41],
+        memo: 'Rewards furniture.',
+      },
+      {
+        id: 41,
+        period: 'oneTime',
+        status: 1,
+        memo: 'Rewards a Medal.',
+      },
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    result.recommendations.map(({ id }) => id),
+    [41, 10, 20, 30, 40],
+  )
+  const prerequisite = result.recommendations.find(({ id }) => id === 10)
+  assert.equal(prerequisite.effectiveReward.source, 'downstream')
+  assert.equal(prerequisite.effectiveReward.sourceQuestId, 12)
+  assert.equal(prerequisite.guidance.reasonKeys.includes('downstreamValue'), true)
+  assert.deepEqual(
+    prerequisite.downstreamTargets.map(({ id, depth, pathIds }) => ({ id, depth, pathIds })),
+    [{ id: 12, depth: 2, pathIds: [11, 12] }],
+  )
+  assert.equal(result.downstreamValueQuestCount, 1)
+  assert.equal(result.recommendations.find(({ id }) => id === 40).downstreamTargets.length, 0)
+})
+
+test('quest rewards preserve medal, action report, screws, and other priority', () => {
+  const rewards = [
+    classifyQuestRewards({ memo: '獎勵：改裝設計圖x1' }),
+    classifyQuestRewards({ memo: '獎勵：戰鬥詳報x1' }),
+    classifyQuestRewards({ rewardConsumables: [0, 0, 0, 20] }),
+    classifyQuestRewards({ memo: '獎勵：高速修復材x5' }),
+  ]
+
+  assert.deepEqual(
+    rewards.map(({ category, priority }) => ({ category, priority })),
+    [
+      { category: 'medalBlueprint', priority: 4 },
+      { category: 'actionReport', priority: 3 },
+      { category: 'screws', priority: 2 },
+      { category: 'other', priority: 1 },
+    ],
+  )
+  assert.equal(classifyQuestRewards({ memo: 'Rewards a Screw.' }).priority, 2)
+})
+
+test('quest recommendations return every current fixed-reset quest', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 7 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      { id: 1, period: 'monthly', status: 1, resetAt },
+      { id: 2, period: 'quarterly', status: 2, resetAt },
+      { id: 3, period: 'weekly', status: 2, resetAt },
+      { id: 4, period: 'monthly', status: 3, resetAt },
+      { id: 5, period: 'quarterly', status: 1, resetAt: now - 1 },
+      { id: 6, period: 'monthly', status: 1, resetAt },
+      { id: 7, period: 'quarterly', status: 1, resetAt },
+      { id: 8, period: 'monthly', status: 1, resetAt },
+      { id: 9, period: 'quarterly', status: 1, resetAt },
+      { id: 10, period: 'monthly', status: 1, resetAt },
+      { id: 11, period: 'daily', status: 1, resetAt },
+      { id: 12, period: 'yearly', resetPeriod: 'yearlySep', status: 1, resetAt },
+      { id: 13, period: 'other', status: 1, resetAt },
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    result.recommendations.map(({ id }) => id),
+    [2, 3, 1, 6, 7, 8, 9, 10, 12, 11],
+  )
+  assert.equal(result.recommendations.length, result.candidateCount)
+  assert.equal(result.groupCount, result.candidateCount)
+  assert.deepEqual(
+    result.groups.flatMap(({ quests }) => quests.map(({ id }) => id)),
+    result.recommendations.map(({ id }) => id),
+  )
+  assert.equal(result.monthlyCount, 4)
+  assert.equal(result.quarterlyCount, 3)
+  assert.equal(result.dailyCount, 1)
+  assert.equal(result.weeklyCount, 1)
+  assert.equal(result.yearlyCount, 1)
+  assert.deepEqual(result.periodCounts, {
+    daily: 1,
+    weekly: 1,
+    monthly: 4,
+    quarterly: 3,
+    yearly: 1,
+    oneTime: 0,
+  })
+})
+
+test('quest chapter filters default on while non-sortie quests stay visible at the top', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 1_301,
+        code: 'B201',
+        name: 'Chapter one fixture',
+        description: '在 １－１、1-5 與 1—6 完成指定出擊。',
+        period: 'oneTime',
+        status: 1,
+      },
+      {
+        id: 1_302,
+        code: 'B202',
+        name: 'Chapter two fixture',
+        description: 'S-rank [W2-2] and [W2-5].',
+        period: 'oneTime',
+        status: 1,
+      },
+      {
+        id: 1_303,
+        code: 'B203',
+        name: 'Cross chapter fixture',
+        description: 'Complete 1-4, 2-3, and 7-5.',
+        period: 'oneTime',
+        status: 1,
+      },
+      {
+        id: 1_304,
+        code: 'C201',
+        name: 'Exercise fixture',
+        description: 'Win three exercises.',
+        period: 'oneTime',
+        status: 1,
+      },
+    ],
+    { now },
+  )
+
+  assert.deepEqual(extractNormalMapIds('１－１ / 1–6 / W2-5 / 7-6'), ['1-1', '1-6', '2-5'])
+  assert.deepEqual(
+    result.recommendations.map(({ id, mapIds, chapterKey }) => ({ id, mapIds, chapterKey })),
+    [
+      { id: 1301, mapIds: ['1-1', '1-5', '1-6'], chapterKey: 'world1' },
+      { id: 1302, mapIds: ['2-2', '2-5'], chapterKey: 'world2' },
+      { id: 1303, mapIds: ['1-4', '2-3', '7-5'], chapterKey: 'crossWorld' },
+      { id: 1304, mapIds: [], chapterKey: 'other' },
+    ],
+  )
+  assert.deepEqual(result.chapterCounts, {
+    world1: 1,
+    world2: 1,
+    world3: 0,
+    world4: 0,
+    world5: 0,
+    world6: 0,
+    world7: 0,
+    crossWorld: 1,
+    other: 1,
+  })
+
+  const idsFor = (view) =>
+    view.groups.flatMap(({ quests: groupQuests }) => groupQuests.map(({ id }) => id))
+  assert.deepEqual(idsFor(filterAndSortQuestRecommendationGroups(result)), [1304, 1301, 1302, 1303])
+  assert.deepEqual(
+    idsFor(filterAndSortQuestRecommendationGroups(result, { chapterFilters: ['world1'] })),
+    [1304, 1301, 1303],
+  )
+  assert.deepEqual(
+    idsFor(filterAndSortQuestRecommendationGroups(result, { chapterFilters: ['world3'] })),
+    [1304],
+  )
+  assert.deepEqual(idsFor(filterAndSortQuestRecommendationGroups(result, { chapterFilters: [] })), [
+    1304,
+  ])
+
+  const mixedGroupView = filterAndSortQuestRecommendationGroups(
+    {
+      recommendations: result.recommendations,
+      groups: [
+        {
+          id: 'mixed-scope-fixture',
+          kind: 'combined',
+          synergy: { id: 'mixed-scope-fixture' },
+          quests: [
+            result.recommendations.find(({ id }) => id === 1301),
+            result.recommendations.find(({ id }) => id === 1304),
+          ],
+        },
+      ],
+    },
+    { chapterFilters: [] },
+  )
+  assert.equal(mixedGroupView.groups.length, 1)
+  assert.equal(mixedGroupView.groups[0].kind, 'single')
+  assert.equal(mixedGroupView.groups[0].synergy, null)
+  assert.deepEqual(idsFor(mixedGroupView), [1304])
+
+  assert.deepEqual(QUEST_MAP_CHAPTER_KEYS, [
+    'world1',
+    'world2',
+    'world3',
+    'world4',
+    'world5',
+    'world6',
+    'world7',
+  ])
+
+  const markup = questRecommendationListMarkup(result)
+  assert.equal(markup.indexOf('Exercise fixture') < markup.indexOf('Chapter one fixture'), true)
+  assert.doesNotMatch(markup, /dqr-chapter-heading/)
+  assert.doesNotMatch(markup, /Chapter 1 · 1-1–1-6/)
+  assert.equal((markup.match(/class="dqr-quest-node"/g) || []).length, 4)
+
+  const controls = questMarkup(translator('en'))
+  assert.equal((controls.match(/data-quest-chapter="world[1-7]"/g) || []).length, 7)
+  assert.equal((controls.match(/dqr-chapter-filter is-active/g) || []).length, 7)
+  assert.match(controls, /class="dqr-toolbar-button dqr-export"[^>]*disabled/)
+  assert.equal(controls.indexOf('dqr-export') < controls.indexOf('dqr-refresh'), true)
+})
+
+test('quest recommendations explain verified 1-5 quest and EO combinations', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 265,
+        code: 'Bm5',
+        name: 'Monthly 1-5',
+        period: 'monthly',
+        status: 2,
+        resetAt: now + 7 * 24 * 60 * 60 * 1000,
+        memo: 'Rewards 3 Screws.',
+        rewardConsumables: [0, 0, 0, 3],
+      },
+      {
+        id: 893,
+        code: 'Bq8',
+        name: 'Quarterly 1-5',
+        period: 'quarterly',
+        status: 1,
+        resetAt: now + 31 * 24 * 60 * 60 * 1000,
+      },
+      {
+        id: 261,
+        code: 'Bw10',
+        name: 'Weekly 1-5',
+        period: 'weekly',
+        status: 2,
+        resetAt: now + 5 * 24 * 60 * 60 * 1000,
+      },
+      {
+        id: 228,
+        code: 'Bw5',
+        name: 'Weekly submarines',
+        period: 'weekly',
+        status: 1,
+        resetAt: now + 5 * 24 * 60 * 60 * 1000,
+      },
+    ],
+    { now, extraOperationStatus: { '1-5': 'available' } },
+  )
+
+  const monthly = result.recommendations.find(({ id }) => id === 265)
+  assert.equal(monthly.synergies[0].id, 'one-five-monthly-stack')
+  assert.deepEqual(monthly.synergies[0].relationKinds, ['sameSortie'])
+  assert.deepEqual(monthly.synergies[0].mapIds, ['1-5'])
+  assert.deepEqual(monthly.synergies[0].extraObjectiveKeys, ['oneFiveExtraOperation'])
+  assert.deepEqual(monthly.synergies[0].stages[0].instructionKeys, [
+    'oneFiveThreeBosses',
+    'oneFiveFourBosses',
+    'oneFiveFifteenSubmarines',
+    'oneFiveTenBosses',
+  ])
+  assert.deepEqual(
+    monthly.synergies[0].companions.map(({ id }) => id),
+    [893, 261, 228],
+  )
+  assert.equal('memo' in monthly, false)
+  assert.equal('rewardConsumables' in monthly, false)
+  assert.equal(result.groupCount, 1)
+  assert.equal(result.combinedGroupCount, 1)
+  assert.equal(result.groups[0].kind, 'combined')
+  assert.deepEqual(
+    result.groups.flatMap(({ quests }) => quests.map(({ id }) => id)).sort((a, b) => a - b),
+    [228, 261, 265, 893],
+  )
+
+  const completedExtraOperation = rankQuestRecommendations(
+    [{ id: 265, period: 'monthly', status: 2, resetAt: now + 7 * 24 * 60 * 60 * 1000 }],
+    { now, extraOperationStatus: { '1-5': 'cleared' } },
+  )
+  assert.deepEqual(completedExtraOperation.recommendations[0].synergies, [])
+})
+
+test('quest recommendations group verified exercise, expedition, and arsenal shared actions', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 7 * 24 * 60 * 60 * 1000
+  const quest = (id, code, period = 'weekly') => ({
+    id,
+    code,
+    name: `Quest ${id}`,
+    period,
+    status: 1,
+    resetAt,
+  })
+
+  const exercise = rankQuestRecommendations(
+    [
+      quest(302, 'Cw1'),
+      quest(303, 'Cd1', 'daily'),
+      quest(304, 'Cd2', 'daily'),
+      quest(337, 'Cq2', 'quarterly'),
+    ],
+    { now },
+  )
+  assert.equal(exercise.groupCount, 1)
+  assert.deepEqual(exercise.groups[0].synergy.relationKinds, ['sameExercise'])
+  assert.deepEqual(
+    exercise.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
+    [302, 303, 304, 337],
+  )
+
+  const expedition = rankQuestRecommendations(
+    [
+      quest(402, 'Dd1', 'daily'),
+      quest(403, 'Dd2', 'daily'),
+      quest(424, 'Dm1', 'monthly'),
+      quest(426, 'Dq1', 'quarterly'),
+    ],
+    { now },
+  )
+  assert.equal(expedition.groupCount, 1)
+  assert.deepEqual(expedition.groups[0].synergy.relationKinds, ['sameExpedition'])
+  assert.deepEqual(
+    expedition.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
+    [402, 403, 424, 426],
+  )
+
+  const arsenal = rankQuestRecommendations(
+    [
+      quest(638, 'Fw2'),
+      quest(674, 'Fd8', 'daily'),
+      quest(675, 'Fq4', 'quarterly'),
+      quest(680, 'Fq6', 'quarterly'),
+    ],
+    { now },
+  )
+  assert.equal(arsenal.groupCount, 1)
+  assert.deepEqual(arsenal.groups[0].synergy.relationKinds, ['sameArsenal'])
+  assert.deepEqual(
+    arsenal.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
+    [638, 674, 675, 680],
+  )
+
+  const markup = questRecommendationListMarkup(arsenal)
+  assert.match(markup, /Same arsenal action/)
+  assert.match(markup, /one action advances them together/)
+})
+
+test('quest recommendation cards balance requirements, icon rewards, and schedule', () => {
+  const recommendations = [
+    {
+      id: 249,
+      code: 'Bm1',
+      name: '<Monthly fixture>',
+      description: '<script>unsafe()</script>',
+      status: 2,
+      period: 'monthly',
+      resetAt: '2026-10-01T05:00:00+09:00',
+      remainingMs: 2 * 24 * 60 * 60 * 1000,
+      mapIds: ['1-5'],
+      reward: {
+        category: 'medalBlueprint',
+        hasBlueprint: false,
+        hasMedal: true,
+        hasActionReport: false,
+        hasScrews: true,
+        screwCount: 2,
+      },
+      synergies: [
+        {
+          id: 'one-five-monthly-stack',
+          mapIds: ['1-5'],
+          fleetKey: 'fourDe',
+          extraObjectiveKeys: ['oneFiveExtraOperation'],
+          instructionKeys: ['oneFiveFifteenSubmarines'],
+          companions: [{ id: 228, code: 'Bw5', name: '<Weekly submarines>', status: 2 }],
+        },
+      ],
+    },
+    {
+      id: 500,
+      code: 'B100',
+      name: 'One-time prerequisite',
+      description: 'Complete once.',
+      status: 1,
+      period: 'oneTime',
+      resetAt: null,
+      remainingMs: null,
+      mapIds: ['1-5'],
+      reward: { category: 'other' },
+      downstreamTargets: [
+        {
+          id: 875,
+          code: 'Bq6',
+          name: 'Action Report successor',
+          depth: 2,
+          reward: {
+            category: 'actionReport',
+            hasActionReport: true,
+            isChoiceReward: true,
+          },
+        },
+      ],
+      synergies: [],
+    },
+  ]
+  const markup = questRecommendationListMarkup({
+    recommendations,
+    groups: [
+      {
+        id: 'fixture-combined-group',
+        kind: 'combined',
+        quests: recommendations,
+        synergy: recommendations[0].synergies[0],
+      },
+    ],
+  })
+
+  assert.match(markup, /class="dqr-list"/)
+  assert.match(markup, /class="dqr-list-entry combined"/)
+  assert.doesNotMatch(markup, /dqr-flow/)
+  assert.match(markup, /class="dqr-card-grid"/)
+  assert.match(markup, /class="dqr-card-cell requirement"/)
+  assert.match(markup, /class="dqr-card-cell reward"/)
+  assert.match(markup, /class="dqr-card-cell schedule"/)
+  assert.match(markup, /class="dqr-rewards medalBlueprint"/)
+  assert.match(markup, /class="dqr-reward medalBlueprint medal"/)
+  assert.match(markup, /assets\/img\/client\/medal\.png/)
+  assert.match(markup, /assets\/img\/client\/screws\.png/)
+  assert.match(markup, />Medal</)
+  assert.match(markup, /Suggested combination/)
+  assert.match(markup, /Highest priority/)
+  assert.match(markup, /4 Coastal Defense Ships/)
+  assert.match(markup, /&lt;Weekly submarines&gt;/)
+  assert.match(markup, /&lt;Monthly fixture&gt;/)
+  assert.match(markup, />One-time</)
+  assert.match(markup, /No fixed reset deadline/)
+  assert.match(markup, /Valuable locked successors/)
+  assert.match(markup, /Action Report successor/)
+  assert.match(markup, /2 steps away/)
+  assert.doesNotMatch(markup, /<script>/)
+})
+
+const questMarkdownFixture = () => {
+  const monthly = {
+    id: 249,
+    code: 'Bm1',
+    name: 'Quest *alpha*',
+    description: 'Win three exercises with the required fleet.',
+    status: 2,
+    period: 'monthly',
+    resetAt: '2026-10-01T05:00:00+09:00',
+    remainingMs: 2 * 24 * 60 * 60 * 1000,
+    mapIds: ['1-5'],
+    reward: { category: 'medalBlueprint', hasMedal: true },
+    guidance: { tier: 'highest', reasonKeys: ['downstreamValue'] },
+    downstreamTargets: [
+      {
+        id: 875,
+        code: 'Bq6',
+        name: 'Locked successor',
+        depth: 2,
+        reward: { category: 'actionReport', hasActionReport: true },
+      },
+    ],
+  }
+  const weekly = {
+    id: 228,
+    code: 'Bw5',
+    name: 'Weekly submarines',
+    description: 'Defeat 15 submarines.',
+    status: 1,
+    period: 'weekly',
+    resetAt: '2026-09-08T05:00:00+09:00',
+    remainingMs: 24 * 60 * 60 * 1000,
+    mapIds: ['1-5'],
+    reward: { category: 'screws', hasScrews: true, screwCount: 2 },
+  }
+  const hidden = {
+    id: 999,
+    code: 'B2',
+    name: 'World two hidden fixture',
+    description: 'Clear 2-1.',
+    status: 1,
+    period: 'oneTime',
+    resetAt: null,
+    remainingMs: null,
+    mapIds: ['2-1'],
+    reward: { category: 'other' },
+  }
+  const synergy = {
+    relationKinds: ['sameSortie'],
+    stages: [
+      {
+        kind: 'sameSortie',
+        mapIds: ['1-5'],
+        fleetKey: 'fourDe',
+        participants: [
+          { id: monthly.id, code: monthly.code, name: monthly.name, locked: false },
+          { id: weekly.id, code: weekly.code, name: weekly.name, locked: false },
+        ],
+        extraObjectiveKeys: ['oneFiveExtraOperation'],
+        instructionKeys: ['oneFiveFifteenSubmarines'],
+      },
+    ],
+  }
+  return {
+    result: {
+      status: 'success',
+      generatedAt: '2026-09-01T08:37:26.000Z',
+      candidateCount: 3,
+      groupCount: 2,
+      dailyCount: 0,
+      weeklyCount: 1,
+      monthlyCount: 1,
+      quarterlyCount: 0,
+      yearlyCount: 0,
+      oneTimeCount: 1,
+      downstreamValueQuestCount: 1,
+      availableExtraOperationCount: 1,
+      unavailableQuestCount: 0,
+      recommendations: [monthly, weekly, hidden],
+      extraOperations: [{ mapId: '1-5', status: 'available' }],
+      groups: [
+        {
+          id: 'one-five-combined',
+          kind: 'combined',
+          quests: [monthly, weekly],
+          synergy,
+        },
+        { id: 'world-two', kind: 'single', quests: [hidden], synergy: null },
+      ],
+    },
+    viewState: {
+      chapterFilters: ['world1'],
+      rewardFilters: [],
+      sortMode: 'deadlineDesc',
+    },
+    exportedAt: '2026-09-01T09:00:00.000Z',
+  }
+}
+
+test('quest Markdown exports the visible list with complete card and combination details', () => {
+  const markdown = questRecommendationMarkdown(questMarkdownFixture())
+
+  assert.match(markdown, /^# Quest Recommendations/m)
+  assert.match(markdown, /## Applied filters/)
+  assert.match(markdown, /Chapter 1/)
+  assert.match(markdown, /Deadline far → near/)
+  assert.match(markdown, /Showing 2/)
+  assert.match(markdown, /Monthly EO Medal route/)
+  assert.match(markdown, /Suggested combination/)
+  assert.match(markdown, /Quest \\[*]alpha\\[*]/)
+  assert.match(markdown, /Win three exercises with the required fleet\./)
+  assert.match(markdown, /Medal/)
+  assert.match(markdown, /Locked successor/)
+  assert.match(markdown, /Action Report/)
+  assert.match(markdown, /Weekly submarines/)
+  assert.match(markdown, /Improvement Materials ×2/)
+  assert.match(markdown, /Same sortie/)
+  assert.match(markdown, /4 Coastal Defense Ships/)
+  assert.match(markdown, /Defeat 15 submarines/)
+  assert.doesNotMatch(markdown, /World two hidden fixture/)
+})
+
+test('quest Markdown download reports bounded success and failure diagnostics', () => {
+  const events = []
+  const links = []
+  const logger = {
+    info: (prefix, details) => events.push({ prefix, ...details }),
+    warn: (prefix, details) => events.push({ prefix, ...details }),
+  }
+  const urlObject = {
+    createObjectURL: () => 'blob:fixture',
+    revokeObjectURL: (value) => events.push({ outcome: 'revoked', value }),
+  }
+  const documentObject = {
+    body: { appendChild: (link) => links.push(link) },
+    createElement: () => ({ click() {}, remove() {} }),
+  }
+
+  assert.equal(
+    downloadQuestRecommendationMarkdown(questMarkdownFixture(), {
+      documentObject,
+      urlObject,
+      logger,
+    }),
+    true,
+  )
+  assert.equal(links[0].download, 'kancolle-quests-2026-09-01.md')
+  assert.deepEqual(
+    events
+      .filter(({ outcome }) => outcome !== 'revoked')
+      .map(({ event, outcome, visibleQuestCount, groupCount, sortMode }) => ({
+        event,
+        outcome,
+        visibleQuestCount,
+        groupCount,
+        sortMode,
+      })),
+    [
+      {
+        event: 'quest-recommendation-markdown-export',
+        outcome: 'downloaded',
+        visibleQuestCount: 2,
+        groupCount: 1,
+        sortMode: 'deadlineDesc',
+      },
+    ],
+  )
+
+  assert.equal(
+    downloadQuestRecommendationMarkdown(questMarkdownFixture(), {
+      documentObject: {
+        createElement: () => {
+          throw new Error('blocked')
+        },
+      },
+      urlObject,
+      logger,
+    }),
+    false,
+  )
+  assert.equal(events.at(-2).outcome, 'failed')
+  assert.equal(events.at(-2).reasonCode, 'MARKDOWN_DOWNLOAD_FAILED')
+  assert.equal(events.at(-2).error, 'blocked')
+})
+
+test('quest reward filters include valuable successors and keep groups sortable', () => {
+  const day = 24 * 60 * 60 * 1000
+  const quests = [
+    {
+      id: 1,
+      resetAt: day,
+      reward: { category: 'medalBlueprint', valuable: true },
+    },
+    {
+      id: 2,
+      resetAt: 10 * day,
+      reward: { category: 'actionReport', valuable: true },
+    },
+    {
+      id: 3,
+      resetAt: 5 * day,
+      reward: { category: 'screws', valuable: true },
+    },
+    {
+      id: 4,
+      resetAt: null,
+      reward: { category: 'other', valuable: false },
+    },
+    {
+      id: 5,
+      resetAt: 2 * day,
+      reward: { category: 'other', valuable: false },
+      downstreamTargets: [
+        {
+          depth: 3,
+          reward: { category: 'medalBlueprint', valuable: true },
+        },
+      ],
+    },
+  ]
+  const result = {
+    recommendations: quests,
+    groups: quests.map((quest) => ({ id: `quest:${quest.id}`, kind: 'single', quests: [quest] })),
+  }
+  const idsFor = (view) =>
+    view.groups.flatMap(({ quests: groupQuests }) => groupQuests.map(({ id }) => id))
+
+  const medalView = filterAndSortQuestRecommendationGroups(result, {
+    rewardFilters: ['medalBlueprint'],
+  })
+  assert.equal(medalView.visibleQuestCount, 2)
+  assert.deepEqual(idsFor(medalView), [1, 5])
+  assert.deepEqual(
+    idsFor(
+      filterAndSortQuestRecommendationGroups(result, {
+        rewardFilters: ['actionReport', 'screws'],
+      }),
+    ),
+    [3, 2],
+  )
+  assert.deepEqual(
+    idsFor(
+      filterAndSortQuestRecommendationGroups(result, {
+        rewardFilters: ['equipmentMaterials'],
+      }),
+    ),
+    [5, 4],
+  )
+  assert.deepEqual(
+    idsFor(filterAndSortQuestRecommendationGroups(result, { sortMode: 'deadlineDesc' })),
+    [2, 3, 5, 1, 4],
+  )
+  assert.deepEqual(
+    idsFor(
+      filterAndSortQuestRecommendationGroups(result, {
+        rewardFilters: ['medalBlueprint'],
+        sortMode: 'stepsAsc',
+      }),
+    ),
+    [1, 5],
+  )
+})
+
+test('quest plans distinguish same-sortie, sequence, and unlock relationships', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 90 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      { id: 822, code: 'Bq1', period: 'quarterly', status: 1, resetAt },
+      { id: 854, code: 'Bq2', period: 'quarterly', status: 2, resetAt },
+      { id: 861, code: 'Bq3', period: 'quarterly', status: 1, resetAt },
+      { id: 862, code: 'Bq4', period: 'quarterly', status: 0, resetAt, locked: true },
+    ],
+    { now },
+  )
+
+  const plan = result.recommendations.find(({ id }) => id === 822).synergies[0]
+  assert.equal(plan.id, 'z-front-quarterly-chain')
+  assert.deepEqual(plan.relationKinds, ['sameSortie', 'unlock'])
+  assert.deepEqual(
+    plan.stages.map(({ kind, mapIds }) => ({ kind, mapIds })),
+    [
+      { kind: 'sameSortie', mapIds: ['2-4'] },
+      { kind: 'unlock', mapIds: ['1-6', '6-3'] },
+    ],
+  )
+  assert.equal(plan.stages[1].participants[1].locked, true)
+  const markup = questRecommendationListMarkup(result)
+  assert.match(markup, /dqr-relation sameSortie/)
+  assert.match(markup, /dqr-relation unlock/)
+  assert.match(markup, /dqr-stage-participants/)
+  assert.match(markup, /class="locked"/)
+
+  const monthly = rankQuestRecommendations(
+    [
+      { id: 249, code: 'Bm1', period: 'monthly', status: 1, resetAt: now + 30_000 },
+      { id: 266, code: 'Bm7', period: 'monthly', status: 2, resetAt: now + 30_000 },
+    ],
+    { now, extraOperationStatus: { '2-5': 'available' } },
+  )
+  assert.deepEqual(monthly.recommendations[0].synergies[0].relationKinds, ['sequence'])
+  assert.deepEqual(monthly.recommendations[0].synergies[0].extraObjectiveKeys, [
+    'twoFiveExtraOperation',
+  ])
+
+  const waitingForWestern = rankQuestRecommendations(
+    [
+      { id: 264, code: 'Bm6', period: 'monthly', status: 1, resetAt: now + 30_000 },
+      {
+        id: 845,
+        code: 'Bq12',
+        period: 'quarterly',
+        status: 0,
+        resetAt,
+        locked: true,
+      },
+    ],
+    { now },
+  )
+  assert.deepEqual(waitingForWestern.recommendations[0].synergies, [])
+
+  const weeklyWestern = rankQuestRecommendations(
+    [
+      { id: 229, code: 'Bw6', period: 'weekly', status: 1, resetAt: now + 20_000 },
+      { id: 264, code: 'Bm6', period: 'monthly', status: 1, resetAt: now + 30_000 },
+      { id: 845, code: 'Bq12', period: 'quarterly', status: 0, resetAt, locked: true },
+    ],
+    { now },
+  )
+  assert.equal(weeklyWestern.groupCount, 1)
+  assert.deepEqual(
+    weeklyWestern.groups[0].quests.map(({ id }) => id).sort((a, b) => a - b),
+    [229, 264],
+  )
+})
+
+test('daily prerequisites extend into the monthly Bm8 plan', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      { id: 201, code: 'Bd1', period: 'daily', status: 1, resetAt: now + 20 * 60 * 60 * 1000 },
+      {
+        id: 216,
+        code: 'Bd2',
+        period: 'daily',
+        status: 0,
+        resetAt: now + 20 * 60 * 60 * 1000,
+        locked: true,
+      },
+      {
+        id: 311,
+        code: 'Cm1',
+        period: 'monthly',
+        status: 0,
+        resetAt: now + 30 * 24 * 60 * 60 * 1000,
+        locked: true,
+      },
+      {
+        id: 280,
+        code: 'Bm8',
+        period: 'monthly',
+        status: 0,
+        resetAt: now + 30 * 24 * 60 * 60 * 1000,
+        locked: true,
+      },
+    ],
+    { now },
+  )
+
+  const plan = result.recommendations[0].synergies[0]
+  assert.equal(plan.id, 'daily-monthly-unlock-chain')
+  assert.deepEqual(
+    plan.stages.map(({ questIds, instructionKeys }) => ({ questIds, instructionKeys })),
+    [
+      { questIds: [201, 216], instructionKeys: ['unlockBdOneBdTwo'] },
+      { questIds: [216, 311], instructionKeys: ['unlockBdTwoCmOne'] },
+      { questIds: [311, 280], instructionKeys: ['unlockCmOneBmEight'] },
+    ],
+  )
+  assert.deepEqual(
+    plan.companions.map(({ id, locked }) => ({ id, locked })),
+    [
+      { id: 216, locked: true },
+      { id: 311, locked: true },
+      { id: 280, locked: true },
+    ],
+  )
+
+  const currentMonthly = rankQuestRecommendations(
+    [
+      {
+        id: 311,
+        code: 'Cm1',
+        name: 'Monthly exercises',
+        period: 'monthly',
+        status: 1,
+        resetAt: now + 30 * 24 * 60 * 60 * 1000,
+        unlockIds: [280],
+      },
+      {
+        id: 280,
+        code: 'Bm8',
+        name: 'Locked successor',
+        period: 'monthly',
+        status: 0,
+        resetAt: now + 30 * 24 * 60 * 60 * 1000,
+        rewardConsumables: [0, 0, 0, 2],
+      },
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    currentMonthly.recommendations[0].downstreamTargets.map(({ id }) => id),
+    [280],
+  )
+  assert.equal(currentMonthly.groupCount, 1)
+  assert.equal(currentMonthly.combinedGroupCount, 0)
+  assert.equal(currentMonthly.groups[0].kind, 'single')
+  assert.deepEqual(
+    currentMonthly.groups[0].quests.map(({ id }) => id),
+    [311],
+  )
+
+  const markup = questRecommendationListMarkup(currentMonthly)
+  assert.match(markup, /Valuable locked successors/)
+  assert.match(markup, /Locked successor/)
+  assert.doesNotMatch(markup, /Suggested combination/)
+  assert.doesNotMatch(markup, /dqr-synergy-detail/)
+})
+
+test('quest guidance accounts for required ships, steel cost, and selectable rewards', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 90 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 903,
+        period: 'quarterly',
+        status: 1,
+        resetAt,
+        memo: '選択報酬：勲章x1、新型砲熕兵装資材x1',
+      },
+      {
+        id: 663,
+        period: 'quarterly',
+        status: 1,
+        resetAt,
+        memo: '選択報酬：勲章x1、新型砲熕兵装資材x1',
+      },
+      {
+        id: 875,
+        period: 'quarterly',
+        status: 1,
+        resetAt,
+        memo: '選択報酬：戦闘詳報x1、プレゼント箱x1',
+      },
+    ],
+    { now, account: { status: 'available', shipMasterIds: [], steel: 10_000 } },
+  )
+
+  const yuubariQuest = result.recommendations.find(({ id }) => id === 903)
+  const steelQuest = result.recommendations.find(({ id }) => id === 663)
+  const desdivQuest = result.recommendations.find(({ id }) => id === 875)
+  assert.equal(yuubariQuest.guidance.tier, 'unavailable')
+  assert.equal(yuubariQuest.guidance.reasonKeys.includes('missingShip:yuubariKaiNi'), true)
+  assert.equal(steelQuest.guidance.tier, 'unavailable')
+  assert.equal(steelQuest.guidance.reasonKeys.includes('insufficientSteel'), true)
+  assert.equal(steelQuest.reward.isChoiceReward, true)
+  assert.deepEqual(
+    desdivQuest.guidance.reasonKeys.filter((key) => key.startsWith('missingShip:')),
+    ['missingShip:naganamiKaiNi', 'missingShip:desdivThirtyOnePartner'],
+  )
+  assert.equal(result.unavailableQuestCount, 3)
+})
+
+const storedExpeditionPlannerSettings = {
+  version: 1,
+  afkMinutes: 485,
+  fleetCount: 2,
+  preference: {
+    mode: 'priority',
+    preferences: {
+      bucket: { mode: 'constraint', minimumNetYieldPerHour: 0 },
+      fuel: { mode: 'optimize', rank: 2 },
+      bauxite: { mode: 'ignore' },
+      ammo: { mode: 'optimize', rank: 1 },
+      steel: { mode: 'constraint', minimumNetYieldPerHour: 0 },
+    },
+  },
+  incomeModifier: { greatSuccess: true, daihatsuCount: 4 },
+}
+
+test('expedition planner settings round-trip through local storage with diagnostics', () => {
+  const entries = new Map()
+  const events = []
+  const storage = {
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => entries.set(key, value),
+  }
+  const logger = {
+    info: (prefix, details) => events.push({ level: 'info', prefix, ...details }),
+    warn: (prefix, details) => events.push({ level: 'warn', prefix, ...details }),
+  }
+
+  assert.equal(
+    writeExpeditionPlannerSettings(storedExpeditionPlannerSettings, storage, logger),
+    true,
+  )
+  assert.deepEqual(readExpeditionPlannerSettings(storage, logger), storedExpeditionPlannerSettings)
+  assert.equal(entries.has(EXPEDITION_PLANNER_SETTINGS_STORAGE_KEY), true)
+  assert.deepEqual(
+    events.map(({ event, outcome, fleetCount, optimizedResourceCount }) => ({
+      event,
+      outcome,
+      fleetCount,
+      optimizedResourceCount,
+    })),
+    [
+      {
+        event: 'expedition-planner-settings-write',
+        outcome: 'saved',
+        fleetCount: 2,
+        optimizedResourceCount: 2,
+      },
+      {
+        event: 'expedition-planner-settings-read',
+        outcome: 'restored',
+        fleetCount: 2,
+        optimizedResourceCount: 2,
+      },
+    ],
+  )
+})
+
+test('expedition planner settings reject damaged data and report storage failures', () => {
+  const events = []
+  const logger = {
+    info: () => {},
+    warn: (prefix, details) => events.push({ prefix, ...details }),
+  }
+
+  assert.equal(readExpeditionPlannerSettings({ getItem: () => '{damaged' }, logger), null)
+  assert.equal(
+    writeExpeditionPlannerSettings(
+      storedExpeditionPlannerSettings,
+      {
+        setItem: () => {
+          throw new Error('quota exceeded')
+        },
+      },
+      logger,
+    ),
+    false,
+  )
+  assert.deepEqual(
+    events.map(({ event, outcome, reasonCode }) => ({ event, outcome, reasonCode })),
+    [
+      {
+        event: 'expedition-planner-settings-read',
+        outcome: 'defaults',
+        reasonCode: 'SETTINGS_PARSE_FAILED',
+      },
+      {
+        event: 'expedition-planner-settings-write',
+        outcome: 'failed',
+        reasonCode: 'STORAGE_WRITE_FAILED',
+      },
+    ],
+  )
 })
 
 test('fleet recommender view uses guide selection without an objective control', () => {
@@ -153,6 +1344,7 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
     recentStyles,
     resourceCenterStyles,
     resourceLedgerStyles,
+    questStyles,
   ]
   styleSheets.forEach((styles) => {
     assert.match(styles, /body\.dark/)
@@ -164,6 +1356,109 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
   assert.match(fleetStyles, /@keyframes dfr-route-spin/)
   assert.match(expeditionStyles, /\.dep-root \{ width: 680px;/)
   assert.match(resourceCenterStyles, /\.drc-root \{ width: 700px;/)
+  assert.match(questStyles, /\.dqr-root \{[^}]*width: 700px;/)
+  assert.doesNotMatch(questStyles, /\.dqr-list::before/)
+  assert.match(questStyles, /\.dqr-card-grid \{[^}]*repeat\(3,/)
+  assert.match(questStyles, /\.dqr-controls \{[^}]*grid-template-columns:/)
+  assert.match(questStyles, /\.dqr-filter\[data-quest-filter="medalBlueprint"\]/)
+  assert.match(questStyles, /\.dqr-filter\[data-quest-chapter\]\.is-active/)
+  assert.match(questStyles, /\.dqr-toolbar-actions \{[^}]*display: flex/)
+  assert.match(questStyles, /\.dqr-toolbar-button:focus-visible/)
+  assert.doesNotMatch(questStyles, /\.dqr-chapter-heading/)
+  assert.match(questStyles, /\.dqr-reward\.medalBlueprint/)
+  assert.match(questStyles, /\.dqr-reward\.actionReport/)
+  assert.match(questStyles, /\.dqr-reward\.screws/)
+})
+
+test('quest recommendation labels exist in all supported languages', () => {
+  Object.values(catalogs).forEach((catalog) => {
+    ;[
+      'quest.menu',
+      'quest.title',
+      'quest.weightSummary',
+      'quest.controls',
+      'quest.exportMarkdown',
+      'quest.exported',
+      'quest.exportFailed',
+      'quest.exportedAt',
+      'quest.exportFilters',
+      'quest.exportList',
+      'quest.exportParticipants',
+      'quest.exportNone',
+      'quest.filter.label',
+      'quest.filter.all',
+      'quest.filter.medalBlueprint',
+      'quest.filter.actionReport',
+      'quest.filter.screws',
+      'quest.filter.equipmentMaterials',
+      'quest.filter.visibleCount',
+      'quest.filter.emptyTitle',
+      'quest.filter.emptyDetail',
+      'quest.sort.label',
+      'quest.sort.deadlineAsc',
+      'quest.sort.deadlineDesc',
+      'quest.sort.stepsAsc',
+      'quest.syncLatest',
+      'quest.syncingLatest',
+      'quest.syncingStatus',
+      'quest.syncingDetail',
+      'quest.period.daily',
+      'quest.period.weekly',
+      'quest.period.monthly',
+      'quest.period.quarterly',
+      'quest.period.yearly',
+      'quest.period.oneTime',
+      'quest.chapterFilter.label',
+      'quest.chapterFilter.hint',
+      'quest.chapter.world1',
+      'quest.chapter.world7',
+      'message.KC3_QUEST_SYNC_UNAVAILABLE',
+      'quest.card.requirement',
+      'quest.card.reward',
+      'quest.card.schedule',
+      'quest.requirement.unknown',
+      'quest.reward.blueprint',
+      'quest.reward.medal',
+      'quest.reward.actionReport',
+      'quest.reward.screws',
+      'quest.reward.screwsGeneric',
+      'quest.reward.other',
+      'quest.downstream.title',
+      'quest.downstream.steps',
+      'quest.noFixedDeadline',
+      'quest.group.combined',
+      'quest.group.questCount',
+      'quest.priority.label',
+      'quest.priority.highest',
+      'quest.priority.priority',
+      'quest.priority.recommended',
+      'quest.priority.conditional',
+      'quest.priority.optional',
+      'quest.priority.unavailable',
+      'quest.relation.sameSortie',
+      'quest.relation.sameExercise',
+      'quest.relation.sameExpedition',
+      'quest.relation.sameArsenal',
+      'quest.relation.sequence',
+      'quest.relation.unlock',
+      'quest.synergy.title',
+      'quest.synergy.extra.oneFiveExtraOperation',
+      'quest.synergy.extra.twoFiveExtraOperation',
+      'quest.synergy.fleet.fourDe',
+      'quest.synergy.fleet.variedByStage',
+      'quest.synergy.fleet.sharedExercise',
+      'quest.synergy.fleet.sharedExpedition',
+      'quest.synergy.fleet.sharedArsenal',
+      'quest.synergy.instruction.oneFiveFifteenSubmarines',
+      'quest.synergy.instruction.sharedExercise',
+      'quest.synergy.instruction.sharedExpedition',
+      'quest.synergy.instruction.sharedArsenal',
+      'quest.synergy.instruction.unlockBdTwoCmOne',
+      'quest.synergy.instruction.northernMedalReportChain',
+      'quest.guidance.missingShip',
+      'quest.guidance.downstreamValue',
+    ].forEach((key) => assert.equal(typeof catalog[key], 'string', key))
+  })
 })
 
 test('strategy room i18n preserves aliases, fallback, interpolation, and KC3 locale', () => {
@@ -221,6 +1516,8 @@ test('fleet recommendation labels exist in all supported languages', () => {
       'fleet.strategyMinimumValue',
       'fleet.strategyResourceValue',
       'fleet.strategyNoDescription',
+      'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de',
+      'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de',
       'fleet.routeUnknown',
       'fleet.role.torpedo-cruiser',
       'fleet.noSolutionForRoute',
@@ -230,6 +1527,11 @@ test('fleet recommendation labels exist in all supported languages', () => {
       'message.NO_STABLE_ROUTE',
       'message.OASW_INSUFFICIENT',
       'message.OASW_REQUIREMENT_PASSED',
+      'message.FLAGSHIP_REQUIREMENT_PASSED',
+      'message.FLEET_CANDIDATE_SEARCH_EXHAUSTED',
+      'message.AIR_POWER_BELOW_RECOMMENDED',
+      'message.ZUIUN_MULTI_ANGLE_ATTACK_READY',
+      'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK',
       'message.ANTI_INSTALLATION_REQUIREMENT_PASSED',
       'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
       'message.ANTI_INSTALLATION_CARRIER_READY',

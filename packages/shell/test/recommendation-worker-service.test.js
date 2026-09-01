@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   ACCOUNT_CHANNEL,
   EXPEDITION_PLAN_CHANNEL,
+  QUEST_RECOMMENDATIONS_CHANNEL,
   RECOMMEND_CHANNEL,
 } from '../browser/recommendation/channels.js'
 import {
@@ -14,6 +15,12 @@ import {
   readKC3AccountSnapshot,
   readKC3CombatEvaluations,
 } from '../browser/recommendation/kc3-bridge.js'
+import {
+  KC3_QUEST_SNAPSHOT_SCRIPT,
+  readKC3QuestRecommendations,
+  synchronizedQuestScript,
+} from '../browser/recommendation/kc3-quest-recommendation.js'
+import { createKC3QuestLiveSync } from '../browser/recommendation/kc3-quest-live-sync.js'
 import { createRecommendationWorkerService } from '../browser/recommendation/recommendation-worker-service.js'
 
 class WorkerDouble extends EventEmitter {
@@ -135,6 +142,589 @@ test('recommendation worker service supports per-request timeout overrides', asy
   assert.equal(await service.planExpeditions({}), 'recovered')
   assert.equal(workers.length, 2)
   service.dispose()
+})
+
+test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics', async () => {
+  const logs = []
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  let executedScript = ''
+  const result = await readKC3QuestRecommendations(
+    {
+      executeJavaScript: async (script) => {
+        executedScript = script
+        return {
+          generatedAt: new Date(now).toISOString(),
+          quests: [
+            {
+              id: 265,
+              code: 'Bm5',
+              name: 'Monthly 1-5 fixture',
+              status: 2,
+              progress: 50,
+              period: 'monthly',
+              resetAt: now + 2 * 24 * 60 * 60 * 1000,
+              memo: 'Rewards an Action Report.',
+              rewardConsumables: [0, 0, 0, 0],
+            },
+            {
+              id: 228,
+              code: 'Bw5',
+              name: 'Weekly submarines fixture',
+              status: 1,
+              progress: 0,
+              period: 'weekly',
+              resetAt: now + 24 * 60 * 60 * 1000,
+              memo: '',
+              rewardConsumables: [0, 0, 0, 1],
+            },
+            {
+              id: 1107,
+              code: 'By9',
+              name: 'Yearly fixture',
+              status: 1,
+              progress: 0,
+              period: 'yearly',
+              resetPeriod: 'yearlySep',
+              resetAt: now + 30 * 24 * 60 * 60 * 1000,
+              memo: '',
+              rewardConsumables: [0, 0, 0, 0],
+            },
+            {
+              id: 500,
+              code: 'B100',
+              name: 'One-time fixture',
+              status: 1,
+              progress: 0,
+              period: 'oneTime',
+              resetPeriod: 'other',
+              resetAt: null,
+              memo: 'Rewards an Action Report.',
+              rewardConsumables: [0, 0, 0, 0],
+            },
+          ],
+          extraOperationStatus: { '1-5': 'available' },
+          diagnostics: {
+            storedQuestCount: 20,
+            supportedRepeatableTypeCount: 16,
+            openQuestCount: 4,
+            oneTimeOpenQuestCount: 1,
+            limitedOpenQuestCount: 0,
+            graphQuestCount: 4,
+            lockedPlanningQuestCount: 0,
+            successorPlanningQuestCount: 0,
+            maximumPlanningQuestCount: 1024,
+            successorGraphTruncated: false,
+            successorQueueRemainingCount: 0,
+            elapsedMs: 4,
+          },
+        }
+      },
+    },
+    (eventName, data) => logs.push({ eventName, data }),
+  )
+
+  assert.equal(executedScript, KC3_QUEST_SNAPSHOT_SCRIPT)
+  assert.doesNotThrow(() => new Function(KC3_QUEST_SNAPSHOT_SCRIPT))
+  assert.match(executedScript, /Object\.values\(window\.KC3QuestManager\.list/)
+  assert.match(executedScript, /meta\.unlock/)
+  assert.match(executedScript, /maximumSuccessorDepth = 12/)
+  assert.match(executedScript, /maximumPlanningQuestCount = 1024/)
+  assert.match(executedScript, /meta\.hash !== undefined/)
+  assert.match(executedScript, /resetPeriod\.startsWith\('yearly'\)/)
+  assert.match(executedScript, /supportedRepeatableEntries/)
+  assert.match(
+    executedScript,
+    /\[1, 5\], \[2, 5\], \[3, 5\], \[4, 5\], \[5, 5\], \[6, 5\], \[7, 5\]/,
+  )
+  assert.match(executedScript, /window\.KC3ShipManager\.load\(\)/)
+  assert.match(executedScript, /lastMaterial\?\.\[2\]/)
+  assert.deepEqual(
+    result.recommendations.map(({ id }) => id),
+    [265, 228, 500, 1107],
+  )
+  assert.equal(result.recommendations.find(({ id }) => id === 265).reward.category, 'actionReport')
+  assert.equal(
+    result.recommendations.find(({ id }) => id === 265).synergies[0].id,
+    'one-five-monthly-stack',
+  )
+  assert.deepEqual(logs, [
+    {
+      eventName: 'quest-recommendation.snapshot-completed',
+      data: {
+        operation: 'read-kc3-open-quests',
+        storedQuestCount: 20,
+        supportedRepeatableTypeCount: 16,
+        openQuestCount: 4,
+        oneTimeOpenQuestCount: 1,
+        limitedOpenQuestCount: 0,
+        graphQuestCount: 4,
+        lockedPlanningQuestCount: 0,
+        successorPlanningQuestCount: 0,
+        maximumPlanningQuestCount: 1024,
+        successorGraphTruncated: false,
+        successorQueueRemainingCount: 0,
+        extraOperationStatuses: { '1-5': 'available' },
+        accountStatus: 'unknown',
+        accountReasonCode: null,
+        shipCount: 0,
+        japaneseQuestMetadataStatus: 'unknown',
+        japaneseQuestMetadataMessage: null,
+        questTitleSourceCounts: {},
+        elapsedMs: 4,
+        outcome: 'success',
+        reasonCodes: [],
+      },
+    },
+  ])
+})
+
+test('KC3 quest live sync reuses only in-memory game authentication and requests all quests', async () => {
+  const requests = []
+  const requestSession = {
+    fetch: async (url, options) => {
+      requests.push({ url, options })
+      return {
+        ok: true,
+        status: 200,
+        text: async () =>
+          `svdata=${JSON.stringify({
+            api_result: 1,
+            api_data: {
+              api_list: [{ api_no: 191, api_state: 1 }, { api_no: 192, api_state: 2 }, -1],
+            },
+          })}`,
+      }
+    },
+  }
+  const liveSync = createKC3QuestLiveSync({ requestSession, now: () => 10_000 })
+  const captured = await liveSync.observeRequest({
+    method: 'POST',
+    url: 'https://w01y.kancolle-server.com/kcsapi/api_port/port',
+    webContentsId: 42,
+    uploadData: [
+      {
+        bytes: Buffer.from(
+          'api_token=secret-fixture&api_verno=1&api_starttime=123&unrelated=ignored',
+        ),
+      },
+    ],
+  })
+
+  assert.equal(captured, true)
+  assert.equal(liveSync.hasContext(42), true)
+  const result = await liveSync.synchronize(42)
+  assert.deepEqual(result, {
+    quests: [{ api_no: 191, api_state: 1 }, { api_no: 192, api_state: 2 }, -1],
+    gameWebContentsId: 42,
+    elapsedMs: 0,
+  })
+  assert.equal(requests[0].url, 'https://w01y.kancolle-server.com/kcsapi/api_get_member/questlist')
+  const sentBody = new URLSearchParams(requests[0].options.body)
+  assert.equal(sentBody.get('api_tab_id'), '0')
+  assert.equal(sentBody.get('api_page_no'), '1')
+  assert.equal(sentBody.get('api_token'), 'secret-fixture')
+  assert.equal(sentBody.has('unrelated'), false)
+  assert.doesNotMatch(JSON.stringify(result), /secret-fixture/)
+})
+
+test('KC3 quest live sync rejects missing context and invalid server data with stable codes', async () => {
+  const requestSession = {
+    fetch: async () => ({ ok: true, status: 200, text: async () => 'svdata={"api_result":1}' }),
+  }
+  const liveSync = createKC3QuestLiveSync({ requestSession, now: () => 20_000 })
+  await assert.rejects(liveSync.synchronize(9), {
+    code: 'KC3_QUEST_SYNC_CONTEXT_UNAVAILABLE',
+  })
+  await liveSync.observeRequest({
+    method: 'POST',
+    url: 'https://w02k.kancolle-server.com/kcsapi/api_port/port',
+    webContentsId: 9,
+    uploadData: [{ bytes: Buffer.from('api_token=fixture') }],
+  })
+  await assert.rejects(liveSync.synchronize(9), {
+    code: 'KC3_QUEST_SYNC_RESPONSE_INVALID',
+  })
+})
+
+test('KC3 quest live sync is applied before the recommendation snapshot', async () => {
+  const scripts = []
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const snapshot = {
+    generatedAt: new Date(now).toISOString(),
+    quests: [
+      {
+        id: 191,
+        code: 'B191',
+        name: 'Current quest fixture',
+        status: 1,
+        period: 'oneTime',
+        rewardConsumables: [0, 0, 0, 0],
+      },
+    ],
+    extraOperationStatus: {},
+    diagnostics: { storedQuestCount: 1, openQuestCount: 1, graphQuestCount: 1 },
+  }
+  const result = await readKC3QuestRecommendations(
+    {
+      executeJavaScript: async (script) => {
+        scripts.push(script)
+        return scripts.length === 1 ? { synchronizedQuestCount: 1 } : snapshot
+      },
+    },
+    () => {},
+    {
+      synchronizedQuestList: [{ api_no: 191, api_state: 1, api_title: '日本語の任務タイトル' }],
+    },
+  )
+
+  assert.equal(scripts.length, 2)
+  assert.match(scripts[0], /KC3QuestManager\.definePage\(quests, undefined, 0\)/)
+  assert.match(scripts[0], /"api_no":191,"api_state":1,"api_title":"日本語の任務タイトル"/)
+  assert.match(scripts[0], /__kancolleAssistantJapaneseQuestTitles/)
+  assert.equal(scripts[1], KC3_QUEST_SNAPSHOT_SCRIPT)
+  assert.equal(result.recommendations[0].id, 191)
+})
+
+test('an authoritative empty quest sync closes stale KC3 open and active quests', () => {
+  const statuses = new Map([
+    [191, { status: 1 }],
+    [192, { status: 2 }],
+  ])
+  const manager = {
+    open: [191, 192],
+    active: [192],
+    load: () => {},
+    definePage: () => {},
+    get: (questId) => statuses.get(questId),
+    isOpen(questId, isOpen) {
+      this.open = isOpen
+        ? [...new Set([...this.open, questId])]
+        : this.open.filter((id) => id !== questId)
+    },
+    isActive(questId, isActive) {
+      this.active = isActive
+        ? [...new Set([...this.active, questId])]
+        : this.active.filter((id) => id !== questId)
+    },
+    save: () => {},
+  }
+
+  const windowFixture = { KC3QuestManager: manager }
+  const result = new Function('window', `return ${synchronizedQuestScript([])}`)(windowFixture)
+  assert.deepEqual(result, { synchronizedQuestCount: 0 })
+  assert.deepEqual(windowFixture.__kancolleAssistantJapaneseQuestTitles, {})
+  assert.deepEqual(manager.open, [])
+  assert.deepEqual(manager.active, [])
+  assert.equal(statuses.get(191).status, 3)
+  assert.equal(statuses.get(192).status, 3)
+})
+
+test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const calculateNextReset = () => now + 24 * 60 * 60 * 1000
+  const repeatableTypes = Object.fromEntries(
+    ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
+      type,
+      { questIds: [], calculateNextReset },
+    ]),
+  )
+  const japaneseRequests = []
+  const snapshot = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
+    performance: { now: () => 0 },
+    KC3QuestManager: {
+      list: {
+        q680: { id: 680, status: 1, progress: 0 },
+        q681: {
+          id: 681,
+          status: 1,
+          progress: 0,
+          raw: () => ({ api_title: 'ゲームAPIの日本語題名' }),
+        },
+      },
+      load: () => {},
+      repeatableTypes,
+    },
+    KC3Meta: {
+      repo: '/data/',
+      quest: (id) => ({
+        code: `F${id}`,
+        name: `Localized title ${id}`,
+        desc: '',
+        memo: '',
+        rewardConsumables: [0, 0, 0, 0],
+      }),
+    },
+    KC3Translation: {
+      getJSONWithOptions: (...args) => {
+        japaneseRequests.push(args)
+        return { 680: { name: '対空兵装の整備拡充' } }
+      },
+    },
+    KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
+  })
+
+  assert.equal(snapshot.quests.find(({ id }) => id === 680).name, '対空兵装の整備拡充')
+  assert.equal(snapshot.quests.find(({ id }) => id === 681).name, 'ゲームAPIの日本語題名')
+  assert.deepEqual(japaneseRequests[0].slice(0, 4), ['/data/', 'quests', false, 'jp'])
+  assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'available')
+  assert.deepEqual(snapshot.diagnostics.questTitleSourceCounts, {
+    gameApi: 1,
+    japaneseMetadata: 1,
+    localizedFallback: 0,
+  })
+})
+
+test('KC3 quest snapshot reports a bounded Japanese-title fallback', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const repeatableTypes = Object.fromEntries(
+    ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
+      type,
+      { questIds: [], calculateNextReset: () => now + 24 * 60 * 60 * 1000 },
+    ]),
+  )
+  const snapshot = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
+    performance: { now: () => 0 },
+    KC3QuestManager: {
+      list: { q680: { id: 680, status: 1, progress: 0 } },
+      load: () => {},
+      repeatableTypes,
+    },
+    KC3Meta: {
+      repo: '/data/',
+      quest: () => ({ code: 'Fq6', name: 'Localized fallback', desc: '', memo: '' }),
+    },
+    KC3Translation: {
+      getJSONWithOptions: () => {
+        throw new Error('fixture metadata failure with a deliberately bounded message')
+      },
+    },
+    KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
+  })
+
+  assert.equal(snapshot.quests[0].name, 'Localized fallback')
+  assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'failed')
+  assert.equal(snapshot.diagnostics.questTitleSourceCounts.localizedFallback, 1)
+  assert.match(snapshot.diagnostics.japaneseQuestMetadataMessage, /fixture metadata failure/)
+})
+
+test('KC3 quest snapshot degrades instead of failing when the successor graph is truncated', async () => {
+  const rootQuestIds = Array.from({ length: 260 }, (_, index) => 2_000 + index)
+  const list = Object.fromEntries(
+    rootQuestIds.map((id) => [`q${id}`, { id, status: 1, progress: 0 }]),
+  )
+  const calculateNextReset = (now) => now + 24 * 60 * 60 * 1000
+  const repeatableTypes = Object.fromEntries(
+    ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
+      type,
+      { questIds: [], calculateNextReset },
+    ]),
+  )
+  const windowFixture = {
+    performance: { now: () => 0 },
+    KC3QuestManager: { list, load: () => {}, repeatableTypes },
+    KC3Meta: {
+      quest: (id) => {
+        const rootIndex = Number(id) - 2_000
+        return {
+          code: `Q${id}`,
+          name: `Quest ${id}`,
+          desc: '',
+          memo: '',
+          unlock:
+            rootIndex >= 0 && rootIndex < rootQuestIds.length
+              ? Array.from({ length: 4 }, (_, offset) => 10_000 + rootIndex * 4 + offset)
+              : [],
+          rewardConsumables: [0, 0, 0, 0],
+        }
+      },
+    },
+    KC3Translation: {
+      getJSONWithOptions: () =>
+        new Proxy({}, { get: (_target, id) => ({ name: `Japanese quest ${id}` }) }),
+    },
+    KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
+  }
+  const snapshot = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(windowFixture)
+  const logs = []
+  const result = await readKC3QuestRecommendations(
+    { executeJavaScript: async () => snapshot },
+    (eventName, data) => logs.push({ eventName, data }),
+  )
+
+  assert.equal(snapshot.diagnostics.graphQuestCount, 1_024)
+  assert.equal(snapshot.diagnostics.successorGraphTruncated, true)
+  assert.equal(snapshot.diagnostics.successorQueueRemainingCount > 0, true)
+  assert.equal(result.candidateCount, rootQuestIds.length)
+  assert.equal(result.recommendations.length, rootQuestIds.length)
+  assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-completed')
+  assert.equal(logs[0].data.outcome, 'degraded')
+  assert.deepEqual(logs[0].data.reasonCodes, ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'])
+})
+
+test('quest recommendation IPC validates senders and logs success and failure outcomes', async () => {
+  const handlers = new Map()
+  const logs = []
+  const ipcMain = { handle: (channel, handler) => handlers.set(channel, handler) }
+  const sender = { getURL: () => 'chrome-extension://fixture/pages/strategy/strategy.html' }
+  const event = {
+    sender,
+    senderFrame: { url: 'chrome-extension://fixture/pages/strategy/strategy.html' },
+  }
+  let shouldFail = false
+  let syncShouldFail = false
+  const questReadOptions = []
+
+  registerRecommendationIpc({
+    ipcMain,
+    getKc3ExtensionId: () => 'fixture',
+    readQuestRecommendations: async (_target, _logger, options) => {
+      questReadOptions.push(options)
+      if (shouldFail) throw new Error('quest fixture unavailable')
+      return {
+        generatedAt: '2026-09-01T00:00:00.000Z',
+        rankingVersion: 7,
+        candidateCount: 5,
+        periodCounts: {
+          daily: 1,
+          weekly: 1,
+          monthly: 1,
+          quarterly: 1,
+          yearly: 1,
+          oneTime: 0,
+        },
+        dailyCount: 1,
+        weeklyCount: 1,
+        monthlyCount: 1,
+        quarterlyCount: 1,
+        yearlyCount: 1,
+        oneTimeCount: 0,
+        chapterCounts: { world1: 1 },
+        downstreamValueQuestCount: 0,
+        rewardCategoryCounts: { medalBlueprint: 1, screws: 1 },
+        groupCount: 1,
+        combinedGroupCount: 1,
+        groups: [
+          {
+            id: 'synergy:fixture-synergy',
+            kind: 'combined',
+            synergy: { id: 'fixture-synergy' },
+          },
+        ],
+        recommendations: [
+          {
+            id: 249,
+            period: 'monthly',
+            resetAt: Date.UTC(2026, 9, 1),
+            guidance: { tier: 'highest' },
+            valueBand: 4,
+            effectiveReward: { source: 'current' },
+            synergies: [{ id: 'fixture-synergy' }],
+          },
+        ],
+        elapsedMs: 1,
+      }
+    },
+    syncQuestList: async () => {
+      if (syncShouldFail) {
+        throw Object.assign(new Error('No recent game context.'), {
+          code: 'KC3_QUEST_SYNC_CONTEXT_UNAVAILABLE',
+        })
+      }
+      return {
+        quests: [{ api_no: 249, api_state: 1 }, -1],
+        gameWebContentsId: 42,
+        elapsedMs: 6,
+      }
+    },
+    recommend: async () => {},
+    planExpeditions: async () => {},
+    summarizeResourceLedger: async () => {},
+    logger: (eventName, data) => logs.push({ eventName, data }),
+  })
+
+  const success = await handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)(event)
+  assert.equal(success.status, 'success')
+  assert.equal(success.recommendations[0].id, 249)
+  assert.equal(questReadOptions[0].synchronizedQuestList, undefined)
+  assert.equal(logs.at(-1).eventName, 'quest-recommendation.completed')
+  assert.equal(logs.at(-1).data.operation, 'rank-quest-value-chains')
+  assert.equal(logs.at(-1).data.rankingMode, 'feasibility-then-recurrence-and-effective-reward')
+  assert.equal(logs.at(-1).data.dailyTieBreakMode, 'deferred-within-value-band')
+  assert.deepEqual(logs.at(-1).data.valueBandOrder, [
+    'valuableRepeatable',
+    'valuableOneTime',
+    'ordinaryRepeatable',
+    'ordinaryOneTime',
+  ])
+  assert.deepEqual(logs.at(-1).data.periodCounts, {
+    daily: 1,
+    weekly: 1,
+    monthly: 1,
+    quarterly: 1,
+    yearly: 1,
+    oneTime: 0,
+  })
+  assert.deepEqual(logs.at(-1).data.chapterCounts, { world1: 1 })
+  assert.equal(logs.at(-1).data.syncMode, 'local')
+  assert.equal(logs.at(-1).data.synchronizedQuestCount, 0)
+  assert.equal(logs.at(-1).data.groupCount, 1)
+  assert.equal(logs.at(-1).data.combinedGroupCount, 1)
+  assert.deepEqual(logs.at(-1).data.relationKindCounts, {})
+  assert.deepEqual(logs.at(-1).data.rewardPriorityOrder, [
+    'medalBlueprint',
+    'actionReport',
+    'screws',
+    'other',
+  ])
+  assert.deepEqual(logs.at(-1).data.topQuestIds, [249])
+  assert.deepEqual(logs.at(-1).data.topQuestPeriods, ['monthly'])
+  assert.deepEqual(logs.at(-1).data.topGuidanceTiers, ['highest'])
+  assert.deepEqual(logs.at(-1).data.topValueBands, [4])
+  assert.deepEqual(logs.at(-1).data.topEffectiveRewardSources, ['current'])
+  assert.deepEqual(logs.at(-1).data.synergyIds, ['fixture-synergy'])
+
+  const synchronized = await handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)(event, {
+    forceSync: true,
+  })
+  assert.equal(synchronized.status, 'success')
+  assert.deepEqual(questReadOptions.at(-1).synchronizedQuestList, [
+    { api_no: 249, api_state: 1 },
+    -1,
+  ])
+  assert.equal(logs.at(-2).eventName, 'quest-recommendation.live-sync-completed')
+  assert.equal(logs.at(-2).data.gameWebContentsId, 42)
+  assert.equal(logs.at(-2).data.synchronizedQuestCount, 1)
+  assert.equal(logs.at(-2).data.elapsedMs, 6)
+  assert.equal(logs.at(-1).data.syncMode, 'live')
+  assert.equal(logs.at(-1).data.synchronizedQuestCount, 1)
+
+  const invalidRequest = await handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)(event, {
+    forceSync: 'yes',
+  })
+  assert.equal(invalidRequest.error.code, 'INVALID_REQUEST')
+
+  syncShouldFail = true
+  const syncFailed = await handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)(event, {
+    forceSync: true,
+  })
+  assert.equal(syncFailed.error.code, 'KC3_QUEST_SYNC_UNAVAILABLE')
+  assert.equal(logs.at(-1).eventName, 'quest-recommendation.live-sync-failed')
+  assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_SYNC_CONTEXT_UNAVAILABLE'])
+  syncShouldFail = false
+
+  const rejected = await handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)({
+    sender: { getURL: () => 'https://example.com' },
+    senderFrame: { url: 'https://example.com' },
+  })
+  assert.equal(rejected.status, 'error')
+
+  shouldFail = true
+  const failed = await handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)(event)
+  assert.equal(failed.status, 'error')
+  assert.equal(failed.error.code, 'KC3_UNAVAILABLE')
+  assert.equal(logs.at(-1).eventName, 'quest-recommendation.failed')
+  assert.equal(logs.at(-1).data.operation, 'rank-quest-value-chains')
+  assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_DATA_UNAVAILABLE'])
 })
 
 test('fleet recommendations reuse the KC3 account snapshot until an explicit refresh', async () => {

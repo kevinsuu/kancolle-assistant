@@ -5,6 +5,7 @@ import { injectDefaultDailyImprovementFilter } from './browser/recommendation/da
 import { injectExpeditionGoalPlanner } from './browser/recommendation/expedition-goal-ui.js'
 import { injectFleetRecommender } from './browser/recommendation/strategy-room-ui.js'
 import { injectStrategyRoomRecentTabs } from './browser/recommendation/strategy-room-recent-ui.js'
+import { injectQuestRecommendations } from './browser/recommendation/quest-recommendation-ui.js'
 import { injectResourceLedgerSummary } from './browser/recommendation/resource-ledger-ui.js'
 import { injectResourceCenter } from './browser/recommendation/resource-center-ui.js'
 import { initializeDmmCredentialAutofill } from './browser/security/dmm-credential-autofill.js'
@@ -36,6 +37,7 @@ if (
       injectExpeditionGoalPlanner(invoke)
       injectResourceCenter(invoke)
       injectResourceLedgerSummary(invoke)
+      injectQuestRecommendations(invoke)
       injectStrategyRoomRecentTabs()
       injectDefaultDailyImprovementFilter()
     }, 0)

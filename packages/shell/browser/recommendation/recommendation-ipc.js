@@ -13,12 +13,14 @@ import {
   EXPEDITION_PLAN_CHANNEL,
   EXPEDITION_SUMMARY_CHANNEL,
   MAP_OPTIONS_CHANNEL,
+  QUEST_RECOMMENDATIONS_CHANNEL,
   RECOMMEND_CHANNEL,
   RESOURCE_LEDGER_SUMMARY_CHANNEL,
 } from './channels'
 import { readKC3AccountSnapshot, readKC3CombatEvaluations } from './kc3-bridge'
 import { planKC3Expeditions, readKC3ExpeditionSummary } from './kc3-expedition-planner'
 import { readKC3ResourceLedgerSummary } from './kc3-resource-ledger'
+import { readKC3QuestRecommendations } from './kc3-quest-recommendation'
 import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
@@ -444,7 +446,9 @@ export const registerRecommendationIpc = ({
   logger,
   readAccountSnapshot = readKC3AccountSnapshot,
   readCombatEvaluations = readKC3CombatEvaluations,
+  readQuestRecommendations = readKC3QuestRecommendations,
   recommendationSlowThresholdMs = RECOMMENDATION_SLOW_THRESHOLD_MS,
+  syncQuestList,
 }) => {
   const accountSummary = (snapshot) => ({
     shipCount: snapshot.ships.length,
@@ -776,6 +780,141 @@ export const registerRecommendationIpc = ({
       return errorResult(
         'KC3_UNAVAILABLE',
         'KC3 資源紀錄尚未就緒，請先回到遊戲母港同步後再重新整理。',
+      )
+    }
+  })
+
+  ipcMain.handle(QUEST_RECOMMENDATIONS_CHANNEL, async (event, request) => {
+    if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
+      return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
+    }
+    if (
+      typeof request !== 'undefined' &&
+      (!request || typeof request !== 'object' || typeof request.forceSync !== 'boolean')
+    ) {
+      return errorResult('INVALID_REQUEST', '任務同步條件格式不正確。')
+    }
+    const forceSync = request?.forceSync === true
+    const startedAt = Date.now()
+    let synchronizedQuestList
+    let synchronizedQuestCount = 0
+    if (forceSync) {
+      const syncStartedAt = Date.now()
+      try {
+        if (typeof syncQuestList !== 'function') {
+          throw Object.assign(new Error('Quest live sync is unavailable.'), {
+            code: 'KC3_QUEST_SYNC_UNAVAILABLE',
+          })
+        }
+        const synchronized = await syncQuestList(event)
+        synchronizedQuestList = synchronized.quests
+        synchronizedQuestCount = synchronized.quests.filter((quest) => quest && quest !== -1).length
+        logger('quest-recommendation.live-sync-completed', {
+          operation: 'fetch-current-quest-list',
+          gameWebContentsId: synchronized.gameWebContentsId,
+          synchronizedQuestCount,
+          elapsedMs: Number(synchronized.elapsedMs ?? Date.now() - syncStartedAt),
+          outcome: 'success',
+          reasonCodes: [],
+        })
+      } catch (error) {
+        const reasonCode = error?.code || 'KC3_QUEST_SYNC_REQUEST_FAILED'
+        logger('quest-recommendation.live-sync-failed', {
+          operation: 'fetch-current-quest-list',
+          synchronizedQuestCount: 0,
+          elapsedMs: Date.now() - syncStartedAt,
+          outcome: 'failed',
+          reasonCodes: [reasonCode],
+          message: sanitizedErrorMessage(error),
+        })
+        return errorResult(
+          'KC3_QUEST_SYNC_UNAVAILABLE',
+          reasonCode === 'KC3_QUEST_SYNC_CONTEXT_UNAVAILABLE'
+            ? '尚未取得遊戲連線資訊，請先回到遊戲母港操作一次，再按「同步最新狀態」。'
+            : '無法取得最新任務狀態，請確認遊戲分頁仍在線後再試。',
+        )
+      }
+    }
+    try {
+      const result = await readQuestRecommendations(getSnapshotExecutionTarget(event), logger, {
+        synchronizedQuestList,
+      })
+      const synergyIds = [
+        ...new Set(
+          (result.groups || [])
+            .filter(({ kind, synergy }) => kind === 'combined' && synergy)
+            .map(({ synergy }) => synergy.id),
+        ),
+      ]
+      const relationKindCounts = (result.groups || [])
+        .flatMap(({ synergy }) => synergy?.relationKinds || [])
+        .reduce((counts, kind) => {
+          counts[kind] = (counts[kind] || 0) + 1
+          return counts
+        }, {})
+      logger('quest-recommendation.completed', {
+        operation: 'rank-quest-value-chains',
+        rankingMode: 'feasibility-then-recurrence-and-effective-reward',
+        dailyTieBreakMode: 'deferred-within-value-band',
+        valueBandOrder: [
+          'valuableRepeatable',
+          'valuableOneTime',
+          'ordinaryRepeatable',
+          'ordinaryOneTime',
+        ],
+        rewardPriorityOrder: ['medalBlueprint', 'actionReport', 'screws', 'other'],
+        candidateCount: result.candidateCount,
+        dailyCount: result.dailyCount,
+        weeklyCount: result.weeklyCount,
+        monthlyCount: result.monthlyCount,
+        quarterlyCount: result.quarterlyCount,
+        yearlyCount: result.yearlyCount,
+        oneTimeCount: result.oneTimeCount,
+        periodCounts: result.periodCounts,
+        chapterCounts: result.chapterCounts,
+        selectedCount: result.recommendations.length,
+        groupCount: result.groupCount,
+        combinedGroupCount: result.combinedGroupCount,
+        relationKindCounts,
+        availableExtraOperationCount: result.availableExtraOperationCount,
+        unavailableQuestCount: result.unavailableQuestCount,
+        downstreamValueQuestCount: result.downstreamValueQuestCount,
+        topResetAt: result.recommendations[0]?.resetAt ?? null,
+        topQuestIds: result.recommendations.slice(0, 10).map(({ id }) => id),
+        topQuestPeriods: result.recommendations.slice(0, 10).map(({ period }) => period),
+        topGuidanceTiers: result.recommendations
+          .slice(0, 10)
+          .map(({ guidance }) => guidance?.tier ?? null),
+        topValueBands: result.recommendations.slice(0, 10).map(({ valueBand }) => valueBand),
+        topEffectiveRewardSources: result.recommendations
+          .slice(0, 10)
+          .map(({ effectiveReward }) => effectiveReward?.source ?? 'current'),
+        synergyCount: synergyIds.length,
+        synergyIds,
+        rewardCategoryCounts: result.rewardCategoryCounts,
+        rankingVersion: result.rankingVersion,
+        syncMode: forceSync ? 'live' : 'local',
+        synchronizedQuestCount,
+        elapsedMs: Date.now() - startedAt,
+        outcome: 'success',
+        reasonCodes: [],
+      })
+      return { status: 'success', ...result }
+    } catch (error) {
+      logger('quest-recommendation.failed', {
+        operation: 'rank-quest-value-chains',
+        candidateCount: 0,
+        selectedCount: 0,
+        elapsedMs: Date.now() - startedAt,
+        outcome: 'failed',
+        reasonCodes: [forceSync ? 'KC3_QUEST_SYNC_APPLY_FAILED' : 'KC3_QUEST_DATA_UNAVAILABLE'],
+        message: sanitizedErrorMessage(error),
+      })
+      return errorResult(
+        forceSync ? 'KC3_QUEST_SYNC_UNAVAILABLE' : 'KC3_UNAVAILABLE',
+        forceSync
+          ? '已取得最新任務資料，但 KC3 無法套用；請回到遊戲母港後再試。'
+          : 'KC3 任務資料尚未就緒，請先在遊戲任務頁同步後再重新整理。',
       )
     }
   })
