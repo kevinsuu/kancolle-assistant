@@ -132,6 +132,9 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
       code: String(meta.code || questId).slice(0, 40),
       name: String(name).slice(0, 240),
       description: String(meta.desc || '').replace(/<br\\s*\\/?>/gi, ' ').slice(0, 1200),
+      synergyDescription: String(japaneseMeta.desc || meta.desc || '')
+        .replace(/<br\\s*\\/?>/gi, ' ')
+        .slice(0, 1200),
       memo: String(meta.memo || '').slice(0, 2400),
       status,
       progress: locked ? 0 : Number(quest.progress || 0),

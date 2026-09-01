@@ -1,7 +1,7 @@
-import { findQuestSynergies } from './quest-synergy'
-import { hasQuestObjective } from './quest-objective-synergy'
+import { findQuestSynergies, questArsenalProfileSource } from './quest-synergy'
+import { hasQuestObjective, questObjectiveMapIds } from './quest-objective-synergy'
 
-export const QUEST_RECOMMENDATION_RANKING_VERSION = 9
+export const QUEST_RECOMMENDATION_RANKING_VERSION = 14
 
 const RECOMMENDATION_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime']
 const RECOMMENDATION_PERIOD_SET = new Set(RECOMMENDATION_PERIODS)
@@ -166,19 +166,10 @@ export const classifyQuestRewards = ({ memo = '', rewardConsumables = [] } = {})
   }
 }
 
-const baseAdviceForReward = (reward, period) => {
-  const baseTier =
-    reward.category === 'other' && reward.valuable
-      ? 'recommended'
-      : BASE_ADVICE_BY_REWARD[reward.category]
-  if (period !== 'oneTime') return baseTier
-  return {
-    highest: 'priority',
-    priority: 'recommended',
-    recommended: 'conditional',
-    optional: 'optional',
-  }[baseTier]
-}
+const baseAdviceForReward = (reward) =>
+  reward.category === 'other' && reward.valuable
+    ? 'recommended'
+    : BASE_ADVICE_BY_REWARD[reward.category]
 
 const evaluateQuestGuidance = (quest, reward, account, hasDownstreamValue) => {
   const rule = QUEST_GUIDANCE[Number(quest.id)] || {}
@@ -204,9 +195,7 @@ const evaluateQuestGuidance = (quest, reward, account, hasDownstreamValue) => {
         ? 'available'
         : 'unknown'
   const tier =
-    feasibility === 'unavailable'
-      ? 'unavailable'
-      : rule.tier || baseAdviceForReward(reward, quest.period)
+    feasibility === 'unavailable' ? 'unavailable' : rule.tier || baseAdviceForReward(reward)
   const reasonKeys = [
     ...(rule.reasonKeys || []),
     ...(reward.isChoiceReward ? ['choiceReward'] : []),
@@ -371,15 +360,23 @@ export const rankQuestRecommendations = (
   { now = Date.now(), extraOperationStatus = {}, account = {} } = {},
 ) => {
   const startedAt = Date.now()
-  const questList = (Array.isArray(quests) ? quests : []).map((quest) => ({
-    ...quest,
-    mapIds: [
+  const questList = (Array.isArray(quests) ? quests : []).map((quest) => {
+    const discoveredMapIds = [
       ...new Set([
         ...(Array.isArray(quest?.mapIds) ? quest.mapIds : []),
         ...extractNormalMapIds(quest?.name, quest?.description, quest?.memo),
       ]),
-    ],
-  }))
+    ]
+    return {
+      ...quest,
+      mapIds: [
+        ...new Set([
+          ...discoveredMapIds,
+          ...questObjectiveMapIds({ ...quest, mapIds: discoveredMapIds }),
+        ]),
+      ],
+    }
+  })
   const questsById = new Map(questList.map((quest) => [Number(quest.id), quest]))
   const candidates = questList
     .filter((quest) => isRecommendationCandidate(quest, now))
@@ -454,14 +451,40 @@ export const rankQuestRecommendations = (
     ]),
   )
 
-  const recommendations = candidates.map((quest) => ({
+  const recommendationsWithInternalObjectives = candidates.map((quest) => ({
     ...quest,
     synergies: findQuestSynergies(quest, questList, { extraOperationStatus }),
   }))
+  const recommendations = recommendationsWithInternalObjectives.map(
+    ({ synergyDescription: _synergyDescription, ...recommendation }) => recommendation,
+  )
   const groups = groupQuestRecommendations(recommendations)
+  const selectedSynergyIds = new Set(groups.map(({ synergy }) => synergy?.id).filter(Boolean))
+  const simultaneousRelationKinds = new Set([
+    'sameSortie',
+    'sameExercise',
+    'sameExpedition',
+    'sameArsenal',
+  ])
+  const alternativeSynergyIds = new Set(
+    recommendations.flatMap((quest) =>
+      (quest.synergies || [])
+        .filter(
+          (synergy) =>
+            !selectedSynergyIds.has(synergy.id) &&
+            (synergy.relationKinds || []).some((kind) => simultaneousRelationKinds.has(kind)) &&
+            (synergy.companions || []).some(({ id }) => questsById.has(Number(id))),
+        )
+        .map(({ id }) => id),
+    ),
+  )
   const objectiveDerivedGroups = groups.filter(({ synergy }) =>
     String(synergy?.id || '').startsWith('objective-'),
   )
+  const openArsenalProfileSources = questList
+    .filter((quest) => quest.status === 1 || quest.status === 2)
+    .map(questArsenalProfileSource)
+    .filter(Boolean)
   const extraOperations = Object.entries(extraOperationStatus)
     .map(([mapId, status]) => ({ mapId, status }))
     .sort((left, right) => {
@@ -486,8 +509,16 @@ export const rankQuestRecommendations = (
     groups,
     groupCount: groups.length,
     combinedGroupCount: groups.filter(({ kind }) => kind === 'combined').length,
+    alternativeSynergyCount: alternativeSynergyIds.size,
     objectiveDerivedGroupCount: objectiveDerivedGroups.length,
     objectiveProfiledQuestCount: questList.filter(hasQuestObjective).length,
+    arsenalProfiledQuestCount: openArsenalProfileSources.length,
+    derivedArsenalProfileCount: openArsenalProfileSources.filter(
+      (source) => source === 'derived' || source === 'curatedAndDerived',
+    ).length,
+    derivedOnlyArsenalProfileCount: openArsenalProfileSources.filter(
+      (source) => source === 'derived',
+    ).length,
     extraOperations,
     availableExtraOperationCount: extraOperations.filter(({ status }) => status === 'available')
       .length,
