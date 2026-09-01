@@ -2,12 +2,18 @@ import { calculateFleetMetrics, satisfiesCalculatedConstraints } from './metrics
 import { NORMAL_MAP_ROUTES, getRouteTemplates } from './rules'
 import { recommendationMessages, recommendationTitle } from './solver/explanations'
 import { analyzeFleetAvailability, generateFleetCandidates } from './solver/fleet-search'
+import type { FleetSearchDiagnostics } from './solver/fleet-search'
 import { buildGearSolutions, createGearSearchContext } from './solver/gear-search'
 import { scoreFleet } from './solver/scoring'
+import { hasZuiunMultiAngleAttack, isIseClassKaiNi } from './solver/zuiun'
+import type { FleetSearchState } from './solver/internal-types'
 import type {
+  AccountSnapshot,
   FleetRecommendation,
+  OwnedEquipment,
   RecommendFleetInput,
   RecommendFleetResult,
+  RecommendedShipBuild,
   UnsatisfiedRequirement,
 } from './types'
 
@@ -33,6 +39,96 @@ const guidePriority = (recommendation: FleetRecommendation): number =>
 const routeTagCount = (tags: readonly string[], prefix: string): number => {
   const tag = tags.find((candidate) => candidate.startsWith(prefix))
   return tag ? Number(tag.slice(prefix.length)) || 0 : 0
+}
+
+const fleetSearchDiagnosticsSummary = (
+  diagnosticsByRoute: ReadonlyMap<string, FleetSearchDiagnostics>,
+) => {
+  const diagnostics = [...diagnosticsByRoute.values()]
+  return {
+    fleetSearchEligibleShipCount: diagnostics.reduce(
+      (total, item) => total + item.eligibleShipCount,
+      0,
+    ),
+    fleetSearchCandidatePoolCount: diagnostics.reduce(
+      (total, item) => total + item.candidatePoolCount,
+      0,
+    ),
+    fleetSearchRequiredCandidateCount: diagnostics.reduce(
+      (total, item) => total + item.requiredCandidateCount,
+      0,
+    ),
+    fleetSearchInfeasiblePartialStateCount: diagnostics.reduce(
+      (total, item) => total + item.infeasiblePartialStateCount,
+      0,
+    ),
+    fleetSearchMaxDepth: diagnostics.reduce((maximum, item) => Math.max(maximum, item.maxDepth), 0),
+    fleetSearchCompleteStateCount: diagnostics.reduce(
+      (total, item) => total + item.completeStateCount,
+      0,
+    ),
+    fleetSearchConstraintValidStateCount: diagnostics.reduce(
+      (total, item) => total + item.constraintValidStateCount,
+      0,
+    ),
+    fleetSearchSpecialAttackRejectedCount: diagnostics.reduce(
+      (total, item) => total + item.specialAttackRejectedCount,
+      0,
+    ),
+    fleetSearchZeroCandidateRouteCount: diagnostics.filter(
+      (item) => item.constraintValidStateCount === 0,
+    ).length,
+  }
+}
+
+const currentLoadoutForFleet = (
+  fleet: FleetSearchState,
+  account: AccountSnapshot,
+): readonly RecommendedShipBuild[] | null => {
+  const memberIds = new Set(fleet.members.map(({ ship }) => ship.id))
+  const matchesCurrentFleet = account.currentFleetShipIdGroups.some(
+    (shipIds) =>
+      shipIds.length === memberIds.size && shipIds.every((shipId) => memberIds.has(shipId)),
+  )
+  if (!matchesCurrentFleet) return null
+
+  const equipmentById = new Map(account.equipment.map((gear) => [gear.id, gear]))
+  const usedEquipmentIds = new Set<number>()
+  let equippedItemCount = 0
+  const builds: RecommendedShipBuild[] = []
+
+  for (const member of fleet.members) {
+    const equipment: (OwnedEquipment | null)[] = []
+    for (const equipmentId of member.ship.equippedItemIds) {
+      if (equipmentId === null) return null
+      const gear = equipmentById.get(equipmentId)
+      if (!gear || gear.currentlyEquippedBy !== member.ship.id || usedEquipmentIds.has(gear.id)) {
+        return null
+      }
+      usedEquipmentIds.add(gear.id)
+      equippedItemCount += 1
+      equipment.push(gear)
+    }
+
+    const expansionEquipmentId = member.ship.expansionSlotItemId
+    const expansionSlot =
+      expansionEquipmentId === null ? null : (equipmentById.get(expansionEquipmentId) ?? null)
+    if (
+      expansionEquipmentId !== null &&
+      (!expansionSlot ||
+        expansionSlot.currentlyEquippedBy !== member.ship.id ||
+        usedEquipmentIds.has(expansionSlot.id))
+    ) {
+      return null
+    }
+    if (expansionSlot) {
+      usedEquipmentIds.add(expansionSlot.id)
+      equippedItemCount += 1
+    }
+    builds.push({ ship: member.ship, role: member.role, equipment, expansionSlot })
+  }
+
+  return equippedItemCount > 0 ? builds : null
 }
 
 export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult => {
@@ -78,13 +174,23 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       diagnostics: {
         routeCandidateCount: routes.length,
         availableRouteCount: 0,
+        ...fleetSearchDiagnosticsSummary(new Map()),
         evaluatedFleetCandidateCount: 0,
         gearSolutionCount: 0,
+        currentFleetShipCount: input.account.currentFleetShipIds.length,
+        currentLoadoutCandidateCount: 0,
+        currentLoadoutAcceptedCount: 0,
+        currentLoadoutBestAirPower: null,
+        currentLoadoutBestLos: null,
         recommendationCandidateCount: 0,
         bestAirPower: 0,
         airPowerMinimum: null,
+        bestLos: null,
+        losMinimum: null,
         bestOpeningAsw: 0,
         openingAswMinimum: null,
+        zuiunCutInCandidateCount: 0,
+        zuiunCutInFallbackCandidateCount: 0,
         reasonCodes: [...new Set(reasons.map(({ code }) => code))],
       },
       elapsedMs: Date.now() - startedAt,
@@ -106,6 +212,13 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   let specialAttackRequirementFailed = false
   let evaluatedFleetCandidateCount = 0
   let gearSolutionCount = 0
+  let currentLoadoutCandidateCount = 0
+  let currentLoadoutAcceptedCount = 0
+  let currentLoadoutBestAirPower: number | null = null
+  let currentLoadoutBestLos: number | null = null
+  let zuiunCutInCandidateCount = 0
+  let zuiunCutInFallbackCandidateCount = 0
+  const fleetSearchDiagnosticsByRoute = new Map<string, FleetSearchDiagnostics>()
   const avoidCurrentFleetEquipment = input.preferences?.avoidCurrentFleetEquipment ?? false
   const gearSearchContext = createGearSearchContext(input.account, avoidCurrentFleetEquipment)
   const successfulFleetSignatures = new Set<string>()
@@ -132,7 +245,15 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       ) {
         break
       }
-      const fleetCandidates = generateFleetCandidates(input.account, route, input.objective)
+      const fleetSearch = generateFleetCandidates(
+        input.account,
+        route,
+        input.objective,
+        selectedRouteFastPath ? input.account.currentFleetShipIds : [],
+        selectedRouteFastPath ? input.account.currentFleetShipIdGroups : [],
+      )
+      const fleetCandidates = fleetSearch.candidates
+      fleetSearchDiagnosticsByRoute.set(route.id, fleetSearch.diagnostics)
       if (route.tags.includes('special-attack-modeled') && fleetCandidates.length === 0) {
         specialAttackRequirementFailed = true
       }
@@ -162,6 +283,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       const submarineSeaplaneAirControl = route.tags.includes('submarine-seaplane-air-control')
       const submarineLosPriority = route.tags.includes('submarine-los-priority')
       const mayaAaciPreferred = route.tags.includes('guide-prefer-maya-aaci')
+      const zuiunCutInPreferred = route.tags.includes('ise-class-zuiun-cut-in-preferred')
+      const openingTorpedoPreferred = route.tags.includes('opening-torpedo-preferred')
       const failedSpecialFleets = []
       const failedGearFleets = []
       let successfulFleetCount = 0
@@ -173,7 +296,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       ) {
         const fleet = fleetCandidates[fleetIndex]
         evaluatedFleetCandidateCount += 1
-        const gearSolutions = buildGearSolutions(
+        const searchedGearSolutions = buildGearSolutions(
           fleet,
           gearSearchContext,
           airPowerMinimum,
@@ -191,7 +314,15 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           submarineSeaplaneAirControl,
           submarineLosPriority,
           mayaAaciPreferred,
+          zuiunCutInPreferred,
+          openingTorpedoPreferred,
         )
+        const currentLoadout =
+          input.routeId === undefined ? null : currentLoadoutForFleet(fleet, input.account)
+        if (currentLoadout) currentLoadoutCandidateCount += 1
+        const gearSolutions = currentLoadout
+          ? [currentLoadout, ...searchedGearSolutions]
+          : searchedGearSolutions
         gearSolutionCount += gearSolutions.length
         if (gearSolutions.length === 0) failedGearFleets.push(fleet)
         if (gearSolutions.length === 0 && (fastPlusRequired || nightCarrierRequired)) {
@@ -209,6 +340,16 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           bestAirPower = Math.max(bestAirPower, metrics.airPower)
           bestLos = Math.max(bestLos, metrics.los33)
           bestOpeningAsw = Math.max(bestOpeningAsw, metrics.openingAswCount)
+          if (currentLoadout && gearIndex === 0) {
+            currentLoadoutBestAirPower = Math.max(
+              currentLoadoutBestAirPower ?? Number.NEGATIVE_INFINITY,
+              metrics.airPower,
+            )
+            currentLoadoutBestLos = Math.max(
+              currentLoadoutBestLos ?? Number.NEGATIVE_INFINITY,
+              metrics.los33,
+            )
+          }
           const wrongSpeed =
             (fastPlusRequired && !['fast+', 'fastest'].includes(metrics.finalSpeedClass)) ||
             (route.tags.includes('fast') && metrics.finalSpeedClass === 'slow') ||
@@ -218,8 +359,19 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             return
           }
           if (!satisfiesCalculatedConstraints(metrics)) return
+          if (currentLoadout && gearIndex === 0) currentLoadoutAcceptedCount += 1
           const score = scoreFleet(builds, metrics, input.objective, route)
           const messages = recommendationMessages(builds, metrics, route)
+          if (zuiunCutInPreferred) {
+            const iseClassKaiNiBuild = builds.find((build) => isIseClassKaiNi(build.ship))
+            if (iseClassKaiNiBuild) {
+              if (hasZuiunMultiAngleAttack(iseClassKaiNiBuild)) {
+                zuiunCutInCandidateCount += 1
+              } else {
+                zuiunCutInFallbackCandidateCount += 1
+              }
+            }
+          }
           fleetAccepted = true
           recommendationCandidates.push({
             id: `${route.id}-${routeIndex}-${fleetIndex}-${gearIndex}`,
@@ -266,6 +418,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
                 submarineSeaplaneAirControl,
                 submarineLosPriority,
                 mayaAaciPreferred,
+                zuiunCutInPreferred,
+                openingTorpedoPreferred,
               ).length > 0,
           )
           if (speedOnlyAvailable) nightCarrierRequirementFailed = true
@@ -303,6 +457,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               submarineSeaplaneAirControl,
               submarineLosPriority,
               mayaAaciPreferred,
+              zuiunCutInPreferred,
+              openingTorpedoPreferred,
             ).length > 0,
         )
         const canBuildShellSetup = failedGearFleets.some(
@@ -325,6 +481,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               submarineSeaplaneAirControl,
               submarineLosPriority,
               mayaAaciPreferred,
+              zuiunCutInPreferred,
+              openingTorpedoPreferred,
             ).length > 0,
         )
         if (
@@ -367,6 +525,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               submarineSeaplaneAirControl,
               submarineLosPriority,
               mayaAaciPreferred,
+              zuiunCutInPreferred,
+              openingTorpedoPreferred,
             ).length > 0,
         )
       ) {
@@ -457,12 +617,13 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     ...recommendation,
     title: recommendationTitle(recommendation.route.name, input.objective, index),
   }))
+  const fleetSearchSummary = fleetSearchDiagnosticsSummary(fleetSearchDiagnosticsByRoute)
 
   if (recommendations.length === 0) {
     const reasons: UnsatisfiedRequirement[] = []
     const airMinimums = availableRoutes.flatMap(({ route }) =>
       route.calculatedConstraints
-        .filter((item) => item.kind === 'air-power')
+        .filter((item) => item.kind === 'air-power' && item.required !== false)
         .map((item) => item.minimum),
     )
     const losMinimums = availableRoutes.flatMap(({ route }) =>
@@ -476,21 +637,33 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     const airMinimum = airMinimums.length > 0 ? Math.min(...airMinimums) : null
     const losMinimum = losMinimums.length > 0 ? Math.min(...losMinimums) : null
     const openingAswMinimum = openingAswMinimums.length > 0 ? Math.min(...openingAswMinimums) : null
-    if (airMinimum !== null && bestAirPower < airMinimum) {
+    if (evaluatedFleetCandidateCount === 0) {
+      reasons.push({
+        code: 'FLEET_CANDIDATE_SEARCH_EXHAUSTED',
+        message: '帳號艦娘數量看似足夠，但候選搜尋未找到同時滿足指定艦、艦種與帶路條件的完整艦隊。',
+        values: {
+          eligible: fleetSearchSummary.fleetSearchEligibleShipCount,
+          candidatePool: fleetSearchSummary.fleetSearchCandidatePoolCount,
+          requiredCandidates: fleetSearchSummary.fleetSearchRequiredCandidateCount,
+          maxDepth: fleetSearchSummary.fleetSearchMaxDepth,
+        },
+      })
+    }
+    if (gearSolutionCount > 0 && airMinimum !== null && bestAirPower < airMinimum) {
       reasons.push({
         code: 'AIR_POWER_INSUFFICIENT',
         message: `目前搜尋到的最高制空值為 ${bestAirPower}，最低需要 ${airMinimum}。`,
         values: { best: bestAirPower, minimum: airMinimum },
       })
     }
-    if (losMinimum !== null && bestLos < losMinimum) {
+    if (gearSolutionCount > 0 && losMinimum !== null && bestLos < losMinimum) {
       reasons.push({
         code: 'LOS_INSUFFICIENT',
         message: `目前搜尋到的最高 33 式索敵為 ${Math.max(bestLos, 0).toFixed(1)}，最低需要 ${losMinimum}。`,
         values: { best: Math.max(bestLos, 0).toFixed(1), minimum: losMinimum },
       })
     }
-    if (openingAswMinimum !== null && bestOpeningAsw < openingAswMinimum) {
+    if (gearSolutionCount > 0 && openingAswMinimum !== null && bestOpeningAsw < openingAswMinimum) {
       reasons.push({
         code: 'OASW_INSUFFICIENT',
         message: `目前方案可成立的先制對潛艦為 ${bestOpeningAsw} 艘，最低需要 ${openingAswMinimum} 艘。`,
@@ -552,13 +725,23 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       diagnostics: {
         routeCandidateCount: routes.length,
         availableRouteCount: availableRoutes.length,
+        ...fleetSearchSummary,
         evaluatedFleetCandidateCount,
         gearSolutionCount,
+        currentFleetShipCount: input.account.currentFleetShipIds.length,
+        currentLoadoutCandidateCount,
+        currentLoadoutAcceptedCount,
+        currentLoadoutBestAirPower,
+        currentLoadoutBestLos,
         recommendationCandidateCount: recommendationCandidates.length,
         bestAirPower,
         airPowerMinimum: airMinimum,
+        bestLos: Number.isFinite(bestLos) ? bestLos : null,
+        losMinimum,
         bestOpeningAsw,
         openingAswMinimum,
+        zuiunCutInCandidateCount,
+        zuiunCutInFallbackCandidateCount,
         reasonCodes: [...new Set(reasons.map(({ code }) => code))],
       },
       elapsedMs: Date.now() - startedAt,
@@ -572,8 +755,14 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     diagnostics: {
       routeCandidateCount: routes.length,
       availableRouteCount: availableRoutes.length,
+      ...fleetSearchSummary,
       evaluatedFleetCandidateCount,
       gearSolutionCount,
+      currentFleetShipCount: input.account.currentFleetShipIds.length,
+      currentLoadoutCandidateCount,
+      currentLoadoutAcceptedCount,
+      currentLoadoutBestAirPower,
+      currentLoadoutBestLos,
       recommendationCandidateCount: recommendationCandidates.length,
       bestAirPower,
       airPowerMinimum:
@@ -581,6 +770,15 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           .flatMap(({ route }) =>
             route.calculatedConstraints
               .filter((constraint) => constraint.kind === 'air-power')
+              .map((constraint) => constraint.minimum),
+          )
+          .sort((left, right) => left - right)[0] ?? null,
+      bestLos: Number.isFinite(bestLos) ? bestLos : null,
+      losMinimum:
+        availableRoutes
+          .flatMap(({ route }) =>
+            route.calculatedConstraints
+              .filter((constraint) => constraint.kind === 'los')
               .map((constraint) => constraint.minimum),
           )
           .sort((left, right) => left - right)[0] ?? null,
@@ -593,6 +791,8 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               .map((constraint) => constraint.minimum),
           )
           .sort((left, right) => left - right)[0] ?? null,
+      zuiunCutInCandidateCount,
+      zuiunCutInFallbackCandidateCount,
       reasonCodes: [],
     },
     elapsedMs: Date.now() - startedAt,

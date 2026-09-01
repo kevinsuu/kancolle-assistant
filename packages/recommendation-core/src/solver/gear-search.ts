@@ -8,6 +8,7 @@ import type {
 } from '../types'
 import type { FleetMember, FleetSearchState } from './internal-types'
 import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
+import { isIseClassKaiNi, isZuiun } from './zuiun'
 
 const GEAR_BEAM_WIDTH = 120
 const MIN_GEAR_CANDIDATES_PER_SLOT = 10
@@ -63,6 +64,7 @@ type GearRequirementKind =
   | 'depth-charge'
   | 'midget-submarine'
   | 'submarine-los'
+  | 'zuiun'
   | 'drum-canister'
   | 'landing-craft'
   | 'seaplane'
@@ -117,6 +119,7 @@ const isMandatoryRequirementKind = (kind: GearRequirementKind): boolean =>
     'anti-installation-surface',
     'anti-installation-aircraft',
     'anti-installation-safe-aircraft',
+    'zuiun',
   ].includes(kind)
 
 const rankStates = (
@@ -154,6 +157,8 @@ const requirementsForMember = (
   submarineSeaplaneAirControl: boolean,
   submarineLosPriority: boolean,
   mayaAaciPreferred: boolean,
+  assignZuiunCutIn: boolean,
+  assignMidgetSubmarine: boolean,
 ): readonly GearRequirement[] => {
   const slotCount = member.ship.slotSizes.length
   const requirementKinds: GearRequirementKind[] = []
@@ -206,6 +211,40 @@ const requirementsForMember = (
   }
 
   if (member.role === 'main-battleship') {
+    if (assignZuiunCutIn) {
+      const prioritizedKinds: GearRequirementKind[] = Array.from(
+        { length: slotCount },
+        () => 'general',
+      )
+      const zuiunSlotIndexes = member.ship.slotSizes
+        .map((slotSize, slotIndex) => ({ slotSize, slotIndex }))
+        .sort((left, right) => right.slotSize - left.slotSize || left.slotIndex - right.slotIndex)
+        .slice(0, 2)
+        .map(({ slotIndex }) => slotIndex)
+      zuiunSlotIndexes.forEach((slotIndex) => {
+        prioritizedKinds[slotIndex] = 'zuiun'
+      })
+      const surfaceSlotIndexes = prioritizedKinds
+        .map((kind, slotIndex) => ({ kind, slotIndex }))
+        .filter(({ kind }) => kind !== 'zuiun')
+        .map(({ slotIndex }) => slotIndex)
+      surfaceSlotIndexes.slice(0, 2).forEach((slotIndex) => {
+        prioritizedKinds[slotIndex] = 'big-gun'
+      })
+      const apShellSlotIndex = surfaceSlotIndexes[2]
+      if (apShellSlotIndex !== undefined) prioritizedKinds[apShellSlotIndex] = 'ap-shell'
+      return member.ship.slotSizes.map((slotSize, slotIndex) => ({
+        key: `${shipIndex}:${slotIndex}`,
+        shipIndex,
+        slotIndex,
+        slotSize,
+        kind: prioritizedKinds[slotIndex] ?? 'general',
+        losPriority: false,
+        airPowerPriority: false,
+        airControlPriority: false,
+        landAttackSafeCarrier: false,
+      }))
+    }
     if (assignAirSeaplanes && member.ship.shipTypeId === 10) {
       requirementKinds.push('big-gun', 'big-gun', 'seaplane')
       if (bbvSeaplaneLosPriority) {
@@ -224,7 +263,12 @@ const requirementsForMember = (
     } else {
       requirementKinds.push('main-gun', 'main-gun')
     }
-    if (assignAirSeaplanes && [6, 16].includes(member.ship.shipTypeId)) {
+    if (assignMidgetSubmarine) {
+      while (requirementKinds.length < slotCount - 1) {
+        requirementKinds.push(assignAirSeaplanes ? 'seaplane' : 'recon')
+      }
+      if (requirementKinds.length < slotCount) requirementKinds.push('midget-submarine')
+    } else if (assignAirSeaplanes) {
       while (requirementKinds.length < slotCount) requirementKinds.push('seaplane')
     } else {
       requirementKinds.push('recon', 'radar')
@@ -342,6 +386,7 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
   if (kind === 'carrier-aircraft') return CARRIER_AIRCRAFT_TYPE_IDS.has(gear.typeId)
   if (kind === 'submarine-los')
     return SEAPLANE_TYPE_IDS.has(gear.typeId) || RADAR_TYPE_IDS.has(gear.typeId)
+  if (kind === 'zuiun') return isZuiun(gear)
   if (SPEED_GEAR_MASTER_IDS.has(gear.masterId)) return false
   const acceptedTypes: Readonly<Record<GearRequirementKind, readonly number[]>> = {
     'big-gun': [3],
@@ -363,6 +408,7 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
     'depth-charge': [15],
     'midget-submarine': [22],
     'submarine-los': [],
+    zuiun: [],
     'drum-canister': [],
     'landing-craft': [],
     seaplane: [...SEAPLANE_TYPE_IDS],
@@ -460,6 +506,14 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
         stats.torpedo * 2 +
         (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0) * 2 +
         stats.accuracy
+      )
+    case 'zuiun':
+      return (
+        stats.bombing * 5 +
+        stats.los * 4 +
+        stats.antiAir * 2 +
+        (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0) * 2 +
+        improvement
       )
     case 'drum-canister':
       return 80 + improvement
@@ -1097,6 +1151,8 @@ export const buildGearSolutions = (
   submarineSeaplaneAirControl = false,
   submarineLosPriority = false,
   mayaAaciPreferred = false,
+  zuiunCutInPreferred = false,
+  openingTorpedoPreferred = false,
 ): readonly RecommendedShipBuild[][] => {
   const airPowerRequired = airPowerMinimum !== null
   const solutionCacheKey = `${fleet.members
@@ -1111,7 +1167,9 @@ export const buildGearSolutions = (
     bbvSeaplaneLosPriority,
   )}:${Number(bbvSeaplaneAirPriority)}:${Number(surfaceSeaplaneAirPriority)}:${Number(losPriority)}:${Number(
     submarineSeaplaneAirControl,
-  )}:${Number(submarineLosPriority)}:${Number(mayaAaciPreferred)}`
+  )}:${Number(submarineLosPriority)}:${Number(mayaAaciPreferred)}:${Number(
+    zuiunCutInPreferred,
+  )}:${Number(openingTorpedoPreferred)}`
   const cachedSolution = context.solutionCache.get(solutionCacheKey)
   if (cachedSolution) return cachedSolution
   const availableAntiInstallationShellMasterIds = new Set(
@@ -1204,7 +1262,28 @@ export const buildGearSolutions = (
     return []
   }
   const regularRequirements = fleet.members.flatMap((member, shipIndex) => {
+    const zuiunCutInCandidate = zuiunCutInPreferred && isIseClassKaiNi(member.ship)
+    const compatibleZuiunCount = zuiunCutInCandidate
+      ? context.availableEquipment.filter(
+          (gear) =>
+            isZuiun(gear) &&
+            equipmentAvailableForMember(context, member, gear) &&
+            context.regularMasterIdsByShip.get(member.ship.id)?.has(gear.masterId),
+        ).length
+      : 0
+    const assignZuiunCutIn =
+      zuiunCutInCandidate && member.ship.slotSizes.length >= 5 && compatibleZuiunCount >= 2
+    const assignMidgetSubmarine =
+      openingTorpedoPreferred &&
+      member.ship.shipTypeId === 3 &&
+      context.availableEquipment.some(
+        (gear) =>
+          gear.typeId === 22 &&
+          equipmentAvailableForMember(context, member, gear) &&
+          context.regularMasterIdsByShip.get(member.ship.id)?.has(gear.masterId),
+      )
     const assignAirSeaplanes =
+      !zuiunCutInCandidate &&
       airPowerRequired &&
       context.availableEquipment.some(
         (gear) =>
@@ -1230,6 +1309,8 @@ export const buildGearSolutions = (
       submarineSeaplaneAirControl,
       submarineLosPriority,
       mayaAaciPreferred,
+      assignZuiunCutIn,
+      assignMidgetSubmarine,
     )
   })
   const expansionRequirements: readonly GearRequirement[] = fleet.members.flatMap(

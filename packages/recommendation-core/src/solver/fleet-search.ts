@@ -1,5 +1,6 @@
 import type {
   AccountSnapshot,
+  FleetConstraint,
   FleetRole,
   OwnedShip,
   RecommendationObjective,
@@ -13,6 +14,8 @@ import { arrangeSpecialAttack } from './special-attack'
 
 const FLEET_BEAM_WIDTH = 400
 const FLEET_CANDIDATES_PER_ROLE = 14
+const CURRENT_FLEET_SHIP_PREFERENCE_BONUS = 25
+const OPENING_TORPEDO_PREFERENCE_BONUS = 600
 const SPEED_GEAR_MASTER_IDS = new Set([33, 34, 87])
 const SEAPLANE_TYPE_IDS = new Set([10, 11, 45])
 const RADAR_TYPE_IDS = new Set([12, 13, 51, 93])
@@ -29,12 +32,29 @@ interface RouteSupportProfile {
   readonly submarineLosPotential: number
   readonly compatibleSeaplaneCount: number
   readonly compatibleSubmarineLosCount: number
+  readonly compatibleMidgetSubmarineCount: number
 }
 
 interface RankedShipCandidate {
   readonly ship: OwnedShip
   readonly role: FleetRole
   readonly score: number
+}
+
+export interface FleetSearchDiagnostics {
+  readonly eligibleShipCount: number
+  readonly candidatePoolCount: number
+  readonly requiredCandidateCount: number
+  readonly infeasiblePartialStateCount: number
+  readonly maxDepth: number
+  readonly completeStateCount: number
+  readonly constraintValidStateCount: number
+  readonly specialAttackRejectedCount: number
+}
+
+export interface FleetSearchResult {
+  readonly candidates: readonly FleetSearchState[]
+  readonly diagnostics: FleetSearchDiagnostics
 }
 
 const fastPlusProfileCache = new WeakMap<
@@ -104,6 +124,7 @@ const shipRouteSupportProfile = (
     submarineLosPotential: bestSubmarineLos * positiveSlots.length,
     compatibleSeaplaneCount: compatibleSeaplanes.length,
     compatibleSubmarineLosCount: compatibleSubmarineLosEquipment.length,
+    compatibleMidgetSubmarineCount: compatibleEquipment.filter((gear) => gear.typeId === 22).length,
   }
   accountCache.set(ship.id, profile)
   return profile
@@ -265,6 +286,13 @@ const candidateShipScore = (
       routeFit += Math.min(supportProfile.submarineLosPotential, 140) * 1.1
       routeFit += supportProfile.compatibleSubmarineLosCount > 0 ? 220 : -350
     }
+    if (
+      route.tags.includes('opening-torpedo-preferred') &&
+      ship.shipTypeId === 3 &&
+      supportProfile.compatibleMidgetSubmarineCount > 0
+    ) {
+      routeFit += OPENING_TORPEDO_PREFERENCE_BONUS
+    }
     if (route.tags.includes('guide-prefer-maya-aaci') && isMayaClassAntiAirCandidate(ship)) {
       routeFit += 1600 + ship.stats.antiAir * 4
     }
@@ -324,6 +352,13 @@ const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
   const antiSubmarineLoadoutRequired =
     route.tags.includes('asw-loadout') ||
     (openingAswRequired && route.tags.some((tag) => ['asw', 'oasw'].includes(tag)))
+  if (
+    route.tags.includes('anti-air-cut-in') &&
+    ship.shipTypeId === 2 &&
+    isAkizukiClassAntiAirCandidate(ship)
+  ) {
+    return 'escort-destroyer'
+  }
   if (antiSubmarineLoadoutRequired && [1, 2, 3, 21].includes(ship.shipTypeId)) {
     return 'anti-submarine'
   }
@@ -352,6 +387,11 @@ const normalizeShipNameForMatch = (name: string): string =>
 
 const isMayaClassAntiAirCandidate = (ship: OwnedShip): boolean =>
   /摩耶|Maya/i.test(normalizeShipNameForMatch(ship.name))
+
+const isAkizukiClassAntiAirCandidate = (ship: OwnedShip): boolean =>
+  /秋月|照月|涼月|初月|冬月|Akizuki|Teruzuki|Suzutsuki|Hatsuzuki|Fuyuzuki/i.test(
+    normalizeShipNameForMatch(ship.name),
+  )
 
 const shipMatchesNameConstraint = (
   shipName: string,
@@ -423,43 +463,121 @@ const requiredConstraintBonus = (
 const fleetShipCount = (route: RouteTemplate): number =>
   route.fleetConstraints.find((constraint) => constraint.kind === 'ship-count')?.exact ?? 6
 
-const canStillSatisfyFleetConstraints = (
-  members: readonly FleetMember[],
+type CountedFleetConstraint = Exclude<FleetConstraint, { readonly kind: 'ship-count' }>
+
+const constraintMinimum = (constraint: CountedFleetConstraint): number =>
+  constraint.kind === 'specific-ship-name'
+    ? constraint.min
+    : (constraint.exact ?? constraint.min ?? 0)
+
+const constraintMaximum = (constraint: CountedFleetConstraint): number =>
+  constraint.kind === 'specific-ship-name'
+    ? Number.POSITIVE_INFINITY
+    : (constraint.exact ?? constraint.max ?? Number.POSITIVE_INFINITY)
+
+const shipMatchesFleetConstraint = (
+  ship: OwnedShip,
+  constraint: CountedFleetConstraint,
+): boolean =>
+  constraint.kind === 'specific-ship-name'
+    ? shipMatchesNameConstraint(ship.name, constraint.names)
+    : constraint.shipTypeIds.includes(ship.shipTypeId)
+
+const createFleetCompletionChecker = (
   candidates: readonly RankedShipCandidate[],
+  route: RouteTemplate,
+): ((
+  members: readonly FleetMember[],
   lastCandidateIndex: number,
   remainingSlots: number,
-  route: RouteTemplate,
-): boolean => {
-  const remainingCandidates = candidates.slice(lastCandidateIndex + 1)
-  if (remainingCandidates.length < remainingSlots) return false
-  return route.fleetConstraints.every((constraint) => {
-    if (constraint.kind === 'ship-count') return true
-    if (constraint.kind === 'specific-ship-name') {
-      const current = members.filter((member) =>
-        shipMatchesNameConstraint(member.ship.name, constraint.names),
-      ).length
-      const available = remainingCandidates.filter(({ ship }) =>
-        shipMatchesNameConstraint(ship.name, constraint.names),
-      ).length
-      return current + Math.min(remainingSlots, available) >= constraint.min
+) => boolean) => {
+  const constraints = route.fleetConstraints.filter(
+    (constraint): constraint is CountedFleetConstraint => constraint.kind !== 'ship-count',
+  )
+  const minimums = constraints.map(constraintMinimum)
+  const maximums = constraints.map(constraintMaximum)
+  const contributions = candidates.map(({ ship }) =>
+    constraints.map((constraint) => Number(shipMatchesFleetConstraint(ship, constraint))),
+  )
+  const suffixAvailability: number[][] = Array.from({ length: candidates.length + 1 }, () =>
+    Array(constraints.length).fill(0),
+  )
+  for (let candidateIndex = candidates.length - 1; candidateIndex >= 0; candidateIndex -= 1) {
+    suffixAvailability[candidateIndex] = suffixAvailability[candidateIndex + 1].map(
+      (count, constraintIndex) => count + contributions[candidateIndex][constraintIndex],
+    )
+  }
+  const memo = new Map<string, boolean>()
+
+  const normalizeCounts = (counts: readonly number[]): readonly number[] =>
+    counts.map((count, index) => {
+      const cap = Number.isFinite(maximums[index]) ? maximums[index] : minimums[index]
+      return Math.min(count, cap)
+    })
+
+  const canComplete = (
+    candidateIndex: number,
+    remainingSlots: number,
+    counts: readonly number[],
+  ): boolean => {
+    if (candidates.length - candidateIndex < remainingSlots) return false
+    if (
+      counts.some(
+        (count, constraintIndex) =>
+          count > maximums[constraintIndex] ||
+          count + Math.min(remainingSlots, suffixAvailability[candidateIndex][constraintIndex]) <
+            minimums[constraintIndex],
+      )
+    ) {
+      return false
     }
-    const minimum = constraint.exact ?? constraint.min
-    if (minimum === undefined) return true
-    const current = members.filter((member) =>
-      constraint.shipTypeIds.includes(member.ship.shipTypeId),
-    ).length
-    const available = remainingCandidates.filter(({ ship }) =>
-      constraint.shipTypeIds.includes(ship.shipTypeId),
-    ).length
-    return current + Math.min(remainingSlots, available) >= minimum
-  })
+    if (remainingSlots === 0) return true
+
+    const normalizedCounts = normalizeCounts(counts)
+    const memoKey = `${candidateIndex}:${remainingSlots}:${normalizedCounts.join(',')}`
+    const cached = memo.get(memoKey)
+    if (cached !== undefined) return cached
+
+    const nextCounts = normalizedCounts.map(
+      (count, constraintIndex) => count + contributions[candidateIndex][constraintIndex],
+    )
+    const canTake = nextCounts.every((count, constraintIndex) => count <= maximums[constraintIndex])
+    const result =
+      (canTake && canComplete(candidateIndex + 1, remainingSlots - 1, nextCounts)) ||
+      canComplete(candidateIndex + 1, remainingSlots, normalizedCounts)
+    memo.set(memoKey, result)
+    return result
+  }
+
+  return (members, lastCandidateIndex, remainingSlots) => {
+    const counts = constraints.map(
+      (constraint) =>
+        members.filter((member) => shipMatchesFleetConstraint(member.ship, constraint)).length,
+    )
+    return canComplete(lastCandidateIndex + 1, remainingSlots, counts)
+  }
+}
+
+const arrangeRequiredFlagship = (
+  members: readonly FleetMember[],
+  route: RouteTemplate,
+): readonly FleetMember[] => {
+  if (!route.tags.includes('flagship-destroyer')) return members
+  const flagship = members.find((member) => member.ship.shipTypeId === 2)
+  if (!flagship || members[0]?.ship.id === flagship.ship.id) return members
+  return [flagship, ...members.filter((member) => member.ship.id !== flagship.ship.id)]
 }
 
 const genericCandidatePool = (
   account: AccountSnapshot,
   route: RouteTemplate,
   objective: RecommendationObjective,
-): readonly RankedShipCandidate[] => {
+  preferredShipIds: ReadonlySet<ShipInstanceId>,
+): {
+  readonly candidates: readonly RankedShipCandidate[]
+  readonly eligibleShipCount: number
+  readonly requiredCandidateCount: number
+} => {
   const fastRequired = route.tags.includes('fast')
   const fastPlusRequired = route.tags.includes('fast+')
   const ranked = account.ships
@@ -477,11 +595,14 @@ const genericCandidatePool = (
     .map(({ ship, role, fastPlusProfile }) => ({
       ship,
       role,
-      score: candidateShipScore(ship, role, objective, account, fastPlusProfile, route),
+      score:
+        candidateShipScore(ship, role, objective, account, fastPlusProfile, route) +
+        (preferredShipIds.has(ship.id) ? CURRENT_FLEET_SHIP_PREFERENCE_BONUS : 0),
     }))
     .sort((left, right) => right.score - left.score || left.ship.id - right.ship.id)
   const byType = new Map<number, number>()
   const selected = ranked.filter(({ ship }) => {
+    if (preferredShipIds.has(ship.id)) return true
     const count = byType.get(ship.shipTypeId) ?? 0
     const isNamedRequirement = route.fleetConstraints.some(
       (constraint) =>
@@ -492,16 +613,47 @@ const genericCandidatePool = (
     byType.set(ship.shipTypeId, count + 1)
     return true
   })
-  return selected.slice(0, 180)
+  const routeConstraintPriority = ({ ship }: RankedShipCandidate): number => {
+    const matchesNamedRequirement = route.fleetConstraints.some(
+      (constraint) =>
+        constraint.kind === 'specific-ship-name' &&
+        shipMatchesNameConstraint(ship.name, constraint.names),
+    )
+    if (matchesNamedRequirement) return 2
+    const matchesRequiredShipType = route.fleetConstraints.some((constraint) => {
+      if (constraint.kind !== 'ship-type-count') return false
+      const minimum = constraint.exact ?? constraint.min ?? 0
+      return minimum > 0 && constraint.shipTypeIds.includes(ship.shipTypeId)
+    })
+    return Number(matchesRequiredShipType)
+  }
+  const candidates = selected
+    .map((candidate, index) => ({ candidate, index, priority: routeConstraintPriority(candidate) }))
+    .sort((left, right) => right.priority - left.priority || left.index - right.index)
+    .slice(0, 180)
+    .map(({ candidate }) => candidate)
+    .sort((left, right) => right.score - left.score || left.ship.id - right.ship.id)
+  return {
+    candidates,
+    eligibleShipCount: ranked.length,
+    requiredCandidateCount: candidates.filter((candidate) => routeConstraintPriority(candidate) > 0)
+      .length,
+  }
 }
 
 export const generateFleetCandidates = (
   account: AccountSnapshot,
   route: RouteTemplate,
   objective: RecommendationObjective,
-): readonly FleetSearchState[] => {
-  const candidates = genericCandidatePool(account, route, objective)
+  preferredShipIds: readonly ShipInstanceId[] = [],
+  preferredShipIdGroups: readonly (readonly ShipInstanceId[])[] = [],
+): FleetSearchResult => {
+  const candidatePool = genericCandidatePool(account, route, objective, new Set(preferredShipIds))
+  const candidates = candidatePool.candidates
   const targetShipCount = fleetShipCount(route)
+  const canCompleteFleet = createFleetCompletionChecker(candidates, route)
+  let infeasiblePartialStateCount = 0
+  let maxDepth = 0
   let states: readonly FleetSearchState[] = [
     {
       members: [],
@@ -521,15 +673,8 @@ export const generateFleetCandidates = (
         const members = [...state.members, { ship, role }]
         if (violatesMaximumConstraints(members, route)) return
         const remainingSlots = targetShipCount - members.length
-        if (
-          !canStillSatisfyFleetConstraints(
-            members,
-            candidates,
-            candidateIndex,
-            remainingSlots,
-            route,
-          )
-        ) {
+        if (!canCompleteFleet(members, candidateIndex, remainingSlots)) {
+          infeasiblePartialStateCount += 1
           return
         }
         const usedShipIds = new Set(state.usedShipIds)
@@ -549,15 +694,73 @@ export const generateFleetCandidates = (
           shipSignature(left.members).localeCompare(shipSignature(right.members)),
       )
       .slice(0, FLEET_BEAM_WIDTH)
+    if (states.length > 0) maxDepth = depth + 1
   }
 
-  return states
-    .filter((state) => satisfiesFleetConstraints(state.members, route))
-    .flatMap((state) => {
-      if (!route.tags.includes('special-attack-modeled')) return [state]
-      const setup = arrangeSpecialAttack(state.members)
-      return setup ? [{ ...state, members: setup.members }] : []
-    })
+  const constraintValidStates = states.filter((state) =>
+    satisfiesFleetConstraints(state.members, route),
+  )
+  const candidatesByShipId = new Map(
+    candidates.map((candidate, candidateIndex) => [
+      candidate.ship.id,
+      { candidate, candidateIndex },
+    ]),
+  )
+  const preferredFleetStates = preferredShipIdGroups.flatMap((shipIds) => {
+    if (shipIds.length !== targetShipCount) return []
+    const selected = shipIds.map((shipId) => candidatesByShipId.get(shipId))
+    if (
+      !selected.every(
+        (item): item is { candidate: RankedShipCandidate; candidateIndex: number } =>
+          item !== undefined,
+      )
+    ) {
+      return []
+    }
+    const members = selected.map(({ candidate }) => ({
+      ship: candidate.ship,
+      role: candidate.role,
+    }))
+    if (!satisfiesFleetConstraints(members, route)) return []
+    return [
+      {
+        members,
+        usedShipIds: new Set(shipIds),
+        score: selected.reduce((total, { candidate }) => total + candidate.score, 0),
+        lastCandidateIndex: Math.max(...selected.map(({ candidateIndex }) => candidateIndex)),
+      },
+    ]
+  })
+  let specialAttackRejectedCount = 0
+  const fleetCandidates = [...preferredFleetStates, ...constraintValidStates].flatMap((state) => {
+    const members = arrangeRequiredFlagship(state.members, route)
+    if (!route.tags.includes('special-attack-modeled')) return [{ ...state, members }]
+    const setup = arrangeSpecialAttack(members)
+    if (!setup) specialAttackRejectedCount += 1
+    return setup ? [{ ...state, members: setup.members }] : []
+  })
+  const uniqueFleetCandidates = fleetCandidates.filter((state, index, allStates) => {
+    const signature = [...state.usedShipIds].sort((left, right) => left - right).join('-')
+    return (
+      allStates.findIndex(
+        (candidate) =>
+          [...candidate.usedShipIds].sort((left, right) => left - right).join('-') === signature,
+      ) === index
+    )
+  })
+  return {
+    candidates: uniqueFleetCandidates,
+    diagnostics: {
+      eligibleShipCount: candidatePool.eligibleShipCount,
+      candidatePoolCount: candidates.length,
+      requiredCandidateCount: candidatePool.requiredCandidateCount,
+      infeasiblePartialStateCount,
+      maxDepth,
+      completeStateCount: states.length,
+      constraintValidStateCount: constraintValidStates.length,
+      specialAttackRejectedCount,
+    },
+  }
 }
 
 export const analyzeFleetAvailability = (

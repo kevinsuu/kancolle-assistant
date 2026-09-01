@@ -153,6 +153,7 @@ const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
     speedValue,
     stats: parseStats(record.stats, `${path}.stats`),
     nakedLos: asNumber(record.nakedLos, `${path}.nakedLos`),
+    currentEquipmentLosBonus: optionalNumber(record.currentEquipmentLosBonus),
     slotSizes: numberArray(record.slotSizes, `${path}.slotSizes`),
     equippedItemIds,
     expansionSlotItemId:
@@ -231,15 +232,30 @@ export const parseKC3AccountSnapshot = (value: unknown): AccountSnapshot => {
     equipmentIds.add(gear.id)
   })
 
+  const currentFleetShipIds = numberArray(
+    record.currentFleetShipIds,
+    'snapshot.currentFleetShipIds',
+  ).map((id) => id as ShipInstanceId)
+  const currentFleetShipIdGroups =
+    record.currentFleetShipIdGroups === undefined
+      ? currentFleetShipIds.length > 0 && currentFleetShipIds.length <= 6
+        ? [currentFleetShipIds]
+        : []
+      : asArray(record.currentFleetShipIdGroups, 'snapshot.currentFleetShipIdGroups')
+          .map((group, index) =>
+            numberArray(group, `snapshot.currentFleetShipIdGroups[${index}]`).map(
+              (id) => id as ShipInstanceId,
+            ),
+          )
+          .filter((group) => group.length > 0)
+
   return {
     generatedAt: asString(record.generatedAt, 'snapshot.generatedAt'),
     hqLevel: asNumber(record.hqLevel, 'snapshot.hqLevel'),
     ships,
     equipment,
-    currentFleetShipIds: numberArray(
-      record.currentFleetShipIds,
-      'snapshot.currentFleetShipIds',
-    ).map((id) => id as ShipInstanceId),
+    currentFleetShipIds,
+    currentFleetShipIdGroups,
     metadata: {
       source: 'kc3',
       schemaVersion: 1,

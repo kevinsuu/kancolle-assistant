@@ -112,6 +112,10 @@ export const tcn = {
   'fleet.strategyMinimumValue': '{value}／最低 {minimum}',
   'fleet.strategyResourceValue': '{gain} 取得／{net} 淨收益',
   'fleet.strategyNoDescription': '請開啟來源確認此路線。',
+  'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
+    '戰艦1、正規空母2、重巡1、驅逐1、海防1。空母以全艦隊制空 80+ 彈性配裝；採用伊勢／日向改二且持有兩架相容瑞雲時，優先主主瑞瑞徹。',
+  'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
+    '戰艦1、正規／裝甲空母2、航巡1、驅逐1、海防1。A-E-I-K 固定、海防艦先制對潛；空母達成制空 80+ 後，其餘槽位優先攻擊機。',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
     '正規／裝甲空母2（至少1艘夜戰空母）、輕空母1、雷巡2、航戰1。全員高速＋走 A／C-D-H-T 最短路，制空 414+；適合正攻、周回與戰果衝刺。',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
@@ -225,9 +229,12 @@ export const tcn = {
 
   'message.ROUTE_FIXED_COMPOSITION': '採用「{routeName}」{nodes}，艦種配置符合資料規則。',
   'message.EQUIPMENT_INSTANCES_UNIQUE': '每件裝備均以 KC3 instance ID 分配，方案內沒有重複使用。',
+  'message.FLAGSHIP_REQUIREMENT_PASSED': '已將驅逐艦配置為旗艦，符合此任務的編成條件。',
+  'message.FLEET_CANDIDATE_SEARCH_EXHAUSTED':
+    '艦娘數量足夠，但候選搜尋未找到同時符合指定艦、艦種與帶路條件的完整艦隊。',
   'message.AIR_POWER_RECOMMENDED': '制空值 {airPower}，已達建議值 {recommended}。',
   'message.AIR_POWER_BELOW_RECOMMENDED':
-    '制空值 {airPower} 通過最低值，但未達建議值 {recommended}。',
+    '制空值 {airPower} 未達建議值 {recommended}；這不一定是路線或任務的硬性條件。',
   'message.LOS_CONSTRAINT_PASSED': '33 式索敵為 {los}，餘裕 {margin}。',
   'message.LOW_LOS_MARGIN': '索敵餘裕低於 5；更換艦娘或偵察裝備後請重新產生方案。',
   'message.EQUIPMENT_MOVEMENT_REQUIRED': '需從其他艦娘調度 {count} 件現有裝備；系統不會自動換裝。',
@@ -239,6 +246,10 @@ export const tcn = {
     '帳號內可裝且符合用途的裝備不足，方案仍有 {count} 個空槽；請勿直接照抄出擊。',
   'message.OASW_NOT_READY': '此路線依賴先制對潛，但目前方案沒有符合艦種門檻且已裝聲納的艦娘。',
   'message.OASW_REQUIREMENT_PASSED': '先制對潛可成立 {count} 艘，已達最低 {minimum} 艘。',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
+    '{shipName} 已配置主砲與兩架瑞雲；取得航空優勢以上且瑞雲槽仍有飛機時，可發動瑞雲立體攻擊。',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
+    '{shipName} 缺少兩架可用瑞雲或完整五槽，已回退一般主砲／水偵／徹甲彈配置。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '已為 {minimum} 艘戰艦／重巡級配置三式彈系裝備，符合此路線的對陸配置模型。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':

@@ -92,8 +92,14 @@ Notable overlays include:
 - 1-3 fuel farming with AO or AV.
 - 1-6 KCWiki beginner, regular, air-control, and quarterly-quest fleets. The first three use the
   fixed CL1/DD5 lower route; the quarterly AO2/DD4 fleet preserves the 75% F / 25% K split and an
-  explicit random-routing warning. Air-control variants check their sourced F-node thresholds.
-- 2-1 fixed instant-construction-material farming with two CVL, three SS/SSV, and one AV.
+  explicit random-routing warning while requiring an Akizuki-class AACI escort and another DD
+  capable of opening ASW. Air-control variants check their sourced F-node thresholds.
+  The Bahamut heavy quarterly fleet uses BBV2/CL1/DD-or-DE3 and hard-checks only the M-to-J Formula
+  33 coefficient-3 score of 30; air power 89/177 and two opening-ASW ships remain visible advice.
+- 2-1 shortest CEH boss routing with CL1/DD4/AV1 treats boss air superiority 81 as advice rather
+  than an account-blocking requirement. It prefers a CL with an account-compatible midget submarine
+  for opening torpedo, but retains ordinary CL fallback. Fixed instant-construction-material farming
+  separately uses two CVL, three SS/SSV, and one AV.
 - 2-2 carrier leveling, C-B-A bauxite/transport farming, carrier-submarine transport farming, and
   a manually selectable 6SS low-cost random route.
 - 1-5 and 2-2 leveling.
@@ -125,7 +131,12 @@ aviation-battleship route follows the KCWiki shape with
 BBV3, CA/CAV2-3, optional CL1, at least two CL/CAV drum-capable carriers, a slow fleet, Cn1 LoS 49,
 and boss air 42/84. Upper-route templates keep aviation battleships on waterplane-first loadouts
 before AP shells so low-LoS accounts can satisfy the guide line, and Fifth Squadron keeps enough
-high-air waterplanes in the candidate pool to reach its hard air-power 84 line. 3-5 lower routes
+high-air waterplanes in the candidate pool to reach its hard air-power 84 line. The Water
+Counterattack quest fleet keeps Cn1 LoS 34 as a hard routing requirement, while boss air superiority
+42 is advisory: accounts without a compatible Zara/Pola-class cruiser or waterplane still receive a
+legal fleet, with a DD placed as the quest-required flagship. When KC3 reports compatible seaplanes
+for an exceptional CA or CL, equipment search can use that ship-specific compatibility instead of
+rejecting the aircraft by generic ship type. 3-5 lower routes
 check air 1 and Cn4 LoS 28, while the Yui
 beginner upper image is fixed to three regular/armored carriers and three aviation cruisers. The
 KCWiki/Yui upper carrier route remains three regular/armored carriers, one CA/CAV, and two SS/SSV,
@@ -144,6 +155,14 @@ two carriers, one torpedo cruiser, one light cruiser, and two destroyers on
 A-C-L / A-E-G-L / B-D-C-L. The transport-weekly route uses two carriers, one battleship or aviation
 battleship, one aviation cruiser, and two destroyers, with the listed
 A-C-L / A-C-G-L / A-E-G-L / B-D-C-L / B-D-C-G-L / B-D-H-G-L route set.
+
+4-4 keeps the sourced A-E-I-K fleet skeleton and air-power minimum of 80, but allocates carrier
+aircraft flexibly across the whole fleet instead of converting every carrier slot after two attack
+slots into a fighter slot. When the selected battleship is Ise Kai Ni or Hyuga Kai Ni and the
+account owns two compatible Zuiun-family aircraft, the primary guide route prefers the five-slot
+main-main-Zuiun-Zuiun-AP-shell setup for Zuiun Multi-Angle Attack while retaining ordinary
+artillery spotting. If either aircraft or the full five slots are unavailable, it falls back to a
+main-main-recon-AP-shell combat setup rather than inserting a redundant seaplane fighter.
 
 The 4-5 catalog distinguishes the image-matched CVL/CV/CL/DD3 shortest route at air 215, beginner
 chip route at air 220, Fast+ medium/high-air routes at air 220/430, and beginner K-node smoke final
@@ -173,8 +192,12 @@ now includes the KCWiki headings `潜艇配置`, `上路武大夜母配置`, `�
 `中路重巡配置`, `下路武大4DD`, `下路夜母2CV4DD`, `下路航戰航巡`, and `下路長陸4DD`, alongside
 the existing Yui `常規EO/中路戰巡流`, `補給王煙流`, and `新手長陸`. Upper-route templates check
 Cn2 LoS 80 and the current boss air-control line; middle and lower-route templates use their
-route-specific Cn2/Cn5 LoS and H/Boss air thresholds. The Bahamut 2014 composition is treated as
-historical first-phase heavy-fleet advice and is not marked as a fixed current route. 5-6 exposes
+route-specific Cn2/Cn5 LoS and H/Boss air thresholds. The additional
+`CoNye・長陸最矢流` keeps the pictured Nagato Kai Ni, Mutsu Kai Ni, Mogami,
+Yahagi, and two-destroyer middle-lower fleet distinct, with Cn2 LoS 66 and the requested boss air
+power 90 target; route support remains a manual sortie check. The Bahamut 2014 composition is
+treated as historical first-phase heavy-fleet advice and is not marked as a fixed current route.
+5-6 exposes
 the Yui URL only on image-matched P1 transport, P2 surface, P3 normal, and P3 Fast+ carrier-four
 templates. The 6-5 south route records the supplied air 165 LBAS plan, and the 7-5 catalog
 separately exposes only the sourced P1, P2, and P3 boss templates, with P3 checking Cn4 LoS 59.

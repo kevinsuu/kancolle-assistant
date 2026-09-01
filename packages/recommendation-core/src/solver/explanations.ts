@@ -7,6 +7,7 @@ import type {
 } from '../types'
 import { unresolvedExternalRouteTags } from '../rules'
 import { specialAttackSetupForOrderedFleet } from './special-attack'
+import { hasZuiunMultiAngleAttack, isIseClassKaiNi } from './zuiun'
 
 const RECOMMENDATION_TITLES: Readonly<Record<RecommendationObjective, readonly string[]>> = {
   balanced: ['均衡主案', '穩定替案', '調度替案'],
@@ -57,16 +58,44 @@ export const recommendationMessages = (
     0,
   )
 
-  if (metrics.airPowerRequired && metrics.airPower >= metrics.airPowerRecommended) {
+  if (route.tags.includes('flagship-destroyer') && builds[0]?.ship.shipTypeId === 2) {
+    reasons.push({
+      code: 'FLAGSHIP_REQUIREMENT_PASSED',
+      message: '已將驅逐艦配置為旗艦，符合此任務的編成條件。',
+    })
+  }
+
+  if (route.tags.includes('opening-torpedo-preferred')) {
+    const openingTorpedoBuild = builds.find(
+      (build) => build.ship.shipTypeId === 3 && build.equipment.some((gear) => gear?.typeId === 22),
+    )
+    if (openingTorpedoBuild) {
+      reasons.push({
+        code: 'OPENING_TORPEDO_PREFERENCE_APPLIED',
+        message: `${openingTorpedoBuild.ship.name} 可裝甲標的，已優先採用先制雷擊輕巡配置。`,
+        values: {
+          shipId: openingTorpedoBuild.ship.id,
+          shipName: openingTorpedoBuild.ship.name,
+        },
+      })
+    } else {
+      warnings.push({
+        code: 'OPENING_TORPEDO_PREFERENCE_UNAVAILABLE',
+        message: '帳號內沒有可用甲標的配置的輕巡，已回退一般高火雷輕巡。',
+      })
+    }
+  }
+
+  if (metrics.airPowerRecommended > 0 && metrics.airPower >= metrics.airPowerRecommended) {
     reasons.push({
       code: 'AIR_POWER_RECOMMENDED',
       message: `制空值 ${metrics.airPower}，已達建議值 ${metrics.airPowerRecommended}。`,
       values: { airPower: metrics.airPower, recommended: metrics.airPowerRecommended },
     })
-  } else if (metrics.airPowerRequired) {
+  } else if (metrics.airPowerRecommended > 0) {
     warnings.push({
       code: 'AIR_POWER_BELOW_RECOMMENDED',
-      message: `制空值 ${metrics.airPower} 通過最低值，但未達建議值 ${metrics.airPowerRecommended}。`,
+      message: `制空值 ${metrics.airPower} 未達建議值 ${metrics.airPowerRecommended}。`,
       values: { airPower: metrics.airPower, recommended: metrics.airPowerRecommended },
     })
   }
@@ -91,6 +120,22 @@ export const recommendationMessages = (
       message: `先制對潛可成立 ${metrics.openingAswCount} 艘，已達最低 ${metrics.openingAswMinimum} 艘。`,
       values: { count: metrics.openingAswCount, minimum: metrics.openingAswMinimum },
     })
+  }
+  if (route.tags.includes('ise-class-zuiun-cut-in-preferred')) {
+    const iseClassKaiNiBuild = builds.find((build) => isIseClassKaiNi(build.ship))
+    if (iseClassKaiNiBuild && hasZuiunMultiAngleAttack(iseClassKaiNiBuild)) {
+      reasons.push({
+        code: 'ZUIUN_MULTI_ANGLE_ATTACK_READY',
+        message: `${iseClassKaiNiBuild.ship.name} 已配置主砲與兩架瑞雲；取得航空優勢以上且瑞雲槽仍有飛機時，可發動瑞雲立體攻擊。`,
+        values: { shipId: iseClassKaiNiBuild.ship.id, shipName: iseClassKaiNiBuild.ship.name },
+      })
+    } else if (iseClassKaiNiBuild) {
+      warnings.push({
+        code: 'ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK',
+        message: `${iseClassKaiNiBuild.ship.name} 缺少兩架可用瑞雲或完整五槽，已回退一般主砲／水偵／徹甲彈配置。`,
+        values: { shipId: iseClassKaiNiBuild.ship.id, shipName: iseClassKaiNiBuild.ship.name },
+      })
+    }
   }
   const antiInstallationShellTag = route.tags.find((tag) =>
     tag.startsWith('anti-installation-type3-shells-'),

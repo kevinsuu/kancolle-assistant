@@ -10,9 +10,15 @@
       "objectives": ["balanced", "boss-clear", "low-cost"],
       "nodes": ["C", "E", "H"],
       "stableBoss": true,
-      "tags": ["verified-guide", "guide-primary", "fixed-route", "fast"],
-      "desc": "軽巡1、駆逐4、水母1、高速統一。道中1戦の固定編成。",
-      "lastVerified": "2026-08-26",
+      "tags": [
+        "verified-guide",
+        "guide-primary",
+        "fixed-route",
+        "fast",
+        "opening-torpedo-preferred"
+      ],
+      "desc": "軽巡1、駆逐4、水母1、高速統一。道中1戦の固定編成。甲標的を装備できる軽巡を優先し、なければ通常軽巡へ戻す。ボス優勢81+は推奨値で、到達条件としては強制しない。",
+      "lastVerified": "2026-09-01",
       "fleet": [
         {
           "type": "ShipCount",
@@ -38,7 +44,8 @@
         {
           "kind": "air-power",
           "minimum": 81,
-          "recommended": 81
+          "recommended": 81,
+          "required": false
         }
       ]
     },

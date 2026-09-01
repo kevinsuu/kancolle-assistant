@@ -23,7 +23,9 @@ names continue to come from KC3, while map and route names come from the recomme
   automatic-route choice. The data-status row shows an expandable, deduplicated list of the guide
   pages used by the selected reference template or active plan, while broader map-validation
   sources stay in route metadata. Hard requirements such as air power, LoS, opening ASW, and
-  resource estimates are shown only as strategy checks when they apply.
+  resource estimates are shown only as strategy checks when they apply. Guide selectors place the
+  catalog name before source-site labels so the distinguishing name remains visible in narrow KC3
+  panels.
 - Equipment: recommendations use the full account-owned equipment pool, including items currently
   equipped on ships, and KC3 reranks bounded candidates with its current per-ship equipment bonus
   and combat calculations.
@@ -83,8 +85,11 @@ request keeps running so the UI can still receive the final recommendation, whil
 logs the active phase and completion timings for follow-up investigation. Each bounded completion
 summary also records map, route, objective, route/fleet/gear candidate counts, best observed air
 power, the required minimum, and stable failure reason codes without logging the account snapshot
-or individual player equipment. The worker keeps its 30-second defensive timeout for requests that
-stop responding entirely.
+or individual player equipment. Fleet-search diagnostics additionally record eligible and retained
+ship counts, required-candidate counts, jointly infeasible partial states, maximum completed depth,
+complete/constraint-valid state counts, special-attack rejections, and routes with no full
+candidate. The worker keeps its 30-second defensive timeout for requests that stop responding
+entirely.
 
 The page reuses KC3 Strategy Room's native page title, help panel, section, control, theme color,
 and dense fleet-row conventions. Both the dark and legacy themes are driven by KC3's existing
@@ -152,19 +157,35 @@ than returning a partial loadout; if the owned inventory cannot fill the complet
 plan is rejected. Guide-primary templates rank before heuristic alternatives, so ship firepower
 scoring cannot silently substitute a different fleet class.
 
+When the user explicitly selects a route, the solver validates matching ships' current KC3
+equipment before synthesizing new loadouts. A currently equipped fleet that already satisfies the
+route's speed, air-power, Formula 33, opening-ASW, and modeled special-attack checks is therefore a
+valid recommendation candidate instead of being hidden by equipment-search pruning. Diagnostics
+and structured completion logs expose how many current-fleet ships and current-loadout candidates
+were evaluated and accepted; automatic multi-route comparison remains unchanged.
+
 1-6 exposes the four KCWiki guide headings as separate selectable templates. `1-6 萌新配置`,
 `1-6 常規配置`, and `1-6 制空配置` use the fixed A-E-G-F-B-N fleet of one CL and five DD;
 the air-control template asks a compatible CL to fill its aircraft slots with water fighters or
 seaplane bombers, checks air parity at 19, and recommends F-node air superiority at 83. The
 `1-6 季常配置` template uses two AO and four DD for the quarterly transport quest, checks air power
-83, and keeps the source's G-node 75% F / 25% K split as a visible random-routing warning. The
-existing monthly resource-recovery template remains available separately.
+83, requires at least one Akizuki-class AACI escort plus one other DD capable of opening ASW, and
+keeps the source's G-node 75% F / 25% K split as a visible random-routing warning. The
+Bahamut heavy quarterly template accepts two BBV, one CL, and any three DD/DE, with Formula 33
+coefficient 3 at 30 as the hard M-to-J routing check. Its 89 air-power parity target, 177 J-node
+superiority target, and two opening-ASW ships are recommendations rather than account-blocking
+requirements; J is a normal carrier battle and D is the air battle. The existing monthly
+resource-recovery template remains available separately.
 
 2-1 has two account-aware boss options. The shortest light fleet remains CL1, DD4, and AV1, while
 a guide-primary carrier fallback uses two carriers (including at least one regular/armored
-carrier), two CA/CAV, and two CL. Both hard-check the owned air-power threshold before returning a
-plan. The separate instant-construction-material objective uses CVL2, SS/SSV3, and AV1 to reach E
-after one battle and explicitly tells the user to retreat there. According to the current map data,
+carrier), two CA/CAV, and two CL. The shortest fleet keeps boss air superiority 81 as visible advice
+instead of blocking accounts below that target. It prefers an owned CL that can equip an available
+midget submarine, assigns that opening-torpedo setup, and falls back to an ordinary high-stat CL
+when the capability is unavailable; the carrier fallback still hard-checks its owned air-power
+threshold before returning a plan. The separate instant-construction-material objective uses CVL2,
+SS/SSV3, and AV1 to reach E after one battle and explicitly tells the user to retreat there.
+According to the current map data,
 2-1 directly provides steel at B and one instant construction material at E; it is not a direct
 fuel or bucket node. Fuel and a bucket associated with 2-1 come from the
 [once-daily Southwest boss quest reward](https://kamigame.jp/%E8%89%A6%E3%81%93%E3%82%8C/%E5%87%BA%E6%92%83/2-1.html)
@@ -224,7 +245,13 @@ templates keep aviation battleships on waterplane-first loadouts so they can rea
 line before spending the last slot on an AP shell. Yui 2-5 display names follow the source image
 headings, such as `常規EO`, `新手`, and `第五戰隊`. Fifth Squadron additionally balances aviation
 battleship waterplanes toward the hard 84 air-power line before accepting a LoS-only waterplane
-combination, matching the guide's Ise Kai Ni waterplane carrier examples.
+combination, matching the guide's Ise Kai Ni waterplane carrier examples. For the Water
+Counterattack quest fleet, Cn1 LoS 34 remains mandatory but boss air superiority 42 is a preferred
+combat target rather than a routing or quest gate. The solver therefore returns an explicit
+below-target warning instead of no solution when the account has no compatible air-control setup,
+and places a DD in the quest-required flagship position. Exceptional CA/CL seaplane carriers such as
+Zara due are selected from KC3's per-ship compatibility list instead of a generic CAV/AV-only
+allowlist.
 
 For 3-5, the fixed lower routes check Cn4 LoS 28. KCWiki/Yui lower-route air power from
 AV/Night Zuiun/Zuiun is treated as guide advice instead of a hard routing gate for the generic
@@ -324,7 +351,17 @@ The fleet solver ranks bounded candidates and uses deterministic beam search ove
 ship-type, ship-count, and named-ship constraints. Partial fleets are discarded when the remaining
 ranked ships can no longer fulfill a required exact or minimum count. This preserves legal fleets
 on routes with overlapping constraints, such as 2-5's DD, CL, and carrier subtype limits, while
-keeping the search bounded.
+keeping the search bounded. Before applying the global candidate-pool cap, named ships and ship
+types required by exact/minimum constraints receive retention priority. Large accounts therefore
+cannot lose a lower-scored required ship merely because unrelated high-scored ships fill the bounded
+pool first. Remaining-slot pruning solves overlapping named-ship and ship-type requirements as one
+combined feasibility problem, so one open slot cannot be incorrectly reserved for two incompatible
+ships. Ships already assigned to KC3 fleets receive only a small convenience preference; each
+actual six-ship KC3 fleet is evaluated separately as a current-loadout candidate, while legal fleet
+shape and combat value remain the primary ranking criteria. When no complete fleet reaches
+equipment search, the failure is reported as fleet-candidate exhaustion with those bounded
+counters; air power and LoS are reported only after at least one complete gear solution has actually
+been measured.
 Named-ship constraints normalize common CJK variant characters such as 黒/黑, 蔵/藏, and 奥/奧
 before matching KC3 ship names, so localized ship lists can satisfy Japanese guide names.
 Routes that need aviation-battleship seaplane support rank those ships by generic capability:
@@ -343,9 +380,20 @@ ranked with extra LoS priority inside the same role templates. The solver theref
 combat shapes such as main-main-seaplane-seaplane, main-main-recon-radar, or
 main-main-seaplane-drum before falling back to lower-value fillers, rather than stacking radars
 into otherwise nonsensical loadouts just to pass a branching check.
+Formula 33 validation matches KC3's current calculation for an unchanged loadout: explicit
+equipment-on-ship LoS bonuses are added inside each ship's square-root contribution, while regular
+and expansion-slot equipment LoS remains in the coefficient-weighted contribution. The explicit
+bonus is reused only when the recommended instance IDs still match the ship's current equipment.
 Equipment matching follows KC3's current master categories: seaplane fighters include category 45,
 submarine torpedoes include category 32, Type 3 Shells use category 18, and AP shells use category 19. Current carrier aircraft and jet categories used by KC3 are also recognized. These mappings are
 shared by every normal-map route rather than patched per map.
+For the sourced 4-4 primary route, carrier slots are ranked as a flexible fleet-wide air-control
+pool against the reviewed minimum of 80. Ise Kai Ni and Hyuga Kai Ni use two compatible owned
+Zuiun-family aircraft in their two largest slots when available, producing a
+main-main-Zuiun-Zuiun-AP-shell setup that can trigger Zuiun Multi-Angle Attack at air superiority
+or better. With fewer than two compatible Zuiuns or fewer than five regular slots, the solver
+keeps the ordinary main-main-recon-AP-shell shape and reports the intentional fallback instead of
+adding a lone seaplane fighter.
 Route-specific combat roles can add soft guide preferences without turning a named ship into a hard
 requirement. For the 3-5 Yui beginner upper route, the surface escort prefers Maya-class AACI shapes
 such as main gun plus high-angle/AA gun, recon, and Type 3 Shell, while the submarine pair prefers a

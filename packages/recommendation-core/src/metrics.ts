@@ -59,11 +59,27 @@ export const calculateLos33 = (
   coefficient: number,
   hqLevel: number,
 ): number => {
-  const shipLos = builds.reduce((total, build) => total + Math.sqrt(build.ship.nakedLos), 0)
+  const shipLos = builds.reduce((total, build) => {
+    const currentRegularEquipmentMatches =
+      build.equipment.length === build.ship.equippedItemIds.length &&
+      build.equipment.every(
+        (gear, index) => (gear?.id ?? null) === build.ship.equippedItemIds[index],
+      )
+    const currentExpansionEquipmentMatches =
+      (build.expansionSlot?.id ?? null) === build.ship.expansionSlotItemId
+    const currentEquipmentLosBonus =
+      currentRegularEquipmentMatches && currentExpansionEquipmentMatches
+        ? build.ship.currentEquipmentLosBonus
+        : 0
+    return total + Math.sqrt(Math.max(0, build.ship.nakedLos + currentEquipmentLosBonus))
+  }, 0)
   const gearLos = builds.reduce(
     (fleetTotal, build) =>
       fleetTotal +
-      build.equipment.reduce((shipTotal, gear) => shipTotal + (gear ? equipmentLos(gear) : 0), 0),
+      [...build.equipment, build.expansionSlot].reduce(
+        (shipTotal, gear) => shipTotal + (gear ? equipmentLos(gear) : 0),
+        0,
+      ),
     0,
   )
   const emptyShipSlots = 6 - builds.length
@@ -138,6 +154,9 @@ export const calculateFleetMetrics = (
   const airConstraint = getAirConstraint(route)
   const losConstraint = getLosConstraint(route)
   const openingAswConstraint = getOpeningAswConstraint(route)
+  const openingAswBuilds = route.tags.includes('separate-aaci-oasw')
+    ? builds.filter((build) => build.role === 'anti-submarine')
+    : builds
   const equipment = builds.flatMap((build) => build.equipment).filter((gear) => gear !== null)
   const landingCraftCount = equipment.filter(isNormalResourceLandingCraft).length
   const drumCount = equipment.filter(isDrumCanister).length
@@ -166,13 +185,13 @@ export const calculateFleetMetrics = (
 
   return {
     airPower: calculateFleetAirPower(builds),
-    airPowerRequired: airConstraint !== null,
+    airPowerRequired: airConstraint !== null && airConstraint.required !== false,
     airPowerMinimum: airConstraint?.minimum ?? 0,
     airPowerRecommended: airConstraint?.recommended ?? 0,
     los33: calculateLos33(builds, losConstraint?.coefficient ?? 1, hqLevel),
     losRequired: losConstraint !== null,
     losMinimum: losConstraint?.minimum ?? 0,
-    openingAswCount: calculateOpeningAswCount(builds),
+    openingAswCount: calculateOpeningAswCount(openingAswBuilds),
     openingAswRequired: openingAswConstraint !== null,
     openingAswMinimum: openingAswConstraint?.minimum ?? 0,
     estimatedFuelCost,

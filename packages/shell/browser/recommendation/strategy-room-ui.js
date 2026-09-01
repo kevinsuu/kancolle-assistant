@@ -97,10 +97,10 @@ const routeDisplayName = (route) =>
     '',
   )
 
-const routeOptionLabel = (route) => {
+export const routeOptionLabel = (route) => {
   const guide = routeSourceLabel(route)
   const name = route.phase ? `${route.phase}｜${routeDisplayName(route)}` : routeDisplayName(route)
-  return [guide, name].filter(Boolean).join('｜') || route.name
+  return [name, guide].filter(Boolean).join('｜') || route.name
 }
 
 const GUIDE_OBJECTIVE_PRIORITY = [

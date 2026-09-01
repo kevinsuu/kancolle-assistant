@@ -115,6 +115,10 @@ export const jp = {
   'fleet.strategyMinimumValue': '{value}／最低 {minimum}',
   'fleet.strategyResourceValue': '{gain} 獲得／{net} 純利益',
   'fleet.strategyNoDescription': 'このルートはリンク先の情報源を確認してください。',
+  'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
+    '戦艦1、正規空母2、重巡1、駆逐1、海防1。空母は艦隊制空80+まで柔軟に配分し、伊勢／日向改二と対応する瑞雲2機が揃う場合は主主瑞瑞徹を優先します。',
+  'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
+    '戦艦1、正規／装甲空母2、航巡1、駆逐1、海防1のA-E-I-K固定。海防艦は先制対潜、空母は艦隊制空80+達成後に残りを攻撃機へ配分します。',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
     '正規／装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航戦1。全艦高速＋で A／C-D-H-T 最短、制空414+を検査し、攻略・周回・戦果周回に対応します。',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
@@ -229,9 +233,13 @@ export const jp = {
     '「{routeName}」{nodes}を採用し、艦種構成はルートデータの条件を満たしています。',
   'message.EQUIPMENT_INSTANCES_UNIQUE':
     '装備はKC3のinstance ID単位で割り当てられ、案内で重複していません。',
+  'message.FLAGSHIP_REQUIREMENT_PASSED':
+    '駆逐艦を旗艦に配置し、この任務の編成条件を満たしています。',
+  'message.FLEET_CANDIDATE_SEARCH_EXHAUSTED':
+    '艦娘数は足りていますが、指定艦・艦種・ルート条件を同時に満たす完全な艦隊候補を生成できませんでした。',
   'message.AIR_POWER_RECOMMENDED': '制空値{airPower}は推奨値{recommended}を満たしています。',
   'message.AIR_POWER_BELOW_RECOMMENDED':
-    '制空値{airPower}は最低値を満たしますが、推奨値{recommended}未満です。',
+    '制空値{airPower}は推奨値{recommended}未満です。ルートや任務の必須条件とは限りません。',
   'message.LOS_CONSTRAINT_PASSED': '33式索敵は{los}、余裕は{margin}です。',
   'message.LOW_LOS_MARGIN': '索敵の余裕が5未満です。艦娘や偵察装備の変更後に再作成してください。',
   'message.EQUIPMENT_MOVEMENT_REQUIRED':
@@ -246,6 +254,10 @@ export const jp = {
     'このルートは先制対潜を前提としますが、艦種別条件を満たしソナーを装備した艦がありません。',
   'message.OASW_REQUIREMENT_PASSED':
     '先制対潜可能艦は{count}隻で、最低{minimum}隻を満たしています。',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
+    '{shipName}に主砲と瑞雲2機を配置しました。航空優勢以上かつ両方の瑞雲スロットに機体が残っていれば、瑞雲立体攻撃を発動できます。',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
+    '{shipName}は使用可能な瑞雲2機または通常5スロットが不足しているため、主砲／水偵／徹甲弾の通常構成へ戻しました。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '戦艦／重巡級 {minimum} 隻に三式弾系装備を割り当て、このルートの対地装備モデルを満たしています。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':

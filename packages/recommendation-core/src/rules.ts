@@ -120,10 +120,15 @@ const parseCalculatedConstraint = (value: unknown): CalculatedConstraint => {
   const kind = readString(value, 'kind')
   if (kind === 'air-power') {
     const minimum = readNumber(value, 'minimum')
+    const required = value.required
+    if (required !== undefined && typeof required !== 'boolean') {
+      throw new Error('normal map catalog: air-power.required 必須是布林值')
+    }
     return {
       kind,
       minimum,
       recommended: readNumber(value, 'recommended', minimum),
+      ...(required === undefined ? {} : { required }),
     }
   }
   if (kind === 'los') {

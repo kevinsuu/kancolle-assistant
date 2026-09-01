@@ -583,13 +583,33 @@ export const registerRecommendationIpc = ({
         recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
         routeCandidateCount: diagnostics.routeCandidateCount ?? routeCount,
         availableRouteCount: diagnostics.availableRouteCount ?? null,
+        fleetSearchEligibleShipCount: diagnostics.fleetSearchEligibleShipCount ?? 0,
+        fleetSearchCandidatePoolCount: diagnostics.fleetSearchCandidatePoolCount ?? 0,
+        fleetSearchRequiredCandidateCount: diagnostics.fleetSearchRequiredCandidateCount ?? 0,
+        fleetSearchInfeasiblePartialStateCount:
+          diagnostics.fleetSearchInfeasiblePartialStateCount ?? 0,
+        fleetSearchMaxDepth: diagnostics.fleetSearchMaxDepth ?? 0,
+        fleetSearchCompleteStateCount: diagnostics.fleetSearchCompleteStateCount ?? 0,
+        fleetSearchConstraintValidStateCount: diagnostics.fleetSearchConstraintValidStateCount ?? 0,
+        fleetSearchSpecialAttackRejectedCount:
+          diagnostics.fleetSearchSpecialAttackRejectedCount ?? 0,
+        fleetSearchZeroCandidateRouteCount: diagnostics.fleetSearchZeroCandidateRouteCount ?? 0,
         evaluatedFleetCandidateCount: diagnostics.evaluatedFleetCandidateCount ?? null,
         gearSolutionCount: diagnostics.gearSolutionCount ?? null,
+        currentFleetShipCount: diagnostics.currentFleetShipCount ?? 0,
+        currentLoadoutCandidateCount: diagnostics.currentLoadoutCandidateCount ?? 0,
+        currentLoadoutAcceptedCount: diagnostics.currentLoadoutAcceptedCount ?? 0,
+        currentLoadoutBestAirPower: diagnostics.currentLoadoutBestAirPower ?? null,
+        currentLoadoutBestLos: diagnostics.currentLoadoutBestLos ?? null,
         recommendationCandidateCount: diagnostics.recommendationCandidateCount ?? null,
         bestAirPower: diagnostics.bestAirPower ?? null,
         airPowerMinimum: diagnostics.airPowerMinimum ?? null,
+        bestLos: diagnostics.bestLos ?? null,
+        losMinimum: diagnostics.losMinimum ?? null,
         bestOpeningAsw: diagnostics.bestOpeningAsw ?? null,
         openingAswMinimum: diagnostics.openingAswMinimum ?? null,
+        zuiunCutInCandidateCount: diagnostics.zuiunCutInCandidateCount ?? 0,
+        zuiunCutInFallbackCandidateCount: diagnostics.zuiunCutInFallbackCandidateCount ?? 0,
         reasonCodes:
           diagnostics.reasonCodes ??
           (result.status === 'no-solution'

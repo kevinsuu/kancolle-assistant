@@ -118,6 +118,10 @@ export const en = {
   'fleet.strategyMinimumValue': '{value} / min {minimum}',
   'fleet.strategyResourceValue': '{gain} gained / {net} net',
   'fleet.strategyNoDescription': 'Check the linked source for this route.',
+  'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
+    'One BB, two CV, one CA, one DD, and one DE. Carrier aircraft flex around fleet air power 80+; when Ise/Hyuga Kai Ni and two compatible Zuiuns are available, main-main-Zuiun-Zuiun-AP shell is preferred.',
+  'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
+    'One BB, two CV/CVB, one CAV, one DD, and one DE on fixed A-E-I-K. The DE uses opening ASW, while carrier slots favor strike aircraft after fleet air power reaches 80+.',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
     'Two CV/CVB, including at least one night carrier, one CVL, two CLT, and one BBV. The entire fleet reaches Fast+ for A/C-D-H-T, checks air power 414+, and suits clears or repeated ranking runs.',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
@@ -233,10 +237,14 @@ export const en = {
     'Uses “{routeName}”{nodes}; the ship-type composition satisfies the route data.',
   'message.EQUIPMENT_INSTANCES_UNIQUE':
     'Every item is assigned by KC3 instance ID, with no duplicate equipment in this plan.',
+  'message.FLAGSHIP_REQUIREMENT_PASSED':
+    'A destroyer is placed as flagship, satisfying this quest composition requirement.',
+  'message.FLEET_CANDIDATE_SEARCH_EXHAUSTED':
+    'Enough ships are available, but fleet search found no complete fleet satisfying the named-ship, ship-type, and routing conditions together.',
   'message.AIR_POWER_RECOMMENDED':
     'Air power {airPower} meets the recommended value of {recommended}.',
   'message.AIR_POWER_BELOW_RECOMMENDED':
-    'Air power {airPower} passes the minimum but is below the recommended {recommended}.',
+    'Air power {airPower} is below the recommended {recommended}; this may not be a hard routing or quest requirement.',
   'message.LOS_CONSTRAINT_PASSED': 'LoS Formula 33 is {los}; margin {margin}.',
   'message.LOW_LOS_MARGIN':
     'LoS margin is below 5. Regenerate after changing ships or reconnaissance equipment.',
@@ -252,6 +260,10 @@ export const en = {
     'This route relies on opening ASW, but no ship both meets its type threshold and equips sonar.',
   'message.OASW_REQUIREMENT_PASSED':
     '{count} ships qualify for opening ASW, meeting the minimum of {minimum}.',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
+    '{shipName} has a main gun and two Zuiuns; Zuiun Multi-Angle Attack is available at air superiority or better while both Zuiun slots retain aircraft.',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
+    '{shipName} lacks two usable Zuiuns or all five regular slots, so the solver kept a standard main-gun, recon, and AP-shell setup.',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '{minimum} battleships or heavy cruisers equip Type 3 Shell-family items, satisfying this route’s anti-installation model.',
   'message.KC3_COMBAT_EVALUATION_APPLIED':

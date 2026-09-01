@@ -292,9 +292,16 @@ test('foreground selected-route recommendations log slow work but wait for the r
       availableRouteCount: 1,
       evaluatedFleetCandidateCount: 6,
       gearSolutionCount: 18,
+      currentFleetShipCount: 6,
+      currentLoadoutCandidateCount: 2,
+      currentLoadoutAcceptedCount: 0,
+      currentLoadoutBestAirPower: 412,
+      currentLoadoutBestLos: 65,
       recommendationCandidateCount: 0,
       bestAirPower: 412,
       airPowerMinimum: 430,
+      bestLos: 80,
+      losMinimum: 66,
       reasonCodes: ['AIR_POWER_INSUFFICIENT'],
     },
     elapsedMs: 5,
@@ -313,8 +320,15 @@ test('foreground selected-route recommendations log slow work but wait for the r
   assert.equal(completed.data.routeId, '1-1-guide-dd4')
   assert.equal(completed.data.evaluatedFleetCandidateCount, 6)
   assert.equal(completed.data.gearSolutionCount, 18)
+  assert.equal(completed.data.currentFleetShipCount, 6)
+  assert.equal(completed.data.currentLoadoutCandidateCount, 2)
+  assert.equal(completed.data.currentLoadoutAcceptedCount, 0)
+  assert.equal(completed.data.currentLoadoutBestAirPower, 412)
+  assert.equal(completed.data.currentLoadoutBestLos, 65)
   assert.equal(completed.data.bestAirPower, 412)
   assert.equal(completed.data.airPowerMinimum, 430)
+  assert.equal(completed.data.bestLos, 80)
+  assert.equal(completed.data.losMinimum, 66)
   assert.deepEqual(completed.data.reasonCodes, ['AIR_POWER_INSUFFICIENT'])
 })
 
@@ -342,11 +356,29 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
       diagnostics: {
         routeCandidateCount: 1,
         availableRouteCount: 1,
+        fleetSearchEligibleShipCount: 120,
+        fleetSearchCandidatePoolCount: 80,
+        fleetSearchRequiredCandidateCount: 24,
+        fleetSearchInfeasiblePartialStateCount: 36,
+        fleetSearchMaxDepth: 6,
+        fleetSearchCompleteStateCount: 400,
+        fleetSearchConstraintValidStateCount: 12,
+        fleetSearchSpecialAttackRejectedCount: 0,
+        fleetSearchZeroCandidateRouteCount: 0,
         evaluatedFleetCandidateCount: 4,
         gearSolutionCount: 12,
+        currentFleetShipCount: 6,
+        currentLoadoutCandidateCount: 1,
+        currentLoadoutAcceptedCount: 1,
+        currentLoadoutBestAirPower: 448,
+        currentLoadoutBestLos: 72,
         recommendationCandidateCount: 3,
         bestAirPower: 448,
         airPowerMinimum: 430,
+        bestLos: 76,
+        losMinimum: 66,
+        zuiunCutInCandidateCount: 2,
+        zuiunCutInFallbackCandidateCount: 1,
         reasonCodes: [],
       },
       elapsedMs: 8,
@@ -364,11 +396,29 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
 
   assert.equal(result.status, 'success')
   const completed = logs.find((log) => log.eventName === 'recommendation.completed')
+  assert.equal(completed.data.fleetSearchEligibleShipCount, 120)
+  assert.equal(completed.data.fleetSearchCandidatePoolCount, 80)
+  assert.equal(completed.data.fleetSearchRequiredCandidateCount, 24)
+  assert.equal(completed.data.fleetSearchInfeasiblePartialStateCount, 36)
+  assert.equal(completed.data.fleetSearchMaxDepth, 6)
+  assert.equal(completed.data.fleetSearchCompleteStateCount, 400)
+  assert.equal(completed.data.fleetSearchConstraintValidStateCount, 12)
+  assert.equal(completed.data.fleetSearchSpecialAttackRejectedCount, 0)
+  assert.equal(completed.data.fleetSearchZeroCandidateRouteCount, 0)
   assert.equal(completed.data.evaluatedFleetCandidateCount, 4)
   assert.equal(completed.data.gearSolutionCount, 12)
+  assert.equal(completed.data.currentFleetShipCount, 6)
+  assert.equal(completed.data.currentLoadoutCandidateCount, 1)
+  assert.equal(completed.data.currentLoadoutAcceptedCount, 1)
+  assert.equal(completed.data.currentLoadoutBestAirPower, 448)
+  assert.equal(completed.data.currentLoadoutBestLos, 72)
   assert.equal(completed.data.recommendationCandidateCount, 3)
   assert.equal(completed.data.bestAirPower, 448)
   assert.equal(completed.data.airPowerMinimum, 430)
+  assert.equal(completed.data.bestLos, 76)
+  assert.equal(completed.data.losMinimum, 66)
+  assert.equal(completed.data.zuiunCutInCandidateCount, 2)
+  assert.equal(completed.data.zuiunCutInFallbackCandidateCount, 1)
   assert.deepEqual(completed.data.reasonCodes, [])
 })
 
@@ -1055,6 +1105,8 @@ test('KC3 account snapshot yields between expensive renderer batches', async () 
   assert.match(script, /await mapResponsively\(shipList/)
   assert.match(script, /await mapResponsively\(gearList/)
   assert.match(script, /window\.setTimeout\(resolve, 0\)/)
+  assert.match(script, /currentFleetShipIdGroups/)
+  assert.match(script, /ship\.equipmentTotalStats\('saku', true, true, true\)/)
   assert.doesNotThrow(() => new Function(script))
 })
 

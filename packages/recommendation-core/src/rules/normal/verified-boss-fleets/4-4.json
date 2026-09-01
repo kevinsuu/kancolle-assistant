@@ -10,9 +10,17 @@
       "objectives": ["balanced", "boss-clear"],
       "nodes": ["A", "E", "I", "K"],
       "stableBoss": true,
-      "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening", "oasw"],
-      "desc": "戦艦1、正規空母2、重巡1、駆逐1、海防1。攻略網掲載の固定編成。",
-      "lastVerified": "2026-08-26",
+      "tags": [
+        "verified-guide",
+        "guide-primary",
+        "fixed-route",
+        "carrier-opening",
+        "oasw",
+        "flexible-carrier-air-priority",
+        "ise-class-zuiun-cut-in-preferred"
+      ],
+      "desc": "戦艦1、正規空母2、重巡1、駆逐1、海防1。攻略網掲載の固定編成。空母は制空80+まで柔軟配分し、伊勢改二／日向改二採用時は瑞雲2機があれば主主瑞瑞徹を優先。",
+      "lastVerified": "2026-08-30",
       "fleet": [
         {
           "type": "ShipCount",
@@ -63,8 +71,14 @@
       "objectives": ["balanced", "boss-clear"],
       "nodes": ["A", "E", "I", "K"],
       "stableBoss": true,
-      "tags": ["guide-alternative", "fixed-route", "carrier-opening", "oasw"],
-      "desc": "戦艦1、正規/装甲空母2、航巡1、駆逐1、海防1。A-E-I-K固定、海防艦は先制対潜、優勢80+・確保144+。",
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "carrier-opening",
+        "oasw",
+        "flexible-carrier-air-priority"
+      ],
+      "desc": "戦艦1、正規/装甲空母2、航巡1、駆逐1、海防1。A-E-I-K固定、海防艦は先制対潜、優勢80+・確保144+。空母は必要制空を満たした後、残りを攻撃機に配分。",
       "lastVerified": "2026-08-29",
       "fleet": [
         {

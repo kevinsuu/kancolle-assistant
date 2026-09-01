@@ -68,6 +68,7 @@ export interface OwnedShip {
   readonly speedValue: number
   readonly stats: ShipStats
   readonly nakedLos: number
+  readonly currentEquipmentLosBonus: number
   readonly slotSizes: readonly number[]
   readonly equippedItemIds: readonly (EquipmentInstanceId | null)[]
   readonly expansionSlotItemId: EquipmentInstanceId | null
@@ -125,6 +126,7 @@ export interface AccountSnapshot {
   readonly ships: readonly OwnedShip[]
   readonly equipment: readonly OwnedEquipment[]
   readonly currentFleetShipIds: readonly ShipInstanceId[]
+  readonly currentFleetShipIdGroups: readonly (readonly ShipInstanceId[])[]
   readonly metadata: {
     readonly source: 'kc3'
     readonly schemaVersion: 1
@@ -162,6 +164,7 @@ export type CalculatedConstraint =
       readonly kind: 'air-power'
       readonly minimum: number
       readonly recommended: number
+      readonly required?: boolean
     }
   | {
       readonly kind: 'los'
@@ -306,13 +309,31 @@ export interface UnsatisfiedRequirement {
 export interface RecommendationDiagnostics {
   readonly routeCandidateCount: number
   readonly availableRouteCount: number
+  readonly fleetSearchEligibleShipCount: number
+  readonly fleetSearchCandidatePoolCount: number
+  readonly fleetSearchRequiredCandidateCount: number
+  readonly fleetSearchInfeasiblePartialStateCount: number
+  readonly fleetSearchMaxDepth: number
+  readonly fleetSearchCompleteStateCount: number
+  readonly fleetSearchConstraintValidStateCount: number
+  readonly fleetSearchSpecialAttackRejectedCount: number
+  readonly fleetSearchZeroCandidateRouteCount: number
   readonly evaluatedFleetCandidateCount: number
   readonly gearSolutionCount: number
+  readonly currentFleetShipCount: number
+  readonly currentLoadoutCandidateCount: number
+  readonly currentLoadoutAcceptedCount: number
+  readonly currentLoadoutBestAirPower: number | null
+  readonly currentLoadoutBestLos: number | null
   readonly recommendationCandidateCount: number
   readonly bestAirPower: number
   readonly airPowerMinimum: number | null
+  readonly bestLos: number | null
+  readonly losMinimum: number | null
   readonly bestOpeningAsw?: number
   readonly openingAswMinimum?: number | null
+  readonly zuiunCutInCandidateCount: number
+  readonly zuiunCutInFallbackCandidateCount: number
   readonly reasonCodes: readonly string[]
 }
 

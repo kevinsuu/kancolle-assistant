@@ -71,17 +71,39 @@
         "quarterly-quest",
         "random-routing",
         "carrier-opening",
+        "anti-air-cut-in",
+        "oasw",
+        "separate-aaci-oasw",
         "seaplane-air-control",
         "surface-seaplane-air-priority"
       ],
-      "desc": "補給艦2、駆逐4。季常任務向け。G→Fは75%で、Kへ逸れた場合は撤退。艦攻1・水戦3でF航空戦の優勢83+を狙う。",
-      "lastVerified": "2026-08-29",
+      "desc": "補給艦2、駆逐4。季常任務向け。秋月型1隻以上で対空カットインを担当し、別の駆逐1隻以上を先制対潜にする。G→Fは75%で、Kへ逸れた場合は撤退。艦攻1・水戦3でF航空戦の優勢83+を狙う。",
+      "lastVerified": "2026-09-01",
       "fleet": [
         { "type": "ShipCount", "value": 6 },
         { "type": "ExactShipTypeCount", "stypes": [22], "value": 2 },
-        { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 }
+        { "type": "ExactShipTypeCount", "stypes": [2], "value": 4 },
+        {
+          "type": "ContainsShipName",
+          "names": [
+            "秋月",
+            "照月",
+            "涼月",
+            "初月",
+            "冬月",
+            "Akizuki",
+            "Teruzuki",
+            "Suzutsuki",
+            "Hatsuzuki",
+            "Fuyuzuki"
+          ],
+          "count": 1
+        }
       ],
-      "calculated": [{ "kind": "air-power", "minimum": 83, "recommended": 83 }]
+      "calculated": [
+        { "kind": "air-power", "minimum": 83, "recommended": 83 },
+        { "kind": "opening-asw", "minimum": 1 }
+      ]
     },
     {
       "id": "1-6-bahamut-bbv-de",
@@ -95,10 +117,11 @@
         "fixed-route",
         "quarterly-quest",
         "seaplane-air-control",
-        "oasw"
+        "asw-loadout",
+        "los-cn3-30"
       ],
-      "desc": "航戦2、軽巡1、海防艦3。強行輸送任務の重量ルートで、J航空戦は優勢177+、海防艦3隻は先制対潜を狙う。",
-      "lastVerified": "2026-08-29",
+      "desc": "航戦2、軽巡1、駆逐/海防3。強行輸送任務の重量ルート。Cn3索敵30+でM→Jを固定し、C潜水戦は先制対潜2隻、J通常戦/D航空戦は制空89+（均衡目安）・177+（J優勢目標）を推奨。",
+      "lastVerified": "2026-09-01",
       "fleet": [
         {
           "type": "ShipCount",
@@ -116,19 +139,21 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [1],
+          "stypes": [1, 2],
           "value": 3
         }
       ],
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 177,
-          "recommended": 177
+          "minimum": 89,
+          "recommended": 177,
+          "required": false
         },
         {
-          "kind": "opening-asw",
-          "minimum": 3
+          "kind": "los",
+          "coefficient": 3,
+          "minimum": 30
         }
       ],
       "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]

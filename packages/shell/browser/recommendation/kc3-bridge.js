@@ -90,9 +90,11 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     }
   })
 
-  const currentFleetShipIds = [...new Set(fleets.flatMap((fleet) =>
-    Array.isArray(fleet.ships) ? fleet.ships : []
-  ))].map(Number).filter((id) => id > 0)
+  const currentFleetShipIdGroups = fleets
+    .map((fleet) => (Array.isArray(fleet.ships) ? fleet.ships : []))
+    .map((shipIds) => shipIds.map(Number).filter((id) => id > 0))
+    .filter((shipIds) => shipIds.length > 0)
+  const currentFleetShipIds = [...new Set(currentFleetShipIdGroups.flat())]
 
   const regularEquipableMasterIdsCache = new Map()
   const regularEquipableMasterIdsForShip = (shipMasterId) => {
@@ -445,6 +447,9 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       nakedLos: typeof ship.nakedLoS === 'function'
         ? Math.max(0, Number(ship.nakedLoS()))
         : Math.max(0, nakedStat('ls', ship.ls && ship.ls[0])),
+      currentEquipmentLosBonus: typeof ship.equipmentTotalStats === 'function'
+        ? Number(ship.equipmentTotalStats('saku', true, true, true)) || 0
+        : 0,
       slotSizes: capacities.slice(0, slotnum).map(Number),
       equippedItemIds: (ship.items || []).slice(0, slotnum).map(Number),
       expansionSlotItemId: Number(ship.ex_item || 0),
@@ -526,6 +531,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     ships,
     equipment,
     currentFleetShipIds,
+    currentFleetShipIdGroups,
     capabilities: {
       accountShips: true,
       accountEquipment: true,

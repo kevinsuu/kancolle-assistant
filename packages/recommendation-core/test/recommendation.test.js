@@ -6,6 +6,7 @@ const test = require('node:test')
 const {
   NORMAL_MAP_ROUTES,
   RECOMMENDATION_OBJECTIVES,
+  automaticRouteBlockers,
   calculateFleetMetrics,
   getMapOptions,
   getRouteTemplates,
@@ -49,6 +50,7 @@ const ZH_KCWIKI_WORLD_NAMES = {
 }
 const NORMAL_MAP_REFERENCE_SOURCE = 'https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238'
 const BAHAMUT_GS1314520_SOURCE = 'https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259'
+const CONYE_55_SOURCE = 'https://conye.hatenablog.com/entry/2021/08/13/180323'
 const YUIKANCOLLE_EO_GUIDE_SOURCES = {
   '2-5': 'https://yuikancolle.blog.fc2.com/blog-entry-182.html',
   '3-5': 'https://yuikancolle.blog.fc2.com/blog-entry-183.html',
@@ -183,6 +185,80 @@ const createFastPlusSnapshot = ({
   return raw
 }
 
+const createCurrentNagatoMogamiYahagiSnapshot = () => {
+  const raw = createFastPlusSnapshot()
+  const shipTypeIds = [9, 9, 6, 3, 2, 2]
+  const shipNames = ['長門改二', '陸奧改二', '最上改二特', '矢矧改二乙', '秋月改', '初月改']
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = shipTypeIds[index]
+    ship.name = shipNames[index]
+    ship.nakedLos = 120
+    ship.stats = { ...ship.stats, los: 120 }
+  })
+
+  const sourceGear = raw.equipment[0]
+  const seaplaneFighters = Array.from({ length: 3 }, (_, index) => ({
+    ...structuredClone(sourceGear),
+    id: 9400 + index,
+    masterId: 9400 + index,
+    name: `Fixture equipped seaplane fighter ${index + 1}`,
+    typeId: 45,
+    iconTypeId: 45,
+    type: '45',
+    stats: { ...sourceGear.stats, antiAir: 10, los: 1 },
+    airPowerBySlotSize: { 20: 31 },
+  }))
+  raw.equipment.push(...seaplaneFighters)
+  raw.ships[2].regularEquipableMasterIds.push(
+    seaplaneFighters[0].masterId,
+    seaplaneFighters[1].masterId,
+  )
+  raw.ships[3].regularEquipableMasterIds.push(seaplaneFighters[2].masterId)
+
+  const bigGuns = raw.equipment.filter((gear) => gear.masterId === 100)
+  const cruiserGuns = raw.equipment.filter((gear) => gear.masterId === 105)
+  const fillers = raw.equipment.filter((gear) => gear.masterId === 106)
+  const loadouts = [
+    [bigGuns[0], bigGuns[1], fillers[0], fillers[1]],
+    [bigGuns[2], bigGuns[3], fillers[2], fillers[3]],
+    [cruiserGuns[0], cruiserGuns[1], seaplaneFighters[0], seaplaneFighters[1]],
+    [cruiserGuns[2], cruiserGuns[3], seaplaneFighters[2], fillers[4]],
+    [fillers[5], fillers[6], fillers[7], fillers[8]],
+    [fillers[9], fillers[10], fillers[11], fillers[12]],
+  ]
+  loadouts.forEach((equipment, shipIndex) => {
+    raw.ships[shipIndex].equippedItemIds = equipment.map((gear) => gear.id)
+    equipment.forEach((gear) => {
+      gear.currentlyEquippedBy = raw.ships[shipIndex].id
+    })
+  })
+  const currentFleet = raw.ships.slice(0, 6)
+  raw.ships.push(
+    ...Array.from({ length: 20 }, (_, index) => ({
+      ...structuredClone(raw.ships[4]),
+      id: 200 + index,
+      masterId: 700 + index,
+      name: `Fixture elite reserve destroyer ${index + 1}`,
+      level: 175,
+      stats: {
+        ...raw.ships[4].stats,
+        hp: 100,
+        firepower: 120,
+        torpedo: 140,
+        antiAir: 130,
+        armor: 100,
+        evasion: 140,
+        los: 100,
+        luck: 80,
+      },
+      nakedLos: 100,
+      equippedItemIds: [0, 0, 0, 0],
+    })),
+  )
+  raw.currentFleetShipIds = currentFleet.map((ship) => ship.id)
+  return raw
+}
+
 const create45Type3ShellSnapshot = ({ shellCount = 3 } = {}) => {
   const raw = createFastPlusSnapshot()
   raw.equipment = raw.equipment.filter((gear) => ![35, 317, 483].includes(gear.masterId))
@@ -280,6 +356,240 @@ const createOaswSnapshot = () => {
     gear.stats.asw = 20
   })
   return raw
+}
+
+const create44ZuiunSnapshot = ({ zuiunCount = 2 } = {}) => {
+  let equipmentId = 8000
+  const createGear = ({ name, typeId, stats = {}, airPowerBySlotSize = {} }) => ({
+    id: equipmentId,
+    masterId: equipmentId++,
+    name,
+    typeId,
+    iconTypeId: typeId,
+    type: String(typeId),
+    improvement: 0,
+    proficiency: typeId === 6 || typeId === 8 || typeId === 11 ? 7 : -1,
+    locked: true,
+    currentlyEquippedBy: 0,
+    antiInstallationAircraft: false,
+    stats: {
+      firepower: 0,
+      torpedo: 0,
+      antiAir: 0,
+      armor: 0,
+      asw: 0,
+      los: 0,
+      bombing: 0,
+      accuracy: 0,
+      evasion: 0,
+      ...stats,
+    },
+    losImprovement: 0,
+    airPowerBySlotSize,
+  })
+  const bigGuns = Array.from({ length: 2 }, (_, index) =>
+    createGear({ name: `Fixture 4-4 big gun ${index + 1}`, typeId: 3, stats: { firepower: 20 } }),
+  )
+  const zuiuns = Array.from({ length: zuiunCount }, (_, index) =>
+    createGear({
+      name: `瑞雲(六三四空) fixture ${index + 1}`,
+      typeId: 11,
+      stats: { antiAir: 4, asw: 6, los: 7, bombing: 9 },
+      airPowerBySlotSize: { 2: 7, 11: 12, 22: 18 },
+    }),
+  )
+  const apShell = createGear({
+    name: 'Fixture 4-4 AP shell',
+    typeId: 19,
+    stats: { firepower: 8, accuracy: 1 },
+  })
+  const seaplaneRecons = Array.from({ length: 2 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 reconnaissance seaplane ${index + 1}`,
+      typeId: 10,
+      stats: { los: 9, accuracy: 2 },
+    }),
+  )
+  const waterFighter = createGear({
+    name: 'Fixture 4-4 water fighter',
+    typeId: 45,
+    stats: { antiAir: 12, los: 1 },
+    airPowerBySlotSize: { 2: 40, 11: 75, 22: 100 },
+  })
+  const surfaceRadars = Array.from({ length: 2 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 surface radar ${index + 1}`,
+      typeId: 12,
+      stats: { antiAir: 5, los: 7, accuracy: 4 },
+    }),
+  )
+  const carrierAttackers = Array.from({ length: 8 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 carrier attacker ${index + 1}`,
+      typeId: 8,
+      stats: { torpedo: 15, antiAir: 1, accuracy: 2 },
+      airPowerBySlotSize: { 20: 0 },
+    }),
+  )
+  const carrierFighters = Array.from({ length: 2 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 carrier fighter ${index + 1}`,
+      typeId: 6,
+      stats: { antiAir: 12 },
+      airPowerBySlotSize: { 20: 85 },
+    }),
+  )
+  const cruiserGuns = Array.from({ length: 2 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 cruiser gun ${index + 1}`,
+      typeId: 2,
+      stats: { firepower: 10, accuracy: 2 },
+    }),
+  )
+  const smallGuns = Array.from({ length: 2 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 small gun ${index + 1}`,
+      typeId: 1,
+      stats: { firepower: 4, antiAir: 5 },
+    }),
+  )
+  const sonars = Array.from({ length: 4 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 sonar ${index + 1}`,
+      typeId: 14,
+      stats: { asw: 15, accuracy: 2 },
+    }),
+  )
+  const depthCharges = Array.from({ length: 2 }, (_, index) =>
+    createGear({
+      name: `Fixture 4-4 depth charge ${index + 1}`,
+      typeId: 15,
+      stats: { asw: 12 },
+    }),
+  )
+  const equipment = [
+    ...bigGuns,
+    ...zuiuns,
+    apShell,
+    ...seaplaneRecons,
+    waterFighter,
+    ...surfaceRadars,
+    ...carrierAttackers,
+    ...carrierFighters,
+    ...cruiserGuns,
+    ...smallGuns,
+    ...sonars,
+    ...depthCharges,
+  ]
+  const ids = (gears) => gears.map((gear) => gear.masterId)
+  const baseShip = (overrides) => ({
+    id: 0,
+    masterId: 0,
+    name: '',
+    level: 99,
+    shipTypeId: 0,
+    shipType: '',
+    speedValue: 10,
+    stats: {
+      hp: 80,
+      firepower: 100,
+      torpedo: 50,
+      antiAir: 90,
+      armor: 90,
+      evasion: 70,
+      asw: 80,
+      los: 70,
+      luck: 30,
+    },
+    nakedLos: 70,
+    slotSizes: [0, 0, 0],
+    equippedItemIds: [0, 0, 0],
+    expansionSlotItemId: 0,
+    expansionSlotUnlocked: false,
+    expansionEquipableEquipmentIds: [],
+    regularEquipableMasterIds: [],
+    openingAswRules: [],
+    fastPlusPatterns: [],
+    nightCarrierPatterns: [],
+    locked: true,
+    morale: 49,
+    eventTag: 0,
+    fuelCost: 20,
+    ammoCost: 20,
+    ...overrides,
+  })
+  const ships = [
+    baseShip({
+      id: 901,
+      masterId: 554,
+      name: '日向改二',
+      shipTypeId: 10,
+      shipType: '航空戰艦',
+      slotSizes: [2, 2, 22, 11, 11],
+      equippedItemIds: [0, 0, 0, 0, 0],
+      regularEquipableMasterIds: ids([
+        ...bigGuns,
+        ...zuiuns,
+        apShell,
+        ...seaplaneRecons,
+        waterFighter,
+        ...surfaceRadars,
+      ]),
+    }),
+    ...Array.from({ length: 2 }, (_, index) =>
+      baseShip({
+        id: 902 + index,
+        masterId: 600 + index,
+        name: `Fixture 4-4 carrier ${index + 1}`,
+        shipTypeId: 11,
+        shipType: '正規空母',
+        slotSizes: [20, 20, 20, 20],
+        equippedItemIds: [0, 0, 0, 0],
+        regularEquipableMasterIds: ids([...carrierAttackers, ...carrierFighters]),
+      }),
+    ),
+    baseShip({
+      id: 904,
+      masterId: 604,
+      name: 'Fixture 4-4 heavy cruiser',
+      shipTypeId: 5,
+      shipType: '重巡洋艦',
+      slotSizes: [0, 0, 1, 0],
+      equippedItemIds: [0, 0, 0, 0],
+      regularEquipableMasterIds: ids([...cruiserGuns, ...seaplaneRecons, ...surfaceRadars]),
+    }),
+    baseShip({
+      id: 905,
+      masterId: 605,
+      name: 'Fixture 4-4 destroyer',
+      shipTypeId: 2,
+      shipType: '驅逐艦',
+      regularEquipableMasterIds: ids([...smallGuns, ...sonars, ...depthCharges, ...surfaceRadars]),
+      openingAswRules: [{ kind: 'sonar', minimumAsw: 100 }],
+    }),
+    baseShip({
+      id: 906,
+      masterId: 606,
+      name: 'Fixture 4-4 coastal defense ship',
+      shipTypeId: 1,
+      shipType: '海防艦',
+      regularEquipableMasterIds: ids([...smallGuns, ...sonars, ...depthCharges, ...surfaceRadars]),
+      openingAswRules: [{ kind: 'sonar', minimumAsw: 60 }],
+    }),
+  ]
+  return {
+    generatedAt: '2026-08-30T00:00:00.000Z',
+    hqLevel: 120,
+    ships,
+    equipment,
+    currentFleetShipIds: [],
+    capabilities: {
+      accountShips: true,
+      accountEquipment: true,
+      masterData: true,
+      currentFleet: true,
+    },
+  }
 }
 
 const allMapFixtureShipName = (shipTypeId, index) => {
@@ -438,6 +748,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 
   assert.equal(account.ships.length, 6)
   assert.equal(account.equipment.length, 24)
+  assert.deepEqual(account.currentFleetShipIdGroups, [account.currentFleetShipIds])
   assert.equal(account.ships[0].speed, 'fast')
   assert.equal(account.equipment[0].iconTypeId, 1)
   assert.equal(account.metadata.source, 'kc3')
@@ -455,7 +766,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 162)
+  assert.equal(NORMAL_MAP_ROUTES.length, 163)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -504,6 +815,58 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.equal(quarterly16.stableBoss, false)
   assert.ok(quarterly16.tags.includes('random-routing'))
+  assert.ok(quarterly16.tags.includes('anti-air-cut-in'))
+  assert.ok(quarterly16.tags.includes('oasw'))
+  assert.ok(quarterly16.tags.includes('separate-aaci-oasw'))
+  assert.deepEqual(
+    quarterly16.fleetConstraints.find((constraint) => constraint.kind === 'specific-ship-name'),
+    {
+      kind: 'specific-ship-name',
+      names: [
+        '秋月',
+        '照月',
+        '涼月',
+        '初月',
+        '冬月',
+        'Akizuki',
+        'Teruzuki',
+        'Suzutsuki',
+        'Hatsuzuki',
+        'Fuyuzuki',
+      ],
+      min: 1,
+    },
+  )
+  assert.deepEqual(
+    quarterly16.calculatedConstraints.find((constraint) => constraint.kind === 'opening-asw'),
+    { kind: 'opening-asw', minimum: 1 },
+  )
+  const bahamutHeavy16 = getRouteTemplates('1-6', 'balanced', '1-6-bahamut-bbv-de')[0]
+  assert.deepEqual(bahamutHeavy16.metadata.guideSources, [BAHAMUT_GS1314520_SOURCE])
+  assert.deepEqual(
+    bahamutHeavy16.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[10], 2],
+      [[3], 1],
+      [[1, 2], 3],
+    ],
+  )
+  assert.deepEqual(
+    bahamutHeavy16.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 89, recommended: 177, required: false },
+  )
+  assert.deepEqual(
+    bahamutHeavy16.calculatedConstraints.find((constraint) => constraint.kind === 'los'),
+    { kind: 'los', formula: '33', coefficient: 3, minimum: 30 },
+  )
+  assert.equal(
+    bahamutHeavy16.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw'),
+    false,
+  )
+  assert.ok(bahamutHeavy16.tags.includes('asw-loadout'))
+  assert.equal(bahamutHeavy16.tags.includes('oasw'), false)
   const routeOptions41 = maps.find((map) => map.id === '4-1').routes
   assert.deepEqual(
     routeOptions41.map((route) => route.id),
@@ -647,6 +1010,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       '5-5-kcwiki-middle-yamato-smoke',
       '5-5-kcwiki-middle-yamato-mogami-yahagi',
       '5-5-kcwiki-middle-yamato-supply',
+      '5-5-conye-middle-nagato-mogami-yahagi',
       '5-5-kcwiki-middle-nelson',
       '5-5-kcwiki-middle-transfer-south',
       '5-5-kcwiki-middle-heavy-cruiser',
@@ -676,6 +1040,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       'KCWiki｜中路武大拉煙流',
       'KCWiki｜中路武大最矢流',
       'KCWiki｜中路武大補給流',
+      'CoNye・長陸最矢流',
       'KCWiki｜中路納爾遜',
       'KCWiki｜中轉下摸流',
       'KCWiki｜中路重巡配置',
@@ -808,7 +1173,11 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
 
   const extraOperationRoutes = NORMAL_MAP_ROUTES.filter((route) => route.mapId.endsWith('-5'))
   assert.ok(extraOperationRoutes.every((route) => !route.id.startsWith('source-')))
-  const expectedX5OverlayRuleVersions = new Set(['2026.08.25-overlay', '2026.08.29-overlay'])
+  const expectedX5OverlayRuleVersions = new Set([
+    '2026.08.25-overlay',
+    '2026.08.29-overlay',
+    '2026.08.31-overlay',
+  ])
   assert.ok(
     extraOperationRoutes
       .filter((route) => route.category !== 'leveling' && !route.tags.includes('verified-guide'))
@@ -833,7 +1202,11 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   assert.equal(verifiedGuideRoutes.length, 40)
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
-    assert.ok(['2026-08-26', '2026-08-29'].includes(route.metadata.lastVerified))
+    assert.ok(
+      ['2026-08-26', '2026-08-29', '2026-08-30', '2026-09-01'].includes(
+        route.metadata.lastVerified,
+      ),
+    )
     assert.ok(route.metadata.ruleVersion.endsWith('-verified-guide'))
     assert.ok(
       route.metadata.guideSources.some(
@@ -1179,6 +1552,64 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.equal(isAutomaticRouteReady(middle55), true)
 
+  const conyeNagato55 = getRouteTemplates(
+    '5-5',
+    'boss-clear',
+    '5-5-conye-middle-nagato-mogami-yahagi',
+  )[0]
+  assert.ok(conyeNagato55)
+  assert.deepEqual(conyeNagato55.nodes, ['B', 'F', 'D', 'H', 'N', 'O', 'S'])
+  assert.ok(conyeNagato55.metadata.guideSources.includes(CONYE_55_SOURCE))
+  assert.equal(
+    verifiedBossFleetCatalog.some((map) =>
+      map.routes.some((route) => route.id === conyeNagato55.id),
+    ),
+    false,
+  )
+  assert.ok(
+    strategyOverlayCatalog.some((map) =>
+      map.routes.some(
+        (route) => route.id === conyeNagato55.id && route.sources.includes(CONYE_55_SOURCE),
+      ),
+    ),
+  )
+  assert.ok(conyeNagato55.tags.includes('special-attack-modeled'))
+  assert.deepEqual(
+    conyeNagato55.fleetConstraints
+      .filter((constraint) => constraint.kind === 'specific-ship-name')
+      .map((constraint) => constraint.names),
+    [
+      ['長門', 'Nagato'],
+      ['陸奥', '陸奧', 'Mutsu'],
+      ['最上', 'Mogami'],
+      ['矢矧', 'Yahagi'],
+    ],
+  )
+  assert.deepEqual(
+    conyeNagato55.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[8, 9, 10, 12], 2],
+      [[6], 1],
+      [[3], 1],
+      [[2], 2],
+    ],
+  )
+  assert.deepEqual(
+    conyeNagato55.calculatedConstraints.map((constraint) => [
+      constraint.kind,
+      constraint.minimum,
+      constraint.kind === 'los' ? constraint.coefficient : constraint.recommended,
+    ]),
+    [
+      ['air-power', 90, 90],
+      ['los', 66, 2],
+    ],
+  )
+  assert.equal(isAutomaticRouteReady(conyeNagato55), false)
+  assert.ok(automaticRouteBlockers(conyeNagato55).includes('manual-combat-setup'))
+
   const submarine55 = getRouteTemplates('5-5', 'low-cost', '5-5-submarine-snipe')[0]
   assert.deepEqual(
     submarine55.fleetConstraints
@@ -1509,6 +1940,42 @@ test('5-5 modeled special attacks select the pair, order the fleet, and explain 
   })
 })
 
+test('selected 5-5 route validates the complete current KC3 loadout before gear search', () => {
+  const raw = createCurrentNagatoMogamiYahagiSnapshot()
+  const withoutCurrentFleet = structuredClone(raw)
+  withoutCurrentFleet.currentFleetShipIds = []
+  const searchedResult = recommendFleet({
+    mapId: '5-5',
+    routeId: '5-5-conye-middle-nagato-mogami-yahagi',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(withoutCurrentFleet),
+  })
+  const result = recommendFleet({
+    mapId: '5-5',
+    routeId: '5-5-conye-middle-nagato-mogami-yahagi',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(searchedResult.diagnostics.currentLoadoutCandidateCount, 0)
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.equal(result.diagnostics.currentFleetShipCount, 6)
+  assert.ok(result.diagnostics.currentLoadoutCandidateCount > 0)
+  assert.ok(result.diagnostics.currentLoadoutAcceptedCount > 0)
+  assert.ok(result.recommendations[0].metrics.airPower >= 90)
+  assert.ok(result.recommendations[0].metrics.los33 >= 66)
+  assert.deepEqual(
+    result.recommendations[0].ships.map(({ ship }) => ship.name).sort(),
+    ['長門改二', '陸奧改二', '最上改二特', '矢矧改二乙', '秋月改', '初月改'].sort(),
+  )
+  assert.equal(
+    result.recommendations[0].ships
+      .flatMap(({ equipment }) => equipment)
+      .filter((gear) => gear?.typeId === 45).length,
+    3,
+  )
+})
+
 test('5-5 middle Yamato route accepts Yui-listed friend battleships', () => {
   const raw = createFastPlusSnapshot()
   const shipTypeIds = [10, 8, 6, 3, 2, 2]
@@ -1691,6 +2158,40 @@ test('fleet metrics apply air-power and Formula 33 hard constraints', () => {
   assert.equal(metrics.estimatedNetResourceGain, null)
 })
 
+test('Formula 33 includes KC3 current-equipment LoS bonuses only for the matching loadout', () => {
+  const raw = createRawSnapshot()
+  raw.hqLevel = 100
+  raw.ships.forEach((ship, index) => {
+    const gear = raw.equipment[index]
+    ship.nakedLos = 100
+    ship.currentEquipmentLosBonus = 21
+    ship.equippedItemIds = [gear.id, 0, 0]
+    gear.currentlyEquippedBy = ship.id
+  })
+  const account = parseKC3AccountSnapshot(raw)
+  const equipmentById = new Map(account.equipment.map((gear) => [gear.id, gear]))
+  const builds = account.ships.map((ship) => ({
+    ship,
+    role: 'escort-destroyer',
+    equipment: ship.equippedItemIds.map((id) => (id === null ? null : equipmentById.get(id))),
+    expansionSlot: null,
+  }))
+  const route = {
+    ...NORMAL_MAP_ROUTES[0],
+    calculatedConstraints: [{ kind: 'los', formula: '33', coefficient: 2, minimum: 26 }],
+  }
+
+  assert.equal(calculateFleetMetrics(builds, route, account.hqLevel).los33, 26)
+  assert.equal(
+    calculateFleetMetrics(
+      [{ ...builds[0], equipment: [null, null, null] }, ...builds.slice(1)],
+      route,
+      account.hqLevel,
+    ).los33,
+    25,
+  )
+})
+
 test('KC3 combat evaluations override naked-stat heuristics for every route target type', () => {
   const result = recommendFleet({
     mapId: '1-1',
@@ -1747,26 +2248,42 @@ test('KC3 combat evaluations override naked-stat heuristics for every route targ
   })
 })
 
-test('2-1 uses KC3 seaplane fighters, falls back to carriers, and exposes burner farming', () => {
+test('2-1 prefers opening-torpedo CL, advises air power, and exposes burner farming', () => {
+  const lightRoute = getRouteTemplates('2-1', 'balanced', '2-1-guide-cl-dd4-av')[0]
+  assert.ok(lightRoute.tags.includes('opening-torpedo-preferred'))
+  assert.deepEqual(
+    lightRoute.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 81, recommended: 81, required: false },
+  )
+
   const lightRaw = createFastPlusSnapshot()
   const lightShipTypeIds = [3, 2, 2, 2, 2, 16]
   lightRaw.ships.forEach((ship, index) => {
     ship.shipTypeId = lightShipTypeIds[index]
   })
-  const sourceFighter = lightRaw.equipment.find((gear) => gear.typeId === 6)
-  const seaplaneFighters = Array.from({ length: 4 }, (_, index) => ({
-    ...structuredClone(sourceFighter),
-    id: 9400 + index,
-    masterId: 9500 + index,
-    name: `Fixture KC3 type 45 seaplane fighter ${index + 1}`,
-    typeId: 45,
-    iconTypeId: 45,
-    type: '45',
-    airPowerBySlotSize: { 20: 100 },
-  }))
-  lightRaw.equipment.push(...seaplaneFighters)
-  lightRaw.ships.forEach((ship) => {
-    ship.regularEquipableMasterIds.push(...seaplaneFighters.map((gear) => gear.masterId))
+  const midgetSubmarineMasterIds = new Set(
+    lightRaw.equipment.filter((gear) => gear.typeId === 22).map((gear) => gear.masterId),
+  )
+  const jintsuu = lightRaw.ships[0]
+  jintsuu.name = '神通改二'
+  jintsuu.level = 96
+  const yahagi = {
+    ...structuredClone(jintsuu),
+    id: Math.max(...lightRaw.ships.map((ship) => ship.id)) + 1,
+    masterId: Math.max(...lightRaw.ships.map((ship) => ship.masterId)) + 1,
+    name: '矢矧改二乙',
+    level: 90,
+    slotSizes: [1, 1, 2, 2],
+    equippedItemIds: [0, 0, 0, 0],
+  }
+  jintsuu.regularEquipableMasterIds = jintsuu.regularEquipableMasterIds.filter(
+    (masterId) => !midgetSubmarineMasterIds.has(masterId),
+  )
+  lightRaw.ships.push(yahagi)
+  lightRaw.equipment.forEach((gear) => {
+    gear.airPowerBySlotSize = Object.fromEntries(
+      Object.keys(gear.airPowerBySlotSize).map((slotSize) => [slotSize, 0]),
+    )
   })
 
   const light = recommendFleet({
@@ -1775,11 +2292,47 @@ test('2-1 uses KC3 seaplane fighters, falls back to carriers, and exposes burner
     objective: 'balanced',
     account: parseKC3AccountSnapshot(lightRaw),
   })
-  assert.equal(light.status, 'success')
-  assert.ok(light.recommendations[0].metrics.airPower >= 81)
+  assert.equal(light.status, 'success', JSON.stringify(light))
+  assert.equal(light.recommendations[0].metrics.airPower, 0)
+  assert.equal(light.recommendations[0].metrics.airPowerRequired, false)
+  assert.equal(light.recommendations[0].metrics.airPowerRecommended, 81)
+  const preferredLightCruiser = light.recommendations[0].ships.find(
+    (build) => build.ship.shipTypeId === 3,
+  )
+  assert.equal(preferredLightCruiser.ship.name, '矢矧改二乙')
+  assert.ok(preferredLightCruiser.equipment.some((gear) => gear?.typeId === 22))
   assert.ok(
-    light.recommendations[0].ships.some((build) =>
-      build.equipment.some((gear) => gear?.typeId === 45),
+    light.recommendations[0].reasons.some(
+      (reason) => reason.code === 'OPENING_TORPEDO_PREFERENCE_APPLIED',
+    ),
+  )
+  assert.ok(
+    light.recommendations[0].warnings.some(
+      (warning) => warning.code === 'AIR_POWER_BELOW_RECOMMENDED',
+    ),
+  )
+
+  const fallbackRaw = structuredClone(lightRaw)
+  fallbackRaw.ships.find((ship) => ship.name === '矢矧改二乙').regularEquipableMasterIds =
+    yahagi.regularEquipableMasterIds.filter((masterId) => !midgetSubmarineMasterIds.has(masterId))
+  const fallback = recommendFleet({
+    mapId: '2-1',
+    routeId: '2-1-guide-cl-dd4-av',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(fallbackRaw),
+  })
+  assert.equal(fallback.status, 'success', JSON.stringify(fallback))
+  const fallbackLightCruiser = fallback.recommendations[0].ships.find(
+    (build) => build.ship.shipTypeId === 3,
+  )
+  assert.equal(fallbackLightCruiser.ship.name, '神通改二')
+  assert.equal(
+    fallbackLightCruiser.equipment.some((gear) => gear?.typeId === 22),
+    false,
+  )
+  assert.ok(
+    fallback.recommendations[0].warnings.some(
+      (warning) => warning.code === 'OPENING_TORPEDO_PREFERENCE_UNAVAILABLE',
     ),
   )
 
@@ -2635,6 +3188,115 @@ test('2-5 north fills regular slots, reserves two drum carriers, and rejects an 
   assert.ok(invalid.analysis.reasons.some((reason) => reason.code === 'FLEET_SPEED_INSUFFICIENT'))
 })
 
+test('2-5 Water Counterattack treats boss air superiority as advice and uses Zara seaplanes', () => {
+  const route = getRouteTemplates('2-5', 'balanced', '2-5-bahamut-water-counterattack')[0]
+  assert.deepEqual(
+    route.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 42, recommended: 42, required: false },
+  )
+
+  const raw = createRawSnapshot()
+  raw.hqLevel = 1
+  raw.currentFleetShipIds = []
+  const shipTypeIds = [5, 3, 2, 2, 2, 2]
+  raw.ships.forEach((ship, index) => {
+    ship.name = index === 0 ? 'Zara due' : index === 1 ? '矢矧改二乙' : `Fixture DD ${index}`
+    ship.shipTypeId = shipTypeIds[index]
+    ship.shipType = String(shipTypeIds[index])
+    ship.nakedLos = 100
+    ship.stats = { ...ship.stats, los: 100 }
+    ship.slotSizes = index === 0 ? [6, 3, 3, 3] : index === 1 ? [1, 1, 1, 1] : [0, 0, 0]
+    ship.equippedItemIds = ship.slotSizes.map(() => 0)
+  })
+
+  const withoutAirPower = recommendFleet({
+    mapId: '2-5',
+    routeId: route.id,
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(withoutAirPower.status, 'success', JSON.stringify(withoutAirPower))
+  assert.equal(withoutAirPower.recommendations[0].ships[0].ship.shipTypeId, 2)
+  assert.equal(withoutAirPower.recommendations[0].metrics.airPower, 0)
+  assert.equal(withoutAirPower.recommendations[0].metrics.airPowerRequired, false)
+  assert.ok(withoutAirPower.recommendations[0].metrics.los33 >= 34)
+  assert.ok(
+    withoutAirPower.recommendations[0].reasons.some(
+      (reason) => reason.code === 'FLAGSHIP_REQUIREMENT_PASSED',
+    ),
+  )
+  assert.ok(
+    withoutAirPower.recommendations[0].warnings.some(
+      (warning) => warning.code === 'AIR_POWER_BELOW_RECOMMENDED',
+    ),
+  )
+
+  const withZuiun = structuredClone(raw)
+  const sourceGear = withZuiun.equipment[0]
+  const zuiuns = Array.from({ length: 2 }, (_, index) => ({
+    ...structuredClone(sourceGear),
+    id: 9600 + index,
+    masterId: 9700 + index,
+    name: `Fixture Zara Zuiun ${index + 1}`,
+    typeId: 11,
+    iconTypeId: 11,
+    type: '11',
+    stats: { ...sourceGear.stats, antiAir: 10, los: 6, bombing: 7 },
+    airPowerBySlotSize: { 0: 0, 3: 25, 6: 35 },
+  }))
+  withZuiun.equipment.push(...zuiuns)
+  withZuiun.ships.forEach((ship) => {
+    ship.regularEquipableMasterIds = [...ship.regularEquipableMasterIds]
+  })
+  withZuiun.ships[0].regularEquipableMasterIds.push(...zuiuns.map((gear) => gear.masterId))
+
+  const withAirPower = recommendFleet({
+    mapId: '2-5',
+    routeId: route.id,
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(withZuiun),
+  })
+  assert.equal(withAirPower.status, 'success', JSON.stringify(withAirPower))
+  assert.equal(withAirPower.recommendations[0].ships[0].ship.shipTypeId, 2)
+  assert.ok(withAirPower.recommendations[0].metrics.airPower >= 42)
+  const zaraBuild = withAirPower.recommendations[0].ships.find(
+    (build) => build.ship.name === 'Zara due',
+  )
+  assert.ok(zaraBuild)
+  assert.equal(
+    zaraBuild.equipment.filter((gear) => zuiuns.some((zuiun) => zuiun.id === gear?.id)).length,
+    2,
+  )
+  assert.ok(
+    withAirPower.recommendations[0].reasons.some(
+      (reason) => reason.code === 'AIR_POWER_RECOMMENDED',
+    ),
+  )
+
+  const withoutLos = structuredClone(raw)
+  withoutLos.hqLevel = 120
+  withoutLos.ships.forEach((ship) => {
+    ship.nakedLos = 0
+    ship.stats = { ...ship.stats, los: 0 }
+  })
+  withoutLos.equipment.forEach((gear) => {
+    gear.stats = { ...gear.stats, los: 0 }
+    gear.losImprovement = 0
+  })
+  const losFailure = recommendFleet({
+    mapId: '2-5',
+    routeId: route.id,
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(withoutLos),
+  })
+  assert.equal(losFailure.status, 'no-solution')
+  assert.ok(losFailure.analysis.reasons.some((reason) => reason.code === 'LOS_INSUFFICIENT'))
+  assert.equal(
+    losFailure.analysis.reasons.some((reason) => reason.code === 'AIR_POWER_INSUFFICIENT'),
+    false,
+  )
+})
+
 test('2-5 north prefers reasonable LoS seaplanes over high-air low-LoS seaplanes', () => {
   const raw = createRawSnapshot()
   raw.hqLevel = 120
@@ -3150,6 +3812,144 @@ test('2-5 Fifth Squadron accepts localized CJK variants of required ship names',
   ;['妙高改二', '那智改二', '羽黑改二'].forEach((name) => {
     assert.ok(selectedNames.includes(name), `${name} was not selected`)
   })
+})
+
+test('2-5 Fifth Squadron preserves required low-score ships in a large account', () => {
+  const raw = createAllNormalMapsSnapshot()
+  const requiredShipTypeIds = new Set([3, 5, 6, 10])
+  const heavyCruisers = raw.ships.filter((ship) => ship.shipTypeId === 5)
+  heavyCruisers[0].name = '妙高改二'
+  heavyCruisers[1].name = '那智改二'
+  heavyCruisers[2].name = '羽黑改二'
+  raw.ships.forEach((ship) => {
+    if (!requiredShipTypeIds.has(ship.shipTypeId)) return
+    ship.level = 1
+    ship.stats = {
+      ...ship.stats,
+      hp: 1,
+      firepower: 0,
+      torpedo: 0,
+      antiAir: 0,
+      armor: 0,
+      evasion: 0,
+      los: 0,
+      luck: 0,
+    }
+    if (ship.shipTypeId === 10) ship.speedValue = 5
+  })
+  let shipId = Math.max(...raw.ships.map((ship) => ship.id)) + 1
+  const highScoreShips = raw.ships.filter((ship) => !requiredShipTypeIds.has(ship.shipTypeId))
+  const additionalShips = [...new Set(highScoreShips.map((ship) => ship.shipTypeId))].flatMap(
+    (shipTypeId) => {
+      const source = highScoreShips.find((ship) => ship.shipTypeId === shipTypeId)
+      return Array.from({ length: 6 }, (_, index) => ({
+        ...structuredClone(source),
+        id: shipId++,
+        masterId: source.masterId + 10000 + index,
+        name: `Large-account fixture ship ${shipTypeId}-${index}`,
+      }))
+    },
+  )
+  raw.ships.push(...additionalShips)
+
+  const result = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-fifth-squadron',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  const selectedNames = result.recommendations[0].ships.map((build) => build.ship.name)
+  ;['妙高改二', '那智改二', '羽黑改二'].forEach((name) => {
+    assert.ok(selectedNames.includes(name), `${name} was not selected`)
+  })
+})
+
+test('2-5 overlapping routes remain complete with four occupied KC3 fleets', () => {
+  const raw = createAllNormalMapsSnapshot()
+  const heavyCruisers = raw.ships.filter((ship) => ship.shipTypeId === 5)
+  heavyCruisers[0].name = '妙高改二'
+  heavyCruisers[1].name = '那智改二'
+  heavyCruisers[2].name = '羽黑改二'
+  raw.ships.find((ship) => ship.shipTypeId === 10).speedValue = 5
+
+  const occupiedShipIds = raw.ships.slice(0, 23).map((ship) => ship.id)
+  raw.currentFleetShipIds = occupiedShipIds
+  raw.currentFleetShipIdGroups = [
+    occupiedShipIds.slice(0, 6),
+    occupiedShipIds.slice(6, 12),
+    occupiedShipIds.slice(12, 18),
+    occupiedShipIds.slice(18),
+  ]
+
+  const north = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-north',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  const fifthSquadron = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-fifth-squadron',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  ;[north, fifthSquadron].forEach((result) => {
+    assert.equal(result.status, 'success', JSON.stringify(result))
+    assert.equal(result.diagnostics.currentFleetShipCount, 23)
+    assert.equal(result.diagnostics.fleetSearchMaxDepth, 6)
+    assert.ok(result.diagnostics.fleetSearchConstraintValidStateCount > 0)
+    assert.ok(result.diagnostics.fleetSearchInfeasiblePartialStateCount > 0)
+    assert.ok(result.diagnostics.gearSolutionCount > 0)
+  })
+  const fifthSquadronNames = fifthSquadron.recommendations[0].ships.map(({ ship }) => ship.name)
+  ;['妙高改二', '那智改二', '羽黑改二'].forEach((name) => {
+    assert.ok(fifthSquadronNames.includes(name), `${name} was not selected`)
+  })
+})
+
+test('fleet-search exhaustion is not mislabeled as air-power or LoS failure', () => {
+  const raw = createAllNormalMapsSnapshot()
+  raw.ships
+    .filter((ship) => ship.shipTypeId === 5)
+    .forEach((ship, index) => {
+      ship.name = `Fixture heavy cruiser ${index}`
+    })
+  const lightCruisers = raw.ships.filter((ship) => ship.shipTypeId === 3)
+  lightCruisers[0].name = '妙高改二'
+  lightCruisers[1].name = '那智改二'
+  lightCruisers[2].name = '羽黑改二'
+  raw.ships
+    .filter((ship) => ship.shipTypeId === 10)
+    .forEach((ship) => {
+      ship.speedValue = 5
+    })
+
+  const result = recommendFleet({
+    mapId: '2-5',
+    routeId: '2-5-fifth-squadron',
+    objective: 'boss-clear',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'no-solution')
+  assert.deepEqual(result.diagnostics.reasonCodes, ['FLEET_CANDIDATE_SEARCH_EXHAUSTED'])
+  assert.ok(result.diagnostics.fleetSearchEligibleShipCount > 0)
+  assert.ok(result.diagnostics.fleetSearchCandidatePoolCount > 0)
+  assert.ok(result.diagnostics.fleetSearchRequiredCandidateCount > 0)
+  assert.equal(result.diagnostics.fleetSearchConstraintValidStateCount, 0)
+  assert.equal(result.diagnostics.evaluatedFleetCandidateCount, 0)
+  assert.equal(result.diagnostics.gearSolutionCount, 0)
+  assert.equal(
+    result.analysis.reasons.some(({ code }) => code === 'AIR_POWER_INSUFFICIENT'),
+    false,
+  )
+  assert.equal(
+    result.analysis.reasons.some(({ code }) => code === 'LOS_INSUFFICIENT'),
+    false,
+  )
 })
 
 test('2-5 Fifth Squadron ranks aviation battleships by support capacity without ship-name pinning', () => {
@@ -3677,6 +4477,63 @@ test('air-constrained routes assign owned seaplane fighters', () => {
   )
 })
 
+test('4-4 uses flexible carrier air control and a Hyuuga Kai Ni Zuiun cut-in', () => {
+  const route = getRouteTemplates('4-4', 'balanced', '4-4-guide-bb-cv2-ca-dd-de')[0]
+  assert.ok(route.tags.includes('flexible-carrier-air-priority'))
+  assert.ok(route.tags.includes('ise-class-zuiun-cut-in-preferred'))
+
+  const result = recommendFleet({
+    mapId: '4-4',
+    routeId: route.id,
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(create44ZuiunSnapshot()),
+  })
+
+  assert.equal(result.status, 'success')
+  const recommendation = result.recommendations[0]
+  const hyuuga = recommendation.ships.find((build) => build.ship.name === '日向改二')
+  assert.ok(hyuuga)
+  assert.equal(hyuuga.equipment.filter((gear) => gear?.typeId === 3).length, 2)
+  assert.equal(hyuuga.equipment.filter((gear) => gear?.name.includes('瑞雲')).length, 2)
+  assert.equal(
+    hyuuga.equipment.some((gear) => gear?.typeId === 45),
+    false,
+  )
+  assert.ok(recommendation.metrics.airPower >= 80)
+  assert.ok(recommendation.metrics.airPower < 200)
+  assert.ok(recommendation.reasons.some(({ code }) => code === 'ZUIUN_MULTI_ANGLE_ATTACK_READY'))
+  assert.ok(result.diagnostics.zuiunCutInCandidateCount > 0)
+  assert.equal(result.diagnostics.zuiunCutInFallbackCandidateCount, 0)
+})
+
+test('4-4 falls back to reconnaissance when Hyuuga lacks two compatible Zuiuns', () => {
+  const result = recommendFleet({
+    mapId: '4-4',
+    routeId: '4-4-guide-bb-cv2-ca-dd-de',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(create44ZuiunSnapshot({ zuiunCount: 1 })),
+  })
+
+  assert.equal(result.status, 'success')
+  const recommendation = result.recommendations[0]
+  const hyuuga = recommendation.ships.find((build) => build.ship.name === '日向改二')
+  assert.ok(hyuuga)
+  assert.equal(
+    hyuuga.equipment.some((gear) => gear?.name.includes('瑞雲')),
+    false,
+  )
+  assert.equal(
+    hyuuga.equipment.some((gear) => gear?.typeId === 45),
+    false,
+  )
+  assert.ok(hyuuga.equipment.some((gear) => gear?.typeId === 10))
+  assert.ok(
+    recommendation.warnings.some(({ code }) => code === 'ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK'),
+  )
+  assert.equal(result.diagnostics.zuiunCutInCandidateCount, 0)
+  assert.ok(result.diagnostics.zuiunCutInFallbackCandidateCount > 0)
+})
+
 test('1-6 air-control route fills a compatible light cruiser with seaplanes', () => {
   const createAccount = (seaplaneCount) => {
     const raw = createRawSnapshot()
@@ -3715,6 +4572,111 @@ test('1-6 air-control route fills a compatible light cruiser with seaplanes', ()
   assert.ok(
     insufficient.analysis.reasons.some((reason) => reason.code === 'AIR_POWER_INSUFFICIENT'),
   )
+})
+
+test('1-6 quarterly route keeps an Akizuki-class AACI escort beside an opening-ASW DD', () => {
+  const raw = createAllNormalMapsSnapshot()
+  raw.ships.find((ship) => ship.shipTypeId === 2).name = '秋月改'
+
+  const result = recommendFleet({
+    mapId: '1-6',
+    routeId: '1-6-kcwiki-quarterly',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  const recommendation = result.recommendations[0]
+  const akizuki = recommendation.ships.find((build) => build.ship.name === '秋月改')
+  assert.ok(akizuki)
+  assert.equal(akizuki.role, 'escort-destroyer')
+  assert.equal(akizuki.equipment.filter((gear) => gear?.typeId === 1).length, 2)
+  assert.ok(akizuki.equipment.some((gear) => gear?.typeId === 12))
+  assert.ok(
+    recommendation.ships.some(
+      (build) => build.ship.shipTypeId === 2 && build.role === 'anti-submarine',
+    ),
+  )
+  assert.ok(recommendation.metrics.openingAswCount >= 1)
+  assert.ok(result.diagnostics.bestOpeningAsw >= 1)
+  assert.equal(result.diagnostics.openingAswMinimum, 1)
+  assert.ok(result.diagnostics.fleetSearchConstraintValidStateCount > 0)
+
+  const withoutAkizuki = structuredClone(raw)
+  withoutAkizuki.ships.find((ship) => ship.name === '秋月改').name = 'Fixture standard destroyer'
+  const missingRequiredEscort = recommendFleet({
+    mapId: '1-6',
+    routeId: '1-6-kcwiki-quarterly',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(withoutAkizuki),
+  })
+
+  assert.equal(missingRequiredEscort.status, 'no-solution')
+  assert.ok(
+    missingRequiredEscort.analysis.reasons.some(
+      (reason) => reason.code === 'MISSING_SPECIFIC_SHIP',
+    ),
+  )
+  assert.deepEqual(missingRequiredEscort.diagnostics.reasonCodes, ['MISSING_SPECIFIC_SHIP'])
+  assert.equal(missingRequiredEscort.diagnostics.fleetSearchConstraintValidStateCount, 0)
+})
+
+test('1-6 Bahamut heavy route advises air power and OASW but hard-checks LoS', () => {
+  const raw = createAllNormalMapsSnapshot()
+  raw.equipment.forEach((gear) => {
+    gear.stats = { ...gear.stats, asw: 0 }
+    gear.airPowerBySlotSize = Object.fromEntries(
+      Object.keys(gear.airPowerBySlotSize).map((slotSize) => [slotSize, 0]),
+    )
+  })
+  raw.ships.forEach((ship) => {
+    ship.stats = { ...ship.stats, asw: 0 }
+    ship.openingAswRules = []
+  })
+
+  const advised = recommendFleet({
+    mapId: '1-6',
+    routeId: '1-6-bahamut-bbv-de',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(advised.status, 'success', JSON.stringify(advised))
+  const recommendation = advised.recommendations[0]
+  assert.equal(recommendation.metrics.airPower, 0)
+  assert.equal(recommendation.metrics.airPowerRequired, false)
+  assert.equal(recommendation.metrics.openingAswCount, 0)
+  assert.equal(recommendation.metrics.openingAswRequired, false)
+  assert.ok(recommendation.metrics.los33 >= 30)
+  assert.ok(
+    recommendation.warnings.some((warning) => warning.code === 'AIR_POWER_BELOW_RECOMMENDED'),
+  )
+  const selectedShipTypeIds = recommendation.ships.map((build) => build.ship.shipTypeId)
+  assert.equal(selectedShipTypeIds.filter((shipTypeId) => shipTypeId === 10).length, 2)
+  assert.equal(selectedShipTypeIds.filter((shipTypeId) => shipTypeId === 3).length, 1)
+  assert.equal(selectedShipTypeIds.filter((shipTypeId) => [1, 2].includes(shipTypeId)).length, 3)
+
+  const lowLosRaw = structuredClone(raw)
+  lowLosRaw.ships.forEach((ship) => {
+    ship.nakedLos = 0
+    ship.currentEquipmentLosBonus = 0
+    ship.stats = { ...ship.stats, los: 0 }
+  })
+  lowLosRaw.equipment.forEach((gear) => {
+    gear.stats = { ...gear.stats, los: 0 }
+    gear.losImprovement = 0
+  })
+  const lowLos = recommendFleet({
+    mapId: '1-6',
+    routeId: '1-6-bahamut-bbv-de',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(lowLosRaw),
+  })
+
+  assert.equal(lowLos.status, 'no-solution', JSON.stringify(lowLos))
+  assert.ok(lowLos.analysis.reasons.some((reason) => reason.code === 'LOS_INSUFFICIENT'))
+  assert.ok(lowLos.diagnostics.gearSolutionCount > 0)
+  assert.ok(lowLos.diagnostics.bestLos < 30)
 })
 
 test('solver is deterministic and only returns account-owned unique instances', () => {

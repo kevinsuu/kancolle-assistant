@@ -245,7 +245,7 @@
       "nodes": ["B", "F", "E", "I", "O"],
       "stableBoss": true,
       "tags": ["guide-alternative", "fixed-route", "quest-friendly", "flagship-destroyer"],
-      "desc": "駆逐旗艦、重巡1、軽巡1、駆逐4。『水上反撃部隊』用B-F-E-I-O。33式Cn1索敵34+、ボス優勢42+。",
+      "desc": "駆逐旗艦、重巡1、軽巡1、駆逐4。『水上反撃部隊』用B-F-E-I-O。33式Cn1索敵34+は必須、ボス優勢42+は対応艦と水上機がある場合の推奨値。",
       "lastVerified": "2026-08-29",
       "fleet": [
         {
@@ -272,7 +272,8 @@
         {
           "kind": "air-power",
           "minimum": 42,
-          "recommended": 42
+          "recommended": 42,
+          "required": false
         },
         {
           "kind": "los",

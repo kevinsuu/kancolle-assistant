@@ -111,6 +111,10 @@ export const scn = {
   'fleet.strategyMinimumValue': '{value}／最低 {minimum}',
   'fleet.strategyResourceValue': '{gain} 获得／{net} 净收益',
   'fleet.strategyNoDescription': '请打开来源确认此路线。',
+  'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
+    '战舰1、正规航母2、重巡1、驱逐1、海防1。航母按全舰队制空 80+ 弹性配装；采用伊势／日向改二且持有两架兼容瑞云时，优先主主瑞瑞彻。',
+  'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
+    '战舰1、正规／装甲航母2、航巡1、驱逐1、海防1。A-E-I-K 固定、海防舰先制反潜；航母达到制空 80+ 后，其余栏位优先攻击机。',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
     '正规／装甲空母2（至少1艘夜战空母）、轻空母1、雷巡2、航战1。全员高速＋走 A／C-D-H-T 最短路，制空 414+；适合正攻、周回与战果冲刺。',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
@@ -222,9 +226,12 @@ export const scn = {
   'fleet.tag.special-attack': '特殊攻击',
   'message.ROUTE_FIXED_COMPOSITION': '采用“{routeName}”{nodes}，舰种配置符合数据规则。',
   'message.EQUIPMENT_INSTANCES_UNIQUE': '每件装备均以 KC3 instance ID 分配，方案内没有重复使用。',
+  'message.FLAGSHIP_REQUIREMENT_PASSED': '已将驱逐舰配置为旗舰，符合此任务的编成条件。',
+  'message.FLEET_CANDIDATE_SEARCH_EXHAUSTED':
+    '舰娘数量足够，但候选搜索未找到同时符合指定舰、舰种与带路条件的完整舰队。',
   'message.AIR_POWER_RECOMMENDED': '制空值 {airPower}，已达到建议值 {recommended}。',
   'message.AIR_POWER_BELOW_RECOMMENDED':
-    '制空值 {airPower} 通过最低值，但未达到建议值 {recommended}。',
+    '制空值 {airPower} 未达到建议值 {recommended}；这不一定是路线或任务的硬性条件。',
   'message.LOS_CONSTRAINT_PASSED': '33 式索敌为 {los}，余量 {margin}。',
   'message.LOW_LOS_MARGIN': '索敌余量低于 5；更换舰娘或侦察装备后请重新生成方案。',
   'message.EQUIPMENT_MOVEMENT_REQUIRED':
@@ -237,6 +244,10 @@ export const scn = {
     '账号内可装备且符合用途的装备不足，方案仍有 {count} 个空槽；请勿直接照抄出击。',
   'message.OASW_NOT_READY': '此路线依赖先制对潜，但当前方案没有符合舰种门槛且已装备声呐的舰娘。',
   'message.OASW_REQUIREMENT_PASSED': '可成立先制对潜 {count} 艘，已达到最低 {minimum} 艘。',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
+    '{shipName} 已配置主炮与两架瑞云；取得航空优势以上且瑞云栏仍有飞机时，可发动瑞云立体攻击。',
+  'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
+    '{shipName} 缺少两架可用瑞云或完整五栏，已回退普通主炮／水侦／穿甲弹配置。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '已为 {minimum} 艘战舰／重巡级配置三式弹系装备，符合此路线的对陆配置模型。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':
