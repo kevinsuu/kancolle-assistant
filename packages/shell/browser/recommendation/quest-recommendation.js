@@ -1,6 +1,7 @@
 import { findQuestSynergies } from './quest-synergy'
+import { hasQuestObjective } from './quest-objective-synergy'
 
-export const QUEST_RECOMMENDATION_RANKING_VERSION = 8
+export const QUEST_RECOMMENDATION_RANKING_VERSION = 9
 
 const RECOMMENDATION_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime']
 const RECOMMENDATION_PERIOD_SET = new Set(RECOMMENDATION_PERIODS)
@@ -370,7 +371,15 @@ export const rankQuestRecommendations = (
   { now = Date.now(), extraOperationStatus = {}, account = {} } = {},
 ) => {
   const startedAt = Date.now()
-  const questList = Array.isArray(quests) ? quests : []
+  const questList = (Array.isArray(quests) ? quests : []).map((quest) => ({
+    ...quest,
+    mapIds: [
+      ...new Set([
+        ...(Array.isArray(quest?.mapIds) ? quest.mapIds : []),
+        ...extractNormalMapIds(quest?.name, quest?.description, quest?.memo),
+      ]),
+    ],
+  }))
   const questsById = new Map(questList.map((quest) => [Number(quest.id), quest]))
   const candidates = questList
     .filter((quest) => isRecommendationCandidate(quest, now))
@@ -378,7 +387,7 @@ export const rankQuestRecommendations = (
       const resetAt = quest.period === 'oneTime' ? null : Number(quest.resetAt)
       const remainingMs = resetAt === null ? null : resetAt - now
       const reward = classifyQuestRewards(quest)
-      const mapIds = extractNormalMapIds(quest.name, quest.description, quest.memo)
+      const mapIds = quest.mapIds
       const downstreamTargets = findDownstreamRewardTargets(quest, questsById)
       const effectiveReward = effectiveQuestReward(reward, downstreamTargets)
       const hasDownstreamValue = effectiveReward.source === 'downstream'
@@ -450,6 +459,9 @@ export const rankQuestRecommendations = (
     synergies: findQuestSynergies(quest, questList, { extraOperationStatus }),
   }))
   const groups = groupQuestRecommendations(recommendations)
+  const objectiveDerivedGroups = groups.filter(({ synergy }) =>
+    String(synergy?.id || '').startsWith('objective-'),
+  )
   const extraOperations = Object.entries(extraOperationStatus)
     .map(([mapId, status]) => ({ mapId, status }))
     .sort((left, right) => {
@@ -474,6 +486,8 @@ export const rankQuestRecommendations = (
     groups,
     groupCount: groups.length,
     combinedGroupCount: groups.filter(({ kind }) => kind === 'combined').length,
+    objectiveDerivedGroupCount: objectiveDerivedGroups.length,
+    objectiveProfiledQuestCount: questList.filter(hasQuestObjective).length,
     extraOperations,
     availableExtraOperationCount: extraOperations.filter(({ status }) => status === 'available')
       .length,

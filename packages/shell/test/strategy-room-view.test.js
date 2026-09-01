@@ -640,6 +640,79 @@ test('quest recommendations group verified exercise, expedition, and arsenal sha
   assert.match(markup, /one action advances them together/)
 })
 
+test('quest recommendations derive compatible restricted exercise stacks from fleet rules', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 30 * 24 * 60 * 60 * 1000
+  const quest = (id, code) => ({
+    id,
+    code,
+    name: code,
+    period: 'quarterly',
+    status: 1,
+    resetAt,
+  })
+
+  const result = rankQuestRecommendations(
+    [
+      quest(2001, 'Cq1'),
+      quest(2002, 'Cy6'),
+      quest(2003, 'Cw1'),
+      quest(2004, 'Cd2'),
+      quest(2005, 'Cm1'),
+    ],
+    { now },
+  )
+
+  assert.equal(result.groupCount, 1)
+  assert.equal(result.objectiveDerivedGroupCount, 1)
+  assert.equal(result.objectiveProfiledQuestCount, 5)
+  assert.match(result.groups[0].synergy.id, /^objective-exercise-/)
+  assert.deepEqual(result.groups[0].synergy.relationKinds, ['sameExercise'])
+  assert.deepEqual(
+    result.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
+    [2001, 2002, 2003, 2004, 2005],
+  )
+
+  const incompatible = rankQuestRecommendations([quest(2010, 'C22'), quest(2011, 'C70')], {
+    now,
+  })
+  assert.equal(incompatible.groupCount, 2)
+  assert.equal(incompatible.combinedGroupCount, 0)
+})
+
+test('quest recommendations derive five-quest sortie stacks from maps and fleet rules', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const quest = (id, code) => ({
+    id,
+    code,
+    name: code,
+    description: 'S-rank the 1-3 boss.',
+    period: 'quarterly',
+    status: 1,
+    resetAt: now + 30 * 24 * 60 * 60 * 1000,
+  })
+  const result = rankQuestRecommendations(
+    [
+      quest(2101, 'B202'),
+      quest(2102, 'Bq9'),
+      quest(2103, 'By6'),
+      quest(2104, 'B171'),
+      quest(2105, 'B191'),
+    ],
+    { now },
+  )
+
+  assert.equal(result.groupCount, 1)
+  assert.equal(result.objectiveDerivedGroupCount, 1)
+  assert.match(result.groups[0].synergy.id, /^objective-sortie-/)
+  assert.deepEqual(result.groups[0].synergy.mapIds, ['1-3'])
+  assert.deepEqual(result.groups[0].synergy.relationKinds, ['sameSortie'])
+  assert.deepEqual(
+    result.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
+    [2101, 2102, 2103, 2104, 2105],
+  )
+})
+
 test('quest recommendation cards balance requirements, icon rewards, and schedule', () => {
   const recommendations = [
     {
@@ -1357,6 +1430,11 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
   assert.match(expeditionStyles, /\.dep-root \{ width: 680px;/)
   assert.match(resourceCenterStyles, /\.drc-root \{ width: 700px;/)
   assert.match(questStyles, /\.dqr-root \{[^}]*width: 700px;/)
+  const questFontSizes = [
+    ...[...questStyles.matchAll(/font-size:\s*(\d+)px/g)].map((match) => Number(match[1])),
+    ...[...questStyles.matchAll(/font:\s*[^;\n]*?\b(\d+)px/g)].map((match) => Number(match[1])),
+  ]
+  assert.equal(Math.min(...questFontSizes), 12)
   assert.doesNotMatch(questStyles, /\.dqr-list::before/)
   assert.match(questStyles, /\.dqr-card-grid \{[^}]*repeat\(3,/)
   assert.match(questStyles, /\.dqr-controls \{[^}]*grid-template-columns:/)

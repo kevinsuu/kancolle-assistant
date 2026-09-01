@@ -164,6 +164,7 @@ export const tcn = {
   'quest.synergy.fleet.regularEoFleet': '沿用平常 EO 編成',
   'quest.synergy.fleet.separateRequiredFleets': '依任務分別編成',
   'quest.synergy.fleet.freeFleet': '可相容的自由編成',
+  'quest.synergy.fleet.compatibleFleet': '同時滿足列出任務條件的共用編成',
   'quest.synergy.fleet.sharedExercise': '採用能滿足較嚴格任務條件的演習艦隊',
   'quest.synergy.fleet.sharedExpedition': '派遣同時符合列出任務的遠征',
   'quest.synergy.fleet.sharedArsenal': '執行同時符合列出任務的工廠操作',
@@ -212,6 +213,8 @@ export const tcn = {
     '在 5-1 王點取得 S 勝；夕張計入四艘三川指定艦，由良負責滿足 Bq13。',
   'quest.synergy.instruction.sharedExercise':
     '以能滿足最嚴格編成與勝利階級的艦隊演習一次，即可同步推進列出任務。',
+  'quest.synergy.instruction.compatibleSortie':
+    '用同時滿足所有列出編成條件的艦隊出擊共通海域，即可同步推進這些任務。',
   'quest.synergy.instruction.sharedExpedition':
     '選擇所有列出任務都會計數的同一遠征；成功一次即可同步推進。',
   'quest.synergy.instruction.sharedArsenal':

@@ -167,6 +167,7 @@ export const en = {
   'quest.synergy.fleet.regularEoFleet': 'Use the regular EO fleet',
   'quest.synergy.fleet.separateRequiredFleets': 'Separate required fleets',
   'quest.synergy.fleet.freeFleet': 'Any compatible fleet',
+  'quest.synergy.fleet.compatibleFleet': 'One fleet satisfying every listed quest',
   'quest.synergy.fleet.sharedExercise': 'Use a fleet satisfying the strictest listed exercise',
   'quest.synergy.fleet.sharedExpedition': 'Dispatch an expedition counted by every listed quest',
   'quest.synergy.fleet.sharedArsenal': 'Perform an arsenal action counted by every listed quest',
@@ -221,6 +222,8 @@ export const en = {
     'S-rank the 5-1 boss; Yuubari counts toward the four Mikawa ships and Yura satisfies Bq13.',
   'quest.synergy.instruction.sharedExercise':
     'Use a fleet meeting the strictest formation and victory-rank requirements; one exercise advances every listed quest.',
+  'quest.synergy.instruction.compatibleSortie':
+    'Sortie to a shared map with one fleet satisfying every listed formation; the result advances all listed quests.',
   'quest.synergy.instruction.sharedExpedition':
     'Choose one expedition counted by every listed quest; one success advances them together.',
   'quest.synergy.instruction.sharedArsenal':

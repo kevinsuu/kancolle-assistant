@@ -96,6 +96,8 @@ state communicates which sortie worlds are currently included.
 
 The decorative timeline gutter is not rendered. Each quest uses the available width as three equal
 information cells: completion requirements, icon-backed rewards, and deadline plus recommendation.
+All controls, labels, annotations, and card content use a minimum 12px font size to match KC3's
+side navigation, while quest and recommendation headings remain larger for scanning.
 When a weak current quest leads to a valuable locked descendant, the reward cell lists up to three
 best targets, their distance in unlock steps, and their reward icons. The recommendation reason
 also states that the downstream value raised the rank.
@@ -169,19 +171,29 @@ The first phase of curated plans covers:
 | Bq5 / Bq6                           | Medal → Action Report unlock chain                     |
 | Bm4 / Bq7 / Bq13                    | Verified 5-1 combinations when Bq13 is feasible        |
 
-Rules are curated instead of inferred only from a shared map. Bm8 unlocks Bq11, so they are shown
-as sequential unlock nodes rather than a false simultaneous pair. Bm8+Bq9 uses 1-3/1-4/2-1, while
-Bq9+Bq11 uses 1-4/2-1/2-2/2-3. The two 2-5 monthlies keep separate fleets and are explicitly
-labeled as a sequence. The prerequisite flow also carries Bd1 → Bd2 → Cm1 → Bm8 forward; Cm1's
-seven exercise wins must still be completed within one quest day even though Cm1 itself is monthly.
+Unlock and sequence rules remain curated because a shared map cannot prove that two objectives are
+simultaneously available. Bm8 unlocks Bq11, so they are shown as sequential unlock nodes rather
+than a false simultaneous pair. Bm8+Bq9 uses 1-3/1-4/2-1, while Bq9+Bq11 uses
+1-4/2-1/2-2/2-3. The two 2-5 monthlies keep separate fleets and are explicitly labeled as a
+sequence. The prerequisite flow also carries Bd1 → Bd2 → Cm1 → Bm8 forward; Cm1's seven exercise
+wins must still be completed within one quest day even though Cm1 itself is monthly.
 
-Exercise, expedition, and arsenal combinations are derived conservatively from the same quest IDs
-and action conditions used by KC3's verified batch counters. Generic exercise counters can share a
-restricted exercise, but two different restricted exercise fleets are not assumed compatible.
-Generic expedition counters share any success, while specific expedition quests group only when
-their mission-ID sets intersect. Arsenal groups cover verified development and construction pairs,
-plus equipment discards whose type or exact master item advances every grouped quest. Unprofiled
-one-time or newly added quests remain standalone instead of being grouped solely by category.
+Exercise and normal-map sortie combinations use a fleet-constraint solver rather than a table of
+quest pairs. Each profiled quest contributes only its own atomic facts: action type, eligible maps,
+flagship and second-ship requirements, minimum or maximum ship-type counts, named-ship groups,
+allowed ship types, and exclusions. The solver intersects the action and maps, merges those facts,
+and searches for a legal fleet of at most six ships. It can therefore discover combinations of two
+restricted exercise quests or up to five accepted quests without a separate entry for every pair
+or stack. A common map alone is insufficient: incompatible flagship, ship-count, or exclusion
+rules keep the quests separate.
+
+The objective catalog currently covers the synchronized exercise profiles and the normal-map
+sortie profiles used by the recommendation plans. New profiles use the same data shape and become
+eligible for every compatible combination automatically. Unprofiled or newly added quests remain
+standalone instead of being guessed from broad text or category alone. Generic expedition counters
+still share any success, while specific expedition quests group only when their mission-ID sets
+intersect. Arsenal groups cover verified development and construction pairs, plus equipment
+discards whose type or exact master item advances every grouped quest.
 
 ## Data boundary and diagnostics
 
@@ -206,8 +218,8 @@ Runtime diagnostics use the following structured events:
   planning data is incomplete or Japanese title metadata is unavailable;
 - `quest-recommendation.completed` records per-period and per-chapter candidate and group counts,
   the four value bands, ranking and daily tie-break modes, reward order, downstream-boosted and
-  unavailable counts, relation-kind and available-EO counts, and up to ten leading quest IDs with
-  their periods,
+  unavailable counts, objective-profiled quest and solver-derived group counts, relation-kind and
+  available-EO counts, and up to ten leading quest IDs with their periods,
   guidance tiers, value bands and effective-reward sources, selected plan IDs, ranking version, and
   elapsed time;
 - `quest-recommendation.failed` records the stable `KC3_QUEST_DATA_UNAVAILABLE` reason code and a
