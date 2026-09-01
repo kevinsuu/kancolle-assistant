@@ -16,6 +16,10 @@ const PRIORITY_RESOURCE_KEYS = ['bucket', 'fuel', 'bauxite', 'ammo', 'steel']
 const PRIORITY_RANKS = [1, 2, 3, 4, 5]
 const RESOURCE_PREFERENCE_MODES = ['optimize', 'constraint', 'ignore']
 const DEFAULT_MINIMUM_NET_YIELD_PER_HOUR = 0
+const EXPEDITION_PLANNER_SETTINGS_VERSION = 1
+export const EXPEDITION_PLANNER_SETTINGS_STORAGE_KEY =
+  'damecon.strategyRoom.expeditionPlannerSettings.v1'
+const SETTINGS_LOG_PREFIX = '[KancolleExpeditionSettings]'
 
 const priorityResource = (key) =>
   key === 'bucket' ? { key, color: '#3b9d91' } : resources.find((resource) => resource.key === key)
@@ -23,6 +27,7 @@ const priorityResource = (key) =>
 const weightResources = PRIORITY_RESOURCE_KEYS.map(priorityResource)
 
 const isPriorityPreferenceValid = (preferences) => {
+  if (!preferences || typeof preferences !== 'object') return false
   const activeRanks = PRIORITY_RESOURCE_KEYS.map((key) => preferences[key])
     .filter((preference) => preference?.mode === 'optimize')
     .map((preference) => preference.rank)
@@ -39,6 +44,186 @@ const isPriorityPreferenceValid = (preferences) => {
       return preference.mode !== 'constraint' || Number.isFinite(preference.minimumNetYieldPerHour)
     })
   )
+}
+
+const logSettingsEvent = (logger, level, details) => {
+  logger?.[level]?.(SETTINGS_LOG_PREFIX, details)
+}
+
+const sanitizedErrorMessage = (error) => String(error?.message || error || 'unknown').slice(0, 200)
+
+const normalizePlannerSettings = (value) => {
+  if (!value || typeof value !== 'object') return null
+  if (value.version !== EXPEDITION_PLANNER_SETTINGS_VERSION) return null
+  if (!Number.isInteger(value.afkMinutes) || value.afkMinutes < 0 || value.afkMinutes > 2880) {
+    return null
+  }
+  if (!Number.isInteger(value.fleetCount) || value.fleetCount < 1 || value.fleetCount > 3) {
+    return null
+  }
+  if (
+    value.preference?.mode !== 'priority' ||
+    !isPriorityPreferenceValid(value.preference.preferences)
+  ) {
+    return null
+  }
+  if (
+    typeof value.incomeModifier?.greatSuccess !== 'boolean' ||
+    !Number.isInteger(value.incomeModifier.daihatsuCount) ||
+    value.incomeModifier.daihatsuCount < 0 ||
+    value.incomeModifier.daihatsuCount > 4
+  ) {
+    return null
+  }
+  return {
+    version: EXPEDITION_PLANNER_SETTINGS_VERSION,
+    afkMinutes: value.afkMinutes,
+    fleetCount: value.fleetCount,
+    preference: {
+      mode: 'priority',
+      preferences: Object.fromEntries(
+        PRIORITY_RESOURCE_KEYS.map((key) => [key, { ...value.preference.preferences[key] }]),
+      ),
+    },
+    incomeModifier: {
+      greatSuccess: value.incomeModifier.greatSuccess,
+      daihatsuCount: value.incomeModifier.daihatsuCount,
+    },
+  }
+}
+
+const settingsLogDetails = (settings) => ({
+  afkMinutes: settings.afkMinutes,
+  fleetCount: settings.fleetCount,
+  optimizedResourceCount: PRIORITY_RESOURCE_KEYS.filter(
+    (key) => settings.preference.preferences[key].mode === 'optimize',
+  ).length,
+  greatSuccess: settings.incomeModifier.greatSuccess,
+  daihatsuCount: settings.incomeModifier.daihatsuCount,
+})
+
+export const readExpeditionPlannerSettings = (storage = undefined, logger = globalThis.console) => {
+  if (storage === undefined) {
+    try {
+      storage = globalThis.localStorage || null
+    } catch (error) {
+      logSettingsEvent(logger, 'warn', {
+        event: 'expedition-planner-settings-read',
+        outcome: 'defaults',
+        reasonCode: 'STORAGE_READ_FAILED',
+        error: sanitizedErrorMessage(error),
+      })
+      return null
+    }
+  }
+  if (!storage) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'STORAGE_UNAVAILABLE',
+    })
+    return null
+  }
+  let storedValue
+  try {
+    storedValue = storage.getItem(EXPEDITION_PLANNER_SETTINGS_STORAGE_KEY)
+  } catch (error) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'STORAGE_READ_FAILED',
+      error: sanitizedErrorMessage(error),
+    })
+    return null
+  }
+  if (storedValue === null) {
+    logSettingsEvent(logger, 'info', {
+      event: 'expedition-planner-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'SETTINGS_NOT_FOUND',
+    })
+    return null
+  }
+  let settings
+  try {
+    settings = normalizePlannerSettings(JSON.parse(storedValue))
+  } catch (error) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'SETTINGS_PARSE_FAILED',
+      error: sanitizedErrorMessage(error),
+    })
+    return null
+  }
+  if (!settings) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'SETTINGS_INVALID',
+    })
+    return null
+  }
+  logSettingsEvent(logger, 'info', {
+    event: 'expedition-planner-settings-read',
+    outcome: 'restored',
+    ...settingsLogDetails(settings),
+  })
+  return settings
+}
+
+export const writeExpeditionPlannerSettings = (
+  value,
+  storage = undefined,
+  logger = globalThis.console,
+) => {
+  const settings = normalizePlannerSettings(value)
+  if (!settings) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-write',
+      outcome: 'skipped',
+      reasonCode: 'SETTINGS_INVALID',
+    })
+    return false
+  }
+  if (storage === undefined) {
+    try {
+      storage = globalThis.localStorage || null
+    } catch (error) {
+      logSettingsEvent(logger, 'warn', {
+        event: 'expedition-planner-settings-write',
+        outcome: 'failed',
+        reasonCode: 'STORAGE_WRITE_FAILED',
+        error: sanitizedErrorMessage(error),
+      })
+      return false
+    }
+  }
+  if (!storage) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-write',
+      outcome: 'failed',
+      reasonCode: 'STORAGE_UNAVAILABLE',
+    })
+    return false
+  }
+  try {
+    storage.setItem(EXPEDITION_PLANNER_SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  } catch (error) {
+    logSettingsEvent(logger, 'warn', {
+      event: 'expedition-planner-settings-write',
+      outcome: 'failed',
+      reasonCode: 'STORAGE_WRITE_FAILED',
+      error: sanitizedErrorMessage(error),
+    })
+    return false
+  }
+  logSettingsEvent(logger, 'info', {
+    event: 'expedition-planner-settings-write',
+    outcome: 'saved',
+    ...settingsLogDetails(settings),
+  })
+  return true
 }
 
 const expeditionGroups = [
@@ -282,6 +467,45 @@ const incomeAssumption = (root) => ({
   greatSuccess: root.querySelector('input[name="dep-success-mode"]:checked')?.value === 'great',
   daihatsuCount: Number(root.querySelector('#dep-daihatsu-count')?.value || 0),
 })
+
+const plannerSettings = (root) => {
+  const settings = scorerSettings(root)
+  return {
+    version: EXPEDITION_PLANNER_SETTINGS_VERSION,
+    afkMinutes: settings.afkMinutes,
+    fleetCount: settings.fleetCount,
+    preference: settings.preference,
+    incomeModifier: incomeAssumption(root),
+  }
+}
+
+const applyPlannerSettings = (root, settings) => {
+  const preferences = settings.preference.preferences
+  PRIORITY_RESOURCE_KEYS.forEach((key) => {
+    const select = root.querySelector(`[data-resource-mode="${key}"]`)
+    if (select) select.value = preferences[key].mode
+  })
+  const activeKeys = PRIORITY_RESOURCE_KEYS.filter(
+    (key) => preferences[key].mode === 'optimize',
+  ).sort((left, right) => preferences[left].rank - preferences[right].rank)
+  const inactiveKeys = PRIORITY_RESOURCE_KEYS.filter((key) => preferences[key].mode !== 'optimize')
+  setPriorityOrder(root, activeKeys, inactiveKeys)
+
+  const hours = root.querySelector('#dep-afk-hours')
+  const minutes = root.querySelector('#dep-afk-minutes')
+  if (hours) hours.value = String(Math.floor(settings.afkMinutes / 60))
+  if (minutes) minutes.value = String(settings.afkMinutes % 60)
+
+  const fleetCount = root.querySelector(
+    `input[name="dep-fleet-count"][value="${settings.fleetCount}"]`,
+  )
+  if (fleetCount) fleetCount.checked = true
+  const successValue = settings.incomeModifier.greatSuccess ? 'great' : 'normal'
+  const successMode = root.querySelector(`input[name="dep-success-mode"][value="${successValue}"]`)
+  if (successMode) successMode.checked = true
+  const daihatsuCount = root.querySelector('#dep-daihatsu-count')
+  if (daihatsuCount) daihatsuCount.value = String(settings.incomeModifier.daihatsuCount)
+}
 
 const updateIncomeAssumption = (root) => {
   const assumption = incomeAssumption(root)
@@ -640,8 +864,11 @@ const mountPanel = (invoke) => {
   const root = contentHtml.querySelector('.dep-root')
   const syncButton = root.querySelector('#dep-sync')
   const generateButton = root.querySelector('#dep-generate')
+  const storedSettings = readExpeditionPlannerSettings()
   let current = null
   let syncResetTimer = null
+
+  if (storedSettings) applyPlannerSettings(root, storedSettings)
 
   const sync = async () => {
     if (syncButton.disabled) return
@@ -705,11 +932,26 @@ const mountPanel = (invoke) => {
         movePriorityResourceOrder(activeKeys, button.dataset.priorityKey, targetIndex),
         nonOptimizePriorityKeys(root),
       )
+      writeExpeditionPlannerSettings(plannerSettings(root))
     })
   })
   root
     .querySelectorAll('input[name="dep-success-mode"], #dep-daihatsu-count')
     .forEach((control) => control.addEventListener('change', () => updateIncomeAssumption(root)))
+  const persistedControlSelector = [
+    '[data-resource-mode]',
+    '[data-resource-priority]',
+    '#dep-afk-hours',
+    '#dep-afk-minutes',
+    'input[name="dep-fleet-count"]',
+    'input[name="dep-success-mode"]',
+    '#dep-daihatsu-count',
+  ].join(', ')
+  root.addEventListener('change', (event) => {
+    if (event.target.matches(persistedControlSelector)) {
+      writeExpeditionPlannerSettings(plannerSettings(root))
+    }
+  })
   updateIncomeAssumption(root)
   syncButton.addEventListener('click', (event) => {
     event.preventDefault()

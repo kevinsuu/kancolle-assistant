@@ -50,6 +50,12 @@ Scorer:
 - **大發系裝備** selects zero to four Daihatsu-type equipment items per fleet and displays the
   combined income multiplier, up to 1.8×.
 
+Resource modes and priorities, the collection interval, fleet count, success mode, and Daihatsu
+count are saved locally when changed. Reopening the game or switching away from the Strategy Room
+page restores the last valid settings. Candidate expedition checkboxes remain independent and
+continue to default to all selected. Invalid, incompatible, or unavailable browser storage falls
+back to the documented defaults without preventing the planner from opening.
+
 The preference controls default to optimizing buckets, fuel, bauxite, ammunition, then steel.
 Changing a rank automatically reorders the other optimized resources so enabled ranks stay unique
 and continuous. Break-even resources currently use `minimumNetYieldPerHour = 0` and are reserved for
