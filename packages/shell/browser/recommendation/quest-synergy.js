@@ -1,3 +1,5 @@
+import { findObjectiveSynergies } from './quest-objective-synergy'
+
 // Curated quest plans distinguish sorties that can be shared, objectives that should be run in
 // sequence, and prerequisite unlocks. Quest IDs follow KC3's repeatable quest metadata.
 const PLAN_RULES = [
@@ -549,5 +551,9 @@ export const findQuestSynergies = (anchorQuest, quests, { extraOperationStatus =
       }
     })
     .filter(Boolean)
-  return [...findSharedActionSynergies(anchorQuest, questList), ...curatedPlans]
+  return [
+    ...findObjectiveSynergies(anchorQuest, questList),
+    ...findSharedActionSynergies(anchorQuest, questList),
+    ...curatedPlans,
+  ]
 }

@@ -168,6 +168,7 @@ export const jp = {
   'quest.synergy.fleet.regularEoFleet': '通常の EO 編成',
   'quest.synergy.fleet.separateRequiredFleets': '任務ごとに別編成',
   'quest.synergy.fleet.freeFleet': '両立可能な自由編成',
+  'quest.synergy.fleet.compatibleFleet': '表示中の全任務条件を満たす共通編成',
   'quest.synergy.fleet.sharedExercise': '最も厳しい任務条件を満たす演習艦隊',
   'quest.synergy.fleet.sharedExpedition': '表示中の全任務に加算される遠征',
   'quest.synergy.fleet.sharedArsenal': '表示中の全任務に加算される工廠操作',
@@ -219,6 +220,8 @@ export const jp = {
     '5-1 ボスを S勝利します。夕張を三川指定艦に数え、由良で Bq13 を満たします。',
   'quest.synergy.instruction.sharedExercise':
     '最も厳しい編成・勝利ランク条件を満たす艦隊で演習し、表示中の任務を同時に進めます。',
+  'quest.synergy.instruction.compatibleSortie':
+    '表示中の全編成条件を満たす艦隊で共通海域へ出撃し、各任務を同時に進めます。',
   'quest.synergy.instruction.sharedExpedition':
     '表示中の全任務に加算される同じ遠征を選び、1回の成功で同時に進めます。',
   'quest.synergy.instruction.sharedArsenal':

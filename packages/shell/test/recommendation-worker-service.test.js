@@ -603,6 +603,8 @@ test('quest recommendation IPC validates senders and logs success and failure ou
         rewardCategoryCounts: { medalBlueprint: 1, screws: 1 },
         groupCount: 1,
         combinedGroupCount: 1,
+        objectiveDerivedGroupCount: 1,
+        objectiveProfiledQuestCount: 4,
         groups: [
           {
             id: 'synergy:fixture-synergy',
@@ -669,6 +671,8 @@ test('quest recommendation IPC validates senders and logs success and failure ou
   assert.equal(logs.at(-1).data.synchronizedQuestCount, 0)
   assert.equal(logs.at(-1).data.groupCount, 1)
   assert.equal(logs.at(-1).data.combinedGroupCount, 1)
+  assert.equal(logs.at(-1).data.objectiveDerivedGroupCount, 1)
+  assert.equal(logs.at(-1).data.objectiveProfiledQuestCount, 4)
   assert.deepEqual(logs.at(-1).data.relationKindCounts, {})
   assert.deepEqual(logs.at(-1).data.rewardPriorityOrder, [
     'medalBlueprint',

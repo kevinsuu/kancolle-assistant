@@ -875,6 +875,8 @@ export const registerRecommendationIpc = ({
         selectedCount: result.recommendations.length,
         groupCount: result.groupCount,
         combinedGroupCount: result.combinedGroupCount,
+        objectiveDerivedGroupCount: result.objectiveDerivedGroupCount,
+        objectiveProfiledQuestCount: result.objectiveProfiledQuestCount,
         relationKindCounts,
         availableExtraOperationCount: result.availableExtraOperationCount,
         unavailableQuestCount: result.unavailableQuestCount,
