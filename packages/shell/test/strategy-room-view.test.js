@@ -31,9 +31,15 @@ import {
 import {
   downloadQuestRecommendationMarkdown,
   filterAndSortQuestRecommendationGroups,
+  logQuestTypeFilterChange,
   QUEST_MAP_CHAPTER_KEYS,
+  QUEST_RECOMMENDATION_SETTINGS_STORAGE_KEY,
+  QUEST_TYPE_FILTERS,
+  questTypeFor,
   questRecommendationMarkdown,
   questRecommendationListMarkup,
+  readQuestRecommendationSettings,
+  writeQuestRecommendationSettings,
 } from '../browser/recommendation/quest-recommendation-ui.js'
 import {
   movePriorityResourceOrder,
@@ -105,10 +111,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '0afb90e0a6fc632f19557ad7fd628a42e099de29dc156f807b8d7d29d78e6c1d',
-      jp: '0b1ba8c4a00fc106f2b7f72f02b40f4c0fd72de36d184d62e6b194e9a7e9e947',
-      scn: '34cfa1120a0092fdb1c5f634b289b7ceb32e8031fe8ec4d7295a858d7dd5773c',
-      tcn: '2473aa440a010d9dfd8218c08d245e26f4edf95869205d12951187425817dd46',
+      en: 'bf0103df130a1d4ed28c408bf3b097f0ef92207cb0f26eeaeb739b0bd9e5d288',
+      jp: '51e249cc3877c134cbc0dd968b9dea32ea3c994b9dad25b7dd2dc39d450a8d3e',
+      scn: 'fb4094099e4214cc93b2a9e97c512bbafc20311bf211b651a4fb08f9a2319bda',
+      tcn: '10826bda46359e89e7d2ea46d919bcfdaf1e63827dff950f917e6da23122cdaf',
     },
   )
 })
@@ -332,6 +338,59 @@ test('quest rewards preserve medal, action report, screws, and other priority', 
   assert.equal(classifyQuestRewards({ memo: 'Rewards a Screw.' }).priority, 2)
 })
 
+test('one-time valuable quests keep reward guidance while repeatable equivalents sort first', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 1,
+        code: 'BwActionReport',
+        period: 'weekly',
+        status: 1,
+        resetAt: now + 7 * 24 * 60 * 60 * 1000,
+        memo: '獎勵：戰鬥詳報x1',
+      },
+      {
+        id: 2,
+        code: 'B204',
+        period: 'oneTime',
+        status: 1,
+        memo: '獎勵：戰鬥詳報x1、選擇獎勵',
+      },
+      {
+        id: 3,
+        code: 'BBlueprint',
+        period: 'oneTime',
+        status: 1,
+        memo: '獎勵：改裝設計圖x1',
+      },
+    ],
+    { now },
+  )
+
+  assert.equal(result.rankingVersion, 14)
+  assert.deepEqual(
+    result.recommendations.map(({ id, valueBand, guidance }) => ({
+      id,
+      valueBand,
+      tier: guidance.tier,
+    })),
+    [
+      { id: 1, valueBand: 4, tier: 'priority' },
+      { id: 3, valueBand: 3, tier: 'highest' },
+      { id: 2, valueBand: 3, tier: 'priority' },
+    ],
+  )
+
+  const b204 = result.recommendations.find(({ code }) => code === 'B204')
+  const markup = questRecommendationListMarkup({
+    recommendations: [b204],
+    groups: [{ id: 'quest:2', kind: 'single', quests: [b204], synergy: null }],
+  })
+  assert.match(markup, /B204/)
+  assert.match(markup, />Priority</)
+})
+
 test('quest recommendations return every current fixed-reset quest', () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const resetAt = now + 7 * 24 * 60 * 60 * 1000
@@ -501,6 +560,299 @@ test('quest chapter filters default on while non-sortie quests stay visible at t
   assert.equal(controls.indexOf('dqr-export') < controls.indexOf('dqr-refresh'), true)
 })
 
+test('broad sortie quests use catalog maps and do not bypass priority or chapter sorting', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 229,
+        code: 'Bw6',
+        name: '敵東方艦隊を撃滅せよ！',
+        description: '在第 4 海域任意關卡的王點取得 B 勝利或以上 12 次！',
+        period: 'weekly',
+        status: 1,
+        resetAt: now + 7 * 24 * 60 * 60 * 1000,
+        unlockIds: [230],
+        memo: '其他素材',
+      },
+      {
+        id: 230,
+        code: 'Bw9',
+        name: '南方海域珊瑚諸島沖の制空権を握れ！',
+        period: 'weekly',
+        status: 0,
+        locked: true,
+        memo: '改修資材x2',
+      },
+      {
+        id: 204,
+        code: 'B204',
+        name: '「第二駆逐隊(後期編成)」、出撃せよ！',
+        mapIds: ['1-2', '1-3', '1-4', '2-1'],
+        period: 'oneTime',
+        status: 1,
+        memo: '戰鬥詳報x1',
+      },
+    ],
+    { now },
+  )
+  const bw6 = result.recommendations.find(({ code }) => code === 'Bw6')
+  assert.deepEqual(bw6.mapIds, ['4-1', '4-2', '4-3', '4-4', '4-5'])
+  assert.equal(bw6.chapterKey, 'world4')
+  assert.equal(bw6.guidance.tier, 'recommended')
+
+  const allChapters = filterAndSortQuestRecommendationGroups(result, {
+    chapterFilters: QUEST_MAP_CHAPTER_KEYS,
+    typeFilters: ['sortie'],
+    sortMode: 'priorityDesc',
+  })
+  assert.deepEqual(
+    allChapters.groups.flatMap(({ quests }) => quests.map(({ code }) => code)),
+    ['B204', 'Bw6'],
+  )
+  assert.equal(
+    allChapters.groups.every(({ mapScope }) => mapScope === 'sortie'),
+    true,
+  )
+
+  const worldTwo = filterAndSortQuestRecommendationGroups(result, {
+    chapterFilters: ['world2'],
+    typeFilters: ['sortie'],
+    sortMode: 'priorityDesc',
+  })
+  assert.deepEqual(
+    worldTwo.groups.flatMap(({ quests }) => quests.map(({ code }) => code)),
+    ['B204'],
+  )
+
+  const worldFour = filterAndSortQuestRecommendationGroups(result, {
+    chapterFilters: ['world4'],
+    typeFilters: ['sortie'],
+    sortMode: 'priorityDesc',
+  })
+  assert.deepEqual(
+    worldFour.groups.flatMap(({ quests }) => quests.map(({ code }) => code)),
+    ['Bw6'],
+  )
+})
+
+test('quest type filters use KC3 quest categories and support multi-select', () => {
+  const quests = [
+    { id: 1, code: 'A10' },
+    { id: 2, code: 'Bq1', mapIds: ['2-4'] },
+    { id: 3, code: 'Cm1' },
+    { id: 4, code: 'Dy5' },
+    { id: 5, code: 'E1' },
+    { id: 6, code: 'F90' },
+    { id: 7, code: 'G7' },
+    { id: 8, code: 'Z1' },
+  ]
+  const result = {
+    recommendations: quests,
+    groups: quests.map((quest) => ({ id: `quest:${quest.id}`, kind: 'single', quests: [quest] })),
+  }
+  const idsFor = (view) =>
+    view.groups.flatMap(({ quests: groupQuests }) => groupQuests.map(({ id }) => id))
+
+  assert.deepEqual(quests.map(questTypeFor), [
+    'fleet',
+    'sortie',
+    'exercise',
+    'expedition',
+    'supplyDock',
+    'arsenal',
+    'modernization',
+    'other',
+  ])
+  assert.deepEqual(
+    idsFor(filterAndSortQuestRecommendationGroups(result, { typeFilters: [] })),
+    [1, 3, 4, 5, 6, 7, 8, 2],
+  )
+  assert.deepEqual(
+    idsFor(
+      filterAndSortQuestRecommendationGroups(result, {
+        typeFilters: ['exercise', 'expedition'],
+      }),
+    ),
+    [3, 4],
+  )
+  assert.deepEqual(
+    idsFor(filterAndSortQuestRecommendationGroups(result, { typeFilters: ['sortie'] })),
+    [2],
+  )
+
+  const filteredCombination = filterAndSortQuestRecommendationGroups(
+    {
+      recommendations: quests,
+      groups: [
+        {
+          id: 'mixed-type-combination',
+          kind: 'combined',
+          quests: [quests[2], quests[3]],
+          synergy: { id: 'mixed-type-combination' },
+        },
+      ],
+    },
+    { typeFilters: ['exercise'] },
+  )
+  assert.equal(filteredCombination.groups[0].kind, 'single')
+  assert.equal(filteredCombination.groups[0].synergy, null)
+
+  const controls = questMarkup(translator('en'))
+  assert.equal((controls.match(/data-quest-type=/g) || []).length, QUEST_TYPE_FILTERS.length + 1)
+  assert.match(controls, /data-quest-type="all"[^>]*aria-pressed="true"/)
+  assert.match(controls, /data-quest-type="exercise"[^>]*aria-pressed="false"/)
+  assert.doesNotMatch(controls, /data-quest-type="supplyDock"/)
+  assert.match(
+    controls,
+    /<select class="dqr-sort">\s*<option value="deadlineAsc">.*?<option value="deadlineDesc">.*?<option value="priorityDesc">.*?<option value="stepsAsc">/s,
+  )
+})
+
+test('quest type filter diagnostics report shown and empty outcomes', () => {
+  const events = []
+  const logger = {
+    info: (prefix, details) => events.push({ level: 'info', prefix, details }),
+    warn: (prefix, details) => events.push({ level: 'warn', prefix, details }),
+  }
+
+  const shown = logQuestTypeFilterChange(
+    { typeFilters: ['exercise'] },
+    { visibleQuestCount: 3, groups: [{}, {}] },
+    logger,
+  )
+  const empty = logQuestTypeFilterChange(
+    { typeFilters: ['expedition'] },
+    { visibleQuestCount: 0, groups: [] },
+    logger,
+  )
+
+  assert.deepEqual(
+    events.map(({ level, prefix }) => ({ level, prefix })),
+    [
+      { level: 'info', prefix: '[KancolleQuestFilter]' },
+      { level: 'warn', prefix: '[KancolleQuestFilter]' },
+    ],
+  )
+  assert.equal(shown.outcome, 'shown')
+  assert.equal(shown.groupCount, 2)
+  assert.equal(empty.outcome, 'empty')
+  assert.equal(empty.reasonCode, 'NO_VISIBLE_QUESTS')
+})
+
+const storedQuestRecommendationSettings = {
+  version: 1,
+  chapterFilters: ['world2', 'world5'],
+  typeFilters: ['sortie', 'expedition'],
+  rewardFilters: ['medalBlueprint', 'screws'],
+  sortMode: 'priorityDesc',
+}
+
+test('quest recommendation settings round-trip through local storage with diagnostics', () => {
+  const entries = new Map()
+  const events = []
+  const storage = {
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => entries.set(key, value),
+  }
+  const logger = {
+    info: (prefix, details) => events.push({ level: 'info', prefix, ...details }),
+    warn: (prefix, details) => events.push({ level: 'warn', prefix, ...details }),
+  }
+
+  assert.equal(
+    writeQuestRecommendationSettings(storedQuestRecommendationSettings, storage, logger),
+    true,
+  )
+  assert.deepEqual(
+    readQuestRecommendationSettings(storage, logger),
+    storedQuestRecommendationSettings,
+  )
+  assert.equal(entries.has(QUEST_RECOMMENDATION_SETTINGS_STORAGE_KEY), true)
+  assert.deepEqual(
+    events.map(
+      ({ event, outcome, chapterFilterCount, typeFilterCount, rewardFilterCount, sortMode }) => ({
+        event,
+        outcome,
+        chapterFilterCount,
+        typeFilterCount,
+        rewardFilterCount,
+        sortMode,
+      }),
+    ),
+    [
+      {
+        event: 'quest-recommendation-settings-write',
+        outcome: 'saved',
+        chapterFilterCount: 2,
+        typeFilterCount: 2,
+        rewardFilterCount: 2,
+        sortMode: 'priorityDesc',
+      },
+      {
+        event: 'quest-recommendation-settings-read',
+        outcome: 'restored',
+        chapterFilterCount: 2,
+        typeFilterCount: 2,
+        rewardFilterCount: 2,
+        sortMode: 'priorityDesc',
+      },
+    ],
+  )
+})
+
+test('quest recommendation settings reject damaged data and report storage failures', () => {
+  const events = []
+  const logger = {
+    info: () => {},
+    warn: (prefix, details) => events.push({ prefix, ...details }),
+  }
+
+  assert.equal(readQuestRecommendationSettings({ getItem: () => '{damaged' }, logger), null)
+  assert.equal(
+    readQuestRecommendationSettings(
+      {
+        getItem: () =>
+          JSON.stringify({ ...storedQuestRecommendationSettings, typeFilters: ['unknown'] }),
+      },
+      logger,
+    ),
+    null,
+  )
+  assert.equal(
+    writeQuestRecommendationSettings(
+      storedQuestRecommendationSettings,
+      {
+        setItem: () => {
+          throw new Error('quota exceeded')
+        },
+      },
+      logger,
+    ),
+    false,
+  )
+  assert.deepEqual(
+    events.map(({ event, outcome, reasonCode }) => ({ event, outcome, reasonCode })),
+    [
+      {
+        event: 'quest-recommendation-settings-read',
+        outcome: 'defaults',
+        reasonCode: 'SETTINGS_PARSE_FAILED',
+      },
+      {
+        event: 'quest-recommendation-settings-read',
+        outcome: 'defaults',
+        reasonCode: 'SETTINGS_INVALID',
+      },
+      {
+        event: 'quest-recommendation-settings-write',
+        outcome: 'failed',
+        reasonCode: 'STORAGE_WRITE_FAILED',
+      },
+    ],
+  )
+})
+
 test('quest recommendations explain verified 1-5 quest and EO combinations', () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const result = rankQuestRecommendations(
@@ -640,6 +992,114 @@ test('quest recommendations group verified exercise, expedition, and arsenal sha
   assert.match(markup, /one action advances them together/)
 })
 
+test('quest recommendations derive unprofiled arsenal discard categories without using prepared equipment', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 90 * 24 * 60 * 60 * 1000
+  const quest = (id, code, synergyDescription, period = 'oneTime') => ({
+    id,
+    code,
+    name: `Quest ${id}`,
+    synergyDescription,
+    description: 'Localized quest requirement',
+    period,
+    status: 1,
+    resetAt,
+  })
+
+  const knownQuests = rankQuestRecommendations(
+    [
+      quest(653, 'F90', '', 'quarterly'),
+      quest(657, 'F92', '「小口径主砲」x6、「中口径主砲」x5、「魚雷」x4を廃棄する。', 'yearly'),
+      quest(676, 'F68', '「中口径主砲」x3、「副砲」x3を廃棄する。', 'weekly'),
+      quest(
+        1114,
+        'F108',
+        '「小口径主砲」「中口径主砲」「副砲」各x3を廃棄、' + '「35.6cm連装砲」x3を準備せよ！',
+      ),
+    ],
+    { now },
+  )
+
+  assert.equal(knownQuests.groupCount, 1)
+  assert.equal(knownQuests.combinedGroupCount, 1)
+  assert.equal(knownQuests.groups[0].synergy.id, 'shared-arsenal-item-4-653-657-676-1114')
+  assert.deepEqual(
+    knownQuests.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
+    [653, 657, 676, 1114],
+  )
+  assert.equal(knownQuests.arsenalProfiledQuestCount, 4)
+  assert.equal(knownQuests.derivedArsenalProfileCount, 3)
+  assert.equal(knownQuests.derivedOnlyArsenalProfileCount, 1)
+  assert.equal('synergyDescription' in knownQuests.recommendations[0], false)
+
+  const futureQuests = rankQuestRecommendations(
+    [
+      quest(9001, 'Ffuture1', '「小口径主砲」x3を廃棄、「中口径主砲」x3を準備せよ！'),
+      quest(9002, 'Ffuture2', '「小口径主砲」x4を廃棄せよ！'),
+      quest(9003, 'Ffuture3', '「中口径主砲」x4を廃棄せよ！'),
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    futureQuests.groups.map(({ quests }) => quests.map(({ id }) => id)),
+    [[9001, 9002], [9003]],
+  )
+  assert.equal(futureQuests.derivedOnlyArsenalProfileCount, 3)
+
+  const preparedBeforeDiscard = rankQuestRecommendations(
+    [
+      quest(9010, 'Ffuture10', '「中口径主砲」x3を廃棄せよ！'),
+      quest(9011, 'Ffuture11', '「中口径主砲」x3を準備し、「12.7cm連装砲」x3を廃棄せよ！'),
+    ],
+    { now },
+  )
+
+  assert.equal(preparedBeforeDiscard.groupCount, 2)
+  assert.equal(preparedBeforeDiscard.combinedGroupCount, 0)
+  assert.equal(preparedBeforeDiscard.derivedOnlyArsenalProfileCount, 1)
+})
+
+test('quest recommendations derive shared arsenal actions when discard lists follow the verb', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const quest = (id, code, synergyDescription) => ({
+    id,
+    code,
+    name: code,
+    synergyDescription,
+    description: synergyDescription,
+    period: 'oneTime',
+    status: 1,
+    resetAt: null,
+  })
+  const result = rankQuestRecommendations(
+    [
+      quest(
+        9101,
+        'F119',
+        '廢棄小口徑主砲×18、中口徑主砲×12、暴雷系裝備×6。' +
+          '準備應急修理要員×1、彈藥2500、鋼材3000。',
+      ),
+      quest(
+        9102,
+        'F131',
+        '【工廠任務】廢棄「水上偵察機」x14、「中口徑主砲」x12、' +
+          '「艦上爆擊機」x10。準備開發資材x36、「零式艦戰21型」x8。',
+      ),
+    ],
+    { now },
+  )
+
+  assert.equal(result.groupCount, 1)
+  assert.equal(result.combinedGroupCount, 1)
+  assert.equal(result.groups[0].synergy.id, 'shared-arsenal-type-2-9101-9102')
+  assert.deepEqual(
+    result.groups[0].quests.map(({ code }) => code),
+    ['F119', 'F131'],
+  )
+  assert.equal(result.derivedOnlyArsenalProfileCount, 2)
+})
+
 test('quest recommendations derive compatible restricted exercise stacks from fleet rules', () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const resetAt = now + 30 * 24 * 60 * 60 * 1000
@@ -710,6 +1170,100 @@ test('quest recommendations derive five-quest sortie stacks from maps and fleet 
   assert.deepEqual(
     result.groups[0].quests.map(({ id }) => id).sort((left, right) => left - right),
     [2101, 2102, 2103, 2104, 2105],
+  )
+})
+
+test('quest recommendations show overlapping map intersections as alternative plans', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const quest = (id, code, maps) => ({
+    id,
+    code,
+    name: code,
+    description: `A-rank ${maps.join(', ')}.`,
+    mapIds: maps,
+    period: 'oneTime',
+    status: 1,
+    resetAt: null,
+  })
+  const result = rankQuestRecommendations(
+    [
+      quest(2151, 'B162', ['1-3', '2-3', '3-3']),
+      quest(2152, 'Bw7', ['3-2', '3-3', '3-4']),
+      quest(2153, 'Bq8', ['1-3', '1-4', '1-5']),
+    ],
+    { now },
+  )
+
+  assert.deepEqual(
+    result.groups.map(({ quests }) => quests.map(({ code }) => code)),
+    [['B162', 'Bw7'], ['Bq8']],
+  )
+  assert.equal(result.alternativeSynergyCount, 1)
+  assert.deepEqual(result.groups[0].synergy.mapIds, ['3-3'])
+  const alternative = result.recommendations
+    .find(({ code }) => code === 'Bq8')
+    .synergies.find(({ id }) => id !== result.groups[0].synergy.id)
+  assert.deepEqual(alternative.mapIds, ['1-3'])
+  assert.deepEqual(
+    alternative.companions.map(({ code }) => code),
+    ['B162'],
+  )
+
+  const markup = questRecommendationListMarkup(result)
+  assert.equal((markup.match(/class="dqr-quest-node"/g) || []).length, 3)
+  assert.equal((markup.match(/class="dqr-synergy-alternatives"/g) || []).length, 1)
+  assert.match(markup, /Alternative co-completion plan/)
+  assert.match(markup, /Shared maps: 1-3/)
+  assert.match(markup, /Shared maps: 3-3/)
+
+  const markdown = questRecommendationMarkdown({
+    result,
+    viewState: {
+      chapterFilters: QUEST_MAP_CHAPTER_KEYS,
+      typeFilters: [],
+      rewardFilters: [],
+      sortMode: 'deadlineAsc',
+    },
+    exportedAt: '2026-09-01T00:00:00.000Z',
+  })
+  assert.match(markdown, /Alternative co-completion plan/)
+  assert.match(markdown, /Choose this instead/)
+})
+
+test('quest recommendations derive compatible 3-1 alternatives for the open northern quests', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const quest = (id, code, description, period = 'oneTime') => ({
+    id,
+    code,
+    name: code,
+    description,
+    period,
+    status: 1,
+    resetAt: period === 'oneTime' ? null : now + 90 * 24 * 60 * 60 * 1000,
+  })
+  const result = rankQuestRecommendations(
+    [
+      quest(2201, 'By11', 'A-rank 3-1, 3-3, 4-3, and 7-3-2.', 'yearly'),
+      quest(2202, 'B37', 'S-rank the 3-1 boss.'),
+      quest(2203, 'B21', 'B-rank the 3-1 boss.'),
+      quest(2204, 'Bq5', 'A-rank the 3-1, 3-2, and 3-3 bosses.', 'quarterly'),
+      quest(2205, 'B162', 'A-rank the 3-1, 3-2, 3-3, 3-4, and 3-5 bosses.'),
+    ],
+    { now },
+  )
+  const objectiveCompanionCodes = (code) => {
+    const recommendation = result.recommendations.find((questEntry) => questEntry.code === code)
+    const synergy = recommendation.synergies.find((entry) => entry.id.startsWith('objective-'))
+    return synergy.companions.map(({ code: companionCode }) => companionCode).sort()
+  }
+
+  assert.equal(result.objectiveProfiledQuestCount, 5)
+  assert.deepEqual(objectiveCompanionCodes('By11'), ['B162', 'Bq5'])
+  assert.deepEqual(objectiveCompanionCodes('B37'), ['B162', 'Bq5'])
+  assert.deepEqual(objectiveCompanionCodes('B21'), ['B162', 'Bq5'])
+  assert.deepEqual(
+    result.groups.map(({ quests }) => quests.map(({ code }) => code)),
+    [['By11', 'Bq5', 'B162'], ['B37'], ['B21']],
   )
 })
 
@@ -900,6 +1454,7 @@ const questMarkdownFixture = () => {
     },
     viewState: {
       chapterFilters: ['world1'],
+      typeFilters: [],
       rewardFilters: [],
       sortMode: 'deadlineDesc',
     },
@@ -913,6 +1468,7 @@ test('quest Markdown exports the visible list with complete card and combination
   assert.match(markdown, /^# Quest Recommendations/m)
   assert.match(markdown, /## Applied filters/)
   assert.match(markdown, /Chapter 1/)
+  assert.match(markdown, /Quest types:\*\* All/)
   assert.match(markdown, /Deadline far → near/)
   assert.match(markdown, /Showing 2/)
   assert.match(markdown, /Monthly EO Medal route/)
@@ -1035,6 +1591,7 @@ test('quest reward filters include valuable successors and keep groups sortable'
   const idsFor = (view) =>
     view.groups.flatMap(({ quests: groupQuests }) => groupQuests.map(({ id }) => id))
 
+  assert.deepEqual(idsFor(filterAndSortQuestRecommendationGroups(result)), [1, 5, 3, 2, 4])
   const medalView = filterAndSortQuestRecommendationGroups(result, {
     rewardFilters: ['medalBlueprint'],
   })
@@ -1061,6 +1618,10 @@ test('quest reward filters include valuable successors and keep groups sortable'
     [2, 3, 5, 1, 4],
   )
   assert.deepEqual(
+    idsFor(filterAndSortQuestRecommendationGroups(result, { sortMode: 'priorityDesc' })),
+    [1, 2, 3, 5, 4],
+  )
+  assert.deepEqual(
     idsFor(
       filterAndSortQuestRecommendationGroups(result, {
         rewardFilters: ['medalBlueprint'],
@@ -1068,6 +1629,45 @@ test('quest reward filters include valuable successors and keep groups sortable'
       }),
     ),
     [1, 5],
+  )
+})
+
+test('quest recommendation sorting follows displayed advice tiers and deadline ties', () => {
+  const quest = (id, tier, resetAt) => ({ id, guidance: { tier }, resetAt })
+  const groups = [
+    {
+      id: 'highest-combined',
+      kind: 'combined',
+      quests: [quest(2, 'unavailable', 20), quest(1, 'highest', 20)],
+    },
+    { id: 'priority-far', kind: 'single', quests: [quest(3, 'priority', 10)] },
+    { id: 'priority-near', kind: 'single', quests: [quest(4, 'priority', 1)] },
+    { id: 'recommended', kind: 'single', quests: [quest(5, 'recommended', 2)] },
+    { id: 'conditional', kind: 'single', quests: [quest(6, 'conditional', 2)] },
+    { id: 'optional', kind: 'single', quests: [quest(7, 'optional', 2)] },
+    { id: 'unavailable', kind: 'single', quests: [quest(8, 'unavailable', 2)] },
+  ]
+
+  const sorted = filterAndSortQuestRecommendationGroups(
+    { recommendations: groups.flatMap(({ quests }) => quests), groups },
+    { sortMode: 'priorityDesc' },
+  )
+
+  assert.deepEqual(
+    sorted.groups.map(({ id }) => id.split(':')[0]),
+    [
+      'highest-combined',
+      'priority-near',
+      'priority-far',
+      'recommended',
+      'conditional',
+      'optional',
+      'unavailable',
+    ],
+  )
+  assert.deepEqual(
+    sorted.groups[0].quests.map(({ id }) => id),
+    [1, 2],
   )
 })
 
@@ -1440,6 +2040,7 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
   assert.match(questStyles, /\.dqr-controls \{[^}]*grid-template-columns:/)
   assert.match(questStyles, /\.dqr-filter\[data-quest-filter="medalBlueprint"\]/)
   assert.match(questStyles, /\.dqr-filter\[data-quest-chapter\]\.is-active/)
+  assert.match(questStyles, /\.dqr-filter\[data-quest-type="exercise"\]/)
   assert.match(questStyles, /\.dqr-toolbar-actions \{[^}]*display: flex/)
   assert.match(questStyles, /\.dqr-toolbar-button:focus-visible/)
   assert.doesNotMatch(questStyles, /\.dqr-chapter-heading/)
@@ -1463,6 +2064,18 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.exportList',
       'quest.exportParticipants',
       'quest.exportNone',
+      'quest.synergy.alternativesTitle',
+      'quest.synergy.alternativesHint',
+      'quest.typeFilter.label',
+      'quest.typeFilter.hint',
+      'quest.type.all',
+      'quest.type.fleet',
+      'quest.type.sortie',
+      'quest.type.exercise',
+      'quest.type.expedition',
+      'quest.type.arsenal',
+      'quest.type.modernization',
+      'quest.type.other',
       'quest.filter.label',
       'quest.filter.all',
       'quest.filter.medalBlueprint',
@@ -1473,6 +2086,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.filter.emptyTitle',
       'quest.filter.emptyDetail',
       'quest.sort.label',
+      'quest.sort.priorityDesc',
       'quest.sort.deadlineAsc',
       'quest.sort.deadlineDesc',
       'quest.sort.stepsAsc',

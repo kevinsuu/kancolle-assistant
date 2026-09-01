@@ -429,6 +429,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       id: Number(ship.rosterId),
       masterId: Number(ship.masterId),
       name: typeof ship.name === 'function' ? String(ship.name()) : String(master.api_name || ''),
+      canonicalName: String(master.api_name || ''),
       level: Number(ship.level),
       shipTypeId: Number(master.api_stype),
       shipType: typeof ship.stype === 'function' ? String(ship.stype()) : String(master.api_stype),
@@ -552,7 +553,27 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
 })()`
 
 export const readKC3AccountSnapshot = async (webContents, logger = () => {}) => {
+  const snapshotStartedAt = Date.now()
   const rawSnapshot = await webContents.executeJavaScript(KC3_ACCOUNT_SNAPSHOT_SCRIPT, true)
+  const rawShips = Array.isArray(rawSnapshot?.ships) ? rawSnapshot.ships : []
+  const canonicalNameMissingCount = rawShips.filter(
+    (ship) => typeof ship?.canonicalName !== 'string' || ship.canonicalName.length === 0,
+  ).length
+  const localizedNameCount = rawShips.filter(
+    (ship) =>
+      typeof ship?.name === 'string' &&
+      typeof ship?.canonicalName === 'string' &&
+      ship.name !== ship.canonicalName,
+  ).length
+  logger('recommendation.ship-name-snapshot-completed', {
+    operation: 'capture-canonical-ship-names',
+    shipCount: rawShips.length,
+    localizedNameCount,
+    canonicalNameMissingCount,
+    fallbackResult: canonicalNameMissingCount > 0 ? 'localized-name' : 'not-needed',
+    reasonCodes: canonicalNameMissingCount > 0 ? ['KC3_CANONICAL_SHIP_NAME_MISSING'] : [],
+    elapsedMs: Date.now() - snapshotStartedAt,
+  })
   const diagnostics = rawSnapshot?.diagnostics?.openingAswProbe
   if (diagnostics) {
     logger('recommendation.oasw-snapshot-probe-completed', {

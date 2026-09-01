@@ -6,6 +6,8 @@ import { panelMarkup, styles } from './views/quest-recommendation-view'
 
 let { locale, t, translateMessage } = createStrategyRoomI18n()
 const MARKDOWN_EXPORT_LOG_PREFIX = '[KancolleQuestMarkdownExport]'
+const FILTER_LOG_PREFIX = '[KancolleQuestFilter]'
+const SETTINGS_LOG_PREFIX = '[KancolleQuestSettings]'
 
 const markdownText = (value) =>
   String(value ?? '')
@@ -84,10 +86,224 @@ export const QUEST_REWARD_FILTERS = [
   'equipmentMaterials',
 ]
 
-export const QUEST_SORT_MODES = ['deadlineAsc', 'deadlineDesc', 'stepsAsc']
+export const QUEST_TYPE_FILTERS = [
+  'fleet',
+  'sortie',
+  'exercise',
+  'expedition',
+  'arsenal',
+  'modernization',
+  'other',
+]
+
+const QUEST_TYPE_BY_CODE_PREFIX = {
+  A: 'fleet',
+  B: 'sortie',
+  C: 'exercise',
+  D: 'expedition',
+  E: 'supplyDock',
+  F: 'arsenal',
+  G: 'modernization',
+}
+
+export const questTypeFor = (quest) =>
+  QUEST_TYPE_BY_CODE_PREFIX[
+    String(quest?.code || '')
+      .trim()
+      .charAt(0)
+      .toUpperCase()
+  ] || 'other'
+
+export const QUEST_SORT_MODES = ['deadlineAsc', 'deadlineDesc', 'priorityDesc', 'stepsAsc']
 export const QUEST_MAP_CHAPTER_KEYS = QUEST_CHAPTER_KEYS.filter((chapterKey) =>
   /^world[1-7]$/.test(chapterKey),
 )
+const QUEST_RECOMMENDATION_SETTINGS_VERSION = 1
+export const QUEST_RECOMMENDATION_SETTINGS_STORAGE_KEY =
+  'damecon.strategyRoom.questRecommendationSettings.v1'
+
+const defaultQuestRecommendationSettings = () => ({
+  version: QUEST_RECOMMENDATION_SETTINGS_VERSION,
+  chapterFilters: [...QUEST_MAP_CHAPTER_KEYS],
+  typeFilters: [],
+  rewardFilters: [],
+  sortMode: 'deadlineAsc',
+})
+
+const isKnownUniqueFilterList = (values, allowedValues) =>
+  Array.isArray(values) &&
+  values.every((value) => allowedValues.includes(value)) &&
+  new Set(values).size === values.length
+
+const normalizeQuestRecommendationSettings = (value) => {
+  if (!value || typeof value !== 'object') return null
+  if (value.version !== QUEST_RECOMMENDATION_SETTINGS_VERSION) return null
+  if (!isKnownUniqueFilterList(value.chapterFilters, QUEST_MAP_CHAPTER_KEYS)) return null
+  if (!isKnownUniqueFilterList(value.typeFilters, QUEST_TYPE_FILTERS)) return null
+  if (!isKnownUniqueFilterList(value.rewardFilters, QUEST_REWARD_FILTERS)) return null
+  if (!QUEST_SORT_MODES.includes(value.sortMode)) return null
+  return {
+    version: QUEST_RECOMMENDATION_SETTINGS_VERSION,
+    chapterFilters: [...value.chapterFilters],
+    typeFilters: [...value.typeFilters],
+    rewardFilters: [...value.rewardFilters],
+    sortMode: value.sortMode,
+  }
+}
+
+const questSettingsLogDetails = (settings) => ({
+  chapterFilterCount: settings.chapterFilters.length,
+  typeFilterCount: settings.typeFilters.length,
+  rewardFilterCount: settings.rewardFilters.length,
+  sortMode: settings.sortMode,
+})
+
+const logQuestSettingsEvent = (logger, level, details) => {
+  logger?.[level]?.(SETTINGS_LOG_PREFIX, details)
+}
+
+export const readQuestRecommendationSettings = (
+  storage = undefined,
+  logger = globalThis.console,
+) => {
+  if (storage === undefined) {
+    try {
+      storage = globalThis.localStorage || null
+    } catch (error) {
+      logQuestSettingsEvent(logger, 'warn', {
+        event: 'quest-recommendation-settings-read',
+        outcome: 'defaults',
+        reasonCode: 'STORAGE_READ_FAILED',
+        error: sanitizedErrorMessage(error),
+      })
+      return null
+    }
+  }
+  if (!storage) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'STORAGE_UNAVAILABLE',
+    })
+    return null
+  }
+  let storedValue
+  try {
+    storedValue = storage.getItem(QUEST_RECOMMENDATION_SETTINGS_STORAGE_KEY)
+  } catch (error) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'STORAGE_READ_FAILED',
+      error: sanitizedErrorMessage(error),
+    })
+    return null
+  }
+  if (storedValue === null) {
+    logQuestSettingsEvent(logger, 'info', {
+      event: 'quest-recommendation-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'SETTINGS_NOT_FOUND',
+    })
+    return null
+  }
+  let settings
+  try {
+    settings = normalizeQuestRecommendationSettings(JSON.parse(storedValue))
+  } catch (error) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'SETTINGS_PARSE_FAILED',
+      error: sanitizedErrorMessage(error),
+    })
+    return null
+  }
+  if (!settings) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-read',
+      outcome: 'defaults',
+      reasonCode: 'SETTINGS_INVALID',
+    })
+    return null
+  }
+  logQuestSettingsEvent(logger, 'info', {
+    event: 'quest-recommendation-settings-read',
+    outcome: 'restored',
+    ...questSettingsLogDetails(settings),
+  })
+  return settings
+}
+
+export const writeQuestRecommendationSettings = (
+  value,
+  storage = undefined,
+  logger = globalThis.console,
+) => {
+  const settings = normalizeQuestRecommendationSettings(value)
+  if (!settings) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-write',
+      outcome: 'skipped',
+      reasonCode: 'SETTINGS_INVALID',
+    })
+    return false
+  }
+  if (storage === undefined) {
+    try {
+      storage = globalThis.localStorage || null
+    } catch (error) {
+      logQuestSettingsEvent(logger, 'warn', {
+        event: 'quest-recommendation-settings-write',
+        outcome: 'failed',
+        reasonCode: 'STORAGE_WRITE_FAILED',
+        error: sanitizedErrorMessage(error),
+      })
+      return false
+    }
+  }
+  if (!storage) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-write',
+      outcome: 'failed',
+      reasonCode: 'STORAGE_UNAVAILABLE',
+    })
+    return false
+  }
+  try {
+    storage.setItem(QUEST_RECOMMENDATION_SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  } catch (error) {
+    logQuestSettingsEvent(logger, 'warn', {
+      event: 'quest-recommendation-settings-write',
+      outcome: 'failed',
+      reasonCode: 'STORAGE_WRITE_FAILED',
+      error: sanitizedErrorMessage(error),
+    })
+    return false
+  }
+  logQuestSettingsEvent(logger, 'info', {
+    event: 'quest-recommendation-settings-write',
+    outcome: 'saved',
+    ...questSettingsLogDetails(settings),
+  })
+  return true
+}
+
+const ADVICE_TIER_PRIORITIES = {
+  unavailable: 0,
+  optional: 1,
+  conditional: 2,
+  recommended: 3,
+  priority: 4,
+  highest: 5,
+}
+
+const adviceTier = (quest) =>
+  quest.guidance?.tier ||
+  { medalBlueprint: 'highest', actionReport: 'priority', screws: 'recommended' }[
+    quest.reward?.category
+  ] ||
+  'optional'
 
 const rewardMatchesFilter = (reward, filter) => {
   if (filter === 'equipmentMaterials') {
@@ -138,15 +354,12 @@ const normalizeScopedGroup = (group, quests, mapScope, preserveCombination) => {
 
 const splitGroupsByMapScope = (groups) =>
   groups.flatMap((group) => {
-    const nonSortieQuests = (group.quests || []).filter(
-      (quest) => questMapChapterKeys(quest).length === 0,
-    )
-    const sortieQuests = (group.quests || []).filter(
-      (quest) => questMapChapterKeys(quest).length > 0,
-    )
+    const nonSortieQuests = (group.quests || []).filter((quest) => questTypeFor(quest) !== 'sortie')
+    const sortieQuests = (group.quests || []).filter((quest) => questTypeFor(quest) === 'sortie')
     const splitScope = (quests, mapScope) => {
       if (quests.length === 0) return []
-      const preserveCombination = quests.length === (group.quests || []).length
+      const preserveCombination =
+        !group.filterRemovedQuest && quests.length === (group.quests || []).length
       return preserveCombination
         ? [normalizeScopedGroup(group, quests, mapScope, true)]
         : quests.map((quest) => normalizeScopedGroup(group, [quest], mapScope, false))
@@ -191,22 +404,65 @@ const compareDeadline = (left, right, direction = 'asc') => {
   return direction === 'desc' ? rightDeadline - leftDeadline : leftDeadline - rightDeadline
 }
 
+const groupAdvicePriority = (group) =>
+  Math.max(...(group.quests || []).map((quest) => ADVICE_TIER_PRIORITIES[adviceTier(quest)] || 0))
+
+const compareQuests = (left, right, sortMode, rewardFilters) => {
+  let comparison = 0
+  if (sortMode === 'priorityDesc') {
+    comparison =
+      (ADVICE_TIER_PRIORITIES[adviceTier(right)] || 0) -
+      (ADVICE_TIER_PRIORITIES[adviceTier(left)] || 0)
+    if (comparison === 0) {
+      comparison = compareDeadline({ quests: [left] }, { quests: [right] })
+    }
+  } else if (sortMode === 'stepsAsc') {
+    comparison = questStepCount(left, rewardFilters) - questStepCount(right, rewardFilters)
+    if (!Number.isFinite(comparison)) comparison = 0
+    if (comparison === 0) {
+      comparison = compareDeadline({ quests: [left] }, { quests: [right] })
+    }
+  } else {
+    comparison = compareDeadline(
+      { quests: [left] },
+      { quests: [right] },
+      sortMode === 'deadlineDesc' ? 'desc' : 'asc',
+    )
+  }
+  return comparison
+}
+
 export const filterAndSortQuestRecommendationGroups = (
   result,
-  { chapterFilters = QUEST_MAP_CHAPTER_KEYS, rewardFilters = [], sortMode = 'deadlineAsc' } = {},
+  {
+    chapterFilters = QUEST_MAP_CHAPTER_KEYS,
+    rewardFilters = [],
+    typeFilters = [],
+    sortMode = 'deadlineAsc',
+  } = {},
 ) => {
   const filters = new Set(rewardFilters.filter((filter) => QUEST_REWARD_FILTERS.includes(filter)))
+  const types = new Set(typeFilters.filter((filter) => QUEST_TYPE_FILTERS.includes(filter)))
   const chapters = new Set(
     chapterFilters.filter((chapterKey) => QUEST_MAP_CHAPTER_KEYS.includes(chapterKey)),
   )
   const normalizedSortMode = QUEST_SORT_MODES.includes(sortMode) ? sortMode : 'deadlineAsc'
   const groups = splitGroupsByMapScope(
     groupsFor(result)
-      .map((group, originalIndex) => ({
-        ...group,
-        originalIndex,
-        quests: (group.quests || []).filter((quest) => questMatchesFilters(quest, filters)),
-      }))
+      .map((group, originalIndex) => {
+        const sourceQuests = group.quests || []
+        const quests = sourceQuests.filter(
+          (quest) =>
+            questMatchesFilters(quest, filters) &&
+            (types.size === 0 || types.has(questTypeFor(quest))),
+        )
+        return {
+          ...group,
+          originalIndex,
+          quests,
+          filterRemovedQuest: quests.length !== sourceQuests.length,
+        }
+      })
       .filter((group) => group.quests.length > 0),
   )
     .map((group) => ({
@@ -214,18 +470,31 @@ export const filterAndSortQuestRecommendationGroups = (
       quests:
         group.mapScope === 'nonSortie'
           ? group.quests
-          : group.quests.filter((quest) =>
-              questMapChapterKeys(quest).some((chapterKey) => chapters.has(chapterKey)),
-            ),
+          : group.quests.filter((quest) => {
+              const chapterKeys = questMapChapterKeys(quest)
+              return (
+                chapterKeys.length === 0 ||
+                chapterKeys.some((chapterKey) => chapters.has(chapterKey))
+              )
+            }),
     }))
     .filter((group) => group.quests.length > 0)
+
+  groups.forEach((group) => {
+    group.quests = [...group.quests].sort((left, right) =>
+      compareQuests(left, right, normalizedSortMode, filters),
+    )
+  })
 
   groups.sort((left, right) => {
     const scopeComparison =
       Number(left.mapScope !== 'nonSortie') - Number(right.mapScope !== 'nonSortie')
     if (scopeComparison !== 0) return scopeComparison
     let comparison = 0
-    if (normalizedSortMode === 'stepsAsc') {
+    if (normalizedSortMode === 'priorityDesc') {
+      comparison = groupAdvicePriority(right) - groupAdvicePriority(left)
+      if (comparison === 0) comparison = compareDeadline(left, right)
+    } else if (normalizedSortMode === 'stepsAsc') {
       const leftSteps = Math.min(...left.quests.map((quest) => questStepCount(quest, filters)))
       const rightSteps = Math.min(...right.quests.map((quest) => questStepCount(quest, filters)))
       comparison = leftSteps - rightSteps
@@ -242,9 +511,30 @@ export const filterAndSortQuestRecommendationGroups = (
   })
 
   return {
-    groups: groups.map(({ originalIndex: _originalIndex, ...group }) => group),
+    groups: groups.map(
+      ({ originalIndex: _originalIndex, filterRemovedQuest: _filterRemovedQuest, ...group }) =>
+        group,
+    ),
     visibleQuestCount: groups.reduce((count, group) => count + group.quests.length, 0),
   }
+}
+
+export const logQuestTypeFilterChange = (viewState, filtered, logger = globalThis.console) => {
+  const selectedTypes = (viewState?.typeFilters || []).filter((filter) =>
+    QUEST_TYPE_FILTERS.includes(filter),
+  )
+  const visibleQuestCount = Number(filtered?.visibleQuestCount || 0)
+  const details = {
+    event: 'quest-recommendation-type-filter-change',
+    selectedTypes,
+    selectedTypeCount: selectedTypes.length,
+    visibleQuestCount,
+    groupCount: filtered?.groups?.length || 0,
+    outcome: visibleQuestCount > 0 ? 'shown' : 'empty',
+    reasonCode: visibleQuestCount > 0 ? null : 'NO_VISIBLE_QUESTS',
+  }
+  logger?.[visibleQuestCount > 0 ? 'info' : 'warn']?.(FILTER_LOG_PREFIX, details)
+  return details
 }
 
 const rewardItemMarkup = (reward, compact = false) => {
@@ -271,13 +561,6 @@ const downstreamTargetsMarkup = (targets) => {
       .join('')}
   </section>`
 }
-
-const adviceTier = (quest) =>
-  quest.guidance?.tier ||
-  { medalBlueprint: 'highest', actionReport: 'priority', screws: 'recommended' }[
-    quest.reward?.category
-  ] ||
-  'optional'
 
 const guidanceReasonLabels = (guidance) =>
   (guidance?.reasonKeys || []).map((key) => {
@@ -343,6 +626,40 @@ const synergyStages = (synergy) =>
       participants: synergy.companions || [],
     },
   ]
+
+const SIMULTANEOUS_RELATION_KINDS = new Set([
+  'sameSortie',
+  'sameExercise',
+  'sameExpedition',
+  'sameArsenal',
+])
+
+const alternativeSynergiesForQuest = (
+  quest,
+  selectedSynergyId,
+  visibleQuestIds,
+  claimedSynergyIds,
+) =>
+  (quest.synergies || []).filter((synergy) => {
+    if (!synergy?.id || synergy.id === selectedSynergyId || claimedSynergyIds.has(synergy.id)) {
+      return false
+    }
+    const relationKinds = synergy.relationKinds || synergyStages(synergy).map(({ kind }) => kind)
+    if (!relationKinds.some((kind) => SIMULTANEOUS_RELATION_KINDS.has(kind))) return false
+    const participantIds = new Set([
+      Number(quest.id),
+      ...(synergy.companions || []).filter(({ locked }) => !locked).map(({ id }) => Number(id)),
+      ...synergyStages(synergy).flatMap(({ participants = [] }) =>
+        participants.filter(({ locked }) => !locked).map(({ id }) => Number(id)),
+      ),
+    ])
+    if (participantIds.size < 2 || ![...participantIds].every((id) => visibleQuestIds.has(id))) {
+      return false
+    }
+    claimedSynergyIds.add(synergy.id)
+    return true
+  })
+
 const synergyDetailMarkup = (synergy) => {
   const stages = synergyStages(synergy)
   return `<aside class="dqr-synergy-detail" aria-label="${escapeHtml(
@@ -350,7 +667,20 @@ const synergyDetailMarkup = (synergy) => {
   )}">${stages.map(stageMarkup).join('')}</aside>`
 }
 
-const questNodeMarkup = (quest) => {
+const alternativeSynergiesMarkup = (synergies) => {
+  if (synergies.length === 0) return ''
+  return `<section class="dqr-synergy-alternatives">
+    <header><strong>${escapeHtml(t('quest.synergy.alternativesTitle'))}</strong><span>${escapeHtml(
+      t('quest.synergy.alternativesHint'),
+    )}</span></header>
+    ${synergies.map(synergyDetailMarkup).join('')}
+  </section>`
+}
+
+const questNodeMarkup = (
+  quest,
+  { selectedSynergyId = null, visibleQuestIds, claimedSynergyIds },
+) => {
   const tier = adviceTier(quest)
   const period = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime'].includes(
     quest.period,
@@ -361,6 +691,12 @@ const questNodeMarkup = (quest) => {
   const reasons = guidanceReasonLabels(quest.guidance)
   const hasDeadline = quest.remainingMs !== null && quest.resetAt !== null
   const isUrgent = hasDeadline && Number(quest.remainingMs) <= 24 * 60 * 60 * 1000
+  const alternativeSynergies = alternativeSynergiesForQuest(
+    quest,
+    selectedSynergyId,
+    visibleQuestIds,
+    claimedSynergyIds,
+  )
   return `
   <li class="dqr-quest-node">
     <article class="dqr-quest-row bscolor3 fcolor2">
@@ -404,11 +740,12 @@ const questNodeMarkup = (quest) => {
         </section>
       </div>
     </article>
+    ${alternativeSynergiesMarkup(alternativeSynergies)}
   </li>
   `
 }
 
-const groupMarkup = (group) => {
+const groupMarkup = (group, renderContext) => {
   const quests = group.quests || []
   const synergy = group.synergy
   const isCombined = group.kind === 'combined' && synergy
@@ -430,7 +767,14 @@ const groupMarkup = (group) => {
               </header>`
             : ''
         }
-        <ol class="dqr-branch">${quests.map(questNodeMarkup).join('')}</ol>
+        <ol class="dqr-branch">${quests
+          .map((quest) =>
+            questNodeMarkup(quest, {
+              ...renderContext,
+              selectedSynergyId: isCombined ? synergy.id : null,
+            }),
+          )
+          .join('')}</ol>
         ${isCombined ? synergyDetailMarkup(synergy) : ''}
       </section>
     </li>
@@ -457,8 +801,12 @@ export const questRecommendationListMarkup = (result) => {
   const groups = splitGroupsByMapScope(groupsFor(result)).sort(
     (left, right) => Number(left.mapScope !== 'nonSortie') - Number(right.mapScope !== 'nonSortie'),
   )
+  const visibleQuestIds = new Set(
+    groups.flatMap(({ quests = [] }) => quests.map(({ id }) => Number(id))),
+  )
+  const claimedSynergyIds = new Set()
   return `${extraOperationMarkup(result.extraOperations)}<ol class="dqr-list">${groups
-    .map(groupMarkup)
+    .map((group) => groupMarkup(group, { visibleQuestIds, claimedSynergyIds }))
     .join('')}</ol>`
 }
 
@@ -570,6 +918,29 @@ const synergyMarkdown = (synergy, headingLevel) => {
   return lines
 }
 
+const alternativeSynergiesMarkdown = (
+  quest,
+  selectedSynergyId,
+  visibleQuestIds,
+  claimedSynergyIds,
+  headingLevel,
+) => {
+  const alternatives = alternativeSynergiesForQuest(
+    quest,
+    selectedSynergyId,
+    visibleQuestIds,
+    claimedSynergyIds,
+  )
+  if (alternatives.length === 0) return []
+  return [
+    `${'#'.repeat(headingLevel)} ${markdownText(t('quest.synergy.alternativesTitle'))}`,
+    '',
+    markdownText(t('quest.synergy.alternativesHint')),
+    '',
+    ...alternatives.flatMap((synergy) => synergyMarkdown(synergy, headingLevel + 1)),
+  ]
+}
+
 export const questRecommendationMarkdown = ({ result, viewState, exportedAt = new Date() }) => {
   if (!result || result.status === 'error') return ''
   const filtered = filterAndSortQuestRecommendationGroups(result, viewState)
@@ -581,6 +952,9 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
   const selectedRewards = viewState.rewardFilters.length
     ? viewState.rewardFilters.map((key) => t(`quest.filter.${key}`))
     : [t('quest.filter.all')]
+  const selectedTypes = viewState.typeFilters?.length
+    ? viewState.typeFilters.map((key) => t(`quest.type.${key}`))
+    : [t('quest.type.all')]
   const lines = [
     `# ${markdownText(t('quest.title'))}`,
     '',
@@ -605,6 +979,7 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
     `## ${markdownText(t('quest.exportFilters'))}`,
     '',
     `- **${markdownText(t('quest.chapterFilter.label'))}:** ${markdownList(selectedChapters)}`,
+    `- **${markdownText(t('quest.typeFilter.label'))}:** ${markdownList(selectedTypes)}`,
     `- **${markdownText(t('quest.filter.label'))}:** ${markdownList(selectedRewards)}`,
     `- **${markdownText(t('quest.sort.label'))}:** ${markdownText(
       t(`quest.sort.${viewState.sortMode}`),
@@ -620,6 +995,10 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
   }
 
   lines.push('', `## ${markdownText(t('quest.exportList'))}`, '')
+  const visibleQuestIds = new Set(
+    filtered.groups.flatMap(({ quests = [] }) => quests.map(({ id }) => Number(id))),
+  )
+  const claimedSynergyIds = new Set()
   filtered.groups.forEach((group, groupIndex) => {
     const quests = group.quests || []
     const isCombined = group.kind === 'combined' && group.synergy
@@ -635,10 +1014,24 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
         )}`,
         '',
       )
-      quests.forEach((quest) => lines.push(...questMarkdown(quest, 4), ''))
+      quests.forEach((quest) => {
+        lines.push(...questMarkdown(quest, 4), '')
+        lines.push(
+          ...alternativeSynergiesMarkdown(
+            quest,
+            group.synergy.id,
+            visibleQuestIds,
+            claimedSynergyIds,
+            5,
+          ),
+        )
+      })
       lines.push(...synergyMarkdown(group.synergy, 4))
     } else if (quests[0]) {
       lines.push(...questMarkdown(quests[0], 3, `${groupIndex + 1}. `), '')
+      lines.push(
+        ...alternativeSynergiesMarkdown(quests[0], null, visibleQuestIds, claimedSynergyIds, 4),
+      )
     }
   })
 
@@ -665,6 +1058,7 @@ export const downloadQuestRecommendationMarkdown = (
     visibleQuestCount: filtered.visibleQuestCount,
     groupCount: filtered.groups.length,
     chapterFilterCount: exportData.viewState?.chapterFilters?.length || 0,
+    typeFilterCount: exportData.viewState?.typeFilters?.length || 0,
     rewardFilterCount: exportData.viewState?.rewardFilters?.length || 0,
     sortMode: exportData.viewState?.sortMode || '',
     byteCount: new Blob([markdown]).size,
@@ -760,17 +1154,16 @@ const mountPanel = (invoke) => {
   const exportButton = root.querySelector('.dqr-export')
   const refresh = root.querySelector('.dqr-refresh')
   const rewardFilterButtons = [...root.querySelectorAll('[data-quest-filter]')]
+  const typeFilterButtons = [...root.querySelectorAll('[data-quest-type]')]
   const chapterFilterButtons = [...root.querySelectorAll('[data-quest-chapter]')]
-  const filterButtons = [...rewardFilterButtons, ...chapterFilterButtons]
+  const filterButtons = [...rewardFilterButtons, ...typeFilterButtons, ...chapterFilterButtons]
   const sortSelect = root.querySelector('.dqr-sort')
-  const viewState = {
-    chapterFilters: [...QUEST_MAP_CHAPTER_KEYS],
-    rewardFilters: [],
-    sortMode: 'deadlineAsc',
-  }
+  const viewState = readQuestRecommendationSettings() || defaultQuestRecommendationSettings()
+  sortSelect.value = viewState.sortMode
   let currentResult = null
   let currentView = null
   let loadSequence = 0
+  const persistViewState = () => writeQuestRecommendationSettings(viewState)
   const renderCurrent = () => {
     currentView = render(root, currentResult, viewState)
     exportButton.disabled = !currentView || currentView.visibleQuestCount === 0
@@ -783,6 +1176,15 @@ const mountPanel = (invoke) => {
         filter === 'all'
           ? viewState.rewardFilters.length === 0
           : viewState.rewardFilters.includes(filter)
+      button.classList.toggle('is-active', isActive)
+      button.setAttribute('aria-pressed', String(isActive))
+    })
+    typeFilterButtons.forEach((button) => {
+      const filter = button.dataset.questType
+      const isActive =
+        filter === 'all'
+          ? viewState.typeFilters.length === 0
+          : viewState.typeFilters.includes(filter)
       button.classList.toggle('is-active', isActive)
       button.setAttribute('aria-pressed', String(isActive))
     })
@@ -805,7 +1207,27 @@ const mountPanel = (invoke) => {
           : [...viewState.rewardFilters, filter]
       }
       syncControls()
+      persistViewState()
       if (currentResult) renderCurrent()
+    })
+  })
+
+  typeFilterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const filter = button.dataset.questType
+      if (filter === 'all') {
+        viewState.typeFilters = []
+      } else if (QUEST_TYPE_FILTERS.includes(filter)) {
+        viewState.typeFilters = viewState.typeFilters.includes(filter)
+          ? viewState.typeFilters.filter((value) => value !== filter)
+          : [...viewState.typeFilters, filter]
+      }
+      syncControls()
+      persistViewState()
+      if (currentResult) {
+        renderCurrent()
+        logQuestTypeFilterChange(viewState, currentView)
+      }
     })
   })
 
@@ -817,6 +1239,7 @@ const mountPanel = (invoke) => {
         ? viewState.chapterFilters.filter((value) => value !== chapterKey)
         : [...viewState.chapterFilters, chapterKey]
       syncControls()
+      persistViewState()
       if (currentResult) renderCurrent()
     })
   })
@@ -825,6 +1248,7 @@ const mountPanel = (invoke) => {
     viewState.sortMode = QUEST_SORT_MODES.includes(sortSelect.value)
       ? sortSelect.value
       : 'deadlineAsc'
+    persistViewState()
     if (currentResult) renderCurrent()
   })
   syncControls()
@@ -866,6 +1290,7 @@ const mountPanel = (invoke) => {
       result: currentResult,
       viewState: {
         chapterFilters: [...viewState.chapterFilters],
+        typeFilters: [...viewState.typeFilters],
         rewardFilters: [...viewState.rewardFilters],
         sortMode: viewState.sortMode,
       },

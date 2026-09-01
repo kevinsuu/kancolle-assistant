@@ -63,12 +63,22 @@ Improvement Materials or other rare materials, then ordinary rewards. Explicit c
 guidance, the daily deferral, remaining reset time, current reward, progress, active status, and
 quest ID act as later tie-breakers. One-time quests have no reset-time tie-breaker.
 
-The controls above the list include independent, multi-select filters for normal-map Chapters 1
-through 7. All seven chapters are enabled by default. A sortie quest remains visible when any
-normal-map world it mentions is enabled, and it appears only once even when it spans several
-worlds. Non-sortie quests, including exercises and expeditions, always stay above sortie quests and
-are never affected by the chapter filters. If a suggested combination contains both sortie and
-non-sortie quests, the separated cards no longer claim that they can be completed together.
+The controls above the list include a multi-select quest-type filter. **All** is the default and
+places no type restriction. Selecting a specific type switches the list to that type; further type
+buttons can be added with OR semantics. Types follow KC3's stable quest-code families: fleet
+composition (`A`), sortie (`B`), exercise (`C`), expedition (`D`), arsenal (`F`), and modernization
+(`G`). Supply or repair (`E`) quests have no dedicated type button and remain visible under
+**All**. Unrecognized code families remain available under **Other**.
+
+Independent multi-select filters cover normal-map Chapters 1 through 7. All seven chapters are
+enabled by default. A sortie quest remains visible when any normal-map world it mentions is
+enabled, and it appears only once even when it spans several worlds. Non-sortie quests, including
+exercises and expeditions, always stay above sortie quests and are never affected by the chapter
+filters. Sortie scope follows the KC3 quest-code category rather than the presence of exact map IDs;
+catalog-backed broad objectives such as Bw6 inherit all five World 4 maps. They therefore stay in
+the sortie priority order and respond to the correct chapter filter instead of being fixed above
+the list. If a suggested combination contains both sortie and non-sortie quests, the separated
+cards no longer claim that they can be completed together.
 
 The same control area can filter for **Medal / Remodel Blueprint**, **Action Report**,
 **Improvement Materials**, and **equipment / materials**. Reward filters are multi-select and use
@@ -77,18 +87,28 @@ quest matches when either its current reward or a displayed locked successor mat
 for a Medal does not hide the prerequisite needed to reach that Medal. The filtered cards remain
 inside their suggested combination group when every member is in the same sortie scope.
 
-The default display order is nearest deadline first. It can be changed to farthest deadline first
-or fewest quest steps first. Undated one-time quests stay after dated repeatable quests in both
-deadline orders. Step sorting treats a matching current reward as zero steps and otherwise uses the
-shortest displayed unlock distance to a matching successor; ties use the nearest deadline. These
-controls only reorder the synchronized result in the renderer and do not trigger another KC3 read.
+The default display order is nearest deadline first. The selector can instead order by farthest
+deadline, recommendation from high to low, or fewest quest steps; recommendation is the third
+option. Recommendation sorting follows the displayed tiers from Highest priority through
+Unavailable now, with nearest deadline as its tie-breaker. For a suggested combination, its best
+member determines the group's position under the selected mode, and its members follow that same
+order. Undated one-time quests stay after dated repeatable quests in both deadline orders. Step
+sorting treats a matching current reward as zero steps and otherwise uses the shortest displayed
+unlock distance to a matching successor; ties use the nearest deadline. These controls only
+reorder the synchronized result in the renderer and do not trigger another KC3 read.
 
-After the quest data loads, **Export MD** downloads the currently visible list with the active
-chapter filters, reward filters, and sort order recorded at the top. The report includes the status
-summary, monthly Extra Operations, suggested-combination grouping, every visible quest's completion
-conditions, guidance, rewards, locked valuable successors, deadline and priority, plus each shared
-workflow's participants, fleet, maps, objectives, and instructions. Loading, failed, and empty views
-keep the export action disabled so the file cannot silently contain stale or hidden tasks.
+The page saves the selected quest types, chapters, reward filters, and sort order in the Strategy
+Room origin's local storage. Returning after switching tabs restores the last valid settings before
+the quest list loads. Missing, outdated, malformed, or unavailable storage falls back to the
+documented defaults without preventing recommendations from loading.
+
+After the quest data loads, **Export MD** downloads the currently visible list with the active quest
+types, chapter filters, reward filters, and sort order recorded at the top. The report includes the
+status summary, monthly Extra Operations, suggested-combination grouping, every visible quest's
+completion conditions, guidance, rewards, locked valuable successors, deadline and priority, plus
+each shared workflow's participants, fleet, maps, objectives, and instructions. Loading, failed,
+and empty views keep the export action disabled so the file cannot silently contain stale or hidden
+tasks.
 
 Chapter names are shown only in the upper filter controls; the result list does not repeat chapter
 section headings. This keeps the list focused on the recommended completion order while the filter
@@ -111,10 +131,15 @@ Materials, and a neutral treatment for other materials.
 | Feasible repeatable Medal or Remodel Blueprint     | Highest priority |
 | Feasible repeatable Action Report                  | Priority         |
 | Feasible repeatable Improvement Materials          | Recommended      |
-| Equivalent one-time valuable reward                | One tier lower   |
+| Equivalent one-time valuable reward                | Same reward tier |
 | Expensive or account-dependent objective           | Conditional      |
 | Other materials or low-return objective            | Optional         |
 | Missing a verified required ship or task resources | Unavailable now  |
+
+The guidance badge reflects reward value and verified feasibility, so a one-time quest is not
+downgraded solely because it has no reset deadline. Repeatability remains a separate ranking
+factor: an equivalent repeatable reward still sorts ahead of its one-time counterpart through the
+four primary value bands above.
 
 Selectable rewards are marked so the page does not imply that every displayed item is received
 together. Improvement Material quantity comes from KC3's structured consumable rewards. Medal,
@@ -178,22 +203,43 @@ than a false simultaneous pair. Bm8+Bq9 uses 1-3/1-4/2-1, while Bq9+Bq11 uses
 sequence. The prerequisite flow also carries Bd1 → Bd2 → Cm1 → Bm8 forward; Cm1's seven exercise
 wins must still be completed within one quest day even though Cm1 itself is monthly.
 
-Exercise and normal-map sortie combinations use a fleet-constraint solver rather than a table of
-quest pairs. Each profiled quest contributes only its own atomic facts: action type, eligible maps,
-flagship and second-ship requirements, minimum or maximum ship-type counts, named-ship groups,
-allowed ship types, and exclusions. The solver intersects the action and maps, merges those facts,
-and searches for a legal fleet of at most six ships. It can therefore discover combinations of two
-restricted exercise quests or up to five accepted quests without a separate entry for every pair
-or stack. A common map alone is insufficient: incompatible flagship, ship-count, or exclusion
-rules keep the quests separate.
+Sortie, exercise, expedition, and arsenal combinations share one bounded compatibility engine.
+Each category supplies only its atomic objectives and category-specific compatibility check: maps
+and fleet constraints for sorties, fleet constraints for exercises, mission IDs for expeditions,
+and verified operations or equipment for arsenal quests. The common engine handles open-quest
+selection, combination search, caching, the five-quest bound, participant metadata, and plan
+de-duplication. Changes to those shared rules therefore apply to all four categories at once.
+
+Co-completion is not treated as transitive. If quest A intersects quest B on 3-3 and quest A
+intersects quest C on 1-3, but all three have no common map, the main list keeps each quest card
+once and shows A+C as an alternative plan on C's remaining card after selecting A+B as the primary
+group. Each alternative names its own participants, shared maps, and fleet, so the UI never implies
+that one sortie advances the entire connected set. The Markdown export preserves the same
+alternatives.
+
+The fleet adapter intersects the action and maps, merges flagship and second-ship requirements,
+minimum or maximum ship-type counts, named-ship groups, allowed ship types, and exclusions, then
+searches for a legal fleet of at most six ships. A common map alone is insufficient: incompatible
+flagship, ship-count, or exclusion rules keep the quests separate. B21 and B37 include their four
+named destroyers, so each can share 3-1 with Bq5 and B162 while remaining incompatible with By11
+and with each other because the combined named-ship minimum would exceed six ships.
 
 The objective catalog currently covers the synchronized exercise profiles and the normal-map
 sortie profiles used by the recommendation plans. New profiles use the same data shape and become
-eligible for every compatible combination automatically. Unprofiled or newly added quests remain
-standalone instead of being guessed from broad text or category alone. Generic expedition counters
-still share any success, while specific expedition quests group only when their mission-ID sets
-intersect. Arsenal groups cover verified development and construction pairs, plus equipment
-discards whose type or exact master item advances every grouped quest.
+eligible for every compatible combination automatically. Unprofiled exercise and sortie quests
+remain standalone instead of being guessed from broad text or category alone. Generic expedition
+counters still share any success, while specific expedition quests group only when their mission-ID
+sets intersect.
+
+Arsenal groups combine verified development and construction pairs with equipment discards whose
+type or exact master item advances every grouped quest. Exact-item and exceptional rules remain
+curated. Generic discard categories are also derived conservatively from KC3's Japanese quest
+metadata, so a newly added arsenal quest can join compatible groups without waiting for a numeric-ID
+catalog update. Bounded discard clauses are accepted on either side of the discard verb, with or
+without Japanese quotation marks; parsing stops before preparation verbs so completion supplies are
+not treated as shared discards. For example, F119 and F131 share their medium-caliber main-gun
+discards, while F90, F92, F68, and F108 share discarded 14cm Single Gun Mounts as medium-caliber
+main guns.
 
 ## Data boundary and diagnostics
 
@@ -223,7 +269,10 @@ Runtime diagnostics use the following structured events:
   guidance tiers, value bands and effective-reward sources, selected plan IDs, ranking version, and
   elapsed time;
 - `quest-recommendation.failed` records the stable `KC3_QUEST_DATA_UNAVAILABLE` reason code and a
-  sanitized error message.
+  sanitized error message;
+- `quest-recommendation-settings-read` and `quest-recommendation-settings-write` record whether
+  settings were restored, saved, or replaced by defaults, along with filter counts, sort mode, and
+  a stable reason code for invalid or unavailable storage.
 
 Diagnostics are aggregate and bounded; they do not log the full quest list, ship roster, or raw
 resource snapshot.
