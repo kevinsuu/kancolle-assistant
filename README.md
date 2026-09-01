@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.10`   | `2026-09-01`   |
+| `v1.0.11`   | `2026-09-01`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,14 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.11 highlights (since v1.0.10)
+
+- Quest Recommendations now derives compatible exercise and normal-map sortie combinations from
+  each quest's action, map, and fleet rules, including stacks of up to five accepted quests;
+  conflicting fleet requirements remain separate.
+- Quest Recommendation controls, annotations, and cards now use at least 12px text to match KC3's
+  navigation and improve readability.
 
 ### v1.0.10 highlights (since v1.0.9)
 
@@ -58,21 +66,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - The extension test runner now declares its command-line parser directly, so clean Windows
   release builds can execute the full Electron extension test suite.
 
-### v1.0.6 highlights (since v1.0.5)
-
-- Normal-map recommendations now calculate only the selected sourced guide template on demand,
-  keep Strategy Room responsive while KC3 reads large accounts, and show guide-first plans with
-  bounded diagnostics instead of running hidden all-map preloads.
-- The fleet solver now uses per-map rule modules, stronger Fast+ and carrier-aircraft allocation,
-  complete owned-equipment validation, and KC3-backed combat reranking for clearer legal results.
-- Expedition planning now compares complete fleet sets by normalized hourly efficiency, supports
-  optimized, break-even, and ignored resources, models collection intervals and resupply costs,
-  and provides an opt-in optimization debug report.
-- Resource Center adds 1-, 5-, and 30-minute activity buckets, refresh-aware snapshot reuse, and
-  clearer acquisition, consumption, source, and inventory-history displays.
-- Startup fitting no longer enlarges the game beyond its native scale, the default browser chrome
-  uses a neutral palette, and local packaging reports a missing KCCacheProxy cache without failing.
-
 ### Project-specific highlights
 
 Compared with the original project, this source adds or improves:
@@ -80,7 +73,7 @@ Compared with the original project, this source adds or improves:
 1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
 2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later resizing keeps the full game visible when possible without locking the window aspect ratio.
 3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — In KC3 Strategy Room, select a sourced guide template for maps 1-1 through 7-5, including 5-6, and generate up to three account-owned fleets on demand without changing game state.
-4. **[Quest recommendations](./docs/quest-recommendations.md)** — The Strategy Room **任務推薦** page shows official Japanese quest titles, can manually synchronize current game status, filters sortie quests with Chapters 1–7 enabled by default, and ranks all open repeatable and normal one-time quests using current and downstream rewards. Verified same-action combinations cover sorties, exercises, expeditions, and arsenal work; non-sortie quests remain at the top regardless of chapter filters. The visible quest list, complete conditions, and planning details can be exported as Markdown.
+4. **[Quest recommendations](./docs/quest-recommendations.md)** — The Strategy Room **任務推薦** page shows official Japanese quest titles, can manually synchronize current game status, filters sortie quests with Chapters 1–7 enabled by default, and ranks all open repeatable and normal one-time quests using current and downstream rewards. Objective rules automatically derive compatible exercise and normal-map sortie stacks of up to five accepted quests; verified expedition and arsenal combinations remain supported, and non-sortie quests stay at the top regardless of chapter filters. The visible quest list, complete conditions, and planning details can be exported as Markdown.
 5. **[Expedition recommendations](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page shows current resources and uses adjustable resource and bucket weights, selected expeditions, success and Daihatsu settings, and fleets 2–4 to recommend one best pairing. Planning settings are retained locally across page and game restarts; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
 6. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
 7. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
