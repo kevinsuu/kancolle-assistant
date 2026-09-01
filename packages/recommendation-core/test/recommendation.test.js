@@ -51,6 +51,8 @@ const ZH_KCWIKI_WORLD_NAMES = {
 const NORMAL_MAP_REFERENCE_SOURCE = 'https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238'
 const BAHAMUT_GS1314520_SOURCE = 'https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259'
 const CONYE_55_SOURCE = 'https://conye.hatenablog.com/entry/2021/08/13/180323'
+const KANKOREKORE_BY11_SOURCE = 'https://kankorekore.2-d.jp/s089/'
+const ZEKAMASHI_BY11_SOURCE = 'https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/'
 const YUIKANCOLLE_EO_GUIDE_SOURCES = {
   '2-5': 'https://yuikancolle.blog.fc2.com/blog-entry-182.html',
   '3-5': 'https://yuikancolle.blog.fc2.com/blog-entry-183.html',
@@ -750,6 +752,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
   assert.equal(account.equipment.length, 24)
   assert.deepEqual(account.currentFleetShipIdGroups, [account.currentFleetShipIds])
   assert.equal(account.ships[0].speed, 'fast')
+  assert.equal(account.ships[0].canonicalName, account.ships[0].name)
   assert.equal(account.equipment[0].iconTypeId, 1)
   assert.equal(account.metadata.source, 'kc3')
 
@@ -766,7 +769,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 163)
+  assert.equal(NORMAL_MAP_ROUTES.length, 165)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -867,6 +870,72 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.ok(bahamutHeavy16.tags.includes('asw-loadout'))
   assert.equal(bahamutHeavy16.tags.includes('oasw'), false)
+
+  const routeOptions31 = maps.find((map) => map.id === '3-1').routes
+  assert.deepEqual(
+    routeOptions31.map((route) => route.id),
+    [
+      '3-1-guide-cv2-cruiser-dd2',
+      '3-1-kankorekore-by11-bbv-ca-cl-dd',
+      '3-1-zekamashi-by11-cav-clt-cl-dd',
+      '3-1-bahamut-bbv-cv-cav-cl-dd2',
+    ],
+  )
+  const by11RouteCases = [
+    {
+      id: '3-1-kankorekore-by11-bbv-ca-cl-dd',
+      source: KANKOREKORE_BY11_SOURCE,
+      airPower: 85,
+      exactTypes: [
+        [[10], 1],
+        [[5, 6], 2],
+        [[3], 1],
+        [[2], 2],
+      ],
+    },
+    {
+      id: '3-1-zekamashi-by11-cav-clt-cl-dd',
+      source: ZEKAMASHI_BY11_SOURCE,
+      airPower: 45,
+      exactTypes: [
+        [[6], 1],
+        [[4], 1],
+        [[3], 2],
+        [[2], 2],
+      ],
+    },
+  ]
+  by11RouteCases.forEach(({ id, source, airPower, exactTypes }) => {
+    const route = getRouteTemplates('3-1', 'balanced', id)[0]
+    assert.deepEqual(route.nodes, ['C', 'F', 'G'])
+    assert.deepEqual(route.metadata.guideSources, [source])
+    assert.ok(route.tags.includes('carrier-free'))
+    assert.ok(route.tags.includes('yearly-by11'))
+    assert.deepEqual(
+      route.fleetConstraints
+        .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+        .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+      exactTypes,
+    )
+    assert.equal(
+      route.fleetConstraints
+        .filter((constraint) => constraint.kind === 'ship-type-count')
+        .reduce((total, constraint) => total + (constraint.exact || 0), 0),
+      6,
+    )
+    const eligibleShips = route.fleetConstraints.find(
+      (constraint) => constraint.kind === 'specific-ship-name',
+    )
+    assert.equal(eligibleShips.min, 3)
+    assert.ok(eligibleShips.names.includes('Sheffield'))
+    assert.ok(eligibleShips.names.includes('Fletcher'))
+    assert.ok(eligibleShips.names.includes('Johnston'))
+    assert.deepEqual(
+      route.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+      { kind: 'air-power', minimum: airPower, recommended: airPower },
+    )
+  })
+
   const routeOptions41 = maps.find((map) => map.id === '4-1').routes
   assert.deepEqual(
     routeOptions41.map((route) => route.id),
@@ -1199,7 +1268,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   const verifiedGuideRoutes = NORMAL_MAP_ROUTES.filter((route) =>
     route.tags.includes('verified-guide'),
   )
-  assert.equal(verifiedGuideRoutes.length, 40)
+  assert.equal(verifiedGuideRoutes.length, 41)
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
     assert.ok(
@@ -1888,6 +1957,75 @@ test('every normal map can build its primary balanced route with a capable accou
     })
     assert.equal(result.status, 'success', `${map.id}/${route.id}: ${JSON.stringify(result)}`)
   })
+})
+
+test('3-1 carrier-free By11 routes select three eligible US or UK ships from KC3 data', () => {
+  const buildAccount = (shipTypeIds, shipNames, canonicalNames = shipNames) => {
+    const raw = createAllNormalMapsSnapshot()
+    const usedShipIds = new Set()
+    raw.ships = shipTypeIds.map((shipTypeId, index) => {
+      const ship = raw.ships.find(
+        (candidate) => candidate.shipTypeId === shipTypeId && !usedShipIds.has(candidate.id),
+      )
+      usedShipIds.add(ship.id)
+      ship.name = shipNames[index]
+      ship.canonicalName = canonicalNames[index]
+      return ship
+    })
+    return parseKC3AccountSnapshot(raw)
+  }
+  const routeCases = [
+    {
+      routeId: '3-1-kankorekore-by11-bbv-ca-cl-dd',
+      account: buildAccount(
+        [10, 5, 6, 3, 2, 2],
+        ['伊勢改二', 'Minneapolis', '最上改二特', 'Sheffield', 'Fletcher Mk.II', '雪風改二'],
+      ),
+    },
+    {
+      routeId: '3-1-zekamashi-by11-cav-clt-cl-dd',
+      account: buildAccount(
+        [6, 4, 3, 3, 2, 2],
+        ['鈴谷改二', '北上改二', '雪菲爾改', '矢矧改二乙', '弗萊徹 Mk.II', '強斯頓改'],
+        ['鈴谷改二', '北上改二', 'Sheffield改', '矢矧改二乙', 'Fletcher Mk.II', 'Johnston改'],
+      ),
+    },
+  ]
+
+  routeCases.forEach(({ routeId, account }) => {
+    const result = recommendFleet({
+      mapId: '3-1',
+      routeId,
+      objective: 'balanced',
+      account,
+      candidateLimit: 1,
+    })
+    assert.equal(result.status, 'success', `${routeId}: ${JSON.stringify(result)}`)
+    const selectedShips = result.recommendations[0].ships.map(({ ship }) => ship)
+    assert.equal(
+      selectedShips.some((ship) => [7, 11, 18].includes(ship.shipTypeId)),
+      false,
+    )
+    assert.equal(
+      selectedShips.filter((ship) =>
+        /Minneapolis|Sheffield|Fletcher|Johnston/.test(ship.canonicalName),
+      ).length,
+      3,
+    )
+  })
+
+  const insufficientAccount = buildAccount(
+    [6, 4, 3, 3, 2, 2],
+    ['鈴谷改二', '北上改二', 'Sheffield改', '矢矧改二乙', 'Fletcher Mk.II', '雪風改二'],
+  )
+  const insufficient = recommendFleet({
+    mapId: '3-1',
+    routeId: '3-1-zekamashi-by11-cav-clt-cl-dd',
+    objective: 'balanced',
+    account: insufficientAccount,
+    candidateLimit: 1,
+  })
+  assert.equal(insufficient.status, 'no-solution')
 })
 
 test('5-5 modeled special attacks select the pair, order the fleet, and explain formation', () => {

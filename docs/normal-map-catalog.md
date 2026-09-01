@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-29:
 7-1 .. 7-5
 ```
 
-It normalizes 162 canonical strategy templates with explicit source references. A canonical
+It normalizes 165 canonical strategy templates with explicit source references. A canonical
 template represents a different routing condition, phase, or gameplay objective; swapping one ship
 for another of the same accepted type does not create another template. Unsourced resource,
 leveling, or broad heuristic templates are omitted until a direct guide or map reference is added.
@@ -45,6 +45,8 @@ The overlay catalog cross-checks current map and farming guidance from:
 - <https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259>
 - <https://yuikancolle.blog.fc2.com/>
 - <https://zekamashi.net/category/kancolle-kouryaku/sigenkasegi/>
+- <https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/>
+- <https://kankorekore.2-d.jp/s089/>
 - <https://kankorekore.2-d.jp/5-6_2nd/>
 
 Source priority is current route data first, then dated community compositions. Chinese community
@@ -90,6 +92,12 @@ selector; it derives the internal objective from the selected sourced guide temp
 Notable overlays include:
 
 - 1-3 fuel farming with AO or AV.
+- 3-1 includes two carrier-free `日英米合同水上艦隊、抜錨せよ！` C-F-G alternatives in
+  addition to its general carrier fleets. The 艦これこれくと fleet uses BBV1, CA/CAV2, CL1,
+  and DD2 at air power 85; the ぜかまし fleet uses CAV1, CLT1, CL2, and DD2 at air power 45.
+  Both require at least three eligible US/UK ships, and the latter also satisfies the CL condition
+  for `北方海域警備を実施せよ！`. Named-ship constraints compare both KC3's localized display
+  name and the canonical master-data name, so changing the KC3 language does not affect eligibility.
 - 1-6 KCWiki beginner, regular, air-control, and quarterly-quest fleets. The first three use the
   fixed CL1/DD5 lower route; the quarterly AO2/DD4 fleet preserves the 75% F / 25% K split and an
   explicit random-routing warning while requiring an Akizuki-class AACI escort and another DD

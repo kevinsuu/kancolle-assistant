@@ -37,6 +37,9 @@ const asString = (value: unknown, path: string): string => {
   return value
 }
 
+const optionalString = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && value.length > 0 ? value : fallback
+
 const asBoolean = (value: unknown, path: string): boolean => {
   if (typeof value !== 'boolean') throw new Error(`${path} 必須是布林值`)
   return value
@@ -88,6 +91,7 @@ const parseEquipmentStats = (value: unknown, path: string): EquipmentStats => {
 const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
   const path = `ships[${index}]`
   const record = asRecord(value, path)
+  const name = asString(record.name, `${path}.name`)
   const speedValue = asNumber(record.speedValue, `${path}.speedValue`)
   const equippedItemIds = numberArray(record.equippedItemIds, `${path}.equippedItemIds`).map(
     (id) => (id > 0 ? (id as EquipmentInstanceId) : null),
@@ -145,7 +149,8 @@ const parseOwnedShip = (value: unknown, index: number): OwnedShip => {
   return {
     id: asNumber(record.id, `${path}.id`) as ShipInstanceId,
     masterId: asNumber(record.masterId, `${path}.masterId`) as ShipMasterId,
-    name: asString(record.name, `${path}.name`),
+    name,
+    canonicalName: optionalString(record.canonicalName, name),
     level: asNumber(record.level, `${path}.level`),
     shipTypeId: asNumber(record.shipTypeId, `${path}.shipTypeId`),
     shipType: asString(record.shipType, `${path}.shipType`),

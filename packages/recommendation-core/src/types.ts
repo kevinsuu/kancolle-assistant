@@ -61,6 +61,7 @@ export interface OwnedShip {
   readonly id: ShipInstanceId
   readonly masterId: ShipMasterId
   readonly name: string
+  readonly canonicalName: string
   readonly level: number
   readonly shipTypeId: number
   readonly shipType: string
