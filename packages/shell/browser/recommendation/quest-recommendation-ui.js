@@ -107,12 +107,14 @@ const QUEST_TYPE_BY_CODE_PREFIX = {
 }
 
 export const questTypeFor = (quest) =>
-  QUEST_TYPE_BY_CODE_PREFIX[
-    String(quest?.code || '')
-      .trim()
-      .charAt(0)
-      .toUpperCase()
-  ] || 'other'
+  quest?.limited
+    ? 'other'
+    : QUEST_TYPE_BY_CODE_PREFIX[
+        String(quest?.code || '')
+          .trim()
+          .charAt(0)
+          .toUpperCase()
+      ] || 'other'
 
 export const QUEST_SORT_MODES = ['deadlineAsc', 'deadlineDesc', 'priorityDesc', 'stepsAsc']
 export const QUEST_MAP_CHAPTER_KEYS = QUEST_CHAPTER_KEYS.filter((chapterKey) =>
@@ -707,6 +709,7 @@ const questNodeMarkup = (
         </div>
         <div class="dqr-tags">
           <span class="dqr-tag period ${period}">${t(`quest.period.${period}`)}</span>
+          ${quest.limited ? `<span class="dqr-tag limited">${escapeHtml(t('quest.period.limited'))}</span>` : ''}
           <span class="dqr-tag state">${t(`quest.state.${quest.status === 2 ? 'active' : 'open'}`)}</span>
         </div>
       </header>
@@ -737,6 +740,7 @@ const questNodeMarkup = (
                 })
               : t('quest.noFixedDeadline'),
           )}</div>
+          ${quest.limited ? `<div class="dqr-limited-deadline">${escapeHtml(t('quest.limitedDeadlineUnknown'))}</div>` : ''}
         </section>
       </div>
     </article>
@@ -811,12 +815,15 @@ export const questRecommendationListMarkup = (result) => {
 }
 
 const questDeadlineLabel = (quest) =>
-  quest.remainingMs !== null && quest.resetAt !== null
-    ? t('quest.deadline', {
-        remaining: remainingLabel(quest.remainingMs),
-        resetAt: formatResetAt(quest.resetAt),
-      })
-    : t('quest.noFixedDeadline')
+  [
+    quest.remainingMs !== null && quest.resetAt !== null
+      ? t('quest.deadline', {
+          remaining: remainingLabel(quest.remainingMs),
+          resetAt: formatResetAt(quest.resetAt),
+        })
+      : t('quest.noFixedDeadline'),
+    ...(quest.limited ? [t('quest.limitedDeadlineUnknown')] : []),
+  ].join(t('common.listSeparator'))
 
 const questMarkdown = (quest, headingLevel, headingPrefix = '') => {
   const tier = adviceTier(quest)
@@ -831,7 +838,7 @@ const questMarkdown = (quest, headingLevel, headingPrefix = '') => {
   const lines = [
     heading,
     '',
-    `- **${markdownText(t(`quest.period.${period}`))}** · ${markdownText(
+    `- **${markdownText(t(`quest.period.${period}`))}${quest.limited ? ` · ${markdownText(t('quest.period.limited'))}` : ''}** · ${markdownText(
       t(`quest.state.${quest.status === 2 ? 'active' : 'open'}`),
     )}`,
     `- **${markdownText(t('quest.priority.label'))}:** ${markdownText(
@@ -969,6 +976,7 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
         quarterly: result.quarterlyCount,
         yearly: result.yearlyCount,
         oneTime: result.oneTimeCount || 0,
+        limited: result.limitedCount || 0,
         downstream: result.downstreamValueQuestCount || 0,
         eo: result.availableExtraOperationCount || 0,
         unavailable: result.unavailableQuestCount || 0,
@@ -1124,6 +1132,7 @@ const render = (root, result, viewState) => {
     quarterly: result.quarterlyCount,
     yearly: result.yearlyCount,
     oneTime: result.oneTimeCount || 0,
+    limited: result.limitedCount || 0,
     downstream: result.downstreamValueQuestCount || 0,
     eo: result.availableExtraOperationCount || 0,
     unavailable: result.unavailableQuestCount || 0,

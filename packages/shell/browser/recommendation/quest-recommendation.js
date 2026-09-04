@@ -1,7 +1,7 @@
 import { findQuestSynergies, questArsenalProfileSource } from './quest-synergy'
 import { hasQuestObjective, questObjectiveMapIds } from './quest-objective-synergy'
 
-export const QUEST_RECOMMENDATION_RANKING_VERSION = 14
+export const QUEST_RECOMMENDATION_RANKING_VERSION = 15
 
 const RECOMMENDATION_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime']
 const RECOMMENDATION_PERIOD_SET = new Set(RECOMMENDATION_PERIODS)
@@ -218,8 +218,8 @@ const isRecommendationCandidate = (quest, now) =>
   quest &&
   RECOMMENDATION_PERIOD_SET.has(quest.period) &&
   (quest.status === 1 || quest.status === 2) &&
-  !quest.limited &&
-  (quest.period === 'oneTime' ||
+  (quest.limited ||
+    quest.period === 'oneTime' ||
     (Number.isFinite(Number(quest.resetAt)) && Number(quest.resetAt) > now))
 
 const rewardValuePriority = (reward) =>
@@ -441,9 +441,10 @@ export const rankQuestRecommendations = (
   const periodCounts = Object.fromEntries(
     RECOMMENDATION_PERIODS.map((period) => [
       period,
-      candidates.filter((quest) => quest.period === period).length,
+      candidates.filter((quest) => !quest.limited && quest.period === period).length,
     ]),
   )
+  const limitedCount = candidates.filter(({ limited }) => limited).length
   const chapterCounts = Object.fromEntries(
     QUEST_CHAPTER_KEYS.map((chapterKey) => [
       chapterKey,
@@ -504,6 +505,7 @@ export const rankQuestRecommendations = (
     quarterlyCount: periodCounts.quarterly,
     yearlyCount: periodCounts.yearly,
     oneTimeCount: periodCounts.oneTime,
+    limitedCount,
     rewardCategoryCounts,
     recommendations,
     groups,

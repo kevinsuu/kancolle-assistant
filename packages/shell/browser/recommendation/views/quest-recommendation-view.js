@@ -115,6 +115,7 @@ export const styles = `
   .dqr-tag.period.quarterly { background: #ad602f; }
   .dqr-tag.period.yearly { background: #9a7610; }
   .dqr-tag.period.oneTime { background: #607987; }
+  .dqr-tag.limited { background: #b13f42; color: #fff; font-weight: 700; }
   .dqr-tag.state { background: #8883; color: inherit; }
   .dqr-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
   .dqr-card-cell { min-width: 0; padding: 8px 9px 9px; }
@@ -148,6 +149,7 @@ export const styles = `
   body.dark .dqr-description { color: #aaa; }
   .dqr-deadline { margin-top: 8px; color: var(--dqr-muted); font-weight: 600; line-height: 1.45; }
   .dqr-deadline.urgent { color: var(--dqr-alert); font-weight: bold; }
+  .dqr-limited-deadline { margin-top: 4px; color: var(--dqr-alert); font-weight: 700; line-height: 1.45; }
   .dqr-priority { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-top: 5px; padding-bottom: 6px; border-bottom: 1px solid var(--dqr-line); }
   .dqr-priority span { color: var(--dqr-muted); }
   .dqr-priority strong { font-size: 14px; }

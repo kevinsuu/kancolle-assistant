@@ -50,7 +50,7 @@ export const en = {
     'Feasible quests follow four value bands: valuable repeatable, valuable one-time, ordinary repeatable, then ordinary one-time. Locked successor rewards are inherited before remaining time is compared.',
   'quest.help.scopeQuestion': 'Are time-limited event quests included?',
   'quest.help.scopeAnswer':
-    'Normal one-time quests are included. Time-limited event quests remain excluded because KC3 does not provide a reliable deadline for them.',
+    'Yes. Open and accepted time-limited quests are included under Other. KC3 does not provide a reliable final end time, so their cards say the deadline is unknown.',
   'quest.toolbar': 'Quest recommendation controls',
   'quest.exportMarkdown': 'Export MD',
   'quest.exported': 'Exported',
@@ -100,16 +100,17 @@ export const en = {
   'quest.syncFirst':
     'Keep the game tab online. After a fresh launch, use the home port once, then sync.',
   'quest.status':
-    '{count} quests · {groups} groups · {daily} daily · {weekly} weekly · {monthly} monthly · {quarterly} quarterly · {yearly} yearly · {oneTime} one-time · {downstream} boosted by successors · {eo} EOs open · {unavailable} unavailable · Updated {updated}',
+    '{count} quests · {groups} groups · {daily} daily · {weekly} weekly · {monthly} monthly · {quarterly} quarterly · {yearly} yearly · {oneTime} one-time · {limited} limited · {downstream} boosted by successors · {eo} EOs open · {unavailable} unavailable · Updated {updated}',
   'quest.emptyTitle': 'No quests to recommend',
   'quest.emptyDetail':
-    'KC3 currently has no open repeatable or normal one-time quests in its synchronized list.',
+    'KC3 currently has no open repeatable, one-time, or time-limited quests in its synchronized list.',
   'quest.period.daily': 'Daily',
   'quest.period.weekly': 'Weekly',
   'quest.period.monthly': 'Monthly',
   'quest.period.quarterly': 'Quarterly',
   'quest.period.yearly': 'Yearly',
   'quest.period.oneTime': 'One-time',
+  'quest.period.limited': 'Time-limited',
   'quest.state.active': 'Accepted',
   'quest.state.open': 'Open',
   'quest.state.locked': 'Not open yet',
@@ -255,6 +256,7 @@ export const en = {
   'quest.requirement.ship.desdivThirtyOnePartner': 'Takanami, Okinami, or Asashimo Kai+',
   'quest.deadline': '{remaining} · resets {resetAt}',
   'quest.noFixedDeadline': 'No fixed reset deadline',
+  'quest.limitedDeadlineUnknown': 'Final availability deadline is not provided by KC3',
   'quest.remainingDaysHours': '{days}d {hours}h remaining',
   'quest.remainingHours': '{hours}h remaining',
   'quest.remainingMinutes': '{minutes}m remaining',

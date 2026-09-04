@@ -201,15 +201,28 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
               memo: 'Rewards an Action Report.',
               rewardConsumables: [0, 0, 0, 0],
             },
+            {
+              id: 1031,
+              code: '2605B5',
+              name: 'Limited northern patrol fixture',
+              status: 2,
+              progress: 0,
+              period: 'oneTime',
+              resetPeriod: 'other',
+              resetAt: null,
+              limited: true,
+              memo: '',
+              rewardConsumables: [0, 0, 0, 0],
+            },
           ],
           extraOperationStatus: { '1-5': 'available' },
           diagnostics: {
             storedQuestCount: 20,
             supportedRepeatableTypeCount: 16,
-            openQuestCount: 4,
+            openQuestCount: 5,
             oneTimeOpenQuestCount: 1,
-            limitedOpenQuestCount: 0,
-            graphQuestCount: 4,
+            limitedOpenQuestCount: 1,
+            graphQuestCount: 5,
             lockedPlanningQuestCount: 0,
             successorPlanningQuestCount: 0,
             maximumPlanningQuestCount: 1024,
@@ -230,6 +243,7 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
   assert.match(executedScript, /maximumSuccessorDepth = 12/)
   assert.match(executedScript, /maximumPlanningQuestCount = 1024/)
   assert.match(executedScript, /meta\.hash !== undefined/)
+  assert.match(executedScript, /const quests = synchronizedOpenQuests/)
   assert.match(executedScript, /resetPeriod\.startsWith\('yearly'\)/)
   assert.match(executedScript, /supportedRepeatableEntries/)
   assert.match(
@@ -240,8 +254,10 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
   assert.match(executedScript, /lastMaterial\?\.\[2\]/)
   assert.deepEqual(
     result.recommendations.map(({ id }) => id),
-    [265, 228, 500, 1107],
+    [265, 228, 500, 1107, 1031],
   )
+  assert.equal(result.oneTimeCount, 1)
+  assert.equal(result.limitedCount, 1)
   assert.equal(result.recommendations.find(({ id }) => id === 265).reward.category, 'actionReport')
   assert.equal(
     result.recommendations.find(({ id }) => id === 265).synergies[0].id,
@@ -254,10 +270,10 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
         operation: 'read-kc3-open-quests',
         storedQuestCount: 20,
         supportedRepeatableTypeCount: 16,
-        openQuestCount: 4,
+        openQuestCount: 5,
         oneTimeOpenQuestCount: 1,
-        limitedOpenQuestCount: 0,
-        graphQuestCount: 4,
+        limitedOpenQuestCount: 1,
+        graphQuestCount: 5,
         lockedPlanningQuestCount: 0,
         successorPlanningQuestCount: 0,
         maximumPlanningQuestCount: 1024,
@@ -451,6 +467,7 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
         name: `Localized title ${id}`,
         desc: `Localized requirement ${id}`,
         memo: '',
+        hash: id === 681 ? 'limited-fixture' : undefined,
         rewardConsumables: [0, 0, 0, 0],
       }),
     },
@@ -478,6 +495,9 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
     'Localized requirement 681',
   )
   assert.equal(snapshot.quests.find(({ id }) => id === 681).name, 'ゲームAPIの日本語題名')
+  assert.equal(snapshot.quests.find(({ id }) => id === 681).limited, true)
+  assert.equal(snapshot.diagnostics.oneTimeOpenQuestCount, 1)
+  assert.equal(snapshot.diagnostics.limitedOpenQuestCount, 1)
   assert.deepEqual(japaneseRequests[0].slice(0, 4), ['/data/', 'quests', false, 'jp'])
   assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'available')
   assert.deepEqual(snapshot.diagnostics.questTitleSourceCounts, {
@@ -612,6 +632,7 @@ test('quest recommendation IPC validates senders and logs success and failure ou
         quarterlyCount: 1,
         yearlyCount: 1,
         oneTimeCount: 0,
+        limitedCount: 0,
         chapterCounts: { world1: 1 },
         downstreamValueQuestCount: 0,
         rewardCategoryCounts: { medalBlueprint: 1, screws: 1 },
@@ -684,6 +705,7 @@ test('quest recommendation IPC validates senders and logs success and failure ou
     yearly: 1,
     oneTime: 0,
   })
+  assert.equal(logs.at(-1).data.limitedCount, 0)
   assert.deepEqual(logs.at(-1).data.chapterCounts, { world1: 1 })
   assert.equal(logs.at(-1).data.syncMode, 'local')
   assert.equal(logs.at(-1).data.synchronizedQuestCount, 0)

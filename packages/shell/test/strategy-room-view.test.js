@@ -111,10 +111,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: 'bf0103df130a1d4ed28c408bf3b097f0ef92207cb0f26eeaeb739b0bd9e5d288',
-      jp: '51e249cc3877c134cbc0dd968b9dea32ea3c994b9dad25b7dd2dc39d450a8d3e',
-      scn: 'fb4094099e4214cc93b2a9e97c512bbafc20311bf211b651a4fb08f9a2319bda',
-      tcn: '10826bda46359e89e7d2ea46d919bcfdaf1e63827dff950f917e6da23122cdaf',
+      en: 'c8a0ad55fd74fd5917c8e9ac7165fb65c1bbf19705cc8746db327b07a928c776',
+      jp: '2596fb96e97a8fbe8cfc81d669af3446bd48fa4c10a53d20c6ec499b11672287',
+      scn: '344578f97a1d42053c22c3b0b5da63bb6318b10dead93534584528b2ac07ef39',
+      tcn: 'e91a21db2dc725678d3298735f5f5a7524e40a5a7f666d6e3dc929c757a4d43f',
     },
   )
 })
@@ -368,7 +368,7 @@ test('one-time valuable quests keep reward guidance while repeatable equivalents
     { now },
   )
 
-  assert.equal(result.rankingVersion, 14)
+  assert.equal(result.rankingVersion, 15)
   assert.deepEqual(
     result.recommendations.map(({ id, valueBand, guidance }) => ({
       id,
@@ -436,6 +436,66 @@ test('quest recommendations return every current fixed-reset quest', () => {
     yearly: 1,
     oneTime: 0,
   })
+})
+
+test('current time-limited quests appear under Other with an unknown final deadline', () => {
+  const now = Date.UTC(2026, 8, 4, 0, 0, 0)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 1_031,
+        code: '2605B5',
+        name: 'Early-summer limited northern patrol',
+        description: 'Sortie to 3-2, 3-5, and 3-3.',
+        period: 'oneTime',
+        status: 2,
+        limited: true,
+      },
+      {
+        id: 500,
+        code: 'B100',
+        name: 'Normal one-time sortie',
+        description: 'Sortie to 3-2.',
+        period: 'oneTime',
+        status: 1,
+      },
+    ],
+    { now },
+  )
+
+  assert.equal(result.candidateCount, 2)
+  assert.equal(result.oneTimeCount, 1)
+  assert.equal(result.limitedCount, 1)
+  const limited = result.recommendations.find(({ id }) => id === 1_031)
+  assert.equal(questTypeFor(limited), 'other')
+
+  const filtered = filterAndSortQuestRecommendationGroups(result, {
+    chapterFilters: QUEST_MAP_CHAPTER_KEYS,
+    typeFilters: ['other'],
+    rewardFilters: [],
+    sortMode: 'priorityDesc',
+  })
+  assert.deepEqual(
+    filtered.groups.flatMap(({ quests }) => quests.map(({ id }) => id)),
+    [1_031],
+  )
+
+  const markup = questRecommendationListMarkup(filtered)
+  assert.match(markup, />Time-limited</)
+  assert.match(markup, /Final availability deadline is not provided by KC3/)
+
+  const markdown = questRecommendationMarkdown({
+    result,
+    viewState: {
+      chapterFilters: QUEST_MAP_CHAPTER_KEYS,
+      typeFilters: ['other'],
+      rewardFilters: [],
+      sortMode: 'priorityDesc',
+    },
+    exportedAt: '2026-09-04T00:00:00.000Z',
+  })
+  assert.match(markdown, /Time-limited/)
+  assert.match(markdown, /Final availability deadline is not provided by KC3/)
 })
 
 test('quest chapter filters default on while non-sortie quests stay visible at the top', () => {
@@ -2100,6 +2160,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.period.quarterly',
       'quest.period.yearly',
       'quest.period.oneTime',
+      'quest.period.limited',
       'quest.chapterFilter.label',
       'quest.chapterFilter.hint',
       'quest.chapter.world1',
@@ -2118,6 +2179,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.downstream.title',
       'quest.downstream.steps',
       'quest.noFixedDeadline',
+      'quest.limitedDeadlineUnknown',
       'quest.group.combined',
       'quest.group.questCount',
       'quest.priority.label',

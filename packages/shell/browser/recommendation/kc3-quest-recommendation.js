@@ -159,10 +159,10 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
     .filter((quest) => quest && (Number(quest.status) === 1 || Number(quest.status) === 2))
     .map((quest) => questSnapshot(Number(quest.id), quest))
   const limitedOpenQuestCount = synchronizedOpenQuests.filter(({ limited }) => limited).length
-  const quests = storedQuests
-    .filter((quest) => quest && (Number(quest.status) === 1 || Number(quest.status) === 2))
-    .map((quest) => questSnapshot(Number(quest.id), quest))
-    .filter(({ limited }) => !limited)
+  // A limited quest has no dependable final end timestamp in KC3, but its current state,
+  // requirements, rewards, and unlocks are still useful. Keep synchronized limited quests in the
+  // recommendation input and let the renderer identify their unknown final deadline explicitly.
+  const quests = synchronizedOpenQuests
 
   const openQuestIds = new Set(quests.map(({ id }) => Number(id)))
   const graphQuestIds = new Set(openQuestIds)
@@ -251,7 +251,8 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
       supportedRepeatableTypeCount: supportedRepeatableEntries.length,
       openQuestCount: openQuestIds.size,
       oneTimeOpenQuestCount: quests.filter(
-        ({ period, status }) => period === 'oneTime' && (status === 1 || status === 2),
+        ({ limited, period, status }) =>
+          !limited && period === 'oneTime' && (status === 1 || status === 2),
       ).length,
       limitedOpenQuestCount,
       graphQuestCount: quests.length,

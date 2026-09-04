@@ -1,9 +1,10 @@
 # Quest Recommendations
 
 KC3 Strategy Room includes an independent **任務推薦** page immediately beside **流程表**. The
-page lays out every synchronized, unfinished repeatable or normal one-time quest as a ranked
-operations board. The ranking follows the complete unlock chain instead of judging only the open
-quest's immediate reward. Account feasibility, repeatability, effective reward value, and task cost
+page lays out every synchronized, unfinished repeatable, normal one-time, or currently available
+time-limited quest as a ranked operations board. The ranking follows the complete unlock chain
+instead of judging only the open quest's immediate reward. Account feasibility, repeatability,
+effective reward value, and task cost
 come before remaining time. Plans distinguish sorties that can be shared, objectives that should
 be run in sequence, prerequisite unlocks, and verified shared exercise, expedition, or arsenal
 actions without hiding an open quest.
@@ -21,9 +22,9 @@ action.
 Opening **任務推薦** reads KC3's latest locally stored quest list without a network request.
 Pressing **Sync latest status** explicitly requests the complete currently available quest list
 from the active game session, applies it through KC3's own quest manager, and then rebuilds the
-recommendations. A ranked candidate must be open or active and be either a normal one-time quest
-or a KC3 daily, weekly, monthly, quarterly, or yearly repeatable quest with a future reset
-timestamp.
+recommendations. A ranked candidate must be open or active and be either a normal one-time quest,
+a currently available time-limited quest, or a KC3 daily, weekly, monthly, quarterly, or yearly
+repeatable quest with a future reset timestamp.
 
 The live request uses quest tab `0`, which KC3 treats as the complete available list. KC3 then
 marks previously open quests missing from that list as completed, so a claimed quest disappears
@@ -39,8 +40,10 @@ which covers the current KC3 quest catalog. Locked successors are planning data 
 recommendations. If a future catalog exceeds the bound, the snapshot keeps all synchronized open
 quests and the bounded successor data instead of failing the whole page; diagnostics mark the
 successor graph as truncated. Normal one-time quests are included without a reset deadline. KC3
-marks time-limited quests with title hashes; those quests remain excluded because KC3 does not
-provide dependable end timestamps for them.
+marks time-limited quests with title hashes. Open and active time-limited quests are included even
+though KC3 does not provide dependable final end timestamps; their cards explicitly warn that the
+final availability deadline is unknown. Locked time-limited successors remain excluded because an
+old catalog entry alone does not prove that a seasonal quest is currently available.
 
 KC3 calculates every reset from its own repeatable-quest rules: daily, weekly, monthly, quarterly,
 and the twelve month-specific yearly types from `yearlyJan` through `yearlyDec`. Yearly types retain
@@ -68,7 +71,9 @@ places no type restriction. Selecting a specific type switches the list to that 
 buttons can be added with OR semantics. Types follow KC3's stable quest-code families: fleet
 composition (`A`), sortie (`B`), exercise (`C`), expedition (`D`), arsenal (`F`), and modernization
 (`G`). Supply or repair (`E`) quests have no dedicated type button and remain visible under
-**All**. Unrecognized code families remain available under **Other**.
+**All**. Unrecognized code families remain available under **Other**. Time-limited quests are
+always placed under **Other**, even if their KC3 code resembles a normal A–G quest family, so the
+type filter has one predictable location for seasonal tasks.
 
 Independent multi-select filters cover normal-map Chapters 1 through 7. All seven chapters are
 enabled by default. A sortie quest remains visible when any normal-map world it mentions is
@@ -92,9 +97,11 @@ deadline, recommendation from high to low, or fewest quest steps; recommendation
 option. Recommendation sorting follows the displayed tiers from Highest priority through
 Unavailable now, with nearest deadline as its tie-breaker. For a suggested combination, its best
 member determines the group's position under the selected mode, and its members follow that same
-order. Undated one-time quests stay after dated repeatable quests in both deadline orders. Step
-sorting treats a matching current reward as zero steps and otherwise uses the shortest displayed
-unlock distance to a matching successor; ties use the nearest deadline. These controls only
+order. Undated one-time and time-limited quests stay after dated repeatable quests in both deadline
+orders. A time-limited quest with a repeatable reset may show that reset, but still warns that its
+final event end is unknown. Step sorting treats a matching current reward as zero steps and
+otherwise uses the shortest displayed unlock distance to a matching successor; ties use the nearest
+deadline. These controls only
 reorder the synchronized result in the renderer and do not trigger another KC3 read.
 
 The page saves the selected quest types, chapters, reward filters, and sort order in the Strategy
@@ -262,7 +269,8 @@ Runtime diagnostics use the following structured events:
   account availability and ship count; the seven synchronized EO states; aggregate game-API,
   Japanese-metadata, and localized-fallback title counts; and stable reason codes when bounded
   planning data is incomplete or Japanese title metadata is unavailable;
-- `quest-recommendation.completed` records per-period and per-chapter candidate and group counts,
+- `quest-recommendation.completed` records per-period, time-limited, and per-chapter candidate and
+  group counts,
   the four value bands, ranking and daily tie-break modes, reward order, downstream-boosted and
   unavailable counts, objective-profiled quest and solver-derived group counts, relation-kind and
   available-EO counts, and up to ten leading quest IDs with their periods,

@@ -874,6 +874,7 @@ export const registerRecommendationIpc = ({
         quarterlyCount: result.quarterlyCount,
         yearlyCount: result.yearlyCount,
         oneTimeCount: result.oneTimeCount,
+        limitedCount: result.limitedCount,
         periodCounts: result.periodCounts,
         chapterCounts: result.chapterCounts,
         selectedCount: result.recommendations.length,
