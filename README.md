@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.13`   | `2026-09-04`   |
+| `v1.0.14`   | `2026-09-05`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.14 highlights (since v1.0.13)
+
+- Quest Recommendations now automatically includes open and accepted KC3 time-limited quests under
+  **Other**, labels them as time-limited, and warns when KC3 does not provide a final deadline.
 
 ### v1.0.13 highlights (since v1.0.12)
 
@@ -60,14 +65,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   including Ise/Hyuga Kai Ni Zuiun Multi-Angle Attack guidance.
 - Expedition planning settings now persist locally across Strategy Room navigation and application
   restarts, with validated fallback behavior and bounded diagnostics.
-
-### v1.0.9 highlights (since v1.0.8)
-
-- Normal-map recommendations correct four Bahamut variants that were previously mistaken for
-  duplicates: the 3-3 Northern Security light-cruiser fleet, 3-4 fast carrier sweep, 3-5
-  Hayasui/Yamashio Maru fleet with its current random start, and 5-3 quarterly Mikawa fleet with
-  four required quest ships. The reviewed catalog now contains 162 templates, including 34
-  directly sourced Bahamut variants.
 
 ### Project-specific highlights
 
