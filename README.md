@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.12`   | `2026-09-01`   |
+| `v1.0.13`   | `2026-09-04`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,15 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.13 highlights (since v1.0.12)
+
+- Selected-route fleet recommendations now compare a valid current fleet with a bounded set of
+  synthesized alternatives, allowing stronger reserve ships to rank first without discarding the
+  current loadout candidate.
+- Normal-map recommendations add two sourced 5-4 31st Destroyer Division routes from Zekamashi,
+  strengthen the shared Mikawa quest fleet and Formula 33 requirements, and expand the reviewed
+  catalog to 167 templates.
 
 ### v1.0.12 highlights (since v1.0.11)
 
@@ -59,16 +68,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   Hayasui/Yamashio Maru fleet with its current random start, and 5-3 quarterly Mikawa fleet with
   four required quest ships. The reviewed catalog now contains 162 templates, including 34
   directly sourced Bahamut variants.
-
-### v1.0.8 highlights (since v1.0.7)
-
-- Normal-map recommendations add 30 non-duplicate, directly sourced Bahamut guide variants from
-  1-4 through 6-5 and two reviewed 4-1 KCWiki alternatives. Per-route source attribution and
-  manual setup warnings keep older illustrated loadouts useful without weakening current routing
-  or equipment constraints, and the 3-4 carrier-leveling route now follows A-C-E-G-J-P.
-- The repository adds the project-local `kancolle-stage` skill for importing future guide URLs and
-  configuration images with duplicate checks, current map-condition validation, and explicit
-  questions whenever source material cannot be read reliably.
 
 ### Project-specific highlights
 
