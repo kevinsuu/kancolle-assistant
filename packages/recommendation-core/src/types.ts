@@ -326,6 +326,9 @@ export interface RecommendationDiagnostics {
   readonly currentLoadoutAcceptedCount: number
   readonly currentLoadoutBestAirPower: number | null
   readonly currentLoadoutBestLos: number | null
+  readonly currentFleetComparisonRouteCount: number
+  readonly currentFleetAlternativeCandidateCount: number
+  readonly currentFleetAlternativeAcceptedCount: number
   readonly recommendationCandidateCount: number
   readonly bestAirPower: number
   readonly airPowerMinimum: number | null

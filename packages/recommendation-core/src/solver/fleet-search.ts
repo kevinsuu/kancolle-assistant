@@ -438,28 +438,6 @@ const violatesMaximumConstraints = (
     return count > maximum
   })
 
-const requiredConstraintBonus = (
-  ship: OwnedShip,
-  members: readonly FleetMember[],
-  route: RouteTemplate,
-): number =>
-  route.fleetConstraints.reduce((bonus, constraint) => {
-    if (constraint.kind === 'specific-ship-name') {
-      const current = members.filter((member) =>
-        shipMatchesNameConstraint(member.ship, constraint.names),
-      ).length
-      const matches = shipMatchesNameConstraint(ship, constraint.names)
-      return bonus + (current < constraint.min && matches ? 2000 : 0)
-    }
-    if (constraint.kind !== 'ship-type-count') return bonus
-    const minimum = constraint.exact ?? constraint.min
-    if (minimum === undefined) return bonus
-    const current = members.filter((member) =>
-      constraint.shipTypeIds.includes(member.ship.shipTypeId),
-    ).length
-    return bonus + (current < minimum && constraint.shipTypeIds.includes(ship.shipTypeId) ? 500 : 0)
-  }, 0)
-
 const fleetShipCount = (route: RouteTemplate): number =>
   route.fleetConstraints.find((constraint) => constraint.kind === 'ship-count')?.exact ?? 6
 
@@ -682,7 +660,7 @@ export const generateFleetCandidates = (
         nextStates.push({
           members,
           usedShipIds,
-          score: state.score + score + requiredConstraintBonus(ship, state.members, route),
+          score: state.score + score,
           lastCandidateIndex: candidateIndex,
         })
       })
@@ -728,6 +706,7 @@ export const generateFleetCandidates = (
         usedShipIds: new Set(shipIds),
         score: selected.reduce((total, { candidate }) => total + candidate.score, 0),
         lastCandidateIndex: Math.max(...selected.map(({ candidateIndex }) => candidateIndex)),
+        matchesCurrentFleet: true,
       },
     ]
   })

@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-29:
 7-1 .. 7-5
 ```
 
-It normalizes 165 canonical strategy templates with explicit source references. A canonical
+It normalizes 167 canonical strategy templates with explicit source references. A canonical
 template represents a different routing condition, phase, or gameplay objective; swapping one ship
 for another of the same accepted type does not create another template. Unsourced resource,
 leveling, or broad heuristic templates are omitted until a direct guide or map reference is added.
@@ -46,6 +46,7 @@ The overlay catalog cross-checks current map and farming guidance from:
 - <https://yuikancolle.blog.fc2.com/>
 - <https://zekamashi.net/category/kancolle-kouryaku/sigenkasegi/>
 - <https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/>
+- <https://zekamashi.net/kancolle-kouryaku/naganami-kaini/>
 - <https://kankorekore.2-d.jp/s089/>
 - <https://kankorekore.2-d.jp/5-6_2nd/>
 
@@ -66,9 +67,20 @@ sortie requirements remain explicit: the 3-3 北方海域警備 variant preserve
 cruiser instead of merging it into the generic two-cruiser route; the 3-4 carrier sweep and 3-5
 Hayasui fleet preserve their pictured ship-type counts; the 5-3 Mikawa variant requires four
 eligible quest ships instead of relying on a matching cruiser silhouette;
+both Bahamut 5-4 三一駆 quest variants enforce the M-to-P Formula 33 coefficient 2 LoS 45 gate
+in addition to any listed boss air-power target;
 the 3-2 速吸 fleet requires manual Fastest-speed and four-radar confirmation, while anti-installation
 and LBAS routes keep manual setup warnings whenever the solver cannot fully validate the pictured
 loadout.
+
+The supplied ぜかまし 5-4 三一駆 examples add the distinct fast central fleet and the legacy upper
+fleet. The 三川兼用 screenshot matches the existing Bahamut route's fleet, named-ship constraints,
+and A-D-E-H-I-J-M-P routing, so its article URL is merged into that route instead of creating a
+semantic duplicate. All three require 長波改二 plus one remodeled 高波, 沖波, or 朝霜. The central
+route enforces Formula 33 coefficient-2 LoS 45 and advises air 65 with 142 recommended without
+making air power a hard gate; the upper route enforces LoS 60 and air 320. The article marks the
+upper fleet as an old, non-recommended option, and its C-node ASW loadout, formation, and AACI
+remain manual sortie checks.
 
 5-6 was added after the base dataset. Its three phases are curated separately and marked
 `experimental` because routing and preferred compositions are still being refined by the

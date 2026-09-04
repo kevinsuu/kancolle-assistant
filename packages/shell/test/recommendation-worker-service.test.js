@@ -913,6 +913,9 @@ test('foreground selected-route recommendations log slow work but wait for the r
       currentLoadoutAcceptedCount: 0,
       currentLoadoutBestAirPower: 412,
       currentLoadoutBestLos: 65,
+      currentFleetComparisonRouteCount: 1,
+      currentFleetAlternativeCandidateCount: 5,
+      currentFleetAlternativeAcceptedCount: 0,
       recommendationCandidateCount: 0,
       bestAirPower: 412,
       airPowerMinimum: 430,
@@ -941,6 +944,9 @@ test('foreground selected-route recommendations log slow work but wait for the r
   assert.equal(completed.data.currentLoadoutAcceptedCount, 0)
   assert.equal(completed.data.currentLoadoutBestAirPower, 412)
   assert.equal(completed.data.currentLoadoutBestLos, 65)
+  assert.equal(completed.data.currentFleetComparisonRouteCount, 1)
+  assert.equal(completed.data.currentFleetAlternativeCandidateCount, 5)
+  assert.equal(completed.data.currentFleetAlternativeAcceptedCount, 0)
   assert.equal(completed.data.bestAirPower, 412)
   assert.equal(completed.data.airPowerMinimum, 430)
   assert.equal(completed.data.bestLos, 80)
@@ -988,6 +994,9 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
         currentLoadoutAcceptedCount: 1,
         currentLoadoutBestAirPower: 448,
         currentLoadoutBestLos: 72,
+        currentFleetComparisonRouteCount: 1,
+        currentFleetAlternativeCandidateCount: 3,
+        currentFleetAlternativeAcceptedCount: 2,
         recommendationCandidateCount: 3,
         bestAirPower: 448,
         airPowerMinimum: 430,
@@ -1028,6 +1037,9 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
   assert.equal(completed.data.currentLoadoutAcceptedCount, 1)
   assert.equal(completed.data.currentLoadoutBestAirPower, 448)
   assert.equal(completed.data.currentLoadoutBestLos, 72)
+  assert.equal(completed.data.currentFleetComparisonRouteCount, 1)
+  assert.equal(completed.data.currentFleetAlternativeCandidateCount, 3)
+  assert.equal(completed.data.currentFleetAlternativeAcceptedCount, 2)
   assert.equal(completed.data.recommendationCandidateCount, 3)
   assert.equal(completed.data.bestAirPower, 448)
   assert.equal(completed.data.airPowerMinimum, 430)

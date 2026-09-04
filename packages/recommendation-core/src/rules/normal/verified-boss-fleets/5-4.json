@@ -48,15 +48,85 @@
       ]
     },
     {
+      "id": "5-4-zekamashi-31st-central",
+      "name": "ぜかまし・四腕・三一駆中央",
+      "category": "boss",
+      "objectives": ["boss-clear", "balanced"],
+      "nodes": ["B", "E", "H", "I", "J", "M", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "quest-friendly",
+        "quarterly-quest",
+        "fast",
+        "night-battle",
+        "los-cn2-45",
+        "air-power"
+      ],
+      "desc": "戦艦1、航巡1、軽巡1、駆逐3（高速統一）。長波改二＋高波/沖波/朝霜改以上1隻で三一駆任務を兼ねるB-E-H-I-J-M-P。Cn2索敵45+、制空65+（推奨142+）。",
+      "lastVerified": "2026-09-03",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長波改二", "Naganami Kai Ni"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["高波改", "Takanami Kai", "沖波改", "Okinami Kai", "朝霜改", "Asashimo Kai"],
+          "count": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 65,
+          "recommended": 142,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 45
+        }
+      ],
+      "sources": ["https://zekamashi.net/kancolle-kouryaku/naganami-kaini/"]
+    },
+    {
       "id": "5-4-bahamut-31st-sixth",
       "name": "巴哈姆特・行飛・三一駆＋六水戦",
       "category": "boss",
       "objectives": ["boss-clear", "balanced"],
       "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
       "stableBoss": true,
-      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle"],
-      "desc": "航戦1、航巡1、軽巡2、駆逐2。夕張・由良と三一駆指定艦を併用するA-D-E-H-I-J-M-P、優勢140+。",
-      "lastVerified": "2026-08-29",
+      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle", "los-cn2-45"],
+      "desc": "航戦1、航巡1、軽巡2、駆逐2。夕張・由良と三一駆指定艦を併用するA-D-E-H-I-J-M-P、優勢140+、Cn2索敵45+。",
+      "lastVerified": "2026-09-03",
       "fleet": [
         {
           "type": "ShipCount",
@@ -108,6 +178,11 @@
           "kind": "air-power",
           "minimum": 140,
           "recommended": 140
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 45
         }
       ],
       "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
@@ -119,9 +194,9 @@
       "objectives": ["boss-clear", "balanced"],
       "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
       "stableBoss": true,
-      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle"],
-      "desc": "重巡3、軽巡1、駆逐2。新三川4隻と長波＋三一駆1隻を兼ねるA-D-E-H-I-J-M-P任務編成。",
-      "lastVerified": "2026-08-29",
+      "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle", "los-cn2-45"],
+      "desc": "重巡3、軽巡1、駆逐2。新三川4隻と長波改二＋高波/沖波/朝霜改以上1隻を兼ねるA-D-E-H-I-J-M-P任務編成、Cn2索敵45+。",
+      "lastVerified": "2026-09-03",
       "fleet": [
         {
           "type": "ShipCount",
@@ -149,16 +224,98 @@
         },
         {
           "type": "ContainsShipName",
-          "names": ["長波"],
+          "names": ["長波改二", "Naganami Kai Ni"],
           "count": 1
         },
         {
           "type": "ContainsShipName",
-          "names": ["高波", "沖波", "朝霜"],
+          "names": ["高波改", "Takanami Kai", "沖波改", "Okinami Kai", "朝霜改", "Asashimo Kai"],
           "count": 1
         }
       ],
-      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 45
+        }
+      ],
+      "sources": [
+        "https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259",
+        "https://zekamashi.net/kancolle-kouryaku/naganami-kaini/"
+      ]
+    },
+    {
+      "id": "5-4-zekamashi-31st-upper",
+      "name": "ぜかまし・四腕・三一駆旧上路",
+      "category": "boss",
+      "objectives": ["boss-clear", "balanced"],
+      "nodes": ["B", "C", "G", "L", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "quest-friendly",
+        "quarterly-quest",
+        "upper-route",
+        "higher-risk",
+        "carrier-opening",
+        "asw-loadout",
+        "anti-air-cut-in",
+        "los-cn2-60",
+        "air-power"
+      ],
+      "desc": "空母2、戦艦1、重巡/航巡/軽巡1、駆逐2。長波改二＋高波/沖波/朝霜改以上1隻でB-C-G-L-P。旧編成（2023時点で非推奨）。G優勢320+、Cn2索敵60+。C潜水混成への対潜装備・陣形と対空CIは手動確認。",
+      "lastVerified": "2026-09-03",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 5, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["長波改二", "Naganami Kai Ni"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["高波改", "Takanami Kai", "沖波改", "Okinami Kai", "朝霜改", "Asashimo Kai"],
+          "count": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 320,
+          "recommended": 320
+        },
+        {
+          "kind": "los",
+          "coefficient": 2,
+          "minimum": 60
+        }
+      ],
+      "sources": ["https://zekamashi.net/kancolle-kouryaku/naganami-kaini/"]
     }
   ]
 }

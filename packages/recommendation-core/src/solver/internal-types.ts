@@ -10,4 +10,5 @@ export interface FleetSearchState {
   readonly usedShipIds: ReadonlySet<ShipInstanceId>
   readonly score: number
   readonly lastCandidateIndex: number
+  readonly matchesCurrentFleet?: boolean
 }

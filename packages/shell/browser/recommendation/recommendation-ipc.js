@@ -605,6 +605,10 @@ export const registerRecommendationIpc = ({
         currentLoadoutAcceptedCount: diagnostics.currentLoadoutAcceptedCount ?? 0,
         currentLoadoutBestAirPower: diagnostics.currentLoadoutBestAirPower ?? null,
         currentLoadoutBestLos: diagnostics.currentLoadoutBestLos ?? null,
+        currentFleetComparisonRouteCount: diagnostics.currentFleetComparisonRouteCount ?? 0,
+        currentFleetAlternativeCandidateCount:
+          diagnostics.currentFleetAlternativeCandidateCount ?? 0,
+        currentFleetAlternativeAcceptedCount: diagnostics.currentFleetAlternativeAcceptedCount ?? 0,
         recommendationCandidateCount: diagnostics.recommendationCandidateCount ?? null,
         bestAirPower: diagnostics.bestAirPower ?? null,
         airPowerMinimum: diagnostics.airPowerMinimum ?? null,

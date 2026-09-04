@@ -182,6 +182,9 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         currentLoadoutAcceptedCount: 0,
         currentLoadoutBestAirPower: null,
         currentLoadoutBestLos: null,
+        currentFleetComparisonRouteCount: 0,
+        currentFleetAlternativeCandidateCount: 0,
+        currentFleetAlternativeAcceptedCount: 0,
         recommendationCandidateCount: 0,
         bestAirPower: 0,
         airPowerMinimum: null,
@@ -216,6 +219,9 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   let currentLoadoutAcceptedCount = 0
   let currentLoadoutBestAirPower: number | null = null
   let currentLoadoutBestLos: number | null = null
+  let currentFleetComparisonRouteCount = 0
+  let currentFleetAlternativeCandidateCount = 0
+  let currentFleetAlternativeAcceptedCount = 0
   let zuiunCutInCandidateCount = 0
   let zuiunCutInFallbackCandidateCount = 0
   const fleetSearchDiagnosticsByRoute = new Map<string, FleetSearchDiagnostics>()
@@ -253,6 +259,10 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         selectedRouteFastPath ? input.account.currentFleetShipIdGroups : [],
       )
       const fleetCandidates = fleetSearch.candidates
+      const requiresCurrentFleetComparison =
+        fleetCandidates.some((fleet) => fleet.matchesCurrentFleet) &&
+        fleetCandidates.some((fleet) => !fleet.matchesCurrentFleet)
+      if (requiresCurrentFleetComparison) currentFleetComparisonRouteCount += 1
       fleetSearchDiagnosticsByRoute.set(route.id, fleetSearch.diagnostics)
       if (route.tags.includes('special-attack-modeled') && fleetCandidates.length === 0) {
         specialAttackRequirementFailed = true
@@ -296,6 +306,9 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       ) {
         const fleet = fleetCandidates[fleetIndex]
         evaluatedFleetCandidateCount += 1
+        if (requiresCurrentFleetComparison && !fleet.matchesCurrentFleet) {
+          currentFleetAlternativeCandidateCount += 1
+        }
         const searchedGearSolutions = buildGearSolutions(
           fleet,
           gearSearchContext,
@@ -387,11 +400,18 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         })
         if (fleetAccepted) {
           successfulFleetCount += 1
+          if (requiresCurrentFleetComparison && !fleet.matchesCurrentFleet) {
+            currentFleetAlternativeAcceptedCount += 1
+          }
           successfulFleetSignatures.add(
             `${route.id}:${fleet.members.map(({ ship }) => ship.id).join('-')}`,
           )
         }
-        if (fleetIndex + 1 >= minimumFleetCount && successfulFleetCount >= successfulFleetTarget) {
+        if (
+          fleetIndex + 1 >= minimumFleetCount &&
+          successfulFleetCount >= successfulFleetTarget &&
+          !requiresCurrentFleetComparison
+        ) {
           break
         }
       }
@@ -733,6 +753,9 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         currentLoadoutAcceptedCount,
         currentLoadoutBestAirPower,
         currentLoadoutBestLos,
+        currentFleetComparisonRouteCount,
+        currentFleetAlternativeCandidateCount,
+        currentFleetAlternativeAcceptedCount,
         recommendationCandidateCount: recommendationCandidates.length,
         bestAirPower,
         airPowerMinimum: airMinimum,
@@ -763,6 +786,9 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       currentLoadoutAcceptedCount,
       currentLoadoutBestAirPower,
       currentLoadoutBestLos,
+      currentFleetComparisonRouteCount,
+      currentFleetAlternativeCandidateCount,
+      currentFleetAlternativeAcceptedCount,
       recommendationCandidateCount: recommendationCandidates.length,
       bestAirPower,
       airPowerMinimum:

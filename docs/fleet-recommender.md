@@ -159,10 +159,15 @@ scoring cannot silently substitute a different fleet class.
 
 When the user explicitly selects a route, the solver validates matching ships' current KC3
 equipment before synthesizing new loadouts. A currently equipped fleet that already satisfies the
-route's speed, air-power, Formula 33, opening-ASW, and modeled special-attack checks is therefore a
-valid recommendation candidate instead of being hidden by equipment-search pruning. Diagnostics
-and structured completion logs expose how many current-fleet ships and current-loadout candidates
-were evaluated and accepted; automatic multi-route comparison remains unchanged.
+route's speed, air-power, Formula 33, opening-ASW, and modeled special-attack checks remains a valid
+recommendation candidate instead of being hidden by equipment-search pruning. When another legal
+fleet exists, the selected-route search also evaluates a bounded set of synthesized alternatives
+before ranking the completed builds; a valid current fleet no longer ends the search by itself.
+Required ship and ship-type constraints prune invalid partial fleets but do not add
+order-dependent interim scores, so a later low-level candidate cannot displace a stronger ship only
+because a named requirement was encountered earlier. Diagnostics and structured completion logs
+expose current-loadout acceptance plus alternative candidate and acceptance counts; automatic
+multi-route comparison remains unchanged.
 
 1-6 exposes the four KCWiki guide headings as separate selectable templates. `1-6 萌新配置`,
 `1-6 常規配置`, and `1-6 制空配置` use the fixed A-E-G-F-B-N fleet of one CL and five DD;

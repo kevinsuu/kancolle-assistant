@@ -50,6 +50,7 @@ const ZH_KCWIKI_WORLD_NAMES = {
 }
 const NORMAL_MAP_REFERENCE_SOURCE = 'https://forum.gamer.com.tw/C.php?bsn=24698&snA=14238'
 const BAHAMUT_GS1314520_SOURCE = 'https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259'
+const ZEKAMASHI_NAGANAMI_SOURCE = 'https://zekamashi.net/kancolle-kouryaku/naganami-kaini/'
 const CONYE_55_SOURCE = 'https://conye.hatenablog.com/entry/2021/08/13/180323'
 const KANKOREKORE_BY11_SOURCE = 'https://kankorekore.2-d.jp/s089/'
 const ZEKAMASHI_BY11_SOURCE = 'https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/'
@@ -769,7 +770,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 165)
+  assert.equal(NORMAL_MAP_ROUTES.length, 167)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -1776,7 +1777,12 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
     assert.equal(map.sources?.includes(BAHAMUT_GS1314520_SOURCE) ?? false, false)
   })
   ;[...verifiedRawRoutes, ...overlayRawRoutes].forEach(({ route }) => {
-    assert.deepEqual(route.sources, [BAHAMUT_GS1314520_SOURCE])
+    assert.deepEqual(
+      route.sources,
+      route.id === '5-4-bahamut-31st-mikawa'
+        ? [BAHAMUT_GS1314520_SOURCE, ZEKAMASHI_NAGANAMI_SOURCE]
+        : [BAHAMUT_GS1314520_SOURCE],
+    )
   })
 
   const routes = NORMAL_MAP_ROUTES.filter((route) =>
@@ -1823,7 +1829,12 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
   )
   routes.forEach((route) => {
     assert.match(route.name, /^巴哈姆特・行飛・/)
-    assert.deepEqual(route.metadata.guideSources, [BAHAMUT_GS1314520_SOURCE])
+    assert.deepEqual(
+      route.metadata.guideSources,
+      route.id === '5-4-bahamut-31st-mikawa'
+        ? [BAHAMUT_GS1314520_SOURCE, ZEKAMASHI_NAGANAMI_SOURCE]
+        : [BAHAMUT_GS1314520_SOURCE],
+    )
     assert.equal(route.metadata.confidence, 'community')
   })
 
@@ -1932,6 +1943,16 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
     { kind: 'air-power', minimum: 71, recommended: 141 },
   )
   assert.equal(isAutomaticRouteReady(mikawa53), true)
+  ;['5-4-bahamut-31st-sixth', '5-4-bahamut-31st-mikawa'].forEach((routeId) => {
+    const route = getRouteTemplates('5-4', 'balanced', routeId)[0]
+    assert.deepEqual(
+      route.calculatedConstraints.find((constraint) => constraint.kind === 'los'),
+      { kind: 'los', formula: '33', coefficient: 2, minimum: 45 },
+    )
+    assert.ok(route.tags.includes('los-cn2-45'))
+    assert.match(route.description, /Cn2索敵45\+/)
+    assert.equal(isAutomaticRouteReady(route), true)
+  })
 
   const antiInstallation43 = getRouteTemplates('4-3', 'balanced', '4-3-bahamut-bbv2-cl-dd3')[0]
   assert.equal(isAutomaticRouteReady(antiInstallation43), false)
@@ -1939,6 +1960,97 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
 
   const correctedLeveling34 = getRouteTemplates('3-4', 'leveling', '3-4-leveling-carrier')[0]
   assert.deepEqual(correctedLeveling34.nodes, ['A', 'C', 'E', 'G', 'J', 'P'])
+})
+
+test('Zekamashi 5-4 quest guide adds two distinct routes and reuses the Mikawa fleet', () => {
+  const rawRoutes = verifiedBossFleetCatalog
+    .find((map) => map.area === '5-4')
+    .routes.filter((route) => route.sources?.includes(ZEKAMASHI_NAGANAMI_SOURCE))
+  assert.deepEqual(rawRoutes.map((route) => route.id).sort(), [
+    '5-4-bahamut-31st-mikawa',
+    '5-4-zekamashi-31st-central',
+    '5-4-zekamashi-31st-upper',
+  ])
+  assert.ok(
+    verifiedBossFleetCatalog.every((map) => !map.sources?.includes(ZEKAMASHI_NAGANAMI_SOURCE)),
+  )
+
+  const central = getRouteTemplates('5-4', 'balanced', '5-4-zekamashi-31st-central')[0]
+  assert.deepEqual(central.nodes, ['B', 'E', 'H', 'I', 'J', 'M', 'P'])
+  assert.ok(central.tags.includes('fast'))
+  assert.deepEqual(
+    central.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[8, 9, 10, 12], 1],
+      [[6], 1],
+      [[3], 1],
+      [[2], 3],
+    ],
+  )
+  assert.deepEqual(central.calculatedConstraints, [
+    { kind: 'air-power', minimum: 65, recommended: 142, required: false },
+    { kind: 'los', formula: '33', coefficient: 2, minimum: 45 },
+  ])
+  const expectedQuestShips = [
+    {
+      kind: 'specific-ship-name',
+      names: ['長波改二', 'Naganami Kai Ni'],
+      min: 1,
+    },
+    {
+      kind: 'specific-ship-name',
+      names: ['高波改', 'Takanami Kai', '沖波改', 'Okinami Kai', '朝霜改', 'Asashimo Kai'],
+      min: 1,
+    },
+  ]
+  assert.deepEqual(
+    central.fleetConstraints.filter((constraint) => constraint.kind === 'specific-ship-name'),
+    expectedQuestShips,
+  )
+  assert.deepEqual(central.metadata.guideSources, [ZEKAMASHI_NAGANAMI_SOURCE])
+  assert.equal(isAutomaticRouteReady(central), true)
+
+  const mikawa = getRouteTemplates('5-4', 'balanced', '5-4-bahamut-31st-mikawa')[0]
+  assert.deepEqual(mikawa.metadata.guideSources, [
+    BAHAMUT_GS1314520_SOURCE,
+    ZEKAMASHI_NAGANAMI_SOURCE,
+  ])
+  assert.deepEqual(
+    mikawa.fleetConstraints.filter(
+      (constraint) =>
+        constraint.kind === 'specific-ship-name' && !constraint.names.includes('鳥海'),
+    ),
+    expectedQuestShips,
+  )
+
+  const upper = getRouteTemplates('5-4', 'balanced', '5-4-zekamashi-31st-upper')[0]
+  assert.deepEqual(upper.nodes, ['B', 'C', 'G', 'L', 'P'])
+  assert.deepEqual(
+    upper.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[7, 11, 18], 2],
+      [[8, 9, 10, 12], 1],
+      [[3, 5, 6], 1],
+      [[2], 2],
+    ],
+  )
+  assert.deepEqual(upper.calculatedConstraints, [
+    { kind: 'air-power', minimum: 320, recommended: 320 },
+    { kind: 'los', formula: '33', coefficient: 2, minimum: 60 },
+  ])
+  assert.ok(upper.tags.includes('higher-risk'))
+  assert.ok(upper.tags.includes('asw-loadout'))
+  assert.deepEqual(
+    upper.fleetConstraints.filter((constraint) => constraint.kind === 'specific-ship-name'),
+    expectedQuestShips,
+  )
+  assert.match(upper.description, /旧編成.*非推奨.*対潜装備・陣形.*手動確認/)
+  assert.deepEqual(upper.metadata.guideSources, [ZEKAMASHI_NAGANAMI_SOURCE])
+  assert.deepEqual(automaticRouteBlockers(upper), [])
 })
 
 test('every normal map can build its primary balanced route with a capable account', () => {
@@ -2102,16 +2214,85 @@ test('selected 5-5 route validates the complete current KC3 loadout before gear 
   assert.ok(result.diagnostics.currentLoadoutAcceptedCount > 0)
   assert.ok(result.recommendations[0].metrics.airPower >= 90)
   assert.ok(result.recommendations[0].metrics.los33 >= 66)
-  assert.deepEqual(
-    result.recommendations[0].ships.map(({ ship }) => ship.name).sort(),
-    ['長門改二', '陸奧改二', '最上改二特', '矢矧改二乙', '秋月改', '初月改'].sort(),
-  )
+  const selectedNames = result.recommendations[0].ships.map(({ ship }) => ship.name)
+  ;['長門改二', '陸奧改二', '最上改二特', '矢矧改二乙'].forEach((name) => {
+    assert.ok(selectedNames.includes(name), `${name} was not selected`)
+  })
   assert.equal(
     result.recommendations[0].ships
       .flatMap(({ equipment }) => equipment)
       .filter((gear) => gear?.typeId === 45).length,
     3,
   )
+})
+
+test('selected route compares a valid current fleet with stronger reserve ships', () => {
+  const raw = createAllNormalMapsSnapshot()
+  const shipsByType = (shipTypeId) => raw.ships.filter((ship) => ship.shipTypeId === shipTypeId)
+  const currentFleet = [
+    shipsByType(10)[7],
+    shipsByType(11)[6],
+    shipsByType(11)[7],
+    shipsByType(5)[7],
+    shipsByType(2)[6],
+    shipsByType(2)[7],
+  ]
+  const reserveFleet = [
+    shipsByType(10)[0],
+    shipsByType(11)[0],
+    shipsByType(11)[1],
+    shipsByType(5)[0],
+    shipsByType(2)[0],
+    shipsByType(2)[1],
+  ]
+  currentFleet.forEach((ship) => {
+    ship.level = 1
+    ship.stats = {
+      ...ship.stats,
+      hp: 20,
+      firepower: 20,
+      torpedo: 20,
+      antiAir: 20,
+      armor: 20,
+      evasion: 20,
+      asw: 20,
+      luck: 5,
+    }
+  })
+  currentFleet[4].name = '長波改二'
+  currentFleet[5].name = '朝霜改'
+  reserveFleet[4].name = '長波改二'
+  reserveFleet[5].name = '朝霜改'
+  raw.currentFleetShipIds = currentFleet.map((ship) => ship.id)
+  raw.currentFleetShipIdGroups = [raw.currentFleetShipIds]
+
+  const result = recommendFleet({
+    mapId: '5-4',
+    routeId: '5-4-zekamashi-31st-upper',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.ok(result.diagnostics.evaluatedFleetCandidateCount > 1)
+  assert.equal(result.diagnostics.currentFleetComparisonRouteCount, 1)
+  assert.ok(result.diagnostics.currentFleetAlternativeCandidateCount > 0)
+  assert.ok(result.diagnostics.currentFleetAlternativeAcceptedCount > 0)
+  const currentFleetIds = new Set(raw.currentFleetShipIds)
+  assert.ok(
+    result.recommendations[0].ships.every(({ ship }) => !currentFleetIds.has(ship.id)),
+    JSON.stringify(
+      result.recommendations.map((recommendation) => ({
+        score: recommendation.score.total,
+        ships: recommendation.ships.map(({ ship }) => ({
+          id: ship.id,
+          name: ship.name,
+          level: ship.level,
+        })),
+      })),
+    ),
+  )
+  assert.ok(result.recommendations[0].ships.every(({ ship }) => ship.level > 1))
 })
 
 test('5-5 middle Yamato route accepts Yui-listed friend battleships', () => {
