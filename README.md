@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.14`   | `2026-09-05`   |
+| `v1.0.15`   | `2026-09-05`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,15 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.15 highlights (since v1.0.14)
+
+- Fleet recommendations compare flexible carrier loadouts, ASW duties, and special-equipment carriers,
+  retaining alternatives for KC3 validation and allowing ordinary slots to remain empty when inventory is limited.
+- Equipment planning avoids repeated air-power calculations and copies only surviving candidates,
+  preserving search limits and hard requirements.
+- Concurrent recommendation requests share account synchronization. Speed and ASW probes perform less
+  duplicate work, renderer tasks improve responsiveness, and explicit resync invalidates stale data across tabs.
 
 ### v1.0.14 highlights (since v1.0.13)
 
@@ -54,17 +63,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   conflicting fleet requirements remain separate.
 - Quest Recommendation controls, annotations, and cards now use at least 12px text to match KC3's
   navigation and improve readability.
-
-### v1.0.10 highlights (since v1.0.9)
-
-- Strategy Room adds Quest Recommendations with official Japanese titles, manual live game-state
-  synchronization, Chapter 1–7 and reward filters, downstream-reward ranking, verified shared-action
-  plans, and Markdown export of the visible plan.
-- Fleet recommendations strengthen constrained candidate search, current-fleet and Formula 33
-  evaluation, advisory air-power handling, and sourced 1-6, 2-1, 2-5, 4-4, and 5-5 setups,
-  including Ise/Hyuga Kai Ni Zuiun Multi-Angle Attack guidance.
-- Expedition planning settings now persist locally across Strategy Room navigation and application
-  restarts, with validated fallback behavior and bounded diagnostics.
 
 ### Project-specific highlights
 
