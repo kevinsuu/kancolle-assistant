@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.15`   | `2026-09-05`   |
+| `v1.0.16`   | `2026-09-05`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,15 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.16 highlights (since v1.0.15)
+
+- Fleet recommendations, expedition planning, and resource statistics use separate background workers,
+  so a timeout in one operation does not fail the others.
+- Resynchronizing account data updates all subscribed Strategy Room windows; stale results cannot
+  replace newer data, and identical requests share work.
+- Proxy startup, shutdown, retries, and update checks have bounded lifecycles. Image processing and
+  ZIP extraction run in a dedicated worker to reduce main-process stalls.
 
 ### v1.0.15 highlights (since v1.0.14)
 
@@ -55,14 +64,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   discard actions from quest requirements, while preserving the best primary plan.
 - Normal-map recommendations add two sourced carrier-free 3-1 C-F-G fleets for the annual
   Japan-US-UK quest, with language-independent canonical ship-name matching.
-
-### v1.0.11 highlights (since v1.0.10)
-
-- Quest Recommendations now derives compatible exercise and normal-map sortie combinations from
-  each quest's action, map, and fleet rules, including stacks of up to five accepted quests;
-  conflicting fleet requirements remain separate.
-- Quest Recommendation controls, annotations, and cards now use at least 12px text to match KC3's
-  navigation and improve readability.
 
 ### Project-specific highlights
 
@@ -193,6 +194,7 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 
 ### 🚀 Current
 
+- [x] [Shared account snapshots across Strategy Room windows, with isolated background workers for fleet, expedition, and resource calculations](./docs/shell-runtime-architecture.md)
 - [x] Installer + Application auto-update on startup, game open, and every six hours
 - [x] KC3Kai integration
 - [x] Automatic updates for KC3
