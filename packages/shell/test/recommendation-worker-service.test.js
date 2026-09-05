@@ -909,7 +909,7 @@ test('foreground selected-route recommendations log slow work but wait for the r
   assert.equal(settled, false)
   assert.equal(recommendationInputs.length, 1)
   assert.equal(recommendationInputs[0].routeId, '1-1-guide-dd4')
-  assert.equal(recommendationInputs[0].candidateLimit, 3)
+  assert.equal(recommendationInputs[0].candidateLimit, 18)
   assert.equal(
     logs.some((log) => log.eventName === 'recommendation.slow'),
     true,
@@ -939,6 +939,14 @@ test('foreground selected-route recommendations log slow work but wait for the r
       currentFleetAlternativeCandidateCount: 5,
       currentFleetAlternativeAcceptedCount: 0,
       recommendationCandidateCount: 0,
+      loadoutSearch: {
+        planCount: 24,
+        failedPlanCount: 6,
+        flexibleCarrierFleetCount: 6,
+        aswAllocationPlanCount: 0,
+        specialAssignmentPlanCount: 12,
+        emptyRegularSlotSolutionCount: 0,
+      },
       bestAirPower: 412,
       airPowerMinimum: 430,
       bestLos: 80,
@@ -969,6 +977,8 @@ test('foreground selected-route recommendations log slow work but wait for the r
   assert.equal(completed.data.currentFleetComparisonRouteCount, 1)
   assert.equal(completed.data.currentFleetAlternativeCandidateCount, 5)
   assert.equal(completed.data.currentFleetAlternativeAcceptedCount, 0)
+  assert.equal(completed.data.loadoutSearch.planCount, 24)
+  assert.equal(completed.data.loadoutSearch.failedPlanCount, 6)
   assert.equal(completed.data.bestAirPower, 412)
   assert.equal(completed.data.airPowerMinimum, 430)
   assert.equal(completed.data.bestLos, 80)
@@ -1020,6 +1030,14 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
         currentFleetAlternativeCandidateCount: 3,
         currentFleetAlternativeAcceptedCount: 2,
         recommendationCandidateCount: 3,
+        loadoutSearch: {
+          planCount: 12,
+          failedPlanCount: 2,
+          flexibleCarrierFleetCount: 4,
+          aswAllocationPlanCount: 6,
+          specialAssignmentPlanCount: 0,
+          emptyRegularSlotSolutionCount: 1,
+        },
         bestAirPower: 448,
         airPowerMinimum: 430,
         bestLos: 76,
@@ -1063,6 +1081,8 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
   assert.equal(completed.data.currentFleetAlternativeCandidateCount, 3)
   assert.equal(completed.data.currentFleetAlternativeAcceptedCount, 2)
   assert.equal(completed.data.recommendationCandidateCount, 3)
+  assert.equal(completed.data.loadoutSearch.planCount, 12)
+  assert.equal(completed.data.loadoutSearch.emptyRegularSlotSolutionCount, 1)
   assert.equal(completed.data.bestAirPower, 448)
   assert.equal(completed.data.airPowerMinimum, 430)
   assert.equal(completed.data.bestLos, 76)
@@ -1957,4 +1977,131 @@ test('KC3 combat evaluation probes complete loadouts with current KC3 formulas',
   assert.match(script, /__dameconCombatEvaluationCache/)
   assert.equal(script.match(/"shipId":7/g)?.length, 1)
   assert.doesNotThrow(() => new Function(script))
+})
+
+test('KC3 mixed routes execute both surface and ASW formulas for each complete loadout', async () => {
+  const { runInNewContext } = await import('node:vm')
+  const calls = []
+  class ProbeShip {
+    constructor() {
+      this.slotnum = 3
+    }
+    equipmentTotalStats() {
+      return [0, 0]
+    }
+    canDoDayShellingAttack() {
+      return true
+    }
+    canDoNightAttack() {
+      return true
+    }
+    isCarrier() {
+      return false
+    }
+    shellingFirePower() {
+      calls.push('surface')
+      return 150
+    }
+    nightBattlePower() {
+      calls.push('night')
+      return 120
+    }
+    canDoOASW() {
+      calls.push('oasw')
+      return true
+    }
+    canDoASW() {
+      return true
+    }
+    antiSubWarfarePower() {
+      calls.push('asw')
+      return 100
+    }
+    shellingAccuracy() {
+      return { accuracy: 95 }
+    }
+    applyPowerCap(power) {
+      return { power }
+    }
+  }
+  const runtime = {
+    KC3Ship: ProbeShip,
+    KC3ShipManager: { get: () => ({ masterId: 1, hp: [30, 30], estimateNakedStats: () => 20 }) },
+    KC3GearManager: {},
+  }
+  const result = exactOaswFixture()
+  result.recommendations = result.recommendations.slice(0, 1)
+  result.recommendations[0].ships[0].ship = {
+    ...result.recommendations[0].ships[0].ship,
+    level: 99,
+    slotSizes: [0, 0, 0],
+  }
+  const evaluations = await readKC3CombatEvaluations(
+    {
+      executeJavaScript: async (source) => runInNewContext(source, { window: runtime }),
+    },
+    result.recommendations,
+  )
+  assert.deepEqual(calls, ['surface', 'night', 'oasw', 'asw'])
+  assert.equal(evaluations[0].ships[0].daySurfacePower, 150)
+  assert.equal(evaluations[0].ships[0].nightSurfacePower, 120)
+  assert.equal(evaluations[0].ships[0].antiSubmarinePower, 100)
+  assert.equal(evaluations[0].ships[0].openingAswCapable, true)
+  ProbeShip.prototype.shellingAccuracy = () => {
+    throw new Error('fixture accuracy failure')
+  }
+  await assert.rejects(
+    readKC3CombatEvaluations(
+      {
+        executeJavaScript: async (source) =>
+          runInNewContext(source, {
+            window: { ...runtime, __dameconCombatEvaluationCache: undefined },
+          }),
+      },
+      result.recommendations,
+    ),
+    /fixture accuracy failure/,
+  )
+})
+
+test('exact reranking compares the same fleet variants before collapsing the result', () => {
+  const result = exactOaswFixture()
+  result.recommendations[1].ships[0].ship.id = result.recommendations[0].ships[0].ship.id
+  const logs = []
+  const output = applyCombatEvaluations(
+    result,
+    result.recommendations.map((item, index) => ({
+      id: item.id,
+      ships: [
+        {
+          ...exactCombatShip(true),
+          daySurfacePower: index ? 600 : 50,
+          nightSurfacePower: index ? 200 : 20,
+        },
+      ],
+    })),
+    'balanced',
+    { logger: (event, data) => logs.push({ event, data }) },
+  )
+  assert.equal(output.recommendations.length, 1)
+  assert.equal(output.recommendations[0].id, result.recommendations[1].id)
+  const summary = logs.find((item) => item.event === 'recommendation.loadout-rerank-completed').data
+  assert.equal(summary.sameFleetVariantCount, 1)
+  assert.equal(summary.surfaceAndAswCandidateCount, 2)
+  assert.equal(summary.outcome, 'passed')
+  const failures = []
+  applyCombatEvaluations(
+    result,
+    result.recommendations.map((item) => ({ id: item.id, ships: [exactCombatShip(false)] })),
+    'balanced',
+    {
+      logger: (event, data) => failures.push({ event, data }),
+    },
+  )
+  const rejected = failures.find(
+    (item) => item.event === 'recommendation.loadout-rerank-completed',
+  ).data
+  assert.equal(rejected.outcome, 'no-eligible-candidate')
+  assert.equal(rejected.eligibleCandidateCount, 0)
+  assert.deepEqual(rejected.reasonCodes, ['OASW_INSUFFICIENT'])
 })

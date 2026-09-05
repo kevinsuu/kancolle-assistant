@@ -10,7 +10,7 @@
       "objectives": ["balanced", "boss-clear", "low-cost"],
       "nodes": ["A", "D", "E", "J"],
       "stableBoss": true,
-      "tags": ["oasw", "fixed-route", "low-cost"],
+      "tags": ["oasw", "asw-loadout", "fixed-route", "low-cost"],
       "desc": "海防艦4。最も低燃費で固定進王。",
       "lastVerified": "2026-08-25",
       "fleet": [
@@ -38,7 +38,7 @@
       "objectives": ["balanced", "boss-clear", "low-cost"],
       "nodes": ["A", "D", "F", "G", "J"],
       "stableBoss": true,
-      "tags": ["oasw", "fixed-route"],
+      "tags": ["oasw", "asw-loadout", "fixed-route"],
       "desc": "軽巡/練巡0-2、駆逐/海防2-4、計4隻。",
       "lastVerified": "2026-08-25",
       "fleet": [

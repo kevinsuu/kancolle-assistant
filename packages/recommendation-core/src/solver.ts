@@ -4,6 +4,7 @@ import { recommendationMessages, recommendationTitle } from './solver/explanatio
 import { analyzeFleetAvailability, generateFleetCandidates } from './solver/fleet-search'
 import type { FleetSearchDiagnostics } from './solver/fleet-search'
 import { buildGearSolutions, createGearSearchContext } from './solver/gear-search'
+import { selectDiverseLoadouts } from './solver/loadout-diversity'
 import { scoreFleet } from './solver/scoring'
 import { hasZuiunMultiAngleAttack, isIseClassKaiNi } from './solver/zuiun'
 import type { FleetSearchState } from './solver/internal-types'
@@ -229,7 +230,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
   const gearSearchContext = createGearSearchContext(input.account, avoidCurrentFleetEquipment)
   const successfulFleetSignatures = new Set<string>()
   const candidateLimit = Math.min(Math.max(Math.trunc(input.candidateLimit ?? 3), 3), 24)
-  const selectedRouteFastPath = input.routeId !== undefined && candidateLimit <= 3
+  const selectedRouteFastPath = input.routeId !== undefined && candidateLimit <= 18
 
   const searchRoutes = ({
     minimumFleetCount,
@@ -329,6 +330,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
           mayaAaciPreferred,
           zuiunCutInPreferred,
           openingTorpedoPreferred,
+          { route, hqLevel: input.account.hqLevel, objective: input.objective },
         )
         const currentLoadout =
           input.routeId === undefined ? null : currentLoadoutForFleet(fleet, input.account)
@@ -343,12 +345,6 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         }
         let fleetAccepted = false
         gearSolutions.forEach((builds, gearIndex) => {
-          if (
-            input.routeId === undefined &&
-            builds.some((build) => build.equipment.some((gear) => gear === null))
-          ) {
-            return
-          }
           const metrics = calculateFleetMetrics(builds, route, input.account.hqLevel)
           bestAirPower = Math.max(bestAirPower, metrics.airPower)
           bestLos = Math.max(bestLos, metrics.los33)
@@ -614,7 +610,12 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     })
   const selectedRecommendations: FleetRecommendation[] = []
   const selectedRouteIds = new Set<string>()
-  rankedRecommendations.forEach((recommendation) => {
+  selectDiverseLoadouts(
+    rankedRecommendations,
+    candidateLimit,
+    (item) => item.ships,
+    (item) => item.route.id,
+  ).forEach((recommendation) => {
     if (
       selectedRecommendations.length >= Math.min(3, candidateLimit) ||
       selectedRouteIds.has(recommendation.route.id)
@@ -624,7 +625,12 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     selectedRecommendations.push(recommendation)
     selectedRouteIds.add(recommendation.route.id)
   })
-  rankedRecommendations.forEach((recommendation) => {
+  selectDiverseLoadouts(
+    rankedRecommendations,
+    candidateLimit,
+    (item) => item.ships,
+    (item) => item.route.id,
+  ).forEach((recommendation) => {
     if (
       selectedRecommendations.length >= candidateLimit ||
       selectedRecommendations.includes(recommendation)
@@ -748,6 +754,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         ...fleetSearchSummary,
         evaluatedFleetCandidateCount,
         gearSolutionCount,
+        loadoutSearch: { ...gearSearchContext.diagnostics },
         currentFleetShipCount: input.account.currentFleetShipIds.length,
         currentLoadoutCandidateCount,
         currentLoadoutAcceptedCount,
@@ -781,6 +788,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       ...fleetSearchSummary,
       evaluatedFleetCandidateCount,
       gearSolutionCount,
+      loadoutSearch: { ...gearSearchContext.diagnostics },
       currentFleetShipCount: input.account.currentFleetShipIds.length,
       currentLoadoutCandidateCount,
       currentLoadoutAcceptedCount,

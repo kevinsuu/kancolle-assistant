@@ -81,7 +81,7 @@ export const recommendationMessages = (
     } else {
       warnings.push({
         code: 'OPENING_TORPEDO_PREFERENCE_UNAVAILABLE',
-        message: '帳號內沒有可用甲標的配置的輕巡，已回退一般高火雷輕巡。',
+        message: '此方案採用一般輕巡配裝，未採用甲標的先制雷擊偏好。',
       })
     }
   }
@@ -132,7 +132,7 @@ export const recommendationMessages = (
     } else if (iseClassKaiNiBuild) {
       warnings.push({
         code: 'ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK',
-        message: `${iseClassKaiNiBuild.ship.name} 缺少兩架可用瑞雲或完整五槽，已回退一般主砲／水偵／徹甲彈配置。`,
+        message: `${iseClassKaiNiBuild.ship.name} 採用一般配裝；本方案未配置可成立瑞雲立體攻擊的組合。`,
         values: { shipId: iseClassKaiNiBuild.ship.id, shipName: iseClassKaiNiBuild.ship.name },
       })
     }

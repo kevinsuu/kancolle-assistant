@@ -595,15 +595,15 @@ export const readKC3AccountSnapshot = async (webContents, logger = () => {}) => 
 }
 
 const combatEvaluationMode = (recommendation) => {
-  if (recommendation.route.tags.includes('anti-installation')) return 'anti-installation'
-  if (
+  const hasAsw =
     recommendation.route.tags.includes('asw-loadout') ||
     recommendation.route.calculatedConstraints?.some(
       (constraint) => constraint.kind === 'opening-asw',
     )
-  ) {
-    return 'anti-submarine'
-  }
+  if (recommendation.route.tags.includes('anti-installation'))
+    return hasAsw ? 'anti-installation-asw' : 'anti-installation'
+  if (hasAsw)
+    return recommendation.route.tags.includes('asw-loadout') ? 'anti-submarine' : 'surface-asw'
   return 'surface'
 }
 
@@ -683,8 +683,7 @@ const combatEvaluationScript = (recommendations, snapshotKey) => {
       accuracy: ['ht', 'houm'], evasion: ['ev', 'houk'],
     }
     const capPower = (ship, power, time, warfareType) => {
-      try { return finite(ship.applyPowerCap(power, time, warfareType).power) }
-      catch (_) { return finite(power) }
+      return finite(ship.applyPowerCap(power, time, warfareType).power)
     }
     const antiLandPower = (ship, night, targetShipMasterId) => {
       try {
@@ -741,33 +740,31 @@ const combatEvaluationScript = (recommendations, snapshotKey) => {
       probe.statsCache = {}
 
       let daySurfacePower = 0
-      if (build.mode === 'surface' && probe.canDoDayShellingAttack()) {
+      if (['surface', 'surface-asw'].includes(build.mode) && probe.canDoDayShellingAttack()) {
         daySurfacePower = capPower(probe, probe.shellingFirePower(), 'Day', 'Shelling')
       }
       let nightSurfacePower = 0
-      if (build.mode === 'surface' && probe.canDoNightAttack()) {
+      if (['surface', 'surface-asw'].includes(build.mode) && probe.canDoNightAttack()) {
         const nightPower = probe.isCarrier() && probe.canCarrierNightAirAttack()
           ? probe.nightAirAttackPower()
           : probe.nightBattlePower()
         nightSurfacePower = capPower(probe, nightPower, 'Night', 'Shelling')
       }
-      const openingAswCapable = build.mode === 'anti-submarine'
+      const openingAswCapable = ['anti-submarine', 'surface-asw', 'anti-installation-asw'].includes(build.mode)
         ? Boolean(probe.canDoOASW())
         : false
-      const antiSubmarineAttackCapable = build.mode === 'anti-submarine'
+      const antiSubmarineAttackCapable = ['anti-submarine', 'surface-asw', 'anti-installation-asw'].includes(build.mode)
         ? Boolean(probe.canDoASW())
         : false
       const antiSubmarinePower = antiSubmarineAttackCapable
         ? capPower(probe, probe.antiSubWarfarePower(), 'Day', 'Antisub')
         : 0
       let shellingAccuracy = 0
-      try {
-        if (build.mode === 'surface') {
-          shellingAccuracy = finite(
-            probe.shellingAccuracy(1, true, 0, true, false, probe.isCarrier()).accuracy,
-          )
-        }
-      } catch (_) {}
+      if (['surface', 'surface-asw'].includes(build.mode)) {
+        shellingAccuracy = finite(
+          probe.shellingAccuracy(1, true, 0, true, false, probe.isCarrier()).accuracy,
+        )
+      }
       const averageAntiLandPower = (night) => build.targetIds.length === 0
         ? 0
         : build.targetIds
@@ -779,9 +776,9 @@ const combatEvaluationScript = (recommendations, snapshotKey) => {
         daySurfacePower,
         nightSurfacePower,
         antiInstallationDayPower:
-          build.mode === 'anti-installation' ? averageAntiLandPower(false) : 0,
+          ['anti-installation', 'anti-installation-asw'].includes(build.mode) ? averageAntiLandPower(false) : 0,
         antiInstallationNightPower:
-          build.mode === 'anti-installation' ? averageAntiLandPower(true) : 0,
+          ['anti-installation', 'anti-installation-asw'].includes(build.mode) ? averageAntiLandPower(true) : 0,
         antiSubmarineAttackCapable,
         openingAswCapable,
         antiSubmarinePower,

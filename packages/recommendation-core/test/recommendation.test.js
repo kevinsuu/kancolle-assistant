@@ -4822,7 +4822,8 @@ test('4-4 uses flexible carrier air control and a Hyuuga Kai Ni Zuiun cut-in', (
   assert.ok(recommendation.metrics.airPower < 200)
   assert.ok(recommendation.reasons.some(({ code }) => code === 'ZUIUN_MULTI_ANGLE_ATTACK_READY'))
   assert.ok(result.diagnostics.zuiunCutInCandidateCount > 0)
-  assert.equal(result.diagnostics.zuiunCutInFallbackCandidateCount, 0)
+  // The preferred setup still wins, while ordinary alternatives reach exact KC3 reranking.
+  assert.ok(result.diagnostics.zuiunCutInFallbackCandidateCount > 0)
 })
 
 test('4-4 falls back to reconnaissance when Hyuuga lacks two compatible Zuiuns', () => {

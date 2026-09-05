@@ -25,7 +25,7 @@ import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
 const EXACT_COMBAT_CANDIDATE_LIMIT = 18
-const SELECTED_ROUTE_CANDIDATE_LIMIT = 3
+const SELECTED_ROUTE_CANDIDATE_LIMIT = 18
 const RECOMMENDATION_SLOW_THRESHOLD_MS = 3_000
 const EXPEDITION_WEIGHT_MIN = -5
 const EXPEDITION_WEIGHT_MAX = 20
@@ -113,7 +113,10 @@ export const applyCombatEvaluations = (
       combat: evaluation?.ships[index],
     }))
     const exactOpeningAswCount = evaluation.ships.filter(
-      (ship) => ship?.openingAswCapable === true,
+      (ship, index) =>
+        ship?.openingAswCapable === true &&
+        (!recommendation.route.tags.includes('separate-aaci-oasw') ||
+          ships[index].role === 'anti-submarine'),
     ).length
     const metrics = recommendation.metrics.openingAswRequired
       ? { ...recommendation.metrics, openingAswCount: exactOpeningAswCount }
@@ -131,7 +134,19 @@ export const applyCombatEvaluations = (
       metrics,
       score: scoreFleet(ships, metrics, objective, recommendation.route),
       reasons: [
-        ...recommendation.reasons,
+        ...recommendation.reasons.map((reason) =>
+          reason.code === 'OASW_REQUIREMENT_PASSED'
+            ? {
+                ...reason,
+                message: `先制對潛可成立 ${metrics.openingAswCount} 艘，已達最低 ${metrics.openingAswMinimum} 艘。`,
+                values: {
+                  ...reason.values,
+                  count: metrics.openingAswCount,
+                  minimum: metrics.openingAswMinimum,
+                },
+              }
+            : reason,
+        ),
         {
           code: 'KC3_COMBAT_EVALUATION_APPLIED',
           message: 'KC3 已依完整配裝複算裝備加成與有效戰鬥力。',
@@ -173,6 +188,27 @@ export const applyCombatEvaluations = (
       elapsedMs,
     })
   }
+  const fleetKeys = new Set(
+    enriched.map(
+      (item) => `${item.route.id}:${item.ships.map((build) => build.ship.id).join(',')}`,
+    ),
+  )
+  logger('recommendation.loadout-rerank-completed', {
+    ...logContext,
+    operation: 'rerank-complete-loadout-variants',
+    candidateCount: enriched.length,
+    eligibleCandidateCount: eligible.length,
+    sameFleetVariantCount: enriched.length - fleetKeys.size,
+    surfaceAndAswCandidateCount: enriched.filter(
+      (item) =>
+        item.metrics.openingAswRequired &&
+        !item.route.tags.includes('asw-loadout') &&
+        !item.route.tags.includes('anti-installation'),
+    ).length,
+    outcome: eligible.length > 0 ? 'passed' : 'no-eligible-candidate',
+    reasonCodes: enriched.length > 0 && eligible.length === 0 ? ['OASW_INSUFFICIENT'] : [],
+    elapsedMs,
+  })
   if (enriched.length > 0 && eligible.length === 0) {
     const best = Math.max(...openingAswCandidates.map(({ count }) => count), 0)
     const minimum = Math.min(...openingAswCandidates.map(({ minimum }) => minimum))
@@ -515,8 +551,15 @@ export const registerRecommendationIpc = ({
           const exactOpeningAswCandidateCount = result.recommendations.filter(
             (recommendation) => recommendation.metrics.openingAswRequired,
           ).length
+          const fallbackFleetKeys = new Set()
           const fallbackRecommendations = result.recommendations
             .filter((recommendation) => !recommendation.metrics.openingAswRequired)
+            .filter((recommendation) => {
+              const key = `${recommendation.route.id}:${recommendation.ships.map((build) => build.ship.id).join(',')}`
+              if (fallbackFleetKeys.has(key)) return false
+              fallbackFleetKeys.add(key)
+              return true
+            })
             .slice(0, 3)
           logger('recommendation.combat-evaluation-failed', {
             ...recommendationLogContext(parsedRequest),
@@ -600,6 +643,7 @@ export const registerRecommendationIpc = ({
         fleetSearchZeroCandidateRouteCount: diagnostics.fleetSearchZeroCandidateRouteCount ?? 0,
         evaluatedFleetCandidateCount: diagnostics.evaluatedFleetCandidateCount ?? null,
         gearSolutionCount: diagnostics.gearSolutionCount ?? null,
+        loadoutSearch: diagnostics.loadoutSearch ?? null,
         currentFleetShipCount: diagnostics.currentFleetShipCount ?? 0,
         currentLoadoutCandidateCount: diagnostics.currentLoadoutCandidateCount ?? 0,
         currentLoadoutAcceptedCount: diagnostics.currentLoadoutAcceptedCount ?? 0,

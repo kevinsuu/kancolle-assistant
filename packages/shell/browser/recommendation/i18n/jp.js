@@ -477,7 +477,7 @@ export const jp = {
   'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
     '{shipName}に主砲と瑞雲2機を配置しました。航空優勢以上かつ両方の瑞雲スロットに機体が残っていれば、瑞雲立体攻撃を発動できます。',
   'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
-    '{shipName}は使用可能な瑞雲2機または通常5スロットが不足しているため、主砲／水偵／徹甲弾の通常構成へ戻しました。',
+    '{shipName}は通常装備を採用しています。この案では瑞雲立体攻撃の装備条件を満たしていません。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '戦艦／重巡級 {minimum} 隻に三式弾系装備を割り当て、このルートの対地装備モデルを満たしています。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':

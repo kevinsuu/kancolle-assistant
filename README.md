@@ -221,7 +221,8 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] Account-aware normal-map fleet recommendations for maps 1-1 through 7-5, using linked
       guide-verified fleet skeletons, requiring Strategy Room to choose a linked guide template
       instead of a blank automatic route, with validated
-      complete regular slots, a 2-1 carrier fallback and instant-construction-material route,
+      flexible carrier air control, ASW duty allocation, combat-loadout variants and partial regular
+      slots when equipment is scarce, a 2-1 carrier fallback and instant-construction-material route,
       current KC3 water-fighter/aircraft/ordnance categories, 2-5/5-5 drum routing, Fast+
       equipment, expansion-slot assignments, night-carrier setups, source-matched 3-5 upper,
       submarine, Nelson Touch, fixed-lower, and random-lower fleets, plus 4-4 fleet-wide flexible
@@ -229,7 +230,7 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
       Nelson Touch, and detour configurations with air-power-first
       flexible carrier aircraft allocation for mixed anti-installation assignments, plus automatic 5-5
       special-attack pairing, fleet order, and
-      formation guidance; final ranking uses KC3 complete-loadout bonuses and target-specific power
+      formation guidance; same-fleet loadout variants reach KC3 complete-loadout bonus and target-specific power reranking before fleet deduplication
 - [x] Official Japanese quest titles, manual latest-status sync, multi-select quest-type filters,
       default-on Chapter 1–7 sortie filters, verified shared-action plans for sorties, exercises,
       expeditions, and arsenal work, and non-sortie quests kept above every open repeatable and

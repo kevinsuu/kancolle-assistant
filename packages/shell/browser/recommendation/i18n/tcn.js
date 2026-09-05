@@ -463,7 +463,7 @@ export const tcn = {
   'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
     '{shipName} 已配置主砲與兩架瑞雲；取得航空優勢以上且瑞雲槽仍有飛機時，可發動瑞雲立體攻擊。',
   'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
-    '{shipName} 缺少兩架可用瑞雲或完整五槽，已回退一般主砲／水偵／徹甲彈配置。',
+    '{shipName} 採用一般配裝；本方案未配置可成立瑞雲立體攻擊的組合。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '已為 {minimum} 艘戰艦／重巡級配置三式彈系裝備，符合此路線的對陸配置模型。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':

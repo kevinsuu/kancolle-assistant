@@ -486,7 +486,7 @@ export const en = {
   'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
     '{shipName} has a main gun and two Zuiuns; Zuiun Multi-Angle Attack is available at air superiority or better while both Zuiun slots retain aircraft.',
   'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
-    '{shipName} lacks two usable Zuiuns or all five regular slots, so the solver kept a standard main-gun, recon, and AP-shell setup.',
+    '{shipName} uses an ordinary loadout; this plan does not include a Zuiun Multi-Angle Attack setup.',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '{minimum} battleships or heavy cruisers equip Type 3 Shell-family items, satisfying this route’s anti-installation model.',
   'message.KC3_COMBAT_EVALUATION_APPLIED':
