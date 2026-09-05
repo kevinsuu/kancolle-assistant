@@ -315,6 +315,10 @@ export interface RecommendationDiagnostics {
     readonly aswAllocationPlanCount: number
     readonly specialAssignmentPlanCount: number
     readonly emptyRegularSlotSolutionCount: number
+    readonly airPowerEvaluationCount: number
+    readonly airPowerCacheHitCount: number
+    readonly expandedStateCount: number
+    readonly materializedStateCount: number
   }
   readonly routeCandidateCount: number
   readonly availableRouteCount: number

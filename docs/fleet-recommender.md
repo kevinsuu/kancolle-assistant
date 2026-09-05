@@ -576,8 +576,19 @@ warnings remain visible. Mandatory speed, drum, installation, and midget-submari
 be bypassed with empty slots. Complete candidates are checked before the final loadout cap, so high
 heuristic scores cannot fill the entire shortlist with candidates that fail a measurable hard gate.
 
+Equipment search ranks lightweight slot choices before copying equipment assignments and used-item
+sets for surviving states. It reuses each parent's air power when adding a slot, and caches complete
+assignment air power within a single plan. Expansion-only alternatives share immutable regular-slot
+assignments. Neither the beam widths, plan/candidate limits, ranking tie-breakers nor the hard gates
+are reduced to obtain this speedup; final metrics and the KC3 exact pass still run normally.
+
 Completion logs include bounded `loadoutSearch` counters for attempted/failed plans, flexible carrier
-fleets, ASW and special-duty allocations, and results with empty ordinary slots. The exact pass emits
+fleets, ASW and special-duty allocations, and results with empty ordinary slots. Performance counters
+include `airPowerEvaluationCount` (full assignment evaluations), `airPowerCacheHitCount`,
+`expandedStateCount` (regular/expansion slot choices ranked, including existing reservations), and
+`materializedStateCount` (surviving new slot assignments copied). They are aggregated per request on
+both successful and unsuccessful searches, without per-candidate logs. Existing `solverElapsedMs`
+and `exactCombatElapsedMs` separate the core search from KC3 evaluation. The exact pass emits
 `recommendation.loadout-rerank-completed` with same-fleet variant counts, mixed surface/ASW counts,
 accepted candidate counts, reason codes and elapsed time. Formula failures at the cap or accuracy
 boundary propagate to the existing logged combat-evaluation fallback instead of silently using an

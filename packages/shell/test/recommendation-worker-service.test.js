@@ -946,6 +946,10 @@ test('foreground selected-route recommendations log slow work but wait for the r
         aswAllocationPlanCount: 0,
         specialAssignmentPlanCount: 12,
         emptyRegularSlotSolutionCount: 0,
+        airPowerEvaluationCount: 100,
+        airPowerCacheHitCount: 200,
+        expandedStateCount: 1000,
+        materializedStateCount: 120,
       },
       bestAirPower: 412,
       airPowerMinimum: 430,
@@ -979,6 +983,10 @@ test('foreground selected-route recommendations log slow work but wait for the r
   assert.equal(completed.data.currentFleetAlternativeAcceptedCount, 0)
   assert.equal(completed.data.loadoutSearch.planCount, 24)
   assert.equal(completed.data.loadoutSearch.failedPlanCount, 6)
+  assert.equal(completed.data.loadoutSearch.airPowerEvaluationCount, 100)
+  assert.equal(completed.data.loadoutSearch.airPowerCacheHitCount, 200)
+  assert.equal(completed.data.loadoutSearch.expandedStateCount, 1000)
+  assert.equal(completed.data.loadoutSearch.materializedStateCount, 120)
   assert.equal(completed.data.bestAirPower, 412)
   assert.equal(completed.data.airPowerMinimum, 430)
   assert.equal(completed.data.bestLos, 80)
@@ -1037,6 +1045,10 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
           aswAllocationPlanCount: 6,
           specialAssignmentPlanCount: 0,
           emptyRegularSlotSolutionCount: 1,
+          airPowerEvaluationCount: 50,
+          airPowerCacheHitCount: 80,
+          expandedStateCount: 600,
+          materializedStateCount: 60,
         },
         bestAirPower: 448,
         airPowerMinimum: 430,
@@ -1083,6 +1095,10 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
   assert.equal(completed.data.recommendationCandidateCount, 3)
   assert.equal(completed.data.loadoutSearch.planCount, 12)
   assert.equal(completed.data.loadoutSearch.emptyRegularSlotSolutionCount, 1)
+  assert.equal(completed.data.loadoutSearch.airPowerEvaluationCount, 50)
+  assert.equal(completed.data.loadoutSearch.airPowerCacheHitCount, 80)
+  assert.equal(completed.data.loadoutSearch.expandedStateCount, 600)
+  assert.equal(completed.data.loadoutSearch.materializedStateCount, 60)
   assert.equal(completed.data.bestAirPower, 448)
   assert.equal(completed.data.airPowerMinimum, 430)
   assert.equal(completed.data.bestLos, 76)

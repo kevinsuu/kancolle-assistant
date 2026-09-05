@@ -119,6 +119,10 @@ export interface GearSearchContext {
     aswAllocationPlanCount: number
     specialAssignmentPlanCount: number
     emptyRegularSlotSolutionCount: number
+    airPowerEvaluationCount: number
+    airPowerCacheHitCount: number
+    expandedStateCount: number
+    materializedStateCount: number
   }
   readonly reservationCache: Map<string, readonly GearSearchState[]>
   readonly solutionCache: Map<string, readonly RecommendedShipBuild[][]>
@@ -138,10 +142,10 @@ const isMandatoryRequirementKind = (kind: GearRequirementKind): boolean =>
     'zuiun',
   ].includes(kind)
 
-const rankStates = (
-  states: readonly GearSearchState[],
+const rankStates = <T extends Pick<GearSearchState, 'score' | 'signature'>>(
+  states: readonly T[],
   limit: number,
-): readonly GearSearchState[] => {
+): readonly T[] => {
   const seen = new Set<string>()
   return [...states]
     .sort(
@@ -460,6 +464,10 @@ export const createGearSearchContext = (
       aswAllocationPlanCount: 0,
       specialAssignmentPlanCount: 0,
       emptyRegularSlotSolutionCount: 0,
+      airPowerEvaluationCount: 0,
+      airPowerCacheHitCount: 0,
+      expandedStateCount: 0,
+      materializedStateCount: 0,
     },
     reservationCache: new Map(),
     solutionCache: new Map<string, readonly RecommendedShipBuild[][]>(),
@@ -1042,25 +1050,40 @@ const optionsForRequirement = (
   return rankedOptions.slice(0, candidateLimit)
 }
 
-const stateAirPower = (
-  state: GearSearchState,
+// Assignments are immutable once published to a search state. Scope the cache to one
+// plan so slot sizes cannot leak between fleets; expansion-only choices share it.
+const createStateAirPowerReader = (
   requirementsByKey: ReadonlyMap<string, GearRequirement>,
-): number =>
-  [...state.assignments].reduce((total, [key, gear]) => {
-    if (!gear) return total
-    const requirement = requirementsByKey.get(key)
-    if (!requirement || typeof requirement.slotIndex !== 'number') return total
-    return total + (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0)
-  }, 0)
+  diagnostics: GearSearchContext['diagnostics'],
+): ((state: GearSearchState) => number) => {
+  const cache = new WeakMap<GearSearchState['assignments'], number>()
+  return (state) => {
+    const cached = cache.get(state.assignments)
+    if (cached !== undefined) {
+      diagnostics.airPowerCacheHitCount += 1
+      return cached
+    }
+    let total = 0
+    for (const [key, gear] of state.assignments) {
+      if (!gear) continue
+      const requirement = requirementsByKey.get(key)
+      if (!requirement || typeof requirement.slotIndex !== 'number') continue
+      total += gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0
+    }
+    diagnostics.airPowerEvaluationCount += 1
+    cache.set(state.assignments, total)
+    return total
+  }
+}
 
-const rankFlexibleAirStates = (
-  states: readonly GearSearchState[],
-  requirementsByKey: ReadonlyMap<string, GearRequirement>,
+const rankFlexibleAirStates = <T extends Pick<GearSearchState, 'score' | 'signature'>>(
+  states: readonly T[],
+  readAirPower: (state: T) => number,
   airPowerMinimum: number,
-): readonly GearSearchState[] => {
-  const compareAirPriority = (left: GearSearchState, right: GearSearchState): number => {
-    const leftAirPower = stateAirPower(left, requirementsByKey)
-    const rightAirPower = stateAirPower(right, requirementsByKey)
+): readonly T[] => {
+  const compareAirPriority = (left: T, right: T): number => {
+    const leftAirPower = readAirPower(left)
+    const rightAirPower = readAirPower(right)
     const leftMeetsMinimum = leftAirPower >= airPowerMinimum
     const rightMeetsMinimum = rightAirPower >= airPowerMinimum
     return (
@@ -1127,7 +1150,7 @@ const buildFlexibleCarrierAttackReservationStates = (
   context: GearSearchContext,
   initialStates: readonly GearSearchState[],
   carrierIndexes: ReadonlySet<number>,
-  requirementsByKey: ReadonlyMap<string, GearRequirement>,
+  readAirPower: (state: GearSearchState) => number,
   airPowerMinimum: number,
   landAttackIndexes: ReadonlySet<number> = new Set(),
 ): readonly GearSearchState[] => {
@@ -1165,7 +1188,7 @@ const buildFlexibleCarrierAttackReservationStates = (
         })
       })
     })
-    states = rankFlexibleAirStates(nextStates, requirementsByKey, airPowerMinimum)
+    states = rankFlexibleAirStates(nextStates, readAirPower, airPowerMinimum)
   })
   return states
 }
@@ -1402,6 +1425,7 @@ const solveGearPlan = (
   const regularRequirementsByKey = new Map(
     regularRequirements.map((requirement) => [requirement.key, requirement]),
   )
+  const readAirPower = createStateAirPowerReader(regularRequirementsByKey, context.diagnostics)
   const requirementCounts = new Map<GearRequirementKind, number>()
   requirements.forEach((requirement) => {
     requirementCounts.set(requirement.kind, (requirementCounts.get(requirement.kind) ?? 0) + 1)
@@ -1499,7 +1523,7 @@ const solveGearPlan = (
       context,
       states,
       carrierAttackIndexes,
-      regularRequirementsByKey,
+      readAirPower,
       airPowerMinimum ?? 0,
       antiInstallationCarrierIndexes,
     )
@@ -1511,12 +1535,28 @@ const solveGearPlan = (
   if (!cachedReservations) context.reservationCache.set(reservationKey, states)
 
   requirementsWithOptions.forEach(({ requirement, options }) => {
-    const nextStates: GearSearchState[] = []
+    const rankByAir = flexibleCarrierAirPriority && airPowerMinimum !== null
+    // Score lightweight choices first. Only survivors need copied assignment maps and IDs.
+    // undefined means the slot was already reserved; null is an explicit empty-slot choice.
+    const nextStates: {
+      parent: GearSearchState
+      option: GearOption | null | undefined
+      score: number
+      signature: string
+      airPower: number
+    }[] = []
     states.forEach((state) => {
+      const parentAirPower = rankByAir ? readAirPower(state) : 0
       const expansionAlreadyAssigned =
         requirement.kind === 'expansion' && state.expansionAssignments.has(requirement.shipIndex)
       if (state.assignments.has(requirement.key) || expansionAlreadyAssigned) {
-        nextStates.push(state)
+        nextStates.push({
+          parent: state,
+          option: undefined,
+          score: state.score,
+          signature: state.signature,
+          airPower: parentAirPower,
+        })
         return
       }
       const availableOptions = options.filter(({ gear }) => !state.usedEquipmentIds.has(gear.id))
@@ -1525,28 +1565,42 @@ const solveGearPlan = (
           ? [...availableOptions, null]
           : availableOptions
       candidates.forEach((option) => {
-        const assignments = new Map(state.assignments)
-        const expansionAssignments = new Map(state.expansionAssignments)
-        if (requirement.kind === 'expansion') {
-          if (option) expansionAssignments.set(requirement.shipIndex, option.gear)
-        } else {
-          assignments.set(requirement.key, option?.gear ?? null)
-        }
-        const usedEquipmentIds = new Set(state.usedEquipmentIds)
-        if (option) usedEquipmentIds.add(option.gear.id)
         nextStates.push({
-          assignments,
-          expansionAssignments,
-          usedEquipmentIds,
+          parent: state,
+          option,
           score: state.score + (option?.score ?? -400),
           signature: `${state.signature}|${requirement.key}:${option?.gear.id ?? 0}`,
+          airPower:
+            parentAirPower +
+            (rankByAir && requirement.kind !== 'expansion' && option
+              ? (option.gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0)
+              : 0),
         })
       })
     })
-    states =
-      flexibleCarrierAirPriority && airPowerMinimum !== null
-        ? rankFlexibleAirStates(nextStates, regularRequirementsByKey, airPowerMinimum)
-        : rankStates(nextStates, plan ? 48 : GEAR_BEAM_WIDTH)
+    context.diagnostics.expandedStateCount += nextStates.length
+    const selectedStates = rankByAir
+      ? rankFlexibleAirStates(nextStates, (choice) => choice.airPower, airPowerMinimum)
+      : rankStates(nextStates, plan ? 48 : GEAR_BEAM_WIDTH)
+    states = selectedStates.map(({ parent, option, score, signature }) => {
+      if (option === undefined) return parent
+      context.diagnostics.materializedStateCount += 1
+      return {
+        assignments:
+          requirement.kind === 'expansion'
+            ? parent.assignments
+            : new Map(parent.assignments).set(requirement.key, option?.gear ?? null),
+        expansionAssignments:
+          requirement.kind === 'expansion' && option
+            ? new Map(parent.expansionAssignments).set(requirement.shipIndex, option.gear)
+            : parent.expansionAssignments,
+        usedEquipmentIds: option
+          ? new Set(parent.usedEquipmentIds).add(option.gear.id)
+          : parent.usedEquipmentIds,
+        score,
+        signature,
+      }
+    })
   })
 
   const requiredEquipmentRequirements = requirements.filter((requirement) =>
@@ -1571,8 +1625,8 @@ const solveGearPlan = (
   const rankedCarrierStates =
     flexibleCarrierAirPriority && airPowerMinimum !== null
       ? [...carrierStates].sort((left, right) => {
-          const leftAirPower = stateAirPower(left, regularRequirementsByKey)
-          const rightAirPower = stateAirPower(right, regularRequirementsByKey)
+          const leftAirPower = readAirPower(left)
+          const rightAirPower = readAirPower(right)
           const leftMeetsMinimum = leftAirPower >= airPowerMinimum
           const rightMeetsMinimum = rightAirPower >= airPowerMinimum
           return (

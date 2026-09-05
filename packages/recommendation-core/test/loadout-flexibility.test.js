@@ -128,6 +128,42 @@ test('ordinary carrier searches three fighters and one attacker to pass air powe
   assert.ok(diagnostics.planCount > 0)
 })
 
+test('deferred choices keep sibling regular and expansion inventories independent', () => {
+  const equipment = [
+    gear(1, 8, { torpedo: 10 }),
+    ...Array.from({ length: 3 }, (_, i) =>
+      gear(10 + i, 6, { antiAir: 10 }, { 10: 30, 20: 45, 30: 55, 40: 65 }),
+    ),
+    gear(20, 21, { antiAir: 8 }),
+    gear(21, 21, { antiAir: 5 }),
+  ]
+  const account = fixture(
+    [
+      {
+        shipTypeId: 11,
+        slotSizes: [40, 30, 20, 10],
+        equippedItemIds: [0, 0, 0, 0],
+        expansionSlotUnlocked: true,
+        expansionEquipableEquipmentIds: [20, 21],
+      },
+    ],
+    equipment,
+  )
+  const target = route([{ kind: 'air-power', minimum: 150, recommended: 150 }])
+  const first = solve(account, ['carrier-air-superiority'], target)
+  const second = solve(account, ['carrier-air-superiority'], target)
+  assert.deepEqual(first.solutions, second.solutions)
+  assert.ok(first.solutions.length > 1)
+  assert.ok(first.solutions.every(([build]) => build.expansionSlot?.id === 20))
+  for (const builds of first.solutions) {
+    assertUnique(builds)
+    assert.equal(builds[0].equipment.filter((gear) => gear?.typeId === 6).length, 3)
+    assert.equal(builds[0].equipment.filter((gear) => gear?.typeId === 8).length, 1)
+    assert.ok(calculateFleetMetrics(builds, target, account.hqLevel).airPower >= 150)
+  }
+  assert.ok(first.diagnostics.expandedStateCount > first.diagnostics.materializedStateCount)
+})
+
 test('minimum one OASW ship retains a one-sonar combat setup and a surface escort', () => {
   const equipment = [
     gear(1, 14, { asw: 15 }),

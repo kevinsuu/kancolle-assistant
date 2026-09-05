@@ -4824,6 +4824,32 @@ test('4-4 uses flexible carrier air control and a Hyuuga Kai Ni Zuiun cut-in', (
   assert.ok(result.diagnostics.zuiunCutInCandidateCount > 0)
   // The preferred setup still wins, while ordinary alternatives reach exact KC3 reranking.
   assert.ok(result.diagnostics.zuiunCutInFallbackCandidateCount > 0)
+  const search = result.diagnostics.loadoutSearch
+  assert.ok(search.airPowerEvaluationCount > 0)
+  assert.ok(search.airPowerCacheHitCount > 0)
+  assert.ok(search.materializedStateCount > 0)
+  assert.ok(search.expandedStateCount > search.materializedStateCount * 2)
+})
+
+test('4-4 reports bounded search work even when no aircraft can pass the air gate', () => {
+  const raw = create44ZuiunSnapshot()
+  raw.equipment = raw.equipment.map((gear) => ({ ...gear, airPowerBySlotSize: {} }))
+  const result = recommendFleet({
+    mapId: '4-4',
+    routeId: '4-4-guide-bb-cv2-ca-dd-de',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+    candidateLimit: 18,
+  })
+  assert.equal(result.status, 'no-solution')
+  assert.equal(result.diagnostics.bestAirPower, 0)
+  assert.equal(result.diagnostics.airPowerMinimum, 80)
+  assert.ok(result.diagnostics.reasonCodes.includes('AIR_POWER_INSUFFICIENT'))
+  const search = result.diagnostics.loadoutSearch
+  assert.ok(search.airPowerEvaluationCount > 0)
+  assert.ok(search.airPowerCacheHitCount > 0) // Zero is also a reusable cached value.
+  assert.ok(search.materializedStateCount > 0)
+  assert.ok(search.expandedStateCount > search.materializedStateCount * 2)
 })
 
 test('4-4 falls back to reconnaissance when Hyuuga lacks two compatible Zuiuns', () => {
