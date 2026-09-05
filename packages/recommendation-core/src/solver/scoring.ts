@@ -80,10 +80,7 @@ export const scoreFleet = (
 ): RecommendationScore => {
   const hasExactCombatEvaluation = builds.every((build) => build.combat !== undefined)
   const routeTargetsInstallations = route?.tags.includes('anti-installation') ?? false
-  const routeTargetsSubmarines =
-    route?.tags.includes('asw-loadout') ||
-    route?.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw') ||
-    false
+  const routeTargetsSubmarines = route?.tags.includes('asw-loadout') ?? false
   const totalShipFirepower = builds.reduce((total, build) => {
     if (build.combat) {
       if (routeTargetsInstallations) {
@@ -100,7 +97,8 @@ export const scoreFleet = (
       return (
         total +
         build.combat.daySurfacePower * accuracyModifier +
-        build.combat.nightSurfacePower * 0.25
+        build.combat.nightSurfacePower * 0.25 +
+        (build.role === 'anti-submarine' ? build.combat.antiSubmarinePower * 0.35 : 0)
       )
     }
     const equipmentFirepower = build.equipment.reduce(
@@ -159,7 +157,11 @@ export const scoreFleet = (
             0,
           ) / 3,
     ),
-    openingAsw: clamp(metrics.openingAswCount * 35),
+    openingAsw: clamp(
+      (metrics.openingAswRequired
+        ? Math.min(metrics.openingAswCount, metrics.openingAswMinimum)
+        : metrics.openingAswCount) * 35,
+    ),
     resourceCost:
       metrics.estimatedNetResourceGain === null
         ? clamp(115 - (metrics.estimatedFuelCost + metrics.estimatedAmmoCost) / 20)
@@ -176,5 +178,19 @@ export const scoreFleet = (
     (sum, dimension) => sum + dimensions[dimension] * OBJECTIVE_WEIGHTS[objective][dimension],
     0,
   )
-  return { total: Math.round(total * 10) / 10, dimensions }
+  const combatShapePenalty = builds.reduce((penalty, build) => {
+    if (
+      build.role === 'carrier-air-superiority' &&
+      !build.equipment.some((gear) => gear && [7, 8, 11, 41, 57, 58, 91].includes(gear.typeId))
+    )
+      return penalty + 8
+    if (route?.tags.includes('bbv-seaplane-los-priority') && build.ship.shipTypeId === 10) {
+      const seaplanes = build.equipment.filter(
+        (gear) => gear && [10, 11, 45].includes(gear.typeId),
+      ).length
+      return penalty + Math.max(0, 2 - seaplanes) * 4
+    }
+    return penalty
+  }, 0)
+  return { total: Math.round((total - combatShapePenalty) * 10) / 10, dimensions }
 }

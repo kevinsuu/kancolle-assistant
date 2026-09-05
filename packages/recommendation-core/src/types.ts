@@ -308,6 +308,18 @@ export interface UnsatisfiedRequirement {
 }
 
 export interface RecommendationDiagnostics {
+  readonly loadoutSearch?: {
+    readonly planCount: number
+    readonly failedPlanCount: number
+    readonly flexibleCarrierFleetCount: number
+    readonly aswAllocationPlanCount: number
+    readonly specialAssignmentPlanCount: number
+    readonly emptyRegularSlotSolutionCount: number
+    readonly airPowerEvaluationCount: number
+    readonly airPowerCacheHitCount: number
+    readonly expandedStateCount: number
+    readonly materializedStateCount: number
+  }
   readonly routeCandidateCount: number
   readonly availableRouteCount: number
   readonly fleetSearchEligibleShipCount: number

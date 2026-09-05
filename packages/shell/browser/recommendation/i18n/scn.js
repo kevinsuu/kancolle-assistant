@@ -461,7 +461,7 @@ export const scn = {
   'message.ZUIUN_MULTI_ANGLE_ATTACK_READY':
     '{shipName} 已配置主炮与两架瑞云；取得航空优势以上且瑞云栏仍有飞机时，可发动瑞云立体攻击。',
   'message.ZUIUN_MULTI_ANGLE_ATTACK_FALLBACK':
-    '{shipName} 缺少两架可用瑞云或完整五栏，已回退普通主炮／水侦／穿甲弹配置。',
+    '{shipName} 采用普通配装；本方案未配置可成立瑞云立体攻击的组合。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '已为 {minimum} 艘战舰／重巡级配置三式弹系装备，符合此路线的对陆配置模型。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':

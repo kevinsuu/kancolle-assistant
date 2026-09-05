@@ -54,7 +54,9 @@ and a 30-second defensive timeout. Before a successful result crosses IPC, it is
 route, source strategy text, ship, equipment, metric, reason, and warning fields used by the
 Strategy Room UI; internal scores are not sent to the renderer.
 
-The worker keeps a bounded pool of complete candidate loadouts for the shell to verify. In one
+The worker keeps a bounded pool of up to 18 distinct loadout candidates for the shell to verify,
+including different equipment on the same fleet. Equivalent item copies do not consume every
+candidate place; different combat shapes and equipment variants share the budget. In one
 KC3 page-context call, the shell clones each candidate ship without changing the account, equips
 the proposed instance IDs, and invokes KC3's current visible equipment-bonus, improvement, gun-fit
 accuracy, shelling, night, anti-submarine, and anti-installation calculations. The resulting
@@ -70,7 +72,10 @@ The integration points follow KC3Kai's current
 implementations; the application does not persist a copied multiplier table.
 
 The Strategy Room account summary reads one normalized account snapshot and reuses it while the
-same page remains open. This avoids repeating KC3 compatibility, speed-pattern, and per-slot
+same synchronized account generation remains active. Concurrent initial-page sync and foreground
+recommendation requests across Strategy Room tabs share one in-flight capture. An explicit resync
+invalidates all tabs; superseded captures cannot replace the new snapshot or refill its result cache.
+Failed captures are not cached and can be retried. This avoids repeating KC3 compatibility, speed-pattern, and per-slot
 air-power extraction before every visible calculation. The `重新同步` action explicitly reloads KC3's
 persisted ship, equipment, HQ, and fleet data, replaces the cached snapshot, and invalidates
 recommendations produced from the previous snapshot. Use it after changing ships or equipment in
@@ -107,8 +112,9 @@ generated plans, the data-status source list follows the currently visible plan.
 
 Map and route options load and paint before the initial account synchronization. The generate action
 becomes available as soon as a map and guide route are selected, even if the account summary is
-still loading; the foreground recommendation request reads the required KC3 snapshot itself. KC3's
-full snapshot extraction yields between short calculation batches, so the native selectors remain
+still loading; the foreground recommendation joins any account capture already in progress. KC3's
+full snapshot extraction yields between short calculation batches using renderer scheduler tasks,
+with a MessageChannel fallback (and timers only if neither API is available), so the native selectors remain
 responsive while a large account is being read. Selecting `Generate recommendation` immediately
 disables the controls, changes the button label, and displays loading indicators in both the button
 and result area. The UI waits for that state to paint before starting
@@ -392,12 +398,15 @@ bonus is reused only when the recommended instance IDs still match the ship's cu
 Equipment matching follows KC3's current master categories: seaplane fighters include category 45,
 submarine torpedoes include category 32, Type 3 Shells use category 18, and AP shells use category 19. Current carrier aircraft and jet categories used by KC3 are also recognized. These mappings are
 shared by every normal-map route rather than patched per map.
-For the sourced 4-4 primary route, carrier slots are ranked as a flexible fleet-wide air-control
-pool against the reviewed minimum of 80. Ise Kai Ni and Hyuga Kai Ni use two compatible owned
+Carrier slots on all routes are ranked as a flexible fleet-wide air-control pool. The search reserves
+a compatible strike aircraft per carrier in attack plans, and also retains air-control-only alternatives
+for carriers without a hard attack duty. It compares fighter/attacker distributions
+against the route minimum without fixing the two largest slots to attackers. For the sourced 4-4
+primary route this minimum is 80. Ise Kai Ni and Hyuga Kai Ni use two compatible owned
 Zuiun-family aircraft in their two largest slots when available, producing a
 main-main-Zuiun-Zuiun-AP-shell setup that can trigger Zuiun Multi-Angle Attack at air superiority
 or better. With fewer than two compatible Zuiuns or fewer than five regular slots, the solver
-keeps the ordinary main-main-recon-AP-shell shape and reports the intentional fallback instead of
+keeps ordinary main-main-recon-AP-shell alternatives and reports the intentional fallback instead of
 adding a lone seaplane fighter.
 Route-specific combat roles can add soft guide preferences without turning a named ship into a hard
 requirement. For the 3-5 Yui beginner upper route, the surface escort prefers Maya-class AACI shapes
@@ -427,8 +436,10 @@ combination equipment bonuses to change the winning loadout.
 The exact pass groups equivalent equipment instances by master item, improvement, and proficiency,
 so a ship/loadout is evaluated only once even when it appears in several candidate fleets. The
 result is reused while the same synchronized account snapshot remains active. It also dispatches
-only the formula family required by the route: surface power and gun fit, normal or opening ASW, or
-anti-installation power. Normal ASW templates use `canDoASW()` for attack capability, while hard
+the formula families required by the route: surface power and gun fit, normal or opening ASW, and
+anti-installation power. Mixed routes with an opening-ASW gate retain surface and night power
+evaluation alongside ASW; mixed installation/ASW routes evaluate both target families. The 1-5
+ASW templates explicitly retain `asw-loadout` so their target ranking remains ASW-focused. Normal ASW templates use `canDoASW()` for attack capability, while hard
 opening-ASW templates additionally require `canDoOASW()` on the finished loadout. KC3's combined
 equipment-total/visible-bonus result is read in one pass per stat instead of recalculating the same
 bonus table separately. Resynchronizing the account replaces this cache together with the normal
@@ -456,8 +467,9 @@ The finished loadout is rejected unless every ship actually reaches Fast+. The U
 ship's base speed and the equipped fleet's final speed. If no legal result remains, it reports the
 observed missing ship type, air power, LoS, speed, or assignment constraint.
 
-Torpedo cruisers receive a coherent combat loadout instead of independent per-slot scoring: a
-midget submarine is mandatory, followed by torpedoes. This prevents ships such as Kitakami from
+Torpedo cruisers retain a mandatory midget submarine and compare coherent two-gun and two-torpedo
+loadouts. Destroyers compare two-gun/radar and two-torpedo/radar patterns; battleships and cruisers
+also retain bounded recon/radar/AP-shell or torpedo alternatives. This prevents ships such as Kitakami from
 being filled with unrelated radars while omitting their defining opening-torpedo equipment. The
 8inch Mk.9 variants are also excluded from torpedo-cruiser gun choices because of their documented
 light-cruiser fit concern.
@@ -516,9 +528,9 @@ mutable battle state: the attack must still be unused, participating ships must 
 activation damage limits, and the displayed formation must be selected at the intended node.
 
 When Strategy Room sends a selected guide template, the solver uses a fast path: it equips at most
-the first six fleet candidates and stops after the first legal fleet. The IPC layer also asks KC3 to
-perform exact combat reranking on at most three selected-template candidates instead of the broader
-eighteen-candidate pool used for automatic route comparison.
+the first six fleet candidates and stops after the first legal fleet. The IPC layer asks KC3 to
+perform exact combat reranking on up to eighteen loadout candidates, including alternatives for the
+same fleet. Only after exact reranking are those alternatives collapsed into distinct visible fleets.
 
 Resource equipment is selected by actual ship compatibility. For normal resource nodes, Daihatsu
 and amphibious-tank categories are preferred, drum canisters are the fallback, and landing-craft
@@ -545,6 +557,66 @@ show an execution warning and the source/verification date beside the route. Mod
 anti-installation requirements instead show separate passed validations for Type 3 Shell and
 carrier attack capability, while modeled 5-5 special attacks show their finalized fleet order and
 one-line sortie check.
+
+### Flexible loadout allocation
+
+Before equipment assignment, the solver constructs up to 24 bounded plans covering coherent combat
+patterns, opening-ASW duties, and compatible carriers of Type 3 Shells, surface installation gear,
+and drum canisters. These duties are compared across ships instead of assigned solely by fleet order.
+Separate duties on the same ship occupy separate slots. Speed gear cannot replace mandatory equipment.
+Guide preferences such as Zuiun pairs and light-cruiser midget submarines have ordinary fallback plans,
+including alternatives where only one eligible ship uses the scarce preferred equipment.
+
+A route's hard opening-ASW count determines the dedicated ASW allocation. The search compares
+ship-specific minimum equipment counts estimated from snapshot rules, additional ASW equipment, and
+full ASW shapes; unassigned escorts retain surface roles. KC3 validates the final full loadout before
+any hard-OASW result is emitted. This is bounded search, not exhaustive optimization or a combat
+simulation. Exact scoring of mixed routes retains water-surface combat value and does not reward
+extra opening-ASW ships beyond the required count merely for exceeding that count.
+
+Ordinary slots can remain empty when an otherwise valid loadout cannot be filled. Among candidates
+passing the same hard constraints, the solver prefers fewer empty ordinary slots. Existing empty-slot
+warnings remain visible. Mandatory speed, drum, installation, and midget-submarine conditions cannot
+be bypassed with empty slots. Complete candidates are checked before the final loadout cap, so high
+heuristic scores cannot fill the entire shortlist with candidates that fail a measurable hard gate.
+
+Equipment search ranks lightweight slot choices before copying equipment assignments and used-item
+sets for surviving states. It reuses each parent's air power when adding a slot, and caches complete
+assignment air power within a single plan. Expansion-only alternatives share immutable regular-slot
+assignments. Neither the beam widths, plan/candidate limits, ranking tie-breakers nor the hard gates
+are reduced to obtain this speedup; final metrics and the KC3 exact pass still run normally.
+
+Completion logs include bounded `loadoutSearch` counters for attempted/failed plans, flexible carrier
+fleets, ASW and special-duty allocations, and results with empty ordinary slots. Performance counters
+include `airPowerEvaluationCount` (full assignment evaluations), `airPowerCacheHitCount`,
+`expandedStateCount` (regular/expansion slot choices ranked, including existing reservations), and
+`materializedStateCount` (surviving new slot assignments copied). They are aggregated per request on
+both successful and unsuccessful searches, without per-candidate logs. Existing `solverElapsedMs`
+and `exactCombatElapsedMs` separate the core search from KC3 evaluation. The exact pass emits
+`recommendation.loadout-rerank-completed` with same-fleet variant counts, mixed surface/ASW counts,
+accepted candidate counts, reason codes and elapsed time. Formula failures at the cap or accuracy
+boundary propagate to the existing logged combat-evaluation fallback instead of silently using an
+unverified value.
+
+See [local manual acceptance](./loadout-manual-acceptance.md) for map templates, fleet and inventory
+conditions, expected checks, and repeatable low-inventory fixtures.
+
+### Shared recommendation latency
+
+Account capture requests only the speed equipment stat when deriving Fast+ patterns rather than
+calling KC3's all-stat aggregator for each speed combination. OASW threshold searches reuse one
+cloned ship per equipment setup and clear its stat cache between ASW trials. KC3 remains the formula
+authority; the full-loadout exact validation is unchanged.
+
+`recommendation.account-snapshot-started/completed/failed` logs capture boundaries and failure codes.
+Completion separates manager load, ship extraction, equipment extraction, renderer yield waiting,
+direct/fallback speed calls and OASW evaluations/clones. The renderer emits three bounded
+`recommendation.account-snapshot-phase` messages as managers, ships and equipment finish, so an
+interrupted capture can be localized. `recommendation.account-snapshot-request-completed` records
+shared consumer count, account generation and success/failed/superseded outcome.
+
+See [performance architecture and acceptance](./recommendation-performance.md) for the shared pipeline,
+repeatable all-map benchmark and limits of the measurements.
 
 ## Development
 

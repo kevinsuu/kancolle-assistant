@@ -2055,20 +2055,43 @@ test('Zekamashi 5-4 quest guide adds two distinct routes and reuses the Mikawa f
 
 test('every normal map can build its primary balanced route with a capable account', () => {
   const account = parseKC3AccountSnapshot(createAllNormalMapsSnapshot())
+  const timings = []
   getMapOptions().forEach((map) => {
     const route = NORMAL_MAP_ROUTES.find(
       (candidate) => candidate.mapId === map.id && candidate.objectives.includes('balanced'),
     )
     assert.ok(route, `${map.id} has no balanced route`)
+    const startedAt = performance.now()
     const result = recommendFleet({
       mapId: map.id,
       routeId: route.id,
       objective: 'balanced',
       account,
-      candidateLimit: 1,
+      candidateLimit: 18,
+    })
+    timings.push({
+      mapId: map.id,
+      routeId: route.id,
+      elapsedMs: Math.round(performance.now() - startedAt),
     })
     assert.equal(result.status, 'success', `${map.id}/${route.id}: ${JSON.stringify(result)}`)
   })
+  if (process.env.RECOMMENDATION_BENCHMARK === '1') {
+    const ranked = [...timings].sort((a, b) => a.elapsedMs - b.elapsedMs)
+    console.log(
+      JSON.stringify({
+        eventName: 'recommendation.synthetic-benchmark',
+        shipCount: account.ships.length,
+        equipmentCount: account.equipment.length,
+        candidateLimit: 18,
+        routeCount: timings.length,
+        medianMs: ranked[Math.floor(ranked.length / 2)].elapsedMs,
+        p95Ms: ranked[Math.ceil(ranked.length * 0.95) - 1].elapsedMs,
+        slowest: ranked.at(-1),
+        timings,
+      }),
+    )
+  }
 })
 
 test('3-1 carrier-free By11 routes select three eligible US or UK ships from KC3 data', () => {
@@ -4822,7 +4845,34 @@ test('4-4 uses flexible carrier air control and a Hyuuga Kai Ni Zuiun cut-in', (
   assert.ok(recommendation.metrics.airPower < 200)
   assert.ok(recommendation.reasons.some(({ code }) => code === 'ZUIUN_MULTI_ANGLE_ATTACK_READY'))
   assert.ok(result.diagnostics.zuiunCutInCandidateCount > 0)
-  assert.equal(result.diagnostics.zuiunCutInFallbackCandidateCount, 0)
+  // The preferred setup still wins, while ordinary alternatives reach exact KC3 reranking.
+  assert.ok(result.diagnostics.zuiunCutInFallbackCandidateCount > 0)
+  const search = result.diagnostics.loadoutSearch
+  assert.ok(search.airPowerEvaluationCount > 0)
+  assert.ok(search.airPowerCacheHitCount > 0)
+  assert.ok(search.materializedStateCount > 0)
+  assert.ok(search.expandedStateCount > search.materializedStateCount * 2)
+})
+
+test('4-4 reports bounded search work even when no aircraft can pass the air gate', () => {
+  const raw = create44ZuiunSnapshot()
+  raw.equipment = raw.equipment.map((gear) => ({ ...gear, airPowerBySlotSize: {} }))
+  const result = recommendFleet({
+    mapId: '4-4',
+    routeId: '4-4-guide-bb-cv2-ca-dd-de',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+    candidateLimit: 18,
+  })
+  assert.equal(result.status, 'no-solution')
+  assert.equal(result.diagnostics.bestAirPower, 0)
+  assert.equal(result.diagnostics.airPowerMinimum, 80)
+  assert.ok(result.diagnostics.reasonCodes.includes('AIR_POWER_INSUFFICIENT'))
+  const search = result.diagnostics.loadoutSearch
+  assert.ok(search.airPowerEvaluationCount > 0)
+  assert.ok(search.airPowerCacheHitCount > 0) // Zero is also a reusable cached value.
+  assert.ok(search.materializedStateCount > 0)
+  assert.ok(search.expandedStateCount > search.materializedStateCount * 2)
 })
 
 test('4-4 falls back to reconnaissance when Hyuuga lacks two compatible Zuiuns', () => {

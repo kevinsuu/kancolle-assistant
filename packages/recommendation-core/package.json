@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "build": "node ../../scripts/clean.js && tsc --emitDeclarationOnly && node esbuild.config.js",
-    "test": "yarn build && node --test test/expedition.test.js test/recommendation.test.js test/resource-ledger.test.js",
+    "test": "yarn build && node --test test/expedition.test.js test/recommendation.test.js test/loadout-flexibility.test.js test/resource-ledger.test.js",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

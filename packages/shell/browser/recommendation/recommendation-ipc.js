@@ -25,7 +25,7 @@ import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
 const EXACT_COMBAT_CANDIDATE_LIMIT = 18
-const SELECTED_ROUTE_CANDIDATE_LIMIT = 3
+const SELECTED_ROUTE_CANDIDATE_LIMIT = 18
 const RECOMMENDATION_SLOW_THRESHOLD_MS = 3_000
 const EXPEDITION_WEIGHT_MIN = -5
 const EXPEDITION_WEIGHT_MAX = 20
@@ -113,7 +113,10 @@ export const applyCombatEvaluations = (
       combat: evaluation?.ships[index],
     }))
     const exactOpeningAswCount = evaluation.ships.filter(
-      (ship) => ship?.openingAswCapable === true,
+      (ship, index) =>
+        ship?.openingAswCapable === true &&
+        (!recommendation.route.tags.includes('separate-aaci-oasw') ||
+          ships[index].role === 'anti-submarine'),
     ).length
     const metrics = recommendation.metrics.openingAswRequired
       ? { ...recommendation.metrics, openingAswCount: exactOpeningAswCount }
@@ -131,7 +134,19 @@ export const applyCombatEvaluations = (
       metrics,
       score: scoreFleet(ships, metrics, objective, recommendation.route),
       reasons: [
-        ...recommendation.reasons,
+        ...recommendation.reasons.map((reason) =>
+          reason.code === 'OASW_REQUIREMENT_PASSED'
+            ? {
+                ...reason,
+                message: `先制對潛可成立 ${metrics.openingAswCount} 艘，已達最低 ${metrics.openingAswMinimum} 艘。`,
+                values: {
+                  ...reason.values,
+                  count: metrics.openingAswCount,
+                  minimum: metrics.openingAswMinimum,
+                },
+              }
+            : reason,
+        ),
         {
           code: 'KC3_COMBAT_EVALUATION_APPLIED',
           message: 'KC3 已依完整配裝複算裝備加成與有效戰鬥力。',
@@ -173,6 +188,27 @@ export const applyCombatEvaluations = (
       elapsedMs,
     })
   }
+  const fleetKeys = new Set(
+    enriched.map(
+      (item) => `${item.route.id}:${item.ships.map((build) => build.ship.id).join(',')}`,
+    ),
+  )
+  logger('recommendation.loadout-rerank-completed', {
+    ...logContext,
+    operation: 'rerank-complete-loadout-variants',
+    candidateCount: enriched.length,
+    eligibleCandidateCount: eligible.length,
+    sameFleetVariantCount: enriched.length - fleetKeys.size,
+    surfaceAndAswCandidateCount: enriched.filter(
+      (item) =>
+        item.metrics.openingAswRequired &&
+        !item.route.tags.includes('asw-loadout') &&
+        !item.route.tags.includes('anti-installation'),
+    ).length,
+    outcome: eligible.length > 0 ? 'passed' : 'no-eligible-candidate',
+    reasonCodes: enriched.length > 0 && eligible.length === 0 ? ['OASW_INSUFFICIENT'] : [],
+    elapsedMs,
+  })
   if (enriched.length > 0 && eligible.length === 0) {
     const best = Math.max(...openingAswCandidates.map(({ count }) => count), 0)
     const minimum = Math.min(...openingAswCandidates.map(({ minimum }) => minimum))
@@ -456,8 +492,10 @@ export const registerRecommendationIpc = ({
     generatedAt: snapshot.generatedAt,
     capabilities: snapshot.metadata.capabilities,
   })
-  const accountSnapshots = new WeakMap()
-  const recommendationResults = new WeakMap()
+  let accountSnapshots = new WeakMap()
+  let recommendationResults = new WeakMap()
+  let accountGeneration = 0
+  let pendingAccountRead = null
   let latestAccountSnapshot = null
   let latestRecommendationSnapshot = null
   let latestRecommendationResults = new Map()
@@ -515,8 +553,15 @@ export const registerRecommendationIpc = ({
           const exactOpeningAswCandidateCount = result.recommendations.filter(
             (recommendation) => recommendation.metrics.openingAswRequired,
           ).length
+          const fallbackFleetKeys = new Set()
           const fallbackRecommendations = result.recommendations
             .filter((recommendation) => !recommendation.metrics.openingAswRequired)
+            .filter((recommendation) => {
+              const key = `${recommendation.route.id}:${recommendation.ships.map((build) => build.ship.id).join(',')}`
+              if (fallbackFleetKeys.has(key)) return false
+              fallbackFleetKeys.add(key)
+              return true
+            })
             .slice(0, 3)
           logger('recommendation.combat-evaluation-failed', {
             ...recommendationLogContext(parsedRequest),
@@ -600,6 +645,7 @@ export const registerRecommendationIpc = ({
         fleetSearchZeroCandidateRouteCount: diagnostics.fleetSearchZeroCandidateRouteCount ?? 0,
         evaluatedFleetCandidateCount: diagnostics.evaluatedFleetCandidateCount ?? null,
         gearSolutionCount: diagnostics.gearSolutionCount ?? null,
+        loadoutSearch: diagnostics.loadoutSearch ?? null,
         currentFleetShipCount: diagnostics.currentFleetShipCount ?? 0,
         currentLoadoutCandidateCount: diagnostics.currentLoadoutCandidateCount ?? 0,
         currentLoadoutAcceptedCount: diagnostics.currentLoadoutAcceptedCount ?? 0,
@@ -664,23 +710,57 @@ export const registerRecommendationIpc = ({
     }
     const sender = event.sender
     if (forceRefresh) {
-      accountSnapshots.delete(sender)
-      recommendationResults.delete(sender)
+      accountGeneration += 1
+      accountSnapshots = new WeakMap()
+      recommendationResults = new WeakMap()
       latestAccountSnapshot = null
       resetLatestRecommendations()
     }
-    if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
-    if (!forceRefresh && latestAccountSnapshot) {
-      accountSnapshots.set(sender, latestAccountSnapshot)
-      return latestAccountSnapshot
+    // Initial page sync and foreground requests share one capture across Strategy Room tabs.
+    // A refresh invalidates every tab; an older capture must never overwrite the new generation.
+    for (;;) {
+      if (accountSnapshots.has(sender)) return accountSnapshots.get(sender)
+      if (latestAccountSnapshot) {
+        accountSnapshots.set(sender, latestAccountSnapshot)
+        return latestAccountSnapshot
+      }
+      if (!pendingAccountRead || pendingAccountRead.generation !== accountGeneration) {
+        const read = {
+          generation: accountGeneration,
+          consumerCount: 0,
+          startedAt: Date.now(),
+          promise: readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger),
+        }
+        pendingAccountRead = read
+        read.promise.then((snapshot) => {
+          logger('recommendation.account-snapshot-request-completed', {
+            generation: read.generation,
+            consumerCount: read.consumerCount,
+            outcome:
+              read.generation !== accountGeneration
+                ? 'superseded'
+                : snapshot.status === 'error'
+                  ? 'failed'
+                  : 'success',
+            shipCount: snapshot.ships?.length ?? 0,
+            equipmentCount: snapshot.equipment?.length ?? 0,
+            reasonCodes: snapshot.status === 'error' ? [snapshot.error.code] : [],
+            elapsedMs: Date.now() - read.startedAt,
+          })
+        })
+      }
+      const read = pendingAccountRead
+      read.consumerCount += 1
+      const snapshot = await read.promise
+      if (pendingAccountRead === read) pendingAccountRead = null
+      if (read.generation !== accountGeneration) continue
+      if (snapshot.status !== 'error') {
+        accountSnapshots.set(sender, snapshot)
+        latestAccountSnapshot = snapshot
+        ensureLatestRecommendationCache(snapshot)
+      }
+      return snapshot
     }
-    const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger)
-    if (snapshot.status !== 'error') {
-      accountSnapshots.set(sender, snapshot)
-      latestAccountSnapshot = snapshot
-      ensureLatestRecommendationCache(snapshot)
-    }
-    return snapshot
   }
 
   ipcMain.handle(MAP_OPTIONS_CHANNEL, async (event) => {
@@ -963,7 +1043,7 @@ export const registerRecommendationIpc = ({
           snapshot,
           target: event.sender,
         })
-        if (rendererResult.status !== 'error') {
+        if (rendererResult.status !== 'error' && latestAccountSnapshot === snapshot) {
           const cache =
             cachedResults?.snapshot === snapshot ? cachedResults : { snapshot, results: new Map() }
           cache.results.set(cacheKey, rendererResult)

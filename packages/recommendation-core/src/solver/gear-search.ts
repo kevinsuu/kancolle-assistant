@@ -5,8 +5,14 @@ import type {
   NightCarrierPattern,
   OwnedEquipment,
   RecommendedShipBuild,
+  RouteTemplate,
+  RecommendationObjective,
 } from '../types'
 import type { FleetMember, FleetSearchState } from './internal-types'
+import { calculateFleetMetrics, satisfiesCalculatedConstraints } from '../metrics'
+import { scoreFleet } from './scoring'
+import { createLoadoutPlans, type LoadoutPlan } from './loadout-plans'
+import { selectDiverseLoadouts } from './loadout-diversity'
 import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
 import { isIseClassKaiNi, isZuiun } from './zuiun'
 
@@ -62,6 +68,7 @@ type GearRequirementKind =
   | 'small-gun'
   | 'sonar'
   | 'depth-charge'
+  | 'asw-gear'
   | 'midget-submarine'
   | 'submarine-los'
   | 'zuiun'
@@ -105,6 +112,19 @@ export interface GearSearchContext {
   readonly equipmentByRequirementKind: Map<GearRequirementKind, readonly OwnedEquipment[]>
   readonly optionCache: Map<string, readonly GearOption[]>
   readonly specialCandidateCache: Map<string, readonly OwnedEquipment[]>
+  readonly diagnostics: {
+    planCount: number
+    failedPlanCount: number
+    flexibleCarrierFleetCount: number
+    aswAllocationPlanCount: number
+    specialAssignmentPlanCount: number
+    emptyRegularSlotSolutionCount: number
+    airPowerEvaluationCount: number
+    airPowerCacheHitCount: number
+    expandedStateCount: number
+    materializedStateCount: number
+  }
+  readonly reservationCache: Map<string, readonly GearSearchState[]>
   readonly solutionCache: Map<string, readonly RecommendedShipBuild[][]>
 }
 
@@ -122,10 +142,10 @@ const isMandatoryRequirementKind = (kind: GearRequirementKind): boolean =>
     'zuiun',
   ].includes(kind)
 
-const rankStates = (
-  states: readonly GearSearchState[],
+const rankStates = <T extends Pick<GearSearchState, 'score' | 'signature'>>(
+  states: readonly T[],
   limit: number,
-): readonly GearSearchState[] => {
+): readonly T[] => {
   const seen = new Set<string>()
   return [...states]
     .sort(
@@ -147,7 +167,6 @@ const requirementsForMember = (
   assignAntiInstallationShell: boolean,
   assignAntiInstallationSurface: boolean,
   assignAntiInstallationAircraft: boolean,
-  flexibleCarrierAirPriority: boolean,
   assignDrumCanister: boolean,
   bbvSeaplaneLosPriority: boolean,
   bbvSeaplaneAirPriority: boolean,
@@ -159,6 +178,8 @@ const requirementsForMember = (
   mayaAaciPreferred: boolean,
   assignZuiunCutIn: boolean,
   assignMidgetSubmarine: boolean,
+  style: 'default' | 'surface' | 'torpedo' | 'asw-synergy' | 'air-control' = 'default',
+  aswSlots?: number,
 ): readonly GearRequirement[] => {
   const slotCount = member.ship.slotSizes.length
   const requirementKinds: GearRequirementKind[] = []
@@ -176,23 +197,26 @@ const requirementsForMember = (
     const orderedSlots = member.ship.slotSizes
       .map((slotSize, slotIndex) => ({ slotSize, slotIndex }))
       .sort((left, right) => left.slotSize - right.slotSize || left.slotIndex - right.slotIndex)
-    const antiInstallationKind: GearRequirementKind | null = assignAntiInstallationSurface
-      ? 'anti-installation-surface'
-      : assignAntiInstallationShell
-        ? 'anti-installation-shell'
-        : null
-    const protectedSlotIndex = antiInstallationKind ? orderedSlots[0]?.slotIndex : undefined
-    if (antiInstallationKind && protectedSlotIndex !== undefined) {
-      prioritizedKinds[protectedSlotIndex] = antiInstallationKind
-    }
+    const protectedKinds: GearRequirementKind[] = [
+      ...(assignAntiInstallationSurface ? (['anti-installation-surface'] as const) : []),
+      ...(assignAntiInstallationShell ? (['anti-installation-shell'] as const) : []),
+      ...(assignDrumCanister ? (['drum-canister'] as const) : []),
+    ]
+    const protectedIndexes = new Set<number>()
+    protectedKinds.forEach((kind, index) => {
+      const slotIndex = orderedSlots[index]?.slotIndex
+      if (slotIndex !== undefined) {
+        prioritizedKinds[slotIndex] = kind
+        protectedIndexes.add(slotIndex)
+      }
+    })
     const speedReserveSlotIndex = fastPlusRequired
-      ? orderedSlots.find(({ slotIndex }) => slotIndex !== protectedSlotIndex)?.slotIndex
+      ? orderedSlots.find(({ slotIndex }) => !protectedIndexes.has(slotIndex))?.slotIndex
       : undefined
     orderedSlots
       .filter(
-        ({ slotIndex }) => slotIndex !== protectedSlotIndex && slotIndex !== speedReserveSlotIndex,
+        ({ slotIndex }) => !protectedIndexes.has(slotIndex) && slotIndex !== speedReserveSlotIndex,
       )
-      .sort((left, right) => right.slotSize - left.slotSize || left.slotIndex - right.slotIndex)
       .forEach(({ slotIndex }) => {
         prioritizedKinds[slotIndex] = 'seaplane'
       })
@@ -254,7 +278,12 @@ const requirementsForMember = (
         if (requirementKinds.length < slotCount) requirementKinds.push('ap-shell')
       }
     } else {
-      requirementKinds.push('big-gun', 'big-gun', 'recon', 'ap-shell')
+      requirementKinds.push(
+        'big-gun',
+        'big-gun',
+        'recon',
+        style === 'surface' ? 'radar' : 'ap-shell',
+      )
       while (requirementKinds.length < slotCount) requirementKinds.push('radar')
     }
   } else if (member.role === 'utility-cruiser') {
@@ -271,53 +300,44 @@ const requirementsForMember = (
     } else if (assignAirSeaplanes) {
       while (requirementKinds.length < slotCount) requirementKinds.push('seaplane')
     } else {
-      requirementKinds.push('recon', 'radar')
+      requirementKinds.push('recon', style === 'torpedo' ? 'torpedo' : 'radar')
       while (requirementKinds.length < slotCount) requirementKinds.push('torpedo')
     }
   } else if (member.role === 'carrier-air-superiority') {
-    if (flexibleCarrierAirPriority) {
-      return member.ship.slotSizes.map((slotSize, slotIndex) => ({
-        key: `${shipIndex}:${slotIndex}`,
-        shipIndex,
-        slotIndex,
-        slotSize,
-        kind: 'carrier-aircraft',
-        losPriority: false,
-        airPowerPriority: true,
-        airControlPriority: false,
-        landAttackSafeCarrier: assignAntiInstallationAircraft,
-      }))
-    }
-    const orderedSlots = member.ship.slotSizes
-      .map((slotSize, slotIndex) => ({ slotSize, slotIndex }))
-      .sort((left, right) => right.slotSize - left.slotSize || left.slotIndex - right.slotIndex)
-    const attackSlotIndexes = new Set(orderedSlots.slice(0, 2).map(({ slotIndex }) => slotIndex))
-    const primaryAttackSlotIndex = orderedSlots[0]?.slotIndex
     return member.ship.slotSizes.map((slotSize, slotIndex) => ({
       key: `${shipIndex}:${slotIndex}`,
       shipIndex,
       slotIndex,
       slotSize,
-      kind: attackSlotIndexes.has(slotIndex)
-        ? assignAntiInstallationAircraft
-          ? slotIndex === primaryAttackSlotIndex
-            ? 'anti-installation-aircraft'
-            : 'anti-installation-safe-aircraft'
-          : 'attack-aircraft'
-        : 'fighter',
+      kind: 'carrier-aircraft',
       losPriority: false,
-      airPowerPriority: false,
+      airPowerPriority: true,
       airControlPriority: false,
       landAttackSafeCarrier: assignAntiInstallationAircraft,
     }))
   } else if (member.role === 'torpedo-cruiser') {
-    requirementKinds.push('midget-submarine', 'torpedo', 'torpedo')
+    requirementKinds.push(
+      'midget-submarine',
+      ...(style === 'surface'
+        ? (['main-gun', 'main-gun'] as const)
+        : (['torpedo', 'torpedo'] as const)),
+    )
     while (requirementKinds.length < slotCount) requirementKinds.push('radar')
   } else if (member.role === 'anti-submarine') {
-    requirementKinds.push('sonar', 'depth-charge', 'sonar')
-    while (requirementKinds.length < slotCount) requirementKinds.push('general')
+    const reservedAswSlots = aswSlots ?? Math.min(3, slotCount)
+    if (reservedAswSlots > 0) requirementKinds.push('sonar')
+    while (requirementKinds.length < reservedAswSlots)
+      requirementKinds.push(
+        style === 'asw-synergy' || requirementKinds.length === 1 ? 'depth-charge' : 'asw-gear',
+      )
+    const combatKind = [1, 2].includes(member.ship.shipTypeId) ? 'small-gun' : 'main-gun'
+    while (requirementKinds.length < slotCount) requirementKinds.push(combatKind)
   } else if (member.role === 'escort-destroyer') {
-    requirementKinds.push('small-gun', 'small-gun', 'radar')
+    requirementKinds.push(
+      ...(style === 'torpedo'
+        ? (['torpedo', 'torpedo', 'radar'] as const)
+        : (['small-gun', 'small-gun', 'radar'] as const)),
+    )
     while (requirementKinds.length < slotCount) requirementKinds.push('torpedo')
   } else if (member.role === 'submarine') {
     if (submarineSeaplaneAirControl && assignAirSeaplanes && slotCount > 0) {
@@ -335,14 +355,14 @@ const requirementsForMember = (
     while (requirementKinds.length < slotCount) requirementKinds.push('general')
   }
 
-  if (assignDrumCanister && slotCount > 0) {
-    requirementKinds[Math.min(slotCount, requirementKinds.length) - 1] = 'drum-canister'
-  }
-  if (assignAntiInstallationShell && slotCount > 0) {
-    requirementKinds[Math.min(slotCount, requirementKinds.length) - 1] = 'anti-installation-shell'
-  }
-  if (assignAntiInstallationSurface && slotCount > 0) {
-    requirementKinds[Math.min(slotCount, requirementKinds.length) - 1] = 'anti-installation-surface'
+  // Distinct duties share the ship, never the same slot.
+  let dutySlot = slotCount - 1
+  for (const kind of [
+    ...(assignAntiInstallationShell ? (['anti-installation-shell'] as const) : []),
+    ...(assignAntiInstallationSurface ? (['anti-installation-surface'] as const) : []),
+    ...(assignDrumCanister ? (['drum-canister'] as const) : []),
+  ]) {
+    if (dutySlot >= 0) requirementKinds[dutySlot--] = kind
   }
 
   return member.ship.slotSizes.map((slotSize, slotIndex) => ({
@@ -406,6 +426,7 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
     'small-gun': [1],
     sonar: [14, 40],
     'depth-charge': [15],
+    'asw-gear': [14, 15, 40],
     'midget-submarine': [22],
     'submarine-los': [],
     zuiun: [],
@@ -436,6 +457,19 @@ export const createGearSearchContext = (
     equipmentByRequirementKind: new Map<GearRequirementKind, readonly OwnedEquipment[]>(),
     optionCache: new Map<string, readonly GearOption[]>(),
     specialCandidateCache: new Map<string, readonly OwnedEquipment[]>(),
+    diagnostics: {
+      planCount: 0,
+      failedPlanCount: 0,
+      flexibleCarrierFleetCount: 0,
+      aswAllocationPlanCount: 0,
+      specialAssignmentPlanCount: 0,
+      emptyRegularSlotSolutionCount: 0,
+      airPowerEvaluationCount: 0,
+      airPowerCacheHitCount: 0,
+      expandedStateCount: 0,
+      materializedStateCount: 0,
+    },
+    reservationCache: new Map(),
     solutionCache: new Map<string, readonly RecommendedShipBuild[][]>(),
   }
 }
@@ -496,6 +530,7 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
       return stats.firepower * 4 + stats.accuracy * 2 + stats.antiAir + improvement * 2
     case 'sonar':
     case 'depth-charge':
+    case 'asw-gear':
       return stats.asw * 6 + stats.accuracy + improvement
     case 'midget-submarine':
       return stats.torpedo * 5 + stats.accuracy * 2 + improvement
@@ -981,7 +1016,7 @@ const optionsForRequirement = (
       (gear) =>
         member.role !== 'torpedo-cruiser' ||
         requirement.kind !== 'main-gun' ||
-        !TORPEDO_CRUISER_UNFIT_GUN_MASTER_IDS.has(gear.masterId),
+        (gear.typeId === 2 && !TORPEDO_CRUISER_UNFIT_GUN_MASTER_IDS.has(gear.masterId)),
     )
     .map((gear) => ({ gear, score: gearScore(gear, requirement) }))
   const rankedOptions = options.sort(
@@ -1015,25 +1050,40 @@ const optionsForRequirement = (
   return rankedOptions.slice(0, candidateLimit)
 }
 
-const stateAirPower = (
-  state: GearSearchState,
+// Assignments are immutable once published to a search state. Scope the cache to one
+// plan so slot sizes cannot leak between fleets; expansion-only choices share it.
+const createStateAirPowerReader = (
   requirementsByKey: ReadonlyMap<string, GearRequirement>,
-): number =>
-  [...state.assignments].reduce((total, [key, gear]) => {
-    if (!gear) return total
-    const requirement = requirementsByKey.get(key)
-    if (!requirement || typeof requirement.slotIndex !== 'number') return total
-    return total + (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0)
-  }, 0)
+  diagnostics: GearSearchContext['diagnostics'],
+): ((state: GearSearchState) => number) => {
+  const cache = new WeakMap<GearSearchState['assignments'], number>()
+  return (state) => {
+    const cached = cache.get(state.assignments)
+    if (cached !== undefined) {
+      diagnostics.airPowerCacheHitCount += 1
+      return cached
+    }
+    let total = 0
+    for (const [key, gear] of state.assignments) {
+      if (!gear) continue
+      const requirement = requirementsByKey.get(key)
+      if (!requirement || typeof requirement.slotIndex !== 'number') continue
+      total += gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0
+    }
+    diagnostics.airPowerEvaluationCount += 1
+    cache.set(state.assignments, total)
+    return total
+  }
+}
 
-const rankFlexibleAirStates = (
-  states: readonly GearSearchState[],
-  requirementsByKey: ReadonlyMap<string, GearRequirement>,
+const rankFlexibleAirStates = <T extends Pick<GearSearchState, 'score' | 'signature'>>(
+  states: readonly T[],
+  readAirPower: (state: T) => number,
   airPowerMinimum: number,
-): readonly GearSearchState[] => {
-  const compareAirPriority = (left: GearSearchState, right: GearSearchState): number => {
-    const leftAirPower = stateAirPower(left, requirementsByKey)
-    const rightAirPower = stateAirPower(right, requirementsByKey)
+): readonly T[] => {
+  const compareAirPriority = (left: T, right: T): number => {
+    const leftAirPower = readAirPower(left)
+    const rightAirPower = readAirPower(right)
     const leftMeetsMinimum = leftAirPower >= airPowerMinimum
     const rightMeetsMinimum = rightAirPower >= airPowerMinimum
     return (
@@ -1064,9 +1114,14 @@ const rankFlexibleAirStates = (
 const flexibleCarrierAttackCandidates = (
   context: GearSearchContext,
   member: FleetMember,
+  landAttackSafe = false,
 ): readonly OwnedEquipment[] => {
   const candidates = context.availableEquipment
-    .filter(isCarrierInstallationAttackAircraft)
+    .filter((gear) =>
+      landAttackSafe
+        ? isCarrierInstallationAttackAircraft(gear)
+        : ATTACK_AIRCRAFT_TYPE_IDS.has(gear.typeId),
+    )
     .filter((gear) => equipmentAvailableForMember(context, member, gear))
     .filter((gear) => member.ship.regularEquipableMasterIds.includes(gear.masterId))
   const attackRanked = [...candidates].sort(
@@ -1095,13 +1150,18 @@ const buildFlexibleCarrierAttackReservationStates = (
   context: GearSearchContext,
   initialStates: readonly GearSearchState[],
   carrierIndexes: ReadonlySet<number>,
-  requirementsByKey: ReadonlyMap<string, GearRequirement>,
+  readAirPower: (state: GearSearchState) => number,
   airPowerMinimum: number,
+  landAttackIndexes: ReadonlySet<number> = new Set(),
 ): readonly GearSearchState[] => {
   let states = initialStates
   carrierIndexes.forEach((shipIndex) => {
     const member = fleet.members[shipIndex]
-    const candidates = flexibleCarrierAttackCandidates(context, member)
+    const candidates = flexibleCarrierAttackCandidates(
+      context,
+      member,
+      landAttackIndexes.has(shipIndex),
+    )
     const nextStates: GearSearchState[] = []
     states.forEach((state) => {
       candidates.forEach((gear) => {
@@ -1128,12 +1188,12 @@ const buildFlexibleCarrierAttackReservationStates = (
         })
       })
     })
-    states = rankFlexibleAirStates(nextStates, requirementsByKey, airPowerMinimum)
+    states = rankFlexibleAirStates(nextStates, readAirPower, airPowerMinimum)
   })
   return states
 }
 
-export const buildGearSolutions = (
+const solveGearPlan = (
   fleet: FleetSearchState,
   context: GearSearchContext,
   airPowerMinimum: number | null = null,
@@ -1153,9 +1213,14 @@ export const buildGearSolutions = (
   mayaAaciPreferred = false,
   zuiunCutInPreferred = false,
   openingTorpedoPreferred = false,
+  routeContext?: { route: RouteTemplate; hqLevel: number; objective: RecommendationObjective },
+  plan?: LoadoutPlan,
 ): readonly RecommendedShipBuild[][] => {
+  flexibleCarrierAirPriority =
+    flexibleCarrierAirPriority ||
+    fleet.members.some((member) => member.role === 'carrier-air-superiority')
   const airPowerRequired = airPowerMinimum !== null
-  const solutionCacheKey = `${fleet.members
+  let solutionCacheKey = `${fleet.members
     .map((member) => `${member.ship.id}:${member.role}`)
     .join('-')}:${airPowerMinimum ?? 'none'}:${Number(fastPlusRequired)}:${Number(
     antiInstallationShellCount,
@@ -1169,7 +1234,7 @@ export const buildGearSolutions = (
     submarineSeaplaneAirControl,
   )}:${Number(submarineLosPriority)}:${Number(mayaAaciPreferred)}:${Number(
     zuiunCutInPreferred,
-  )}:${Number(openingTorpedoPreferred)}`
+  )}:${Number(openingTorpedoPreferred)}:${plan?.key ?? 'default'}:${routeContext?.route.id ?? ''}:${routeContext?.hqLevel ?? 0}:${routeContext?.objective ?? ''}`
   const cachedSolution = context.solutionCache.get(solutionCacheKey)
   if (cachedSolution) return cachedSolution
   const availableAntiInstallationShellMasterIds = new Set(
@@ -1188,6 +1253,7 @@ export const buildGearSolutions = (
             availableAntiInstallationShellMasterIds.has(gear.masterId),
         ),
       )
+      .filter(({ shipIndex }) => !plan || plan.shellIndexes.includes(shipIndex))
       .slice(0, antiInstallationShellCount)
       .map(({ shipIndex }) => shipIndex),
   )
@@ -1208,6 +1274,7 @@ export const buildGearSolutions = (
         ),
       )
       .filter(({ shipIndex }) => !antiInstallationMemberIndexes.has(shipIndex))
+      .filter(({ shipIndex }) => !plan || plan.surfaceIndexes.includes(shipIndex))
       .slice(0, antiInstallationSurfaceCount)
       .map(({ shipIndex }) => shipIndex),
   )
@@ -1227,6 +1294,7 @@ export const buildGearSolutions = (
             member.ship.regularEquipableMasterIds.includes(gear.masterId),
         ),
       )
+      .filter(({ shipIndex }) => !plan || plan.carrierIndexes.includes(shipIndex))
       .slice(0, antiInstallationCarrierCount)
       .map(({ shipIndex }) => shipIndex),
   )
@@ -1251,6 +1319,7 @@ export const buildGearSolutions = (
           Number(left.member.role === 'main-battleship') -
             Number(right.member.role === 'main-battleship') || left.shipIndex - right.shipIndex,
       )
+      .filter(({ shipIndex }) => !plan || plan.drumIndexes.includes(shipIndex))
       .slice(0, drumCanisterCarrierCount)
       .map(({ shipIndex }) => shipIndex),
   )
@@ -1272,8 +1341,14 @@ export const buildGearSolutions = (
         ).length
       : 0
     const assignZuiunCutIn =
-      zuiunCutInCandidate && member.ship.slotSizes.length >= 5 && compatibleZuiunCount >= 2
+      plan?.guideEquipment !== false &&
+      !plan?.disabledGuideIndexes.includes(shipIndex) &&
+      zuiunCutInCandidate &&
+      member.ship.slotSizes.length >= 5 &&
+      compatibleZuiunCount >= 2
     const assignMidgetSubmarine =
+      plan?.guideEquipment !== false &&
+      !plan?.disabledGuideIndexes.includes(shipIndex) &&
       openingTorpedoPreferred &&
       member.ship.shipTypeId === 3 &&
       context.availableEquipment.some(
@@ -1299,7 +1374,6 @@ export const buildGearSolutions = (
       antiInstallationMemberIndexes.has(shipIndex),
       antiInstallationSurfaceMemberIndexes.has(shipIndex),
       antiInstallationCarrierIndexes.has(shipIndex),
-      flexibleCarrierAirPriority,
       drumCanisterCarrierIndexes.has(shipIndex),
       bbvSeaplaneLosPriority,
       bbvSeaplaneAirPriority,
@@ -1311,8 +1385,24 @@ export const buildGearSolutions = (
       mayaAaciPreferred,
       assignZuiunCutIn,
       assignMidgetSubmarine,
+      plan?.styles[shipIndex] ?? 'default',
+      plan?.aswSlots[shipIndex],
     )
   })
+  // Different guide/style plans can resolve to identical slot requirements. Reuse the actual search.
+  solutionCacheKey = JSON.stringify([
+    fleet.members.map((member) => [member.ship.id, member.role]),
+    regularRequirements,
+    airPowerMinimum,
+    fastPlusRequired,
+    nightCarrierRequired,
+    fleet.members.map((_, index) => plan?.styles[index] === 'air-control'),
+    routeContext?.route.id,
+    routeContext?.hqLevel,
+    routeContext?.objective,
+  ])
+  const equivalentSolution = context.solutionCache.get(solutionCacheKey)
+  if (equivalentSolution) return equivalentSolution
   const expansionRequirements: readonly GearRequirement[] = fleet.members.flatMap(
     (member, shipIndex) =>
       member.ship.expansionSlotUnlocked
@@ -1335,6 +1425,7 @@ export const buildGearSolutions = (
   const regularRequirementsByKey = new Map(
     regularRequirements.map((requirement) => [requirement.key, requirement]),
   )
+  const readAirPower = createStateAirPowerReader(regularRequirementsByKey, context.diagnostics)
   const requirementCounts = new Map<GearRequirementKind, number>()
   requirements.forEach((requirement) => {
     requirementCounts.set(requirement.kind, (requirementCounts.get(requirement.kind) ?? 0) + 1)
@@ -1385,13 +1476,7 @@ export const buildGearSolutions = (
   regularRequirements.forEach((requirement) => {
     if (
       typeof requirement.slotIndex !== 'number' ||
-      ![
-        'anti-installation-shell',
-        'anti-installation-surface',
-        'anti-installation-aircraft',
-        'anti-installation-safe-aircraft',
-        'drum-canister',
-      ].includes(requirement.kind)
+      !isMandatoryRequirementKind(requirement.kind)
     ) {
       return
     }
@@ -1399,93 +1484,132 @@ export const buildGearSolutions = (
     indexes.add(requirement.slotIndex)
     protectedRegularSlotIndexesByShip.set(requirement.shipIndex, indexes)
   })
-  let states: readonly GearSearchState[] = fastPlusRequired
-    ? buildFastPlusReservationStates(fleet, context, protectedRegularSlotIndexesByShip)
-    : [
-        {
-          assignments: new Map<string, OwnedEquipment | null>(),
-          expansionAssignments: new Map<number, OwnedEquipment>(),
-          usedEquipmentIds: new Set<EquipmentInstanceId>(),
-          score: 0,
-          signature: '',
-        },
-      ]
-  if (
-    flexibleCarrierAirPriority &&
-    antiInstallationCarrierIndexes.size > 0 &&
-    airPowerMinimum !== null
-  ) {
+  const carrierAttackIndexes = new Set(
+    fleet.members.flatMap((member, index) =>
+      member.role === 'carrier-air-superiority' &&
+      (plan?.styles[index] !== 'air-control' || antiInstallationCarrierIndexes.has(index)) &&
+      flexibleCarrierAttackCandidates(context, member, antiInstallationCarrierIndexes.has(index))
+        .length > 0
+        ? [index]
+        : [],
+    ),
+  )
+  const reservationKey = JSON.stringify([
+    fleet.members.map((member) => member.ship.id),
+    [...protectedRegularSlotIndexesByShip].map(([index, slots]) => [index, [...slots]]),
+    fastPlusRequired,
+    nightCarrierRequired,
+    [...carrierAttackIndexes],
+    [...antiInstallationCarrierIndexes],
+    airPowerMinimum,
+  ])
+  const cachedReservations = context.reservationCache.get(reservationKey)
+  let states: readonly GearSearchState[] =
+    cachedReservations ??
+    (fastPlusRequired
+      ? buildFastPlusReservationStates(fleet, context, protectedRegularSlotIndexesByShip)
+      : [
+          {
+            assignments: new Map<string, OwnedEquipment | null>(),
+            expansionAssignments: new Map<number, OwnedEquipment>(),
+            usedEquipmentIds: new Set<EquipmentInstanceId>(),
+            score: 0,
+            signature: '',
+          },
+        ])
+  if (!cachedReservations && carrierAttackIndexes.size > 0) {
     states = buildFlexibleCarrierAttackReservationStates(
       fleet,
       context,
       states,
+      carrierAttackIndexes,
+      readAirPower,
+      airPowerMinimum ?? 0,
       antiInstallationCarrierIndexes,
-      regularRequirementsByKey,
-      airPowerMinimum,
     )
   }
-  if (nightCarrierRequired) {
+  if (!cachedReservations && nightCarrierRequired) {
     states = buildNightCarrierReservationStates(fleet, context, states)
   }
 
+  if (!cachedReservations) context.reservationCache.set(reservationKey, states)
+
   requirementsWithOptions.forEach(({ requirement, options }) => {
-    const nextStates: GearSearchState[] = []
+    const rankByAir = flexibleCarrierAirPriority && airPowerMinimum !== null
+    // Score lightweight choices first. Only survivors need copied assignment maps and IDs.
+    // undefined means the slot was already reserved; null is an explicit empty-slot choice.
+    const nextStates: {
+      parent: GearSearchState
+      option: GearOption | null | undefined
+      score: number
+      signature: string
+      airPower: number
+    }[] = []
     states.forEach((state) => {
+      const parentAirPower = rankByAir ? readAirPower(state) : 0
       const expansionAlreadyAssigned =
         requirement.kind === 'expansion' && state.expansionAssignments.has(requirement.shipIndex)
       if (state.assignments.has(requirement.key) || expansionAlreadyAssigned) {
-        nextStates.push(state)
+        nextStates.push({
+          parent: state,
+          option: undefined,
+          score: state.score,
+          signature: state.signature,
+          airPower: parentAirPower,
+        })
         return
       }
       const availableOptions = options.filter(({ gear }) => !state.usedEquipmentIds.has(gear.id))
       const candidates: readonly (GearOption | null)[] =
-        requirement.kind === 'expansion' ? [...availableOptions, null] : availableOptions
+        requirement.kind === 'expansion' || !isMandatoryRequirementKind(requirement.kind)
+          ? [...availableOptions, null]
+          : availableOptions
       candidates.forEach((option) => {
-        const assignments = new Map(state.assignments)
-        const expansionAssignments = new Map(state.expansionAssignments)
-        if (requirement.kind === 'expansion') {
-          if (option) expansionAssignments.set(requirement.shipIndex, option.gear)
-        } else {
-          assignments.set(requirement.key, option?.gear ?? null)
-        }
-        const usedEquipmentIds = new Set(state.usedEquipmentIds)
-        if (option) usedEquipmentIds.add(option.gear.id)
         nextStates.push({
-          assignments,
-          expansionAssignments,
-          usedEquipmentIds,
-          score: state.score + (option?.score ?? -80),
+          parent: state,
+          option,
+          score: state.score + (option?.score ?? -400),
           signature: `${state.signature}|${requirement.key}:${option?.gear.id ?? 0}`,
+          airPower:
+            parentAirPower +
+            (rankByAir && requirement.kind !== 'expansion' && option
+              ? (option.gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0)
+              : 0),
         })
       })
     })
-    states =
-      flexibleCarrierAirPriority && airPowerMinimum !== null
-        ? rankFlexibleAirStates(nextStates, regularRequirementsByKey, airPowerMinimum)
-        : rankStates(nextStates, GEAR_BEAM_WIDTH)
+    context.diagnostics.expandedStateCount += nextStates.length
+    const selectedStates = rankByAir
+      ? rankFlexibleAirStates(nextStates, (choice) => choice.airPower, airPowerMinimum)
+      : rankStates(nextStates, plan ? 48 : GEAR_BEAM_WIDTH)
+    states = selectedStates.map(({ parent, option, score, signature }) => {
+      if (option === undefined) return parent
+      context.diagnostics.materializedStateCount += 1
+      return {
+        assignments:
+          requirement.kind === 'expansion'
+            ? parent.assignments
+            : new Map(parent.assignments).set(requirement.key, option?.gear ?? null),
+        expansionAssignments:
+          requirement.kind === 'expansion' && option
+            ? new Map(parent.expansionAssignments).set(requirement.shipIndex, option.gear)
+            : parent.expansionAssignments,
+        usedEquipmentIds: option
+          ? new Set(parent.usedEquipmentIds).add(option.gear.id)
+          : parent.usedEquipmentIds,
+        score,
+        signature,
+      }
+    })
   })
 
-  const requiredEquipmentRequirements = requirements.filter(
-    (requirement) =>
-      requirement.kind === 'midget-submarine' ||
-      requirement.kind === 'drum-canister' ||
-      requirement.kind === 'anti-installation-shell' ||
-      requirement.kind === 'anti-installation-surface' ||
-      requirement.kind === 'anti-installation-aircraft',
+  const requiredEquipmentRequirements = requirements.filter((requirement) =>
+    isMandatoryRequirementKind(requirement.kind),
   )
   const requiredStates = states.filter((state) =>
     requiredEquipmentRequirements.every((requirement) => {
       const gear = state.assignments.get(requirement.key)
-      if (!gear) return false
-      if (requirement.kind === 'midget-submarine') return gear.typeId === 22
-      if (requirement.kind === 'drum-canister') return isDrumCanister(gear)
-      if (requirement.kind === 'anti-installation-aircraft') {
-        return isCarrierInstallationAttackAircraft(gear)
-      }
-      if (requirement.kind === 'anti-installation-surface') {
-        return isSurfaceAntiInstallationGear(gear)
-      }
-      return isAntiInstallationShell(gear)
+      return gear !== undefined && gear !== null && gearMatchesRequirement(gear, requirement.kind)
     }),
   )
   const carrierStates = requiredStates.filter((state) =>
@@ -1501,8 +1625,8 @@ export const buildGearSolutions = (
   const rankedCarrierStates =
     flexibleCarrierAirPriority && airPowerMinimum !== null
       ? [...carrierStates].sort((left, right) => {
-          const leftAirPower = stateAirPower(left, regularRequirementsByKey)
-          const rightAirPower = stateAirPower(right, regularRequirementsByKey)
+          const leftAirPower = readAirPower(left)
+          const rightAirPower = readAirPower(right)
           const leftMeetsMinimum = leftAirPower >= airPowerMinimum
           const rightMeetsMinimum = rightAirPower >= airPowerMinimum
           return (
@@ -1514,7 +1638,7 @@ export const buildGearSolutions = (
           )
         })
       : carrierStates
-  const solutions = rankedCarrierStates.slice(0, 6).map((state) =>
+  const solutions = rankedCarrierStates.map((state) =>
     fleet.members.map((member, shipIndex) => ({
       ship: member.ship,
       role: member.role,
@@ -1524,6 +1648,95 @@ export const buildGearSolutions = (
       expansionSlot: state.expansionAssignments.get(shipIndex) ?? null,
     })),
   )
-  context.solutionCache.set(solutionCacheKey, solutions)
+  const rankedSolutions = rankCompleteLoadouts(solutions, routeContext)
+  const selected = selectDiverseLoadouts(rankedSolutions, 6)
+  context.solutionCache.set(solutionCacheKey, selected)
+  return selected
+}
+
+const rankCompleteLoadouts = (
+  solutions: readonly RecommendedShipBuild[][],
+  routeContext?: { route: RouteTemplate; hqLevel: number; objective: RecommendationObjective },
+): RecommendedShipBuild[][] => {
+  if (!routeContext) return [...solutions]
+  const { route, hqLevel, objective } = routeContext
   return solutions
+    .map((builds) => {
+      const metrics = calculateFleetMetrics(builds, route, hqLevel)
+      return {
+        builds,
+        valid: satisfiesCalculatedConstraints(metrics),
+        score:
+          scoreFleet(builds, metrics, objective, route).total -
+          builds.reduce(
+            (total, build) => total + build.equipment.filter((gear) => !gear).length * 8,
+            0,
+          ),
+      }
+    })
+    .sort((a, b) => Number(b.valid) - Number(a.valid) || b.score - a.score)
+    .map(({ builds }) => builds)
+}
+
+export const buildGearSolutions = (
+  ...args: Parameters<typeof solveGearPlan>
+): readonly RecommendedShipBuild[][] => {
+  const [
+    fleet,
+    context,
+    ,
+    ,
+    shellCount = 0,
+    surfaceCount = 0,
+    ,
+    carrierCount = 0,
+    ,
+    drumCount = 0,
+  ] = args
+  const routeContext = args[19]
+  const plans = createLoadoutPlans(
+    fleet,
+    context,
+    shellCount,
+    surfaceCount,
+    carrierCount,
+    drumCount,
+    routeContext?.route,
+  )
+  if (fleet.members.some((member) => member.role === 'carrier-air-superiority'))
+    context.diagnostics.flexibleCarrierFleetCount += 1
+  const candidates: RecommendedShipBuild[][] = []
+  for (const plan of plans) {
+    context.diagnostics.planCount += 1
+    if (Object.keys(plan.aswSlots).length) context.diagnostics.aswAllocationPlanCount += 1
+    if (shellCount + surfaceCount + carrierCount + drumCount > 0)
+      context.diagnostics.specialAssignmentPlanCount += 1
+    const planArgs: Parameters<typeof solveGearPlan> = [...args]
+    planArgs[0] = { ...fleet, members: plan.members }
+    planArgs[20] = plan
+    const solutions = solveGearPlan(...planArgs)
+    if (solutions.length === 0) context.diagnostics.failedPlanCount += 1
+    candidates.push(...solutions)
+  }
+  const ranked = rankCompleteLoadouts(candidates, routeContext)
+  // Keep failed metrics when no legal candidate exists, for meaningful no-solution diagnostics.
+  const valid = routeContext
+    ? ranked.filter((builds) =>
+        satisfiesCalculatedConstraints(
+          calculateFleetMetrics(builds, routeContext.route, routeContext.hqLevel),
+        ),
+      )
+    : ranked
+  const pool = valid.length ? valid : ranked
+  const emptyCount = (builds: readonly RecommendedShipBuild[]) =>
+    builds.reduce((total, build) => total + build.equipment.filter((gear) => !gear).length, 0)
+  const minimumEmpty = Math.min(...pool.map(emptyCount))
+  const selected = selectDiverseLoadouts(
+    pool.filter((builds) => emptyCount(builds) === minimumEmpty),
+    18,
+  )
+  context.diagnostics.emptyRegularSlotSolutionCount += selected.filter((builds) =>
+    builds.some((build) => build.equipment.some((gear) => !gear)),
+  ).length
+  return selected
 }
