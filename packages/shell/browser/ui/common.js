@@ -48,8 +48,7 @@ const sendMessage = async function (target, type, data) {
     if (!tabId) tabId = (await chrome.tabs.getCurrent())?.id || -1
     if (!windowId) windowId = (await chrome.windows.getCurrent())?.id || -1
 
-    return await ipc.send(
-      'webui-message',
+    return await ipc.sendWebUiCommand(
       { type, windowId, tabId, source: messageSource, target },
       data,
     )

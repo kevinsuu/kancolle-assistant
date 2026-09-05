@@ -1,0 +1,22 @@
+{
+  "node": "v24.14.0",
+  "platform": "linux",
+  "samples": [
+    {
+      "workers": 0,
+      "rss": 46383104
+    },
+    {
+      "workers": 1,
+      "rss": 69615616
+    },
+    {
+      "workers": 2,
+      "rss": 87601152
+    },
+    {
+      "workers": 3,
+      "rss": 105717760
+    }
+  ]
+}

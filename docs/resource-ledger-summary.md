@@ -92,3 +92,9 @@ The main process accepts only `today`, `yesterday`, or `rolling24`, plus the whi
 granularities `minute`, `fiveMinute`, `thirtyMinute`, and `hourly`, and only from the currently
 loaded KC3 Strategy Room origin. It executes a fixed reader in the KC3 page context; arbitrary
 script, table, player, and date-range input are not accepted.
+
+## Runtime isolation
+
+This calculation runs in its own lazy worker lane, separate from fleet recommendation and other
+resource tools. A different operation timing out does not cancel this calculation. Waiting queues are
+bounded; idle workers are reclaimed after one minute. See [shell runtime architecture](shell-runtime-architecture.md).

@@ -28,6 +28,7 @@ try {
   const result = spawnSync(process.execPath, ['--test', outfile], {
     stdio: 'inherit',
   })
+  if (result.error) throw result.error
   process.exitCode = result.status ?? 1
 } finally {
   fs.rmSync(temporaryDirectory, { recursive: true, force: true })

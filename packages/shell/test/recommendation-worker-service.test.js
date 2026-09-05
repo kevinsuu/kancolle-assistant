@@ -42,7 +42,7 @@ class WorkerDouble extends EventEmitter {
   }
 }
 
-test('recommendation worker service shares IDs and one worker across all operations', async () => {
+test('recommendation worker service shares IDs across isolated operation workers', async () => {
   const workers = []
   const service = createRecommendationWorkerService({
     createWorker: () => {
@@ -74,15 +74,15 @@ test('recommendation worker service shares IDs and one worker across all operati
     input: { value: 3 },
   })
   assert.deepEqual(
-    workers[0].messages.map(({ id, operation }) => ({ id, operation })),
+    workers.flatMap((worker) => worker.messages).map(({ id, operation }) => ({ id, operation })),
     [
       { id: 1, operation: 'fleet' },
       { id: 2, operation: 'expedition' },
       { id: 3, operation: 'resource-ledger' },
     ],
   )
-  assert.equal(workers.length, 1)
-  service.dispose()
+  assert.equal(workers.length, 3)
+  await service.dispose()
   assert.equal(workers[0].terminated, true)
 })
 
@@ -2171,6 +2171,7 @@ test('initial sync and different-map recommendations share one in-flight account
     mapId: '4-4',
     objective: 'balanced',
   })
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(calls, 1)
   release(snapshotTestAccount(1))
   await Promise.all([sync, map43, map44])
@@ -2192,14 +2193,16 @@ test('explicit refresh supersedes pending capture and invalidates other Strategy
     secondTab = snapshotTestEvent(2)
   const oldRead = handlers.get(ACCOUNT_CHANNEL)(firstTab)
   const refreshed = handlers.get(ACCOUNT_CHANNEL)(secondTab, { forceRefresh: true })
+  await new Promise((resolve) => setImmediate(resolve))
   assert.equal(releases.length, 2)
   releases[1](snapshotTestAccount(2))
   await refreshed
   releases[0](snapshotTestAccount(1))
   const oldResult = await oldRead
-  assert.equal(oldResult.account.generatedAt, '2')
+  assert.equal(oldResult.error.code, 'SNAPSHOT_SUPERSEDED')
   assert.equal((await handlers.get(ACCOUNT_CHANNEL)(firstTab)).account.generatedAt, '2')
   const next = handlers.get(ACCOUNT_CHANNEL)(secondTab, { forceRefresh: true })
+  await new Promise((resolve) => setImmediate(resolve))
   releases[2](snapshotTestAccount(3))
   await next
   assert.equal((await handlers.get(ACCOUNT_CHANNEL)(firstTab)).account.generatedAt, '3')

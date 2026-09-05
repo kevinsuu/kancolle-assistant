@@ -1,3 +1,5 @@
+import { registerAppShutdown } from './services/app-shutdown'
+import { applyProxySettings, readProxyDestination } from './services/proxy-settings'
 import path from 'path'
 import fsSync, { utimesSync } from 'fs'
 const https = require('https')
@@ -640,57 +642,13 @@ class Browser extends EventEmitter {
   }
 
   async applyProxy() {
-    const proxyCfg = configStore.get('proxy')
-    this.isProxyEnabled = proxyCfg.enable
-    const mode = proxyCfg.mode
-    const method = proxyCfg.method
-
-    const internal = mode === 'kccp-internal'
-    const allExternal = mode === 'all-external'
-    const https = method === 'https-mitm'
-
-    if (this.isProxyEnabled && (internal || allExternal || https)) {
-      let host, port
-      if (internal) {
-        const kccpConfig = await kccpService.getConfig(configStore)
-        host = kccpConfig.config.hostname
-        port = kccpConfig.config.httpsPort
-      } else {
-        host = proxyCfg.client.host
-        port = allExternal || https ? proxyCfg.client.httpsPort : proxyCfg.client.port
-      }
-
-      kccp.logger.log(logSource, 'Applying proxy settings:', this.isProxyEnabled, mode, host, port)
-
-      const proxyConfig = allExternal
-        ? { mode: 'fixed_servers', proxyRules: `http://${host}:${port}` }
-        : this.createKancolleProxyConfig(host, port, mode)
-      await this.session.setProxy(proxyConfig)
-    } else {
-      kccp.logger.log(logSource, 'Clearing proxy settings')
-      await this.session.setProxy({ mode: 'system' })
-    }
-
-    await this.session.forceReloadProxyConfig()
-    await this.session.closeAllConnections()
+    this.isProxyEnabled = await applyProxySettings({
+      configStore,
+      kccpService,
+      session: this.session,
+      logger: (event, data) => kccp.logger.log(logSource, event, data),
+    })
     await this.retryDmmRegionBlockedTabs()
-  }
-
-  createKancolleProxyConfig(host, port) {
-    // server letters, will expand to '00g|01y|02k' etc
-    const servers = 'gyksmotlrsbtpbhpskish'
-    const serversExp = [...servers].map((c, i) => String(i).padStart(2, '0') + c).join('|')
-
-    const pac =
-      'function FindProxyForURL(url, host) {\n' +
-      `  if (new RegExp("w(${serversExp})\\.kancolle-server\\.com").test(host))\n` +
-      `    return "PROXY ${host}:${port}";\n` +
-      '  return "DIRECT";\n' +
-      '}\n'
-
-    const pacData =
-      'data:application/x-ns-proxy-autoconfig;base64,' + Buffer.from(pac, 'utf8').toString('base64')
-    return { mode: 'pac_script', pacScript: pacData }
   }
 
   async retryDmmRegionBlockedTabs() {
@@ -776,7 +734,11 @@ class Browser extends EventEmitter {
       safeStorage,
       syncQuestList: (event) => this.synchronizeQuestList(event),
     })
-    app.once('will-quit', () => mainBootstrap.dispose())
+    registerAppShutdown({
+      app,
+      dispose: () => mainBootstrap.dispose(),
+      logger: (event, data) => kccp.logger.error(logSource, event, data),
+    })
 
     app.on('browser-window-focus', () => {
       const fWin = () => this.getFocusedWindow()
@@ -1052,18 +1014,16 @@ class Browser extends EventEmitter {
       await this.applyProxy()
     }
     // check to see if we need to retry kccp startup periodically
-    setTimeout(() => kccpService.checkRestart(configStore), 5000)
+    kccpService.checkRestart(configStore)
+    void kccpService.checkModUpdates().catch((error) =>
+      kccp.logger.error(logSource, 'proxy.mod-check-failed', {
+        message: String(error.message).slice(0, 240),
+      }),
+    )
   }
 
   async getProxyDestination() {
-    const proxyCfg = configStore.get('proxy')
-    if (proxyCfg.mode === 'kccp-internal') {
-      const { hostname, port } = (await kccpService.getConfig(configStore)).config
-      return { host: hostname, port }
-    } else {
-      const { host, port } = proxyCfg.client
-      return { host, port }
-    }
+    return readProxyDestination(configStore, kccpService)
   }
 
   getModPath(config) {

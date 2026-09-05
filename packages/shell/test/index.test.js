@@ -1,3 +1,11 @@
+import './app-shutdown.test.js'
+import './kccp-runtime.test.js'
+import './mod-update-checker.test.js'
+import './proxy-settings.test.js'
+import './cache-maintenance.test.js'
+import './webui-bridge.test.js'
+import './proxy-lifecycle.test.js'
+import './snapshot-cache.test.js'
 import './kccacheproxy-boundary.test.js'
 import './display-auto-fit.test.js'
 import './recommendation-characterization.test.js'
@@ -107,3 +115,4 @@ test('extension tab removal drops destroyed tabs from the collection', () => {
   assert.deepEqual(tabs.tabList, [remainingTab])
   assert.equal(destroyCount, 1)
 })
+import './architecture-worker.test.js'
