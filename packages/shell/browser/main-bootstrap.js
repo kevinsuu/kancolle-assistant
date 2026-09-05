@@ -8,6 +8,7 @@ import { registerWebUiIpc } from './ui/webui-ipc'
 export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => {
   const kccpService = createKccp()
   let recommendationService
+  let disposeRecommendationIpc
 
   const registerCoreServices = ({
     app,
@@ -24,7 +25,7 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
       createWorker: createRecommendationWorker,
       logger,
     })
-    registerRecommendationIpc({
+    disposeRecommendationIpc = registerRecommendationIpc({
       ipcMain,
       getKc3ExtensionId,
       recommend: (input, options) => recommendationService.recommend(input, options),
@@ -39,13 +40,15 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
     registerWebUiIpc({
       ipcMain,
       getWebUiExtensionId,
+      logger: (event, data) => kccpService.logger.log('webui', event, data),
       route: createWebUiCommandRouter({ ...routerDependencies, kccpService }),
     })
   }
 
   const dispose = () => {
-    recommendationService?.dispose()
-    kccpService.dispose()
+    disposeRecommendationIpc?.()
+    const pending = recommendationService?.dispose()
+    return Promise.all([pending, kccpService.dispose()])
   }
 
   return Object.freeze({ kccpService, registerCoreServices, registerWebUi, dispose })

@@ -75,7 +75,7 @@ class Search {
 
   constructor() {
     this.init()
-    ipc.on('webui-message', async (ev, msg) => {
+    ipc.onWebUiMessage(async (msg) => {
       console.log('Received message from main.', msg.type, msg.data)
       if (msg?.type) await this.receiveFromMain(msg)
       else alert('webui.js received invalid webui-message from main:\n' + JSON.stringify(msg))

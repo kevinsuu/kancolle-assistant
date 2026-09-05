@@ -53,3 +53,11 @@ export { RECOMMENDATION_OBJECTIVES } from './types'
 export type * from './expedition'
 export type * from './resource-ledger'
 export type * from './types'
+
+export * from './quests/quest-recommendation.js'
+
+export * from './quests/quest-synergy.js'
+
+export * from './quests/quest-synergy-engine.js'
+
+export * from './quests/quest-objective-synergy.js'

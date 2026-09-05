@@ -1,3 +1,4 @@
+import { SNAPSHOT_CHANGED_CHANNEL } from './browser/recommendation/channels'
 import { injectBrowserAction } from 'electron-chrome-extensions/browser-action'
 import { injectIpc } from './preload-ipc.js'
 import { ipcRenderer } from 'electron'
@@ -33,7 +34,12 @@ if (
 ) {
   window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-      injectFleetRecommender(invoke)
+      const onSnapshotChanged = (callback) => {
+        const listener = (_event, message) => callback(message)
+        ipcRenderer.on(SNAPSHOT_CHANGED_CHANNEL, listener)
+        return () => ipcRenderer.removeListener(SNAPSHOT_CHANGED_CHANNEL, listener)
+      }
+      injectFleetRecommender(invoke, onSnapshotChanged)
       injectExpeditionGoalPlanner(invoke)
       injectResourceCenter(invoke)
       injectResourceLedgerSummary(invoke)

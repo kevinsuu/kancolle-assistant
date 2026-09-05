@@ -49,8 +49,9 @@ only from the currently loaded KC3 Strategy Room origin:
 
 The preload adds a localized recommendation item to the Strategy Room fleet menu and renders the
 result. The map selector opens on 1-1. Account inventory stays behind the main-process boundary.
-Fleet and equipment search runs in a lazy worker thread with request correlation, crash recovery,
-and a 30-second defensive timeout. Before a successful result crosses IPC, it is reduced to the
+Fleet and equipment search runs in its own lazy worker lane with request correlation, crash recovery,
+and a 30-second execution timeout. Expedition planning and resource statistics use separate lanes;
+a timeout in one does not fail the others. Each lane has a bounded queue and a separate waiting deadline. Before a successful result crosses IPC, it is reduced to the
 route, source strategy text, ship, equipment, metric, reason, and warning fields used by the
 Strategy Room UI; internal scores are not sent to the renderer.
 
@@ -573,3 +574,13 @@ The root `yarn test` command runs these tests before the existing extension suit
 When testing with an account, compare at least five ships and ten equipment instances against KC3,
 including master ID, instance ID, improvement, and proficiency. Also confirm that no equipment ID
 appears twice within each result.
+
+## Snapshot consistency across windows
+
+Strategy Room windows in the same Electron session share one versioned account snapshot. When any
+window explicitly resynchronizes, previous summaries and results are invalidated in all subscribed
+windows. Successful synchronization refreshes their summaries without automatically solving again.
+A late response from an earlier synchronization or calculation cannot replace a newer result. Failed
+synchronization is shown explicitly and does not label old data as current. Closing/navigating a page
+removes its notification subscription; unloading KC3 disposes that extension's snapshot cache.
+Identical requests share in-flight work, and each snapshot retains at most 128 completed result entries.

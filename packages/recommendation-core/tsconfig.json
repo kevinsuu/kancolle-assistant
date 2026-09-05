@@ -6,7 +6,8 @@
     "rootDir": "src",
     "module": "Node16",
     "moduleResolution": "Node16",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "allowJs": true
   },
-  "include": ["src/**/*.ts", "src/**/*.json"]
+  "include": ["src/**/*.ts", "src/**/*.json", "src/**/*.js"]
 }

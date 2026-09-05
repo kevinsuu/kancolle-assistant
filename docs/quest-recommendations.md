@@ -284,3 +284,9 @@ Runtime diagnostics use the following structured events:
 
 Diagnostics are aggregate and bounded; they do not log the full quest list, ship roster, or raw
 resource snapshot.
+
+## Domain boundary
+
+Quest ranking and synergy rules are owned by `recommendation-core/src/quests`; the shell adapter
+continues to read KC3 data and render the existing results. This separation preserves the current
+ranking and grouping behavior while allowing the domain rules to run without Electron or KC3 globals.

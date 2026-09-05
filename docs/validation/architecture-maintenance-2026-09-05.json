@@ -1,0 +1,156 @@
+{
+  "node": "v24.14.0",
+  "platform": "linux",
+  "imagePixels": 1048576,
+  "archivePayloadBytes": 16777216,
+  "rssBeforeWorker": 115040256,
+  "rssIdleWorker": 127258624,
+  "rssWithWorker": 440082432,
+  "outputEquivalence": "sha256 matched",
+  "results": [
+    {
+      "operation": "outlines",
+      "mode": "main",
+      "samples": [
+        {
+          "elapsedMs": 125.55402599999991,
+          "eventLoopP95Ms": 27.131903,
+          "eventLoopMaxMs": 93.782015,
+          "rss": 218075136
+        },
+        {
+          "elapsedMs": 142.31707100000006,
+          "eventLoopP95Ms": 36.110335,
+          "eventLoopMaxMs": 100.532223,
+          "rss": 222924800
+        },
+        {
+          "elapsedMs": 143.6168819999998,
+          "eventLoopP95Ms": 31.653887,
+          "eventLoopMaxMs": 109.903871,
+          "rss": 223318016
+        },
+        {
+          "elapsedMs": 118.83563099999992,
+          "eventLoopP95Ms": 27.148287,
+          "eventLoopMaxMs": 89.587711,
+          "rss": 250146816
+        },
+        {
+          "elapsedMs": 134.09158000000002,
+          "eventLoopP95Ms": 27.049983,
+          "eventLoopMaxMs": 101.122047,
+          "rss": 254341120
+        }
+      ]
+    },
+    {
+      "operation": "outlines",
+      "mode": "worker",
+      "samples": [
+        {
+          "elapsedMs": 139.4430829999999,
+          "eventLoopP95Ms": 1.206271,
+          "eventLoopMaxMs": 1.546239,
+          "rss": 262729728
+        },
+        {
+          "elapsedMs": 180.4338049999999,
+          "eventLoopP95Ms": 1.222655,
+          "eventLoopMaxMs": 1.449983,
+          "rss": 271118336
+        },
+        {
+          "elapsedMs": 143.28326400000014,
+          "eventLoopP95Ms": 1.251327,
+          "eventLoopMaxMs": 1.470463,
+          "rss": 279769088
+        },
+        {
+          "elapsedMs": 132.34756199999993,
+          "eventLoopP95Ms": 1.218559,
+          "eventLoopMaxMs": 1.459199,
+          "rss": 280948736
+        },
+        {
+          "elapsedMs": 121.06942900000013,
+          "eventLoopP95Ms": 1.181695,
+          "eventLoopMaxMs": 1.674239,
+          "rss": 285405184
+        }
+      ]
+    },
+    {
+      "operation": "zip-entry",
+      "mode": "main",
+      "samples": [
+        {
+          "elapsedMs": 55.54448400000001,
+          "eventLoopP95Ms": 2.889727,
+          "eventLoopMaxMs": 56.754175,
+          "rss": 401866752
+        },
+        {
+          "elapsedMs": 47.951398000000154,
+          "eventLoopP95Ms": 1.263615,
+          "eventLoopMaxMs": 49.446911,
+          "rss": 401866752
+        },
+        {
+          "elapsedMs": 55.106718,
+          "eventLoopP95Ms": 1.467391,
+          "eventLoopMaxMs": 56.393727,
+          "rss": 435290112
+        },
+        {
+          "elapsedMs": 48.17128300000013,
+          "eventLoopP95Ms": 1.169407,
+          "eventLoopMaxMs": 48.267263,
+          "rss": 435290112
+        },
+        {
+          "elapsedMs": 45.4375,
+          "eventLoopP95Ms": 1.482751,
+          "eventLoopMaxMs": 46.661631,
+          "rss": 402083840
+        }
+      ]
+    },
+    {
+      "operation": "zip-entry",
+      "mode": "worker",
+      "samples": [
+        {
+          "elapsedMs": 62.505617999999686,
+          "eventLoopP95Ms": 1.213439,
+          "eventLoopMaxMs": 1.594367,
+          "rss": 418861056
+        },
+        {
+          "elapsedMs": 65.34621799999968,
+          "eventLoopP95Ms": 1.210367,
+          "eventLoopMaxMs": 1.504255,
+          "rss": 456740864
+        },
+        {
+          "elapsedMs": 53.84036100000003,
+          "eventLoopP95Ms": 1.232895,
+          "eventLoopMaxMs": 1.452031,
+          "rss": 456740864
+        },
+        {
+          "elapsedMs": 51.742795000000115,
+          "eventLoopP95Ms": 1.170431,
+          "eventLoopMaxMs": 1.323007,
+          "rss": 490295296
+        },
+        {
+          "elapsedMs": 48.06819899999982,
+          "eventLoopP95Ms": 1.197055,
+          "eventLoopMaxMs": 1.469439,
+          "rss": 440082432
+        }
+      ]
+    }
+  ]
+}

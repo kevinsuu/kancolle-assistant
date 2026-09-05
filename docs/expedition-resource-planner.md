@@ -406,3 +406,9 @@ The income and cost model follows the existing KC3 Scorer and Kancepts resource 
 available, but final ranking uses the normalized utility score above instead of raw weighted
 resource totals. Kancepts is available at <https://javran.github.io/kancepts/> and its source is at
 <https://github.com/Javran/kancepts>.
+
+## Runtime isolation
+
+This calculation runs in its own lazy worker lane, separate from fleet recommendation and other
+resource tools. A different operation timing out does not cancel this calculation. Waiting queues are
+bounded; idle workers are reclaimed after one minute. See [shell runtime architecture](shell-runtime-architecture.md).

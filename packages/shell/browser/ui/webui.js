@@ -36,19 +36,19 @@ class WebUI {
   settingsUrl = 'chrome-extension://' + chrome.runtime.id + '/settings.html'
 
   constructor() {
-    ipc.on('webui-message', async (ev, msg) => {
+    ipc.onWebUiMessage(async (msg) => {
       console.log('Received message from main.', msg.type, msg.data)
       if (msg?.type) await this.receiveFromMain(msg)
       else alert('webui.js received invalid webui-message from main:\n' + JSON.stringify(msg))
     })
-    ipc.on('update', (e, message) => {
+    ipc.onLogUpdate((message) => {
       chrome.runtime.sendMessage({
         type: 'kccp-log-update',
         meta: { windowId: this.windowId(), allTabs: true },
         data: message,
       })
     })
-    ipc.on('recent', (e, message) => {
+    ipc.onRecentLogs((message) => {
       chrome.runtime.sendMessage({
         type: 'kccp-log-recent',
         meta: { windowId: this.windowId(), allTabs: true },
@@ -303,7 +303,7 @@ class WebUI {
   }
 
   async sendToMain(type, data) {
-    return await ipc.send('webui-message', { windowId: this.windowId(), type }, data)
+    return await ipc.sendWebUiCommand({ windowId: this.windowId(), type }, data)
   }
 
   getTabContext(data, ev) {

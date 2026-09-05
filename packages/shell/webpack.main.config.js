@@ -3,6 +3,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 module.exports = {
   entry: {
     index: './index.js',
+    'maintenance.worker': './browser/workers/maintenance-worker.js',
     'recommendation.worker': './browser/workers/recommendation-worker.js',
   },
   output: {

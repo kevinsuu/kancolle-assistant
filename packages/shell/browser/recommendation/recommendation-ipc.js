@@ -1,10 +1,12 @@
+import { createRecommendationCalculation } from './recommendation-calculation'
+export { applyCombatEvaluations } from './recommendation-calculation'
+import { createSnapshotCache } from './snapshot-cache'
+import { SNAPSHOT_CHANGED_CHANNEL } from './channels'
 import {
   getMapOptions,
-  getRouteTemplates,
   normalizeResourceLedgerGranularity,
   resourcePreferencesFromPriorityMap,
   resourcePreferencesToWeights,
-  scoreFleet,
   validateResourcePriorityMap,
   validateResourcePreferenceMap,
 } from '@kancolle-assistant/recommendation-core'
@@ -21,11 +23,8 @@ import { readKC3AccountSnapshot, readKC3CombatEvaluations } from './kc3-bridge'
 import { planKC3Expeditions, readKC3ExpeditionSummary } from './kc3-expedition-planner'
 import { readKC3ResourceLedgerSummary } from './kc3-resource-ledger'
 import { readKC3QuestRecommendations } from './kc3-quest-recommendation'
-import { toRecommendationRendererResult } from './presentation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
-const EXACT_COMBAT_CANDIDATE_LIMIT = 18
-const SELECTED_ROUTE_CANDIDATE_LIMIT = 3
 const RECOMMENDATION_SLOW_THRESHOLD_MS = 3_000
 const EXPEDITION_WEIGHT_MIN = -5
 const EXPEDITION_WEIGHT_MAX = 20
@@ -68,168 +67,10 @@ const vectorToResourceWeights = (weights) => ({
   bauxite: weights.bauxite,
 })
 
-const guidePriority = (recommendation) =>
-  recommendation.route.tags.includes('guide-primary')
-    ? 0
-    : recommendation.route.tags.includes('guide-alternative')
-      ? 1
-      : 2
-
-const GUIDE_OBJECTIVE_PRIORITY = [
-  'balanced',
-  'boss-clear',
-  'low-cost',
-  'leveling',
-  'resource-fuel',
-  'resource-bauxite',
-  'resource-burner',
-  'resource-ammo',
-  'resource-steel',
-  'resource-bucket',
-  'resource-devmat',
-]
-
-const routeObjective = (route) =>
-  GUIDE_OBJECTIVE_PRIORITY.find((objective) => route.objectives?.includes(objective)) ??
-  route.objectives?.[0] ??
-  'balanced'
-
-export const applyCombatEvaluations = (
-  result,
-  evaluations,
-  objective,
-  { logger = () => {}, logContext = {}, elapsedMs = 0 } = {},
-) => {
-  if (!Array.isArray(evaluations)) throw new Error('KC3 combat evaluation result is invalid')
-  const evaluationsById = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation]))
-  const openingAswCandidates = []
-  const enriched = result.recommendations.map((recommendation) => {
-    const evaluation = evaluationsById.get(recommendation.id)
-    if (!evaluation || evaluation.ships.length !== recommendation.ships.length) {
-      throw new Error(`KC3 combat evaluation is incomplete: ${recommendation.id}`)
-    }
-    const ships = recommendation.ships.map((build, index) => ({
-      ...build,
-      combat: evaluation?.ships[index],
-    }))
-    const exactOpeningAswCount = evaluation.ships.filter(
-      (ship) => ship?.openingAswCapable === true,
-    ).length
-    const metrics = recommendation.metrics.openingAswRequired
-      ? { ...recommendation.metrics, openingAswCount: exactOpeningAswCount }
-      : recommendation.metrics
-    if (metrics.openingAswRequired) {
-      openingAswCandidates.push({
-        routeId: recommendation.route.id,
-        count: exactOpeningAswCount,
-        minimum: metrics.openingAswMinimum,
-      })
-    }
-    return {
-      ...recommendation,
-      ships,
-      metrics,
-      score: scoreFleet(ships, metrics, objective, recommendation.route),
-      reasons: [
-        ...recommendation.reasons,
-        {
-          code: 'KC3_COMBAT_EVALUATION_APPLIED',
-          message: 'KC3 已依完整配裝複算裝備加成與有效戰鬥力。',
-        },
-      ],
-    }
-  })
-  const eligible = enriched.filter(
-    (recommendation) =>
-      !recommendation.metrics.openingAswRequired ||
-      recommendation.metrics.openingAswCount >= recommendation.metrics.openingAswMinimum,
-  )
-  if (openingAswCandidates.length > 0) {
-    const rejectedCandidateCount = openingAswCandidates.filter(
-      ({ count, minimum }) => count < minimum,
-    ).length
-    const qualifyingCandidateCount = openingAswCandidates.length - rejectedCandidateCount
-    logger('recommendation.oasw-loadout-validation-completed', {
-      ...logContext,
-      operation: 'validate-complete-opening-asw-loadouts',
-      candidateCount: openingAswCandidates.length,
-      evaluatedShipCount: evaluations.reduce(
-        (total, evaluation) => total + evaluation.ships.length,
-        0,
-      ),
-      qualifyingCandidateCount,
-      rejectedCandidateCount,
-      bestObservedOpeningAsw: Math.max(...openingAswCandidates.map(({ count }) => count)),
-      requiredMinimum: Math.min(...openingAswCandidates.map(({ minimum }) => minimum)),
-      routeIds: [...new Set(openingAswCandidates.map(({ routeId }) => routeId))],
-      selectedBranch: 'kc3-complete-loadout',
-      outcome:
-        qualifyingCandidateCount > 0
-          ? 'passed'
-          : eligible.length > 0
-            ? 'oasw-rejected-non-oasw-remains'
-            : 'rejected-all',
-      reasonCodes: rejectedCandidateCount > 0 ? ['OASW_INSUFFICIENT'] : [],
-      elapsedMs,
-    })
-  }
-  if (enriched.length > 0 && eligible.length === 0) {
-    const best = Math.max(...openingAswCandidates.map(({ count }) => count), 0)
-    const minimum = Math.min(...openingAswCandidates.map(({ minimum }) => minimum))
-    const reason = {
-      code: 'OASW_INSUFFICIENT',
-      message: `KC3 依完整配裝驗證後，先制對潛可成立 ${best} 艘，最低需要 ${minimum} 艘。`,
-      values: { best, minimum },
-    }
-    return {
-      status: 'no-solution',
-      analysis: { reasons: [reason] },
-      diagnostics: {
-        ...(result.diagnostics ?? {}),
-        recommendationCandidateCount: 0,
-        bestOpeningAsw: best,
-        openingAswMinimum: minimum,
-        reasonCodes: [...new Set([...(result.diagnostics?.reasonCodes ?? []), reason.code])],
-      },
-      elapsedMs: result.elapsedMs,
-      solverVersion: result.solverVersion,
-    }
-  }
-  const seenFleets = new Set()
-  const ranked = eligible
-    .sort(
-      (left, right) =>
-        guidePriority(left) - guidePriority(right) ||
-        right.score.total - left.score.total ||
-        left.id.localeCompare(right.id),
-    )
-    .filter((recommendation) => {
-      const signature = `${recommendation.route.id}:${recommendation.ships
-        .map((build) => build.ship.id)
-        .join('-')}`
-      if (seenFleets.has(signature)) return false
-      seenFleets.add(signature)
-      return true
-    })
-  const selected = []
-  const selectedRouteIds = new Set()
-  ranked.forEach((recommendation) => {
-    if (selected.length >= 3 || selectedRouteIds.has(recommendation.route.id)) return
-    selected.push(recommendation)
-    selectedRouteIds.add(recommendation.route.id)
-  })
-  ranked.forEach((recommendation) => {
-    if (selected.length >= 3 || selected.includes(recommendation)) return
-    selected.push(recommendation)
-  })
-  return { ...result, recommendations: selected }
-}
-
 const isAllowedStrategyRoomSender = (event, extensionId) => {
   if (!extensionId) return false
-  const senderUrl = event.senderFrame?.url || event.sender.getURL()
   try {
-    const url = new URL(senderUrl)
+    const url = new URL(event.senderFrame?.url || event.sender.getURL())
     return (
       url.protocol === 'chrome-extension:' &&
       url.hostname === extensionId &&
@@ -281,13 +122,6 @@ const parseRequest = (request) => {
 }
 
 const recommendationCacheKey = (request) => JSON.stringify(request)
-
-const slowestRecommendationPhase = (timings) =>
-  Object.entries(timings).reduce(
-    (slowest, [phase, elapsedMs]) =>
-      elapsedMs > slowest.elapsedMs ? { phase, elapsedMs } : slowest,
-    { phase: 'unknown', elapsedMs: 0 },
-  )
 
 const recommendationLogContext = (parsedRequest) => ({
   mapId: parsedRequest.mapId,
@@ -455,231 +289,93 @@ export const registerRecommendationIpc = ({
     equipmentCount: snapshot.equipment.length,
     generatedAt: snapshot.generatedAt,
     capabilities: snapshot.metadata.capabilities,
+    snapshotVersion: snapshotVersions.get(snapshot),
   })
-  const accountSnapshots = new WeakMap()
-  const recommendationResults = new WeakMap()
-  let latestAccountSnapshot = null
-  let latestRecommendationSnapshot = null
-  let latestRecommendationResults = new Map()
-  const recommendationPromises = new Map()
-  const resetLatestRecommendations = () => {
-    latestRecommendationSnapshot = null
-    latestRecommendationResults = new Map()
-    recommendationPromises.clear()
-  }
-  const ensureLatestRecommendationCache = (snapshot) => {
-    if (latestRecommendationSnapshot === snapshot) return
-    latestRecommendationSnapshot = snapshot
-    latestRecommendationResults = new Map()
-    recommendationPromises.clear()
-  }
-  const calculateRecommendation = async ({ parsedRequest, snapshot, target }) => {
-    let result
-    const requestStartedAt = Date.now()
-    let solverElapsedMs = 0
-    let exactCombatElapsedMs = 0
-    const selectedRouteNeedsExactOpeningAsw = getRouteTemplates(
-      parsedRequest.mapId,
-      parsedRequest.objective,
-      parsedRequest.routeId,
-    ).some((route) =>
-      route.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw'),
-    )
-    const candidateLimit =
-      !parsedRequest.routeId || selectedRouteNeedsExactOpeningAsw
-        ? EXACT_COMBAT_CANDIDATE_LIMIT
-        : SELECTED_ROUTE_CANDIDATE_LIMIT
-    try {
-      const solverStartedAt = Date.now()
-      result = await recommend({
-        ...parsedRequest,
-        account: snapshot,
-        candidateLimit,
-      })
-      solverElapsedMs = Date.now() - solverStartedAt
-      if (result.status === 'success') {
-        try {
-          const exactCombatStartedAt = Date.now()
-          const evaluations = await readCombatEvaluations(
-            target,
-            result.recommendations,
-            snapshot.generatedAt,
-          )
-          exactCombatElapsedMs = Date.now() - exactCombatStartedAt
-          result = applyCombatEvaluations(result, evaluations, parsedRequest.objective, {
-            logger,
-            logContext: recommendationLogContext(parsedRequest),
-            elapsedMs: exactCombatElapsedMs,
-          })
-        } catch (error) {
-          const exactOpeningAswCandidateCount = result.recommendations.filter(
-            (recommendation) => recommendation.metrics.openingAswRequired,
-          ).length
-          const fallbackRecommendations = result.recommendations
-            .filter((recommendation) => !recommendation.metrics.openingAswRequired)
-            .slice(0, 3)
-          logger('recommendation.combat-evaluation-failed', {
-            ...recommendationLogContext(parsedRequest),
-            operation: 'evaluate-complete-loadouts',
-            candidateCount: result.recommendations.length,
-            exactOpeningAswCandidateCount,
-            affectedCandidateCount: result.recommendations.length,
-            fallbackResult:
-              fallbackRecommendations.length > 0
-                ? 'non-oasw-solver-ranking'
-                : 'error-no-unverified-oasw-output',
-            reasonCodes: ['KC3_COMBAT_EVALUATION_FAILED'],
-            message: sanitizedErrorMessage(error),
-          })
-          result =
-            fallbackRecommendations.length > 0
-              ? { ...result, recommendations: fallbackRecommendations }
-              : errorResult(
-                  'KC3_COMBAT_EVALUATION_FAILED',
-                  'KC3 無法驗證完成配裝的先制對潛條件，請重新同步後再試。',
-                )
-        }
-      }
-    } catch (error) {
-      const message = error?.message || String(error)
-      if (message.includes('timed out')) {
-        return errorResult(
-          'RECOMMENDATION_TIMEOUT',
-          '推薦計算逾時，請確認參考路線複雜度或重新同步後再試。',
-        )
-      }
-      logger('recommendation.failed', {
-        mapId: parsedRequest.mapId,
-        objective: parsedRequest.objective,
-        message,
-      })
-      return errorResult('SOLVER_FAILED', '推薦計算失敗，請稍後再試。')
+  const snapshotVersions = new WeakMap()
+  const contexts = new Map()
+  const contextFor = (event) => {
+    const session = event.sender.session || null
+    const extensionId = getKc3ExtensionId()
+    let context = contexts.get(session)
+    if (context && context.extensionId !== extensionId) {
+      context.dispose()
+      contexts.delete(session)
+      context = null
     }
-    if (result.status !== 'error') {
-      const totalElapsedMs = Date.now() - requestStartedAt
-      const timings = {
-        solverElapsedMs,
-        exactCombatElapsedMs,
-      }
-      const slowestPhase = slowestRecommendationPhase(timings)
-      const routeCount =
-        getMapOptions()
-          .find((map) => map.id === parsedRequest.mapId)
-          ?.routes.filter(
-            (route) =>
-              route.objectives.includes(parsedRequest.objective) &&
-              (!parsedRequest.routeId || route.id === parsedRequest.routeId),
-          ).length ?? 0
-      const diagnostics = result.diagnostics ?? {}
-      logger('recommendation.completed', {
-        mapId: parsedRequest.mapId,
-        objective: parsedRequest.objective,
-        routeId: parsedRequest.routeId ?? null,
-        searchMode: parsedRequest.routeId ? 'selected-route' : 'auto-compare',
-        routeCount,
-        status: result.status,
-        elapsedMs: result.elapsedMs,
-        solverElapsedMs,
-        exactCombatElapsedMs,
-        totalElapsedMs,
-        slowestPhase: slowestPhase.phase,
-        slowestPhaseElapsedMs: slowestPhase.elapsedMs,
-        recommendationCount: result.status === 'success' ? result.recommendations.length : 0,
-        routeCandidateCount: diagnostics.routeCandidateCount ?? routeCount,
-        availableRouteCount: diagnostics.availableRouteCount ?? null,
-        fleetSearchEligibleShipCount: diagnostics.fleetSearchEligibleShipCount ?? 0,
-        fleetSearchCandidatePoolCount: diagnostics.fleetSearchCandidatePoolCount ?? 0,
-        fleetSearchRequiredCandidateCount: diagnostics.fleetSearchRequiredCandidateCount ?? 0,
-        fleetSearchInfeasiblePartialStateCount:
-          diagnostics.fleetSearchInfeasiblePartialStateCount ?? 0,
-        fleetSearchMaxDepth: diagnostics.fleetSearchMaxDepth ?? 0,
-        fleetSearchCompleteStateCount: diagnostics.fleetSearchCompleteStateCount ?? 0,
-        fleetSearchConstraintValidStateCount: diagnostics.fleetSearchConstraintValidStateCount ?? 0,
-        fleetSearchSpecialAttackRejectedCount:
-          diagnostics.fleetSearchSpecialAttackRejectedCount ?? 0,
-        fleetSearchZeroCandidateRouteCount: diagnostics.fleetSearchZeroCandidateRouteCount ?? 0,
-        evaluatedFleetCandidateCount: diagnostics.evaluatedFleetCandidateCount ?? null,
-        gearSolutionCount: diagnostics.gearSolutionCount ?? null,
-        currentFleetShipCount: diagnostics.currentFleetShipCount ?? 0,
-        currentLoadoutCandidateCount: diagnostics.currentLoadoutCandidateCount ?? 0,
-        currentLoadoutAcceptedCount: diagnostics.currentLoadoutAcceptedCount ?? 0,
-        currentLoadoutBestAirPower: diagnostics.currentLoadoutBestAirPower ?? null,
-        currentLoadoutBestLos: diagnostics.currentLoadoutBestLos ?? null,
-        currentFleetComparisonRouteCount: diagnostics.currentFleetComparisonRouteCount ?? 0,
-        currentFleetAlternativeCandidateCount:
-          diagnostics.currentFleetAlternativeCandidateCount ?? 0,
-        currentFleetAlternativeAcceptedCount: diagnostics.currentFleetAlternativeAcceptedCount ?? 0,
-        recommendationCandidateCount: diagnostics.recommendationCandidateCount ?? null,
-        bestAirPower: diagnostics.bestAirPower ?? null,
-        airPowerMinimum: diagnostics.airPowerMinimum ?? null,
-        bestLos: diagnostics.bestLos ?? null,
-        losMinimum: diagnostics.losMinimum ?? null,
-        bestOpeningAsw: diagnostics.bestOpeningAsw ?? null,
-        openingAswMinimum: diagnostics.openingAswMinimum ?? null,
-        zuiunCutInCandidateCount: diagnostics.zuiunCutInCandidateCount ?? 0,
-        zuiunCutInFallbackCandidateCount: diagnostics.zuiunCutInFallbackCandidateCount ?? 0,
-        reasonCodes:
-          diagnostics.reasonCodes ??
-          (result.status === 'no-solution'
-            ? [...new Set(result.analysis.reasons.map(({ code }) => code))]
-            : []),
+    if (!context) {
+      const senders = new Map()
+      const cache = createSnapshotCache({
+        logger,
+        notify: (message) => {
+          let affectedWindowCount = 0
+          for (const sender of senders.keys()) {
+            if (sender.isDestroyed?.() || !isAllowedStrategyRoomSender({ sender }, extensionId))
+              continue
+            try {
+              sender.send?.(SNAPSHOT_CHANGED_CHANNEL, message)
+              affectedWindowCount++
+            } catch (error) {
+              logger('recommendation.snapshot-notify-failed', {
+                message: sanitizedErrorMessage(error),
+                outcome: 'failed',
+              })
+            }
+          }
+          logger('recommendation.snapshot-notified', { ...message, affectedWindowCount })
+        },
       })
-      if (totalElapsedMs > recommendationSlowThresholdMs) {
-        logger('recommendation.slow-completed', {
-          ...recommendationLogContext(parsedRequest),
-          thresholdMs: recommendationSlowThresholdMs,
-          totalElapsedMs,
-          solverElapsedMs,
-          exactCombatElapsedMs,
-          slowestPhase: slowestPhase.phase,
-          slowestPhaseElapsedMs: slowestPhase.elapsedMs,
-        })
+      const onExtensionUnloaded = (_event, extension) => {
+        if (extension?.id !== extensionId) return
+        context.dispose()
+        contexts.delete(session)
       }
-    }
-    return toRecommendationRendererResult(result)
-  }
-  const getRecommendationCalculation = ({ parsedRequest, snapshot, target }) => {
-    ensureLatestRecommendationCache(snapshot)
-    const cacheKey = recommendationCacheKey(parsedRequest)
-    if (latestRecommendationResults.has(cacheKey)) {
-      const result = latestRecommendationResults.get(cacheKey)
-      return Promise.resolve(result)
-    }
-    if (recommendationPromises.has(cacheKey)) return recommendationPromises.get(cacheKey)
-    const promise = calculateRecommendation({ parsedRequest, snapshot, target }).then((result) => {
-      if (result.status !== 'error' && latestRecommendationSnapshot === snapshot) {
-        latestRecommendationResults.set(cacheKey, result)
+      session?.on?.('extension-unloaded', onExtensionUnloaded)
+      context = {
+        extensionId,
+        cache,
+        senders,
+        dispose: () => {
+          session?.removeListener?.('extension-unloaded', onExtensionUnloaded)
+          cache.dispose()
+          for (const cleanup of senders.values()) cleanup()
+          senders.clear()
+        },
       }
-      return result
-    })
-    recommendationPromises.set(cacheKey, promise)
-    promise.finally(() => {
-      if (recommendationPromises.get(cacheKey) === promise) recommendationPromises.delete(cacheKey)
-    })
-    return promise
+      contexts.set(session, context)
+    }
+    if (!context.senders.has(event.sender)) {
+      const sender = event.sender,
+        ownedContext = context
+      const cleanup = () => {
+        sender.removeListener?.('destroyed', cleanup)
+        sender.removeListener?.('did-start-navigation', navigation)
+        ownedContext.senders.delete(sender)
+      }
+      const navigation = (_event, _url, isInPlace, isMainFrame) => {
+        if (isMainFrame && !isInPlace) cleanup()
+      }
+      sender.once?.('destroyed', cleanup)
+      sender.on?.('did-start-navigation', navigation)
+      context.senders.set(sender, cleanup)
+    }
+    return context.cache
   }
+  const calculateRecommendation = createRecommendationCalculation({
+    recommend,
+    logger,
+    readCombatEvaluations,
+    recommendationSlowThresholdMs,
+  })
   const readCachedAccount = async (event, forceRefresh = false) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
     }
-    const sender = event.sender
-    if (forceRefresh) {
-      accountSnapshots.delete(sender)
-      recommendationResults.delete(sender)
-      latestAccountSnapshot = null
-      resetLatestRecommendations()
-    }
-    if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
-    if (!forceRefresh && latestAccountSnapshot) {
-      accountSnapshots.set(sender, latestAccountSnapshot)
-      return latestAccountSnapshot
-    }
-    const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger)
-    if (snapshot.status !== 'error') {
-      accountSnapshots.set(sender, snapshot)
-      latestAccountSnapshot = snapshot
-      ensureLatestRecommendationCache(snapshot)
-    }
+    const cache = contextFor(event)
+    const snapshot = await cache.read(
+      () => readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger),
+      forceRefresh,
+    )
+    if (snapshot.status !== 'error') snapshotVersions.set(snapshot, cache.version(snapshot))
     return snapshot
   }
 
@@ -952,24 +648,18 @@ export const registerRecommendationIpc = ({
       accountElapsedMs = Date.now() - requestStartedAt
       if (snapshot.status === 'error') return snapshot
       const cacheKey = recommendationCacheKey(parsedRequest)
-      const cachedResults = recommendationResults.get(event.sender)
-      if (cachedResults?.snapshot === snapshot && cachedResults.results.has(cacheKey)) {
-        cacheHit = true
-        rendererResult = cachedResults.results.get(cacheKey)
-      } else {
-        activePhase = 'solver-and-combat'
-        rendererResult = await getRecommendationCalculation({
+      const cache = contextFor(event)
+      cacheHit = cache.has(cacheKey)
+      activePhase = 'solver-and-combat'
+      rendererResult = await cache.calculate(snapshot, cacheKey, () =>
+        calculateRecommendation({
           parsedRequest,
           snapshot,
-          target: event.sender,
-        })
-        if (rendererResult.status !== 'error') {
-          const cache =
-            cachedResults?.snapshot === snapshot ? cachedResults : { snapshot, results: new Map() }
-          cache.results.set(cacheKey, rendererResult)
-          recommendationResults.set(event.sender, cache)
-        }
-      }
+          target: getSnapshotExecutionTarget(event),
+        }),
+      )
+      if (!cache.current(snapshot))
+        return errorResult('SNAPSHOT_SUPERSEDED', '帳號資料已重新同步，請重新產生推薦。')
       const totalElapsedMs = Date.now() - requestStartedAt
       if (
         totalElapsedMs > recommendationSlowThresholdMs ||
@@ -991,4 +681,18 @@ export const registerRecommendationIpc = ({
       clearTimeout(slowTimer)
     }
   })
+  return () => {
+    for (const context of contexts.values()) context.dispose()
+    contexts.clear()
+    for (const channel of [
+      ACCOUNT_CHANNEL,
+      MAP_OPTIONS_CHANNEL,
+      RECOMMEND_CHANNEL,
+      EXPEDITION_PLAN_CHANNEL,
+      EXPEDITION_SUMMARY_CHANNEL,
+      RESOURCE_LEDGER_SUMMARY_CHANNEL,
+      QUEST_RECOMMENDATIONS_CHANNEL,
+    ])
+      ipcMain.removeHandler?.(channel)
+  }
 }

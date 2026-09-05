@@ -317,7 +317,10 @@ const waitForNextPaint = () =>
     window.requestAnimationFrame(() => window.requestAnimationFrame(finish))
   })
 
-const mountPanel = (invoke) => {
+let disposePanelSubscription = () => {}
+const mountPanel = (invoke, onSnapshotChanged) => {
+  disposePanelSubscription()
+  let viewGeneration = 0
   const content = document.querySelector('#content')
   const contentHtml = document.querySelector('#contentHtml')
   if (!content || !contentHtml) return
@@ -448,6 +451,7 @@ const mountPanel = (invoke) => {
     blockControls = true,
   } = {}) => {
     if (forceRefresh) cachedAccountResult = null
+    const generation = viewGeneration
     accountSyncing = true
     if (blockControls) beginBusy()
     else updateBusy()
@@ -466,6 +470,7 @@ const mountPanel = (invoke) => {
         !forceRefresh && cachedAccountResult
           ? cachedAccountResult
           : await invoke(ACCOUNT_CHANNEL, { forceRefresh })
+      if (generation !== viewGeneration) return
       if (result.status === 'success') {
         showAccountSummary(result.account)
         if (invalidateResults) {
@@ -485,6 +490,7 @@ const mountPanel = (invoke) => {
         }
       }
     } catch {
+      if (typeof generation !== 'undefined' && generation !== viewGeneration) return
       accountReady = false
       title.textContent = t('fleet.account.unavailable')
       detail.textContent = t('fleet.failedFallback')
@@ -498,6 +504,31 @@ const mountPanel = (invoke) => {
     }
   }
 
+  const unsubscribe = onSnapshotChanged(({ phase }) => {
+    if (!title.isConnected) {
+      disposePanelSubscription()
+      return
+    }
+    if (phase === 'invalidated') {
+      viewGeneration++
+      cachedAccountResult = null
+      accountReady = false
+      output.textContent = t('fleet.resyncingTitle')
+      updateBusy()
+    } else if (phase === 'completed') {
+      void syncAccount({ invalidateResults: true, blockControls: false })
+    } else {
+      title.textContent = t('fleet.account.unavailable')
+      detail.textContent = t('fleet.account.syncFirst')
+    }
+  })
+  disposePanelSubscription = () => {
+    unsubscribe()
+    window.removeEventListener('pagehide', disposePanelSubscription)
+    viewGeneration++
+  }
+  window.addEventListener('pagehide', disposePanelSubscription, { once: true })
+
   syncButton.addEventListener('click', () =>
     syncAccount({ invalidateResults: true, forceRefresh: true }),
   )
@@ -509,6 +540,7 @@ const mountPanel = (invoke) => {
     renderSourceStatus()
   })
   generateButton.addEventListener('click', async () => {
+    const generation = viewGeneration
     const mapId = mapSelect.value
     const mapOption = mapOptions.find((item) => item.id === mapId)
     const routeId = routeSelect.value
@@ -527,6 +559,7 @@ const mountPanel = (invoke) => {
         objective,
         routeId,
       })
+      if (generation !== viewGeneration) return
       if (result.account) showAccountSummary(result.account)
       if (result.status === 'success') {
         renderResults(output, result, (sources) => {
@@ -550,6 +583,7 @@ const mountPanel = (invoke) => {
         renderError(output, t('fleet.incomplete'), [translateMessage(result.error)])
       }
     } catch {
+      if (generation !== viewGeneration) return
       activePlanSources = null
       renderSourceStatus()
       renderError(output, t('fleet.serviceUnavailable'), [t('fleet.failedFallback')])
@@ -585,7 +619,7 @@ const mountPanel = (invoke) => {
   loadInitialData()
 }
 
-export const injectFleetRecommender = (invoke) => {
+export const injectFleetRecommender = (invoke, onSnapshotChanged = () => () => {}) => {
   ;({ locale, t, translateMessage } = createStrategyRoomI18n())
   const style = document.createElement('style')
   style.id = 'damecon-fleet-recommender-style'
@@ -609,7 +643,7 @@ export const injectFleetRecommender = (invoke) => {
         item.classList.remove('active')
       })
       menuItem.classList.add('active')
-      mountPanel(invoke)
+      mountPanel(invoke, onSnapshotChanged)
     },
     true,
   )

@@ -136,7 +136,7 @@ class Settings {
   downloads = ko.observableArray([])
 
   /*async sendMessage(type, data) {
-    return await ipc.send('webui-message', { type, data })
+    return await ipc.sendWebUiCommand( { type, data })
   }*/
 
   async prepKccpConfig(config) {

@@ -64,3 +64,7 @@ jobs:
       - name: Run extension tests (Windows)
         if: runner.os == 'Windows'
         run: yarn test:extensions
+
+      - name: Run shell tests (Windows)
+        if: runner.os == 'Windows'
+        run: yarn test:shell

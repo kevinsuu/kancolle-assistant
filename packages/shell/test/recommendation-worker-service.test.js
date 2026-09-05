@@ -42,7 +42,7 @@ class WorkerDouble extends EventEmitter {
   }
 }
 
-test('recommendation worker service shares IDs and one worker across all operations', async () => {
+test('recommendation worker service shares IDs across isolated operation workers', async () => {
   const workers = []
   const service = createRecommendationWorkerService({
     createWorker: () => {
@@ -74,15 +74,15 @@ test('recommendation worker service shares IDs and one worker across all operati
     input: { value: 3 },
   })
   assert.deepEqual(
-    workers[0].messages.map(({ id, operation }) => ({ id, operation })),
+    workers.flatMap((worker) => worker.messages).map(({ id, operation }) => ({ id, operation })),
     [
       { id: 1, operation: 'fleet' },
       { id: 2, operation: 'expedition' },
       { id: 3, operation: 'resource-ledger' },
     ],
   )
-  assert.equal(workers.length, 1)
-  service.dispose()
+  assert.equal(workers.length, 3)
+  await service.dispose()
   assert.equal(workers[0].terminated, true)
 })
 

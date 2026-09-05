@@ -166,3 +166,32 @@ test('webui command router preserves return values and proxy handler order', asy
   )
   assert.equal(fixture.nativeTheme.themeSource, 'dark')
 })
+
+test('WebUI command diagnostics report success, invalid input and service failures', async () => {
+  const logs = []
+  let handle
+  registerWebUiIpc({
+    ipcMain: {
+      handle: (_channel, fn) => {
+        handle = fn
+      },
+    },
+    getWebUiExtensionId: () => extensionId,
+    logger: (event, data) => logs.push({ event, data }),
+    route: async (_event, meta) => {
+      if (meta.type === 'get-config') return {}
+      throw new Error('fixture')
+    },
+  })
+  const event = eventFor(`chrome-extension://${extensionId}/webui.html`)
+  await handle(event, { type: 'get-config' })
+  await assert.rejects(handle(event, { type: 'unknown' }), /invalid command/)
+  await assert.rejects(handle(event, { type: 'get-damecon-info' }), /fixture/)
+  assert.ok(
+    logs.some(
+      (log) => log.event === 'webui.command-completed' && log.data.operation === 'get-config',
+    ),
+  )
+  assert.ok(logs.some((log) => log.data.reasonCode === 'INVALID_COMMAND'))
+  assert.ok(logs.some((log) => log.data.reasonCode === 'COMMAND_FAILED'))
+})
