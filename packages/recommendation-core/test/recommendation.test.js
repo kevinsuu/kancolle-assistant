@@ -2055,20 +2055,43 @@ test('Zekamashi 5-4 quest guide adds two distinct routes and reuses the Mikawa f
 
 test('every normal map can build its primary balanced route with a capable account', () => {
   const account = parseKC3AccountSnapshot(createAllNormalMapsSnapshot())
+  const timings = []
   getMapOptions().forEach((map) => {
     const route = NORMAL_MAP_ROUTES.find(
       (candidate) => candidate.mapId === map.id && candidate.objectives.includes('balanced'),
     )
     assert.ok(route, `${map.id} has no balanced route`)
+    const startedAt = performance.now()
     const result = recommendFleet({
       mapId: map.id,
       routeId: route.id,
       objective: 'balanced',
       account,
-      candidateLimit: 1,
+      candidateLimit: 18,
+    })
+    timings.push({
+      mapId: map.id,
+      routeId: route.id,
+      elapsedMs: Math.round(performance.now() - startedAt),
     })
     assert.equal(result.status, 'success', `${map.id}/${route.id}: ${JSON.stringify(result)}`)
   })
+  if (process.env.RECOMMENDATION_BENCHMARK === '1') {
+    const ranked = [...timings].sort((a, b) => a.elapsedMs - b.elapsedMs)
+    console.log(
+      JSON.stringify({
+        eventName: 'recommendation.synthetic-benchmark',
+        shipCount: account.ships.length,
+        equipmentCount: account.equipment.length,
+        candidateLimit: 18,
+        routeCount: timings.length,
+        medianMs: ranked[Math.floor(ranked.length / 2)].elapsedMs,
+        p95Ms: ranked[Math.ceil(ranked.length * 0.95) - 1].elapsedMs,
+        slowest: ranked.at(-1),
+        timings,
+      }),
+    )
+  }
 })
 
 test('3-1 carrier-free By11 routes select three eligible US or UK ships from KC3 data', () => {

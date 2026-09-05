@@ -10,8 +10,45 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     throw new Error('KC3 account managers are not ready')
   }
 
-  const yieldToRenderer = () => new Promise((resolve) => window.setTimeout(resolve, 0))
   const snapshotStartedAt = window.performance.now()
+  const performanceDiagnostics = {
+    yieldStrategy: typeof window.scheduler?.postTask === 'function' ? 'scheduler'
+      : typeof window.MessageChannel === 'function' ? 'message-channel' : 'timer',
+    yieldCount: 0,
+    yieldWaitMs: 0,
+    managerLoadMs: 0,
+    shipCaptureMs: 0,
+    equipmentCaptureMs: 0,
+    speedStatDirectCount: 0,
+    speedStatFallbackCount: 0,
+    openingAswCloneCount: 0,
+    openingAswEvaluationCount: 0,
+  }
+  const yieldToRenderer = async () => {
+    const startedAt = window.performance.now()
+    if (performanceDiagnostics.yieldStrategy === 'scheduler') {
+      await window.scheduler.postTask(() => {}, { priority: 'user-visible' })
+    } else if (performanceDiagnostics.yieldStrategy === 'message-channel') {
+      await new Promise((resolve) => {
+        const channel = new window.MessageChannel()
+        channel.port1.onmessage = () => {
+          channel.port1.close()
+          channel.port2.close()
+          resolve()
+        }
+        channel.port2.postMessage(null)
+      })
+    } else {
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    }
+    performanceDiagnostics.yieldCount += 1
+    performanceDiagnostics.yieldWaitMs += window.performance.now() - startedAt
+  }
+  const reportPhase = (phase, counts = {}) => window.console?.info(
+    'recommendation.account-snapshot-phase ' + JSON.stringify({
+      phase, ...counts, elapsedMs: Math.round(window.performance.now() - snapshotStartedAt),
+    }),
+  )
   const openingAswProbeDiagnostics = {
     attemptedShipCount: 0,
     failedShipIds: new Set(),
@@ -53,6 +90,9 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
   if (!shipList.length || !gearList.length || hqLevel <= 0) {
     throw new Error('KC3 has not synchronized port data yet')
   }
+
+  performanceDiagnostics.managerLoadMs = window.performance.now() - snapshotStartedAt
+  reportPhase('managers-loaded', { shipCount: shipList.length, equipmentCount: gearList.length })
 
   const RENDERER_SLICE_MS = 8
   const mapResponsively = async (items, mapItem) => {
@@ -189,7 +229,12 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       while (regularIds.length < Math.max(slotnum, 4)) regularIds.push(-1)
       probeShip.items = regularIds
       probeShip.ex_item = probeGears[slotnum] ? probeGears[slotnum].itemId : 0
-      const speedBonus = Number(probeShip.statsBonusOnShip('sp') || 0)
+      // statsBonusOnShip('sp') evaluates ten stats in KC3; request only its speed branch.
+      const directSpeedStat = typeof probeShip.equipmentTotalStats === 'function'
+      performanceDiagnostics[directSpeedStat ? 'speedStatDirectCount' : 'speedStatFallbackCount'] += 1
+      const speedBonus = Number((directSpeedStat
+        ? probeShip.equipmentTotalStats('soku', true, true, true)
+        : probeShip.statsBonusOnShip('sp')) || 0)
       return Math.min(20, Number(master.api_soku || 0) + speedBonus)
     }
 
@@ -354,25 +399,30 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       return isSonarMaster(window.KC3Master.slotitem(gear.masterId))
     })
     let probeFailed = false
+    let probeShip = null
     const canDoOpeningAsw = (probeGears, visibleAsw) => {
       if (probeFailed) return false
       try {
-        const gearById = new Map(probeGears.map((gear) => [Number(gear.itemId), gear]))
-        const probeShip = new window.KC3Ship(ship, true)
-        const regularIds = probeGears.slice(0, slotnum).map((gear) => Number(gear.itemId))
-        while (regularIds.length < Math.max(slotnum, 5)) regularIds.push(-1)
-        probeShip.items = regularIds
-        probeShip.ex_item = 0
-        probeShip.slots = capacities.slice(0, slotnum).map(Number)
-        probeShip.slotsMax = capacities.slice(0, slotnum).map(Number)
-        probeShip.GearManager = {
-          get: (itemId) => gearById.get(Number(itemId)) || emptyGear,
+        if (!probeShip) {
+          const gearById = new Map(probeGears.map((gear) => [Number(gear.itemId), gear]))
+          probeShip = new window.KC3Ship(ship, true)
+          performanceDiagnostics.openingAswCloneCount += 1
+          const regularIds = probeGears.slice(0, slotnum).map((gear) => Number(gear.itemId))
+          while (regularIds.length < Math.max(slotnum, 5)) regularIds.push(-1)
+          probeShip.items = regularIds
+          probeShip.ex_item = 0
+          probeShip.slots = capacities.slice(0, slotnum).map(Number)
+          probeShip.slotsMax = capacities.slice(0, slotnum).map(Number)
+          probeShip.GearManager = {
+            get: (itemId) => gearById.get(Number(itemId)) || emptyGear,
+          }
         }
         probeShip.as = [
           Number(visibleAsw),
           Math.max(Number(visibleAsw), Number((ship.as || [0, 0])[1]) || 0),
         ]
         probeShip.statsCache = {}
+        performanceDiagnostics.openingAswEvaluationCount += 1
         return Boolean(probeShip.canDoOASW())
       } catch (error) {
         probeFailed = true
@@ -381,6 +431,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       }
     }
     const minimumVisibleAsw = (probeGears) => {
+      probeShip = null
       if (!canDoOpeningAsw(probeGears, 220)) return null
       let lower = 0
       let upper = 220
@@ -407,6 +458,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     return rules
   }
 
+  const shipCaptureStartedAt = window.performance.now()
   const ships = await mapResponsively(shipList, (ship) => {
     const master = window.KC3Master.ship(ship.masterId)
     if (!master) throw new Error('Missing KC3 ship master: ' + ship.masterId)
@@ -479,6 +531,9 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     }
   })
 
+  performanceDiagnostics.shipCaptureMs = window.performance.now() - shipCaptureStartedAt
+  reportPhase('ships-completed', { shipCount: ships.length })
+  const equipmentCaptureStartedAt = window.performance.now()
   const airPowerByGearConfiguration = new Map()
   const equipment = await mapResponsively(gearList, (gear) => {
     const master = window.KC3Master.slotitem(gear.masterId)
@@ -526,6 +581,8 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
     }
   })
 
+  performanceDiagnostics.equipmentCaptureMs = window.performance.now() - equipmentCaptureStartedAt
+  reportPhase('equipment-completed', { equipmentCount: equipment.length })
   return {
     generatedAt: new Date().toISOString(),
     hqLevel,
@@ -540,6 +597,7 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
       currentFleet: Boolean(window.PlayerManager && Array.isArray(window.PlayerManager.fleets)),
     },
     diagnostics: {
+      performance: performanceDiagnostics,
       openingAswProbe: {
         attemptedShipCount: openingAswProbeDiagnostics.attemptedShipCount,
         failedShipCount: openingAswProbeDiagnostics.failedShipIds.size,
@@ -554,7 +612,30 @@ const KC3_ACCOUNT_SNAPSHOT_SCRIPT = `(async () => {
 
 export const readKC3AccountSnapshot = async (webContents, logger = () => {}) => {
   const snapshotStartedAt = Date.now()
-  const rawSnapshot = await webContents.executeJavaScript(KC3_ACCOUNT_SNAPSHOT_SCRIPT, true)
+  logger('recommendation.account-snapshot-started', { operation: 'capture-account' })
+  let rawSnapshot
+  try {
+    rawSnapshot = await webContents.executeJavaScript(KC3_ACCOUNT_SNAPSHOT_SCRIPT, true)
+  } catch (error) {
+    logger('recommendation.account-snapshot-failed', {
+      operation: 'capture-account',
+      reasonCodes: ['KC3_ACCOUNT_CAPTURE_FAILED'],
+      message: String(error?.message || error)
+        .replace(/\s+/g, ' ')
+        .slice(0, 160),
+      elapsedMs: Date.now() - snapshotStartedAt,
+    })
+    throw error
+  }
+  const performance = rawSnapshot?.diagnostics?.performance
+  if (performance) {
+    logger('recommendation.account-snapshot-completed', {
+      ...performance,
+      shipCount: rawSnapshot.ships?.length ?? 0,
+      equipmentCount: rawSnapshot.equipment?.length ?? 0,
+      elapsedMs: Date.now() - snapshotStartedAt,
+    })
+  }
   const rawShips = Array.isArray(rawSnapshot?.ships) ? rawSnapshot.ships : []
   const canonicalNameMissingCount = rawShips.filter(
     (ship) => typeof ship?.canonicalName !== 'string' || ship.canonicalName.length === 0,

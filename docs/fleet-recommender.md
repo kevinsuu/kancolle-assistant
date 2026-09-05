@@ -72,7 +72,10 @@ The integration points follow KC3Kai's current
 implementations; the application does not persist a copied multiplier table.
 
 The Strategy Room account summary reads one normalized account snapshot and reuses it while the
-same page remains open. This avoids repeating KC3 compatibility, speed-pattern, and per-slot
+same synchronized account generation remains active. Concurrent initial-page sync and foreground
+recommendation requests across Strategy Room tabs share one in-flight capture. An explicit resync
+invalidates all tabs; superseded captures cannot replace the new snapshot or refill its result cache.
+Failed captures are not cached and can be retried. This avoids repeating KC3 compatibility, speed-pattern, and per-slot
 air-power extraction before every visible calculation. The `重新同步` action explicitly reloads KC3's
 persisted ship, equipment, HQ, and fleet data, replaces the cached snapshot, and invalidates
 recommendations produced from the previous snapshot. Use it after changing ships or equipment in
@@ -109,8 +112,9 @@ generated plans, the data-status source list follows the currently visible plan.
 
 Map and route options load and paint before the initial account synchronization. The generate action
 becomes available as soon as a map and guide route are selected, even if the account summary is
-still loading; the foreground recommendation request reads the required KC3 snapshot itself. KC3's
-full snapshot extraction yields between short calculation batches, so the native selectors remain
+still loading; the foreground recommendation joins any account capture already in progress. KC3's
+full snapshot extraction yields between short calculation batches using renderer scheduler tasks,
+with a MessageChannel fallback (and timers only if neither API is available), so the native selectors remain
 responsive while a large account is being read. Selecting `Generate recommendation` immediately
 disables the controls, changes the button label, and displays loading indicators in both the button
 and result area. The UI waits for that state to paint before starting
@@ -596,6 +600,23 @@ unverified value.
 
 See [local manual acceptance](./loadout-manual-acceptance.md) for map templates, fleet and inventory
 conditions, expected checks, and repeatable low-inventory fixtures.
+
+### Shared recommendation latency
+
+Account capture requests only the speed equipment stat when deriving Fast+ patterns rather than
+calling KC3's all-stat aggregator for each speed combination. OASW threshold searches reuse one
+cloned ship per equipment setup and clear its stat cache between ASW trials. KC3 remains the formula
+authority; the full-loadout exact validation is unchanged.
+
+`recommendation.account-snapshot-started/completed/failed` logs capture boundaries and failure codes.
+Completion separates manager load, ship extraction, equipment extraction, renderer yield waiting,
+direct/fallback speed calls and OASW evaluations/clones. The renderer emits three bounded
+`recommendation.account-snapshot-phase` messages as managers, ships and equipment finish, so an
+interrupted capture can be localized. `recommendation.account-snapshot-request-completed` records
+shared consumer count, account generation and success/failed/superseded outcome.
+
+See [performance architecture and acceptance](./recommendation-performance.md) for the shared pipeline,
+repeatable all-map benchmark and limits of the measurements.
 
 ## Development
 

@@ -492,8 +492,10 @@ export const registerRecommendationIpc = ({
     generatedAt: snapshot.generatedAt,
     capabilities: snapshot.metadata.capabilities,
   })
-  const accountSnapshots = new WeakMap()
-  const recommendationResults = new WeakMap()
+  let accountSnapshots = new WeakMap()
+  let recommendationResults = new WeakMap()
+  let accountGeneration = 0
+  let pendingAccountRead = null
   let latestAccountSnapshot = null
   let latestRecommendationSnapshot = null
   let latestRecommendationResults = new Map()
@@ -708,23 +710,57 @@ export const registerRecommendationIpc = ({
     }
     const sender = event.sender
     if (forceRefresh) {
-      accountSnapshots.delete(sender)
-      recommendationResults.delete(sender)
+      accountGeneration += 1
+      accountSnapshots = new WeakMap()
+      recommendationResults = new WeakMap()
       latestAccountSnapshot = null
       resetLatestRecommendations()
     }
-    if (!forceRefresh && accountSnapshots.has(sender)) return accountSnapshots.get(sender)
-    if (!forceRefresh && latestAccountSnapshot) {
-      accountSnapshots.set(sender, latestAccountSnapshot)
-      return latestAccountSnapshot
+    // Initial page sync and foreground requests share one capture across Strategy Room tabs.
+    // A refresh invalidates every tab; an older capture must never overwrite the new generation.
+    for (;;) {
+      if (accountSnapshots.has(sender)) return accountSnapshots.get(sender)
+      if (latestAccountSnapshot) {
+        accountSnapshots.set(sender, latestAccountSnapshot)
+        return latestAccountSnapshot
+      }
+      if (!pendingAccountRead || pendingAccountRead.generation !== accountGeneration) {
+        const read = {
+          generation: accountGeneration,
+          consumerCount: 0,
+          startedAt: Date.now(),
+          promise: readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger),
+        }
+        pendingAccountRead = read
+        read.promise.then((snapshot) => {
+          logger('recommendation.account-snapshot-request-completed', {
+            generation: read.generation,
+            consumerCount: read.consumerCount,
+            outcome:
+              read.generation !== accountGeneration
+                ? 'superseded'
+                : snapshot.status === 'error'
+                  ? 'failed'
+                  : 'success',
+            shipCount: snapshot.ships?.length ?? 0,
+            equipmentCount: snapshot.equipment?.length ?? 0,
+            reasonCodes: snapshot.status === 'error' ? [snapshot.error.code] : [],
+            elapsedMs: Date.now() - read.startedAt,
+          })
+        })
+      }
+      const read = pendingAccountRead
+      read.consumerCount += 1
+      const snapshot = await read.promise
+      if (pendingAccountRead === read) pendingAccountRead = null
+      if (read.generation !== accountGeneration) continue
+      if (snapshot.status !== 'error') {
+        accountSnapshots.set(sender, snapshot)
+        latestAccountSnapshot = snapshot
+        ensureLatestRecommendationCache(snapshot)
+      }
+      return snapshot
     }
-    const snapshot = await readAccount(event, getKc3ExtensionId, readAccountSnapshot, logger)
-    if (snapshot.status !== 'error') {
-      accountSnapshots.set(sender, snapshot)
-      latestAccountSnapshot = snapshot
-      ensureLatestRecommendationCache(snapshot)
-    }
-    return snapshot
   }
 
   ipcMain.handle(MAP_OPTIONS_CHANNEL, async (event) => {
@@ -1007,7 +1043,7 @@ export const registerRecommendationIpc = ({
           snapshot,
           target: event.sender,
         })
-        if (rendererResult.status !== 'error') {
+        if (rendererResult.status !== 'error' && latestAccountSnapshot === snapshot) {
           const cache =
             cachedResults?.snapshot === snapshot ? cachedResults : { snapshot, results: new Map() }
           cache.results.set(cacheKey, rendererResult)

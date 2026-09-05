@@ -2121,3 +2121,297 @@ test('exact reranking compares the same fleet variants before collapsing the res
   assert.equal(rejected.eligibleCandidateCount, 0)
   assert.deepEqual(rejected.reasonCodes, ['OASW_INSUFFICIENT'])
 })
+const snapshotTestEvent = (id = 1) => ({
+  sender: { id, getURL: () => 'chrome-extension://fixture/pages/strategy/strategy.html' },
+  senderFrame: { url: 'chrome-extension://fixture/pages/strategy/strategy.html' },
+})
+const snapshotTestAccount = (id) => ({
+  generatedAt: String(id),
+  ships: [{ id }],
+  equipment: [],
+  metadata: { capabilities: {} },
+})
+const snapshotTestIpc = (readAccountSnapshot) => {
+  const handlers = new Map(),
+    logs = [],
+    inputs = []
+  registerRecommendationIpc({
+    ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+    getKc3ExtensionId: () => 'fixture',
+    readAccountSnapshot,
+    recommend: async (input) => {
+      inputs.push(input)
+      return {
+        status: 'no-solution',
+        analysis: { reasons: [] },
+        elapsedMs: 0,
+        solverVersion: 'fixture',
+      }
+    },
+    planExpeditions: async () => {},
+    summarizeResourceLedger: async () => {},
+    logger: (name, data) => logs.push({ name, data }),
+  })
+  return { handlers, logs, inputs }
+}
+
+test('initial sync and different-map recommendations share one in-flight account capture', async () => {
+  let release,
+    calls = 0
+  const { handlers, logs, inputs } = snapshotTestIpc(() => {
+    calls += 1
+    return new Promise((resolve) => {
+      release = resolve
+    })
+  })
+  const event = snapshotTestEvent()
+  const sync = handlers.get(ACCOUNT_CHANNEL)(event)
+  const map43 = handlers.get(RECOMMEND_CHANNEL)(event, { mapId: '4-3', objective: 'balanced' })
+  const map44 = handlers.get(RECOMMEND_CHANNEL)(snapshotTestEvent(2), {
+    mapId: '4-4',
+    objective: 'balanced',
+  })
+  assert.equal(calls, 1)
+  release(snapshotTestAccount(1))
+  await Promise.all([sync, map43, map44])
+  assert.equal(inputs.length, 2)
+  assert.equal(inputs[0].account, inputs[1].account)
+  const completed = logs.find(
+    ({ name }) => name === 'recommendation.account-snapshot-request-completed',
+  )
+  assert.equal(completed.data.consumerCount, 3)
+  assert.equal(completed.data.outcome, 'success')
+  assert.equal(completed.data.shipCount, 1)
+  assert.ok(completed.data.elapsedMs >= 0)
+})
+
+test('explicit refresh supersedes pending capture and invalidates other Strategy Room tabs', async () => {
+  const releases = []
+  const { handlers, logs } = snapshotTestIpc(() => new Promise((resolve) => releases.push(resolve)))
+  const firstTab = snapshotTestEvent(),
+    secondTab = snapshotTestEvent(2)
+  const oldRead = handlers.get(ACCOUNT_CHANNEL)(firstTab)
+  const refreshed = handlers.get(ACCOUNT_CHANNEL)(secondTab, { forceRefresh: true })
+  assert.equal(releases.length, 2)
+  releases[1](snapshotTestAccount(2))
+  await refreshed
+  releases[0](snapshotTestAccount(1))
+  const oldResult = await oldRead
+  assert.equal(oldResult.account.generatedAt, '2')
+  assert.equal((await handlers.get(ACCOUNT_CHANNEL)(firstTab)).account.generatedAt, '2')
+  const next = handlers.get(ACCOUNT_CHANNEL)(secondTab, { forceRefresh: true })
+  releases[2](snapshotTestAccount(3))
+  await next
+  assert.equal((await handlers.get(ACCOUNT_CHANNEL)(firstTab)).account.generatedAt, '3')
+  assert.equal(releases.length, 3)
+  assert.ok(
+    logs.some(
+      ({ name, data }) =>
+        name === 'recommendation.account-snapshot-request-completed' &&
+        data.outcome === 'superseded',
+    ),
+  )
+})
+
+test('failed shared capture is diagnosed and a subsequent sync can retry', async () => {
+  let calls = 0
+  const { handlers, logs } = snapshotTestIpc(async () => {
+    calls += 1
+    if (calls === 1) throw new Error('KC3 account managers are not ready')
+    return snapshotTestAccount(2)
+  })
+  const event = snapshotTestEvent()
+  const results = await Promise.all([
+    handlers.get(ACCOUNT_CHANNEL)(event),
+    handlers.get(ACCOUNT_CHANNEL)(event),
+  ])
+  assert.equal(calls, 1)
+  assert.ok(results.every((result) => result.status === 'error'))
+  assert.equal((await handlers.get(ACCOUNT_CHANNEL)(event)).status, 'success')
+  assert.equal(calls, 2)
+  const failed = logs.find(
+    ({ name, data }) =>
+      name === 'recommendation.account-snapshot-request-completed' && data.outcome === 'failed',
+  )
+  assert.equal(failed.data.consumerCount, 2)
+  assert.deepEqual(failed.data.reasonCodes, ['KC3_UNAVAILABLE'])
+})
+
+const createSnapshotSchedulingFixture = () => {
+  let ticks = 0
+  const calls = { tasks: 0, speed: 0, broadStats: 0, asw: 0 }
+  class Gear {
+    constructor(data = {}) {
+      Object.assign(this, { itemId: 0, masterId: 0 }, data)
+    }
+  }
+  class Ship {
+    constructor(data) {
+      Object.assign(this, data)
+    }
+    equipmentTotalStats(name) {
+      if (name !== 'soku') return 0
+      calls.speed += 1
+      return this.items.some((id) => this.GearManager.get(id).masterId === 33) ? 5 : 0
+    }
+    statsBonusOnShip() {
+      calls.broadStats += 1
+      throw new Error('should only calculate speed')
+    }
+    canDoOASW() {
+      calls.asw += 1
+      if ('oasw' in this.statsCache) return this.statsCache.oasw
+      const sonar = this.items.some((id) => this.GearManager.get(id).masterId === 1)
+      return (this.statsCache.oasw = sonar && this.as[0] >= 100)
+    }
+  }
+  const ship = new Ship({
+    rosterId: 1,
+    masterId: 141,
+    level: 99,
+    slotnum: 3,
+    slots: [0, 0, 0],
+    items: [1, -1, -1],
+    ex_item: 0,
+    as: [90, 120],
+    hp: [30, 30],
+    lock: 1,
+  })
+  const gear = new Gear({ itemId: 1, masterId: 1, stars: 0, ace: -1, lock: 1 })
+  return {
+    calls,
+    window: {
+      performance: { now: () => (ticks += 10) },
+      scheduler: {
+        postTask: async () => {
+          calls.tasks += 1
+        },
+      },
+      setTimeout: () => {
+        throw new Error('background timers must not be needed')
+      },
+      KC3Ship: Ship,
+      KC3Gear: Gear,
+      KC3ShipManager: { load: () => {}, list: { 1: ship } },
+      KC3GearManager: { load: () => {}, list: { 1: gear } },
+      KC3Master: {
+        available: true,
+        ship: () => ({
+          api_id: 141,
+          api_name: 'Fixture',
+          api_stype: 2,
+          api_soku: 10,
+          api_maxeq: [0, 0, 0],
+        }),
+        slotitem: (id) => ({
+          api_id: id,
+          api_name: 'Fixture gear',
+          api_type: [0, 0, id === 1 ? 14 : 0, 0],
+        }),
+        equip_on_ship: () => 1,
+      },
+      PlayerManager: { hq: { level: 120, load: () => {} }, fleets: [], loadFleets: () => {} },
+    },
+  }
+}
+
+test('snapshot uses renderer tasks and narrow speed calculations without changing OASW thresholds', async () => {
+  const fixture = createSnapshotSchedulingFixture(),
+    logs = []
+  const phaseMessages = []
+  fixture.window.console = { info: (message) => phaseMessages.push(message) }
+  const originalShip = JSON.stringify(fixture.window.KC3ShipManager.list[1])
+  const account = await readKC3AccountSnapshot(
+    {
+      executeJavaScript: (source) => new Function('window', `return ${source}`)(fixture.window),
+    },
+    (name, data) => logs.push({ name, data }),
+  )
+  assert.deepEqual(account.ships[0].openingAswRules, [{ kind: 'sonar', minimumAsw: 100 }])
+  assert.equal(JSON.stringify(fixture.window.KC3ShipManager.list[1]), originalShip)
+  assert.ok(fixture.calls.tasks >= 3)
+  assert.ok(fixture.calls.speed > 0)
+  assert.equal(fixture.calls.broadStats, 0)
+  const completed = logs.find(({ name }) => name === 'recommendation.account-snapshot-completed')
+  assert.equal(completed.data.yieldStrategy, 'scheduler')
+  assert.equal(completed.data.openingAswCloneCount, 2)
+  assert.ok(completed.data.openingAswEvaluationCount > completed.data.openingAswCloneCount)
+  assert.equal(completed.data.speedStatDirectCount, fixture.calls.speed)
+  assert.equal(completed.data.speedStatFallbackCount, 0)
+  assert.ok(completed.data.shipCaptureMs > 0)
+  assert.deepEqual(
+    phaseMessages.map((message) => JSON.parse(message.slice(message.indexOf(' ') + 1)).phase),
+    ['managers-loaded', 'ships-completed', 'equipment-completed'],
+  )
+})
+
+test('snapshot task fallback closes message ports and diagnoses capture failure', async () => {
+  const fixture = createSnapshotSchedulingFixture(),
+    logs = []
+  let closed = 0
+  delete fixture.window.scheduler
+  fixture.window.MessageChannel = class {
+    constructor() {
+      this.port1 = {
+        close: () => {
+          closed += 1
+        },
+      }
+      this.port2 = {
+        close: () => {
+          closed += 1
+        },
+        postMessage: () => queueMicrotask(() => this.port1.onmessage()),
+      }
+    }
+  }
+  await readKC3AccountSnapshot(
+    {
+      executeJavaScript: (source) => new Function('window', `return ${source}`)(fixture.window),
+    },
+    (name, data) => logs.push({ name, data }),
+  )
+  const completed = logs.find(({ name }) => name === 'recommendation.account-snapshot-completed')
+  assert.equal(completed.data.yieldStrategy, 'message-channel')
+  assert.equal(closed, completed.data.yieldCount * 2)
+  await assert.rejects(
+    readKC3AccountSnapshot(
+      {
+        executeJavaScript: async () => {
+          throw new Error('fixture capture failed')
+        },
+      },
+      (name, data) => logs.push({ name, data }),
+    ),
+    /fixture capture failed/,
+  )
+  const failed = logs.find(({ name }) => name === 'recommendation.account-snapshot-failed')
+  assert.deepEqual(failed.data.reasonCodes, ['KC3_ACCOUNT_CAPTURE_FAILED'])
+  assert.ok(failed.data.elapsedMs >= 0)
+})
+
+test('snapshot speed fallback preserves patterns and reports its compatibility branch', async () => {
+  const direct = createSnapshotSchedulingFixture(),
+    fallback = createSnapshotSchedulingFixture()
+  const run = (fixture, logs) =>
+    readKC3AccountSnapshot(
+      {
+        executeJavaScript: (source) => new Function('window', `return ${source}`)(fixture.window),
+      },
+      (name, data) => logs.push({ name, data }),
+    )
+  const expected = await run(direct, [])
+  const proto = fallback.window.KC3Ship.prototype
+  const speed = proto.equipmentTotalStats
+  proto.statsBonusOnShip = function (name) {
+    assert.equal(name, 'sp')
+    return speed.call(this, 'soku')
+  }
+  delete proto.equipmentTotalStats
+  const logs = [],
+    account = await run(fallback, logs)
+  assert.deepEqual(account.ships[0].fastPlusPatterns, expected.ships[0].fastPlusPatterns)
+  const completed = logs.find(({ name }) => name === 'recommendation.account-snapshot-completed')
+  assert.equal(completed.data.speedStatDirectCount, 0)
+  assert.ok(completed.data.speedStatFallbackCount > 0)
+})
