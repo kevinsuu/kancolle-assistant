@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.18`   | `2026-09-07`   |
+| `v1.0.19`   | `2026-09-15`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,13 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.19 highlights (since v1.0.18)
+
+- Added Ship Recommendations, which matches owned ship families against the supplied NGA priority guide and explains training reasons and practical roles without changing game state.
+- Quest Recommendations now reports live-sync status and quest-slot usage, displays more structured rewards, and keeps distinct verified shared-action plans visible with a Combined filter.
+- Updated 4-5 and 5-5 fleet guidance with audited route data, flexible advisory air-power targets, and preserved hard routing, LoS, and anti-installation requirements.
+- Strategy Room pinned links are no longer capped at five, and remodel-material tooltips enrich on hover before KC3 opens them.
 
 ### v1.0.18 highlights (since v1.0.17)
 
@@ -54,11 +61,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Concurrent recommendation requests share account synchronization. Speed and ASW probes perform less
   duplicate work, renderer tasks improve responsiveness, and explicit resync invalidates stale data across tabs.
 
-### v1.0.14 highlights (since v1.0.13)
-
-- Quest Recommendations now automatically includes open and accepted KC3 time-limited quests under
-  **Other**, labels them as time-limited, and warns when KC3 does not provide a final deadline.
-
 ### Project-specific highlights
 
 Compared with the original project, this source adds or improves:
@@ -66,13 +68,14 @@ Compared with the original project, this source adds or improves:
 1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
 2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later resizing keeps the full game visible when possible without locking the window aspect ratio.
 3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — In KC3 Strategy Room, select a sourced guide template for maps 1-1 through 7-5, including 5-6, and generate up to three account-owned fleets on demand without changing game state.
-4. **[Quest recommendations](./docs/quest-recommendations.md)** — The Strategy Room **任務推薦** page shows official Japanese quest titles, can manually synchronize current game status, filters quests by the fleet, sortie, exercise, expedition, arsenal, modernization, or other categories, filters sortie quests with Chapters 1–7 enabled by default, and ranks all open repeatable, normal one-time, and currently available time-limited quests using current and downstream rewards. Time-limited quests appear under **Other** and are marked when KC3 does not provide their final deadline. Objective rules automatically derive compatible exercise and normal-map sortie stacks of up to five accepted quests; verified expedition and arsenal combinations remain supported, and non-sortie quests stay at the top regardless of chapter filters. Filter and sort settings are retained locally across page and game restarts. The visible quest list, complete conditions, and planning details can be exported as Markdown.
-5. **[Expedition recommendations](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page shows current resources and uses adjustable resource and bucket weights, selected expeditions, success and Daihatsu settings, and fleets 2–4 to recommend one best pairing. Planning settings are retained locally across page and game restarts; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
-6. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
-7. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
-8. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin up to five Strategy Room tabs in `常用連結`; ordinary navigation keeps their order unchanged, and a sixth pin replaces the bottom link.
-9. **[Daily improvement filters](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page applies KC3's own improvable-equipment filter once by default and adds a horizontal filter containing only the equipment types currently available for improvement, while leaving the native toggle available for the complete list.
-10. **[Master Ship remodel materials](./docs/master-ship-remodel-materials.md)** — Master Ship remodel tooltips list every special material with its icon, localized name, and required quantity.
+4. **[Ship recommendations](./docs/ship-recommendations.md)** — The Strategy Room **Ship Recommendations** page filters the NGA guide's 1–10 priority table to owned ship families that have not reached a listed guide remodel, uses canonical KC3 master data so language changes cannot alter matches, and shows each ship in a full-width row with its image, source strengths, priority rationale, and practical roles without changing game state.
+5. **[Quest recommendations](./docs/quest-recommendations.md)** — The Strategy Room **任務推薦** page shows official Japanese quest titles, can manually synchronize current game status, filters individual quests by the fleet, sortie, exercise, expedition, arsenal, modernization, or other categories, and filters complete shared-action groups with a **Combined** category. It filters sortie quests with Chapters 1–7 enabled by default and ranks all open repeatable, normal one-time, and currently available time-limited quests using current and downstream rewards. Time-limited quests appear under **Other** and are marked when KC3 does not provide their final deadline. Objective rules automatically derive compatible exercise and normal-map sortie stacks of up to five accepted quests; verified expedition and arsenal combinations remain supported, and non-sortie quests stay at the top regardless of chapter filters. Filter and sort settings are retained locally across page and game restarts. The visible quest list, complete conditions, and planning details can be exported as Markdown.
+6. **[Expedition recommendations](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page shows current resources and uses adjustable resource and bucket weights, selected expeditions, success and Daihatsu settings, and fleets 2–4 to recommend one best pairing. Planning settings are retained locally across page and game restarts; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.
+7. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity, source breakdowns, and consumables for today, yesterday, or the last 24 hours.
+8. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
+9. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin any available Strategy Room tabs in `常用連結` with no fixed count limit; new pins appear first, existing links are retained, and ordinary navigation keeps their order unchanged.
+10. **[Daily improvement filters](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page applies KC3's own improvable-equipment filter once by default and adds a horizontal filter containing only the equipment types currently available for improvement, while leaving the native toggle available for the complete list.
+11. **[Master Ship remodel materials](./docs/master-ship-remodel-materials.md)** — Master Ship remodel tooltips list every special material with its icon, localized name, and required quantity.
 
 These added Strategy Room interfaces follow KC3's selected language and support English,
 Traditional Chinese, Simplified Chinese, and Japanese.
@@ -226,7 +229,11 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
       flexible carrier aircraft allocation for mixed anti-installation assignments, plus automatic 5-5
       special-attack pairing, fleet order, and
       formation guidance; same-fleet loadout variants reach KC3 complete-loadout bonus and target-specific power reranking before fleet deduplication
-- [x] Official Japanese quest titles, manual latest-status sync, multi-select quest-type filters,
+- [x] Account-owned ship-family training priorities from the supplied NGA 1–10 guide table, matched
+      with canonical KC3 master data; families at a listed guide remodel are omitted, and full-width
+      rows show localized ship names, images, source strengths, priority rationale, and practical roles
+- [x] Official Japanese quest titles, manual latest-status sync, multi-select quest-type filters
+      with a Combined category that retains complete shared-action groups,
       default-on Chapter 1–7 sortie filters, verified shared-action plans for sorties, exercises,
       expeditions, and arsenal work, and non-sortie quests kept above every open repeatable and
       normal one-time sortie quest; currently available time-limited quests appear under Other
@@ -236,7 +243,7 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
       locked successors, and suggested-combination workflows
 - [x] Weighted expedition recommendations with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
-- [x] Up to five pinned KC3 Strategy Room quick links with stable ordering
+- [x] Pinned KC3 Strategy Room quick links with no fixed count limit and stable ordering
 - [x] KC3 Daily Improvements opens with the improvable-equipment filter enabled and offers a
       filter containing only currently improvable equipment types
 - [x] Master Ship remodel requirements display every special material's icon, localized name, and quantity
