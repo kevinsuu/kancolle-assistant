@@ -166,6 +166,19 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
     route,
     reasons: analyzeFleetAvailability(input.account, route),
   }))
+  const airPowerTargets = routes.flatMap((route) =>
+    route.calculatedConstraints.filter((constraint) => constraint.kind === 'air-power'),
+  )
+  const airPowerTargetDiagnostics = {
+    airPowerRecommended:
+      airPowerTargets.length > 0
+        ? Math.min(...airPowerTargets.map((constraint) => constraint.recommended))
+        : null,
+    advisoryAirPowerRouteCount: airPowerTargets.filter(
+      (constraint) => constraint.required === false,
+    ).length,
+    advisoryAirPowerShortfallCount: 0,
+  }
   const availableRoutes = routeAvailability.filter(({ reasons }) => reasons.length === 0)
   if (availableRoutes.length === 0) {
     const reasons = routeAvailability.flatMap(({ reasons }) => reasons)
@@ -189,6 +202,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         recommendationCandidateCount: 0,
         bestAirPower: 0,
         airPowerMinimum: null,
+        ...airPowerTargetDiagnostics,
         bestLos: null,
         losMinimum: null,
         bestOpeningAsw: 0,
@@ -271,7 +285,11 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
       const airPowerConstraint = route.calculatedConstraints.find(
         (constraint) => constraint.kind === 'air-power',
       )
-      const airPowerMinimum = airPowerConstraint?.minimum ?? null
+      const airPowerMinimum = airPowerConstraint
+        ? airPowerConstraint.required === false
+          ? airPowerConstraint.recommended
+          : airPowerConstraint.minimum
+        : null
       const losRequired = route.calculatedConstraints.some(
         (constraint) => constraint.kind === 'los',
       )
@@ -714,7 +732,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         : 3
       reasons.push({
         code: 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT',
-        message: `目前無法為 ${minimum} 艘可用的戰艦／重巡級各配置一件三式彈系裝備。`,
+        message: `目前無法為 ${minimum} 艘相容水上艦各配置此方案需要的三式彈／戰車／登陸艇系裝備。`,
         values: { minimum },
       })
     }
@@ -766,6 +784,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         recommendationCandidateCount: recommendationCandidates.length,
         bestAirPower,
         airPowerMinimum: airMinimum,
+        ...airPowerTargetDiagnostics,
         bestLos: Number.isFinite(bestLos) ? bestLos : null,
         losMinimum,
         bestOpeningAsw,
@@ -803,10 +822,17 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
         availableRoutes
           .flatMap(({ route }) =>
             route.calculatedConstraints
-              .filter((constraint) => constraint.kind === 'air-power')
+              .filter(
+                (constraint) => constraint.kind === 'air-power' && constraint.required !== false,
+              )
               .map((constraint) => constraint.minimum),
           )
           .sort((left, right) => left - right)[0] ?? null,
+      ...airPowerTargetDiagnostics,
+      advisoryAirPowerShortfallCount: recommendations.filter(
+        ({ metrics }) =>
+          !metrics.airPowerRequired && metrics.airPower < metrics.airPowerRecommended,
+      ).length,
       bestLos: Number.isFinite(bestLos) ? bestLos : null,
       losMinimum:
         availableRoutes

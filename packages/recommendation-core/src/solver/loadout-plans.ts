@@ -18,6 +18,9 @@ export interface LoadoutPlan {
 }
 
 const PLAN_LIMIT = 24
+export const SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS = new Set([
+  1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 16, 17, 20, 21, 22,
+])
 const combinations = (values: readonly number[], count: number): number[][] => {
   if (count === 0) return [[]]
   return values.flatMap((value, index) =>
@@ -58,7 +61,9 @@ export const createLoadoutPlans = (
     shellCount,
   )
   const surfaceChoices = combinations(
-    eligible([5, 6, 8, 9, 10, 12], (gear) => [18, 24, 46].includes(gear.typeId)),
+    eligible([...SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS], (gear) =>
+      [18, 24, 46].includes(gear.typeId),
+    ),
     surfaceCount,
   )
   const carrierChoices = combinations(

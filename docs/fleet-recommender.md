@@ -150,9 +150,11 @@ list. Invalid source or overlay shapes fail during module initialization.
 The standard boss catalog was rechecked on 2026-08-26 and 2026-08-29 and replaces every broad
 legacy boss rule with a guide-backed fleet skeleton. Automatic selection first compares templates
 that are ready for solver-only use: fixed boss routing for boss objectives, non-experimental data,
-modeled required thresholds, and no unresolved support fleet, LBAS, smoke, special-attack,
-anti-installation, or other manual combat setup. A modeled external requirement is exempt only when
-the solver validates its owned equipment instances and compatible ships. If no matching template
+modeled required thresholds, and no unresolved LBAS, smoke, special-attack, anti-installation, or
+other main-fleet combat setup. Boss support remains a visible manual sortie warning, but does not
+exclude a main fleet whose composition and equipment can be validated. A modeled external
+requirement is exempt only when the solver validates its owned equipment instances and compatible
+ships. If no matching template
 passes that complete audit, automatic selection falls back to every matching route that the fleet
 and equipment solver can calculate, ranks the resulting plans, and preserves the unresolved setup
 as visible warnings.
@@ -292,51 +294,18 @@ comparison. Midget-submarine saturation, AACI, long-range wrench, protected airc
 F-start refreshing, and retreat facilities are shown as manual setup notes until those combat roles
 are fully modeled.
 
-For 4-5, sourced Yui variants now carry their image-specific compositions and thresholds: the
-CVL/CV/CL/DD3 shortest route checks air power 215, but its long-range carrier setup, anti-land DD
-loadouts, balloons, and opening ASW are treated as manual guide requirements until those combat
-roles are fully modeled. It is no longer rejected solely because the account lacks a night carrier
-or solver-recognized anti-installation carrier aircraft. The KCWiki CL/DD heavy shortest route is
-also kept as a sourced manual-combat template: it checks the guide fleet shape and air power 215,
-but does not add a solver-only Type 3 Shell or land-attack carrier requirement. The beginner chip
-fleet is fast battleship
-plus two regular/armored carriers, light cruiser, and two destroyers at air power 220, the medium
-Fast+ route is battleship plus three carriers, torpedo cruiser, and aviation cruiser at air power
-220, the high-air Fast+ route is three carriers, two torpedo cruisers, and one aviation cruiser or
-aviation battleship at air power 430, and the beginner final route is battleship, two
-regular/armored carriers, and three aviation cruisers at air power 270 with Cn2 LoS 70 and a
-K-node smoke-screen recommendation.
+The 4-5 and 5-5 catalogs separate routing and core strategy requirements from combat advice.
+All air-power targets on these two maps are advisory and remain visible as actual / recommended
+values. Fleet speed, routing LoS, distinct drum carriers, and modeled night-carrier/special-attack
+roles remain mandatory for their selected templates. Compatible ship substitutions and mixed
+anti-installation/escort-clearing roles avoid treating a source screenshot as an exact inventory
+requirement. The source-linked [4-5 and 5-5 catalog review](normal-map-catalog.md#4-5-and-5-5-requirement-review-2026-09-15)
+records the corrected thresholds, fleet alternatives, and manual sortie checks.
 
-Four additional KCWiki image-matched 4-5 templates preserve the guide headings and are modeled as
-separate choices instead of changing the existing Yui-derived routes. `高速＋夜母配置（正攻／撈油／戰果衝刺）`
-requires two regular/armored carriers including a valid night-carrier setup, one light carrier, two
-torpedo cruisers, one aviation battleship, fleet-wide Fast+, air power 414, three land-attack-safe
-carriers, and one Type 3 Shell-family finisher. `夜母小船配置` requires two light carriers
-including one night carrier, one light cruiser, three destroyers, air power 207, three opening-ASW
-ships, and anti-installation gear on two separate surface ships; the source warns that its repair
-cost is less suitable for extended farming. `高速＋特攻配置` requires Nelson Kai, three
-regular/armored carriers, one heavy cruiser, one torpedo cruiser, fleet-wide Fast+, air power 207,
-and a complete anti-installation setup. The solver orders Nelson and two non-carriers in positions
-1/3/5 and explains the Double Line formation for Nelson Touch at H. `繞路配置` keeps one fast
-battleship, two regular/armored carriers, one light cruiser, and two destroyers at air power 207;
-it records both A-B-E-M-R-N-T and C-F-I-J-H-T and is offered only for the balanced/chipping goal.
-
-The 5-5 catalog now keeps sourced Yui templates plus the KCWiki table headings that can be modeled
-as current-phase route templates. Yui's `常規EO/中路戰巡流` route requires Yamato Kai Ni and one
-listed friend battleship such as Musashi, Iowa, Bismarck, or Richelieu (air power 138, Cn2 LoS 66);
-the supply-smoke route uses one auxiliary ship and two destroyers (air power 300, Cn2 LoS 66);
-`KCWiki + Yui｜中路水雷退避流` keeps Cn2 LoS 66 with air 1 as advice; `KCWiki + Yui｜潛艇配置` is a
-six-submarine low-resource snipe with Cn2 LoS 80; and `新手長陸` checks air power 136 plus Cn2 LoS 66. KCWiki upper-route templates include `上路武大夜母配置`, `上路帶路配置`, `上路納爾遜`,
-`上路夜母`, `上路金剛改二丙`, `上路隨機配置1`, and `上路隨機配置2`. Middle-route templates include
-`中路武大拉煙流`, `中路武大最矢流`, `中路武大補給流`, `中路納爾遜`, `中轉下摸流`, and
-`中路重巡配置`. Lower-route templates include `下路武大4DD`, `下路夜母2CV4DD`, `下路航戰航巡`,
-and `下路長陸4DD`. The Bahamut 2014 first-phase 3BB3CV/3BB2CV1CVL reference is retained only
-through the KCWiki-compatible `上路六大船隨機` manual template because current second-phase routing
-can drift after P. 5-5 advisory OASW tags no longer force every light ship into an anti-submarine
-loadout unless the source also provides a modeled opening-ASW minimum. The submarine snipe template
-reserves LoS-capable submarine equipment slots so I-13/I-14 water reconnaissance aircraft and
-submarine radar/reverse-radar gear can satisfy the guide's LoS line instead of being displaced by
-all-torpedo loadouts.
+The 5-5 submarine snipe template reserves LoS-capable submarine equipment slots so I-13/I-14 water
+reconnaissance aircraft and submarine radar/reverse-radar gear can satisfy Cn2 LoS 80 instead of
+being displaced by all-torpedo loadouts. Advisory OASW tags do not force every light ship into an
+anti-submarine loadout unless the source also supplies a modeled opening-ASW minimum.
 
 Route strategy descriptions are localized in the Strategy Room when an i18n entry exists for the
 selected guide route, while the sourced route description remains the fallback for untranslated
@@ -475,32 +444,31 @@ being filled with unrelated radars while omitting their defining opening-torpedo
 8inch Mk.9 variants are also excluded from torpedo-cruiser gun choices because of their documented
 light-cruiser fit concern.
 
-For 4-5 automatic selection, three retained routes have explicit anti-installation models. The
-automatic modeled templates reserve one unique owned KC3 category-18 Type 3 Shell-family item on a
-compatible battleship or heavy-cruiser-class ship, except the high-air Fast+ carrier route where the
-surface finisher may instead use a Type 3 Shell-family, tank, or landing-craft item so Yui's
-Mogami-class two-water-fighter pattern and KCWiki's aviation-battleship substitute remain searchable.
-The manual beginner final route reserves four Type 3 Shell-family items when it is explicitly
-selected. Fast+ carrier variants also keep every selected carrier able to attack installations. The
-high-air Fast+ carrier route assigns speed gear first, then searches the remaining carrier slots
-flexibly instead of reserving the two largest slots for attackers. It keeps both air-power-first
-and attack-first beam candidates, requires one land-attack-safe strike aircraft per carrier, and
-only prefers additional torpedo or eligible dive bombers after the fleet reaches the route's air
-minimum. The KCWiki CL1/DD3 heavy shortest template remains manually selectable, but treats anti-installation
-loadout details as source advice instead of solver-only Type 3 Shell or carrier land-attack hard
-requirements. Carrier models require each designated carrier to retain a land-attack-safe strike
-aircraft: torpedo bombers are valid because they do not block carrier attacks against land
-installations, while ordinary dive bombers are rejected unless KC3 classifies them as anti-land
-capable through the dynamically updated `antiLandDiveBomberIds`. Type 3 Shell-family items are
-excluded from ordinary AP-shell candidates, so they appear only when a route explicitly reserves
-them for anti-installation duty. Fast+ speed gear reserves only non-protected slots, so turbines and
-boilers cannot overwrite a required anti-installation surface item or carrier attack slot. If the
-complete mixed setup cannot coexist with air power, LoS, speed, compatibility, and instance
-uniqueness, the solver returns a specific
-no-solution reason. Retained 4-5 routes that require smoke, landing craft, rockets, balloons,
-long-range carrier tuning, or unmodeled opening ASW remain manual-only.
+Modeled 4-5 templates reserve the minimum distinct anti-installation roles specified by the
+selected strategy. Type 3 Shell duties use unique owned KC3 category-18 equipment on compatible
+battleships or heavy-cruiser-class ships. Generic surface duties also accept compatible tanks or
+landing craft on surface ships, including DD/CL; compatibility and equipment-instance uniqueness
+are still required. The small night-carrier template needs two surface finishers, while the
+high-air Fast+ template needs one. The beginner final template requires one shell finisher and
+advises two or three for the final kill; extra finishers remain a manual adjustment.
 
-Night-carrier validation remains available for future sourced templates: a route can require at
+A designated anti-installation carrier retains a land-attack-safe strike aircraft. Torpedo
+bombers are valid, while ordinary dive bombers prevent that designated carrier from satisfying its
+role unless KC3 classifies them as anti-land capable through `antiLandDiveBomberIds`. Other carriers
+can instead use ordinary dive bombers for escorts. Fast+ carrier-heavy templates keep one designated
+anti-installation carrier rather than forcing this role onto every carrier. The medium Fast+ and
+chip templates require their surface finisher and allow every carrier to focus on escorts.
+
+Flexible carrier search assigns speed gear first, then compares air-power-first and attack-first
+candidates in the remaining slots. It targets the advisory air recommendation, adds attack aircraft
+when possible, and retains valid fleets below the target with a warning. Type 3 Shell-family items
+are excluded from ordinary AP-shell choices and appear only for explicitly assigned duties. Speed
+gear cannot overwrite a required surface item or carrier attack slot. Missing mandatory combat
+roles, routing LoS, final speed, compatibility, or unique equipment instances still rejects the
+fleet; advisory air shortfalls do not. Unmodeled anti-installation setups, smoke, rockets, balloons,
+long-range carrier tuning, and other source-specific sortie details remain manual checks.
+
+Night-carrier validation applies to explicitly night-carrier strategies: a route can require at
 least one carrier that KC3 identifies as able to attack at night. An inherent ship trait can satisfy
 the condition without reserved equipment; otherwise the solver must assign an owned and compatible
 night aircraft/personnel or ship-specific aircraft pattern. Those items share the same global slot
@@ -518,13 +486,13 @@ surface attackers when compatible equipment exists. Missing drums or compatible 
 specific no-solution reason instead of a partial fleet. These counts follow the current
 [2-5 branching guide](https://wikiwiki.jp/kancolle/%E5%8D%97%E8%A5%BF%E8%AB%B8%E5%B3%B6%E6%B5%B7%E5%9F%9F/2-5).
 
-The retained 5-5 middle special-attack route is solver-ready for the Yui Yamato/Musashi fleet. The
-fleet search recognizes Yamato Kai Ni/Juu with Musashi Kai Ni, Nagato or Mutsu Kai Ni with a
+The retained 5-5 middle special-attack route supports the sourced Yamato fleet. The
+fleet search recognizes supported Yamato Kai Ni/Juu helper pairings, Nagato or Mutsu Kai Ni with a
 battleship helper, and Nelson or Rodney Kai with two
 eligible touch helpers. It rejects fleets without a supported activator, then orders the selected
 ships into the required flagship, second-ship, or Nelson Touch third/fifth positions before gear
-assignment. Air power, LoS, equipment compatibility, and instance uniqueness are validated after
-that ordering. The result names the attack and formation. The remaining sortie check is limited to
+assignment. LoS, equipment compatibility, and instance uniqueness are validated after that ordering;
+air power is calculated and compared against its advisory target. The result names the attack and formation. The remaining sortie check is limited to
 mutable battle state: the attack must still be unused, participating ships must remain within their
 activation damage limits, and the displayed formation must be selected at the intended node.
 
@@ -544,6 +512,12 @@ reach probability, average base fuel, Daihatsu bonus, and drum-canister bonus. T
 therefore use expected gross and net fuel rather than the previous generic four-battle cost. Other
 resource routes without a complete per-node model are explicitly marked as cost-only estimates.
 
+Air-power targets marked `required: false` remain visible as actual / recommended values, with a
+shortfall warning when needed. They influence loadout ranking but never reject an otherwise valid
+fleet. The renderer preserves the recommended value separately from the hard minimum. Completion
+logs distinguish the hard air minimum, recommended target, advisory route count, and the number of
+returned recommendations below an advisory target.
+
 Air power delegates per-slot calculations to KC3 when the snapshot is captured. Formula 33 LoS
 uses KC3's documented coefficients and naked ship LoS values. Initial combat search uses bounded
 heuristics, then all normal-map results are reranked with KC3's current complete-loadout formulas:
@@ -555,9 +529,9 @@ installation classes. Resource use remains an estimate. Internal ranking scores 
 the Strategy Room result focuses on ships, equipment, strategy checks, and source URLs. Routes with
 unmodeled LBAS, support, anti-installation, historical-bonus, or other unmodeled setup requirements
 show an execution warning and the source/verification date beside the route. Modeled 4-5 mixed
-anti-installation requirements instead show separate passed validations for Type 3 Shell and
-carrier attack capability, while modeled 5-5 special attacks show their finalized fleet order and
-one-line sortie check.
+anti-installation requirements instead show distinct passed validations for Type 3 Shell duties,
+compatible surface anti-installation duties, and carrier attack capability, while modeled 5-5 special
+attacks show their finalized fleet order and one-line sortie check.
 
 ### Flexible loadout allocation
 

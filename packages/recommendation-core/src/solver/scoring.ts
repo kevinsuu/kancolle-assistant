@@ -139,7 +139,9 @@ export const scoreFleet = (
               Math.max(metrics.airPowerRecommended - metrics.airPowerMinimum, 1)) *
               55,
         )
-      : 50,
+      : metrics.airPowerRecommended > 0
+        ? clamp((metrics.airPower / metrics.airPowerRecommended) * 100)
+        : 50,
     nightBattle: clamp(
       hasExactCombatEvaluation
         ? builds.reduce(

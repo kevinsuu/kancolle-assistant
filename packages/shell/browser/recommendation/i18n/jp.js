@@ -66,6 +66,7 @@ export const jp = {
   'quest.typeFilter.label': '任務種別',
   'quest.typeFilter.hint': '複数選択可・すべては種別を限定しません',
   'quest.type.all': 'すべて',
+  'quest.type.combined': '同時進行',
   'quest.type.fleet': '編成',
   'quest.type.sortie': '出撃',
   'quest.type.exercise': '演習',
@@ -102,7 +103,11 @@ export const jp = {
   'quest.syncFirst':
     'ゲームタブをオンラインにしてください。起動直後は母港で一度操作してから同期してください。',
   'quest.status':
-    '任務 {count}件・組合せ {groups}組・日 {daily}・週 {weekly}・月 {monthly}・季 {quarterly}・年 {yearly}・単発 {oneTime}・限定 {limited}・後続加点 {downstream}・EO未完了 {eo}・実行不可 {unavailable}・更新 {updated}',
+    '任務 {count}件・組合せ {groups}組・日 {daily}・週 {weekly}・月 {monthly}・季 {quarterly}・年 {yearly}・単発 {oneTime}・限定 {limited}・後続加点 {downstream}・EO未完了 {eo}・実行不可 {unavailable}・{source}',
+  'quest.statusSource.live': 'ゲーム同期 {updated}',
+  'quest.statusSource.local': 'KC3ローカルキャッシュ・同期して確認',
+  'quest.acceptance.status':
+    '受託 {active}/{capacity}件、残り {available}枠。組合せ案は艦隊・装備・ルート・受託枠を確認してください。',
   'quest.emptyTitle': '推薦できる任務はありません',
   'quest.emptyDetail': 'KC3の同期済み一覧に未完了の周期・単発・期間限定任務がありません。',
   'quest.period.daily': 'デイリー',
@@ -136,16 +141,26 @@ export const jp = {
   'quest.reward.actionReport': '戦闘詳報',
   'quest.reward.screws': '改修資材 ×{count}',
   'quest.reward.screwsGeneric': '改修資材',
+  'quest.reward.developmentMaterials': '開発資材 ×{count}',
+  'quest.reward.bucket': '高速修復材 ×{count}',
+  'quest.reward.instantBuild': '高速建造材 ×{count}',
   'quest.reward.other': 'その他資材',
   'quest.reward.choice': '選択報酬',
   'quest.reward.material.skilledCrew': '熟練搭乗員',
   'quest.reward.material.newAviationMaterial': '新型航空兵装資材',
   'quest.reward.material.daihatsu': '大発動艇',
   'quest.reward.material.newRocketMaterial': '新型噴進装備開発資材',
+  'quest.reward.material.newGunArmamentMaterial': '新型砲熕兵装資材',
+  'quest.reward.material.newArmamentMaterial': '新型兵装資材',
+  'quest.reward.material.catapult': '試製甲板カタパルト',
+  'quest.reward.material.reinforcementExpansion': '補強増設',
+  'quest.reward.material.newAviationBlueprint': '新型航空機設計図',
+  'quest.reward.material.overseasEquipmentTech': '海外艦最新技術',
   'quest.downstream.title': '未開放の高価値後続',
   'quest.downstream.steps': 'あと {count} 段階',
   'quest.group.combined': '同時進行の提案',
   'quest.group.questCount': '{count}件の任務',
+  'quest.group.repeatedQuestHint': '{count}件は別の組合せでも進行します',
   'quest.priority.label': '攻略優先度',
   'quest.priority.highest': '最優先',
   'quest.priority.priority': '優先',
@@ -176,8 +191,8 @@ export const jp = {
   'quest.synergy.extra.fourFiveExtraOperation': '4-5 EO マンスリー攻略',
   'quest.synergy.fleet.fourDe': '海防艦 4隻',
   'quest.synergy.fleet.clFlagshipThreeDd': '軽巡旗艦＋駆逐 3隻',
-  'quest.synergy.fleet.cvlThreeDd': '軽空母＋駆逐 3隻',
-  'quest.synergy.fleet.carrierThreeDd': '空母系 1隻以上＋駆逐／海防 3隻',
+  'quest.synergy.fleet.cvlThreeDd': '軽空母旗艦＋駆逐／海防 3隻',
+  'quest.synergy.fleet.carrierThreeDd': '軽巡／軽空母旗艦＋駆逐／海防 3隻＋空母系 1隻',
   'quest.synergy.fleet.twoCarrierTwoDd': '空母系 2隻＋駆逐 2隻＋自由枠 2隻',
   'quest.synergy.fleet.variedByStage': '段階ごとに編成変更',
   'quest.synergy.fleet.regularEoFleet': '通常の EO 編成',
@@ -251,11 +266,14 @@ export const jp = {
   'quest.guidance.insufficientSteel': '現在の鋼材では任務コストを満たせません',
   'quest.guidance.missingShip': '必要艦が不足：{ship}',
   'quest.requirement.ship.yuubariKaiNi': '夕張改二／改二特／改二丁',
+  'quest.requirement.ship.yuubariOrYuraKaiNi': '夕張改二型または由良改二',
   'quest.requirement.ship.naganamiKaiNi': '長波改二',
   'quest.requirement.ship.desdivThirtyOnePartner': '高波／沖波／朝霜改以上',
   'quest.deadline': '残り {remaining}・{resetAt} リセット',
   'quest.noFixedDeadline': '固定リセット期限なし',
   'quest.limitedDeadlineUnknown': 'KC3に最終終了日時の情報がありません',
+  'quest.synergy.verificationNotice':
+    '任務条件から導出した案です。出撃前に所持艦・装備・ルート・受託枠を確認してください。',
   'quest.remainingDaysHours': '{days}日 {hours}時間',
   'quest.remainingHours': '{hours}時間',
   'quest.remainingMinutes': '{minutes}分',
@@ -333,6 +351,7 @@ export const jp = {
   'fleet.strategyOpeningAsw': '先制対潜',
   'fleet.strategyResourceGain': '予想{resource}',
   'fleet.strategyMinimumValue': '{value}／最低 {minimum}',
+  'fleet.strategyRecommendedValue': '{value}／目安 {recommended}（調整可）',
   'fleet.strategyResourceValue': '{gain} 獲得／{net} 純利益',
   'fleet.strategyNoDescription': 'このルートはリンク先の情報源を確認してください。',
   'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
@@ -340,25 +359,25 @@ export const jp = {
   'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
     '戦艦1、正規／装甲空母2、航巡1、駆逐1、海防1のA-E-I-K固定。海防艦は先制対潜、空母は艦隊制空80+達成後に残りを攻撃機へ配分します。',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
-    '正規／装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航戦1。全艦高速＋で A／C-D-H-T 最短、制空414+を検査し、攻略・周回・戦果周回に対応します。',
+    '正規/装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航巡/航戦1。全艦高速＋。制空目安430（削り確保414＋損耗余裕）、優勢狙いなら220程度へ調整可。対地空母1・三式弾艦1を確保し、他空母は随伴処理も可。',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
-    '夜戦軽空母1を含む軽空母2、軽巡1、駆逐3。低消費の最短編成で、制空207+、先制対潜3隻、対地駆逐2隻を検査します。バケツ消費が多いため長時間周回より攻略向けです。',
+    '夜戦軽空母1を含む軽空母2、軽巡1、駆逐3。制空目安215（削り優勢207）。対地艦2を確保。先制対潜3隻は安定化の推奨で、斬殺時は対潜を減らし対地火力へ配分可。空母は随伴処理も可。',
   'fleet.routeDescription.4-5-kcwiki-fast-plus-special-attack':
-    'Nelson改、正規／装甲空母3、重巡1、雷巡1。全艦高速＋で最短を通り、Nelsonと非空母2隻を1／3／5番艦に配置してHマス複縦陣でNelson Touchを狙います。制空207+を検査します。',
+    'Nelson改、空母系3、重巡/航巡1、雷巡1。全艦高速＋、Hで複縦陣Nelson Touch（1/3/5番艦）。制空目安220（削り優勢207）。対地空母1・三式弾艦1を確保し、残りの空母は随伴処理も可。',
   'fleet.routeDescription.4-5-kcwiki-detour':
-    '高速戦艦1、正規／装甲空母2、軽巡1、駆逐2。初手分岐により A-B-E-M-R-N-T または C-F-I-J-H-T、制空207+。出典ではゲージ削りのみ推奨されています。',
+    '戦艦1、正規/装甲空母2、軽巡1、駆逐2。全艦高速以上でA-B-E-M-R-N-TまたはC-F-I-J-H-T。削り専用、制空目安220（優勢207）。戦艦の三式弾で対地、空母は随伴処理も可。',
   'fleet.routeDescription.5-5-middle':
-    '大和改二系と友軍戦艦1、航巡1、軽巡1、駆逐2。Yui常規EO/中路戰巡流、制空138+、Cn2索敵66+。',
+    '大和改二系＋対応する僚艦戦艦1、航巡1、軽巡1、駆逐2。Cn2索敵66以上が必要。制空目安140（H拮抗137）、ボス劣勢狙いなら90程度へ調整可。最上・矢矧、対潜・対空CIは戦力に応じて選択。',
   'fleet.routeDescription.5-5-supply-smoke':
-    '大和改二重、武蔵改二、空母1、補給艦1、駆逐2。Yui補給王煙流、三重煙幕、制空300+、Cn2索敵66+。',
+    '大和改二重、武蔵改二、空母1、補給艦1、駆逐2。Yui補給王煙流、三重煙幕、制空目安300+、Cn2索敵66+。',
   'fleet.routeDescription.5-5-submarine-snipe':
     '潜水/潜母6。P→S固定ではない低資源狙い、Cn2索敵80+。',
   'fleet.routeDescription.5-5-kcwiki-upper-yamato-night-carrier':
-    '大和改二系＋武蔵改二、正規/装甲空母2、重巡/航巡2。KCWiki上路武大夜母配置、P→SはCn2索敵80+、画像と備考からBoss優勢392+を検査する。',
+    '大和改二系＋武蔵改二、正規/装甲空母2、重巡/航巡2。P→SにCn2索敵80以上。制空目安410（最強ボス優勢392＋損耗余裕）。夜戦空母は予備火力の推奨で通常空母へ変更可。',
   'fleet.routeDescription.5-5-kcwiki-upper-cav':
-    '赤城改二戊＋戦艦3＋航巡2のKCWiki上路帶路配置。画像例は制空416、索敵Cn1 44.87で、二期P→SはCn2索敵80+として検査する。',
+    '空母系1、戦艦3、航巡2。赤城改二戊は画像例で指定艦ではない。P→SにCn2索敵80以上。制空目安410（最強ボス優勢392＋損耗余裕）。',
   'fleet.routeDescription.5-5-kcwiki-upper-nelson':
-    'Nelson/Rodney改、戦艦1、正規/装甲空母2、航巡2。KCWiki上路納爾遜、出門制空410+推奨、P→SはCn2索敵80+。',
+    'Nelson/Rodney改、戦艦1、正規/装甲空母2、航巡2。KCWiki上路納爾遜、出門制空目安410+推奨、P→SはCn2索敵80+。',
   'fleet.routeDescription.5-5-kcwiki-upper-night-carrier':
     '夜戦空母1を含む正規/装甲空母2、戦艦2、航巡2。KCWiki上路夜母、夜母を旗艦保護する想定で、P→SはCn2索敵80+。',
   'fleet.routeDescription.5-5-kcwiki-upper-kongou-touch':
@@ -368,31 +387,49 @@ export const jp = {
   'fleet.routeDescription.5-5-kcwiki-upper-random-nagato':
     '長門改二＋陸奥改二＋正規/装甲空母4。KCWiki上路隨機配置2、胸熱砲撃だがP後に逸れがあるため手動選択用。',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-smoke':
-    '大和改二系＋武蔵改二、夜戦空母/空母1、補給艦1、駆逐2。KCWiki中路武大拉煙流、三重煙幕は手動確認、H点制空136均衡/138空確率確保。',
+    '大和改二系＋武蔵改二、空母系1、補給艦1、駆逐2。補給艦でN→O、Cn2索敵66以上。制空目安140（H拮抗137）、138で確保できるのはH最弱編成だけ。煙幕・噴式機・夜戦空母・対潜は戦力に応じて調整。',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-mogami-yahagi':
-    '大和改二系＋武蔵改二、最上、矢矧、駆逐2。KCWiki中路武大最矢流、H点制空136均衡/138空確率確保、Cn2索敵66+。',
+    '大和改二系＋武蔵改二、航巡1、軽巡1、駆逐2。最上・矢矧は先制雷撃の推奨例で同艦種へ変更可。Cn2索敵66以上が必要。制空目安140（H拮抗137）、ボス劣勢は90程度。H確保138は最弱編成だけ。',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-supply':
-    '大和改二系＋武蔵改二、空母1、補給艦1、駆逐2。KCWiki中路武大補給流、H点制空136均衡/138空確率確保、Cn2索敵66+。',
+    '大和改二系＋武蔵改二、空母系1、補給艦1、駆逐2。補給艦でN→O、Cn2索敵66以上。制空目安140（H拮抗137）、138で確保できるのはH最弱編成だけ。煙幕・噴式機・夜戦空母・対潜は戦力に応じて調整。',
   'fleet.routeDescription.5-5-kcwiki-middle-nelson':
-    'Nelson改、戦艦1、駆逐2、CA/CAV/雷巡2のKCWiki中路Nelson。制空176でBoss均勢、188以上でH優勢寄り、Cn2索敵66+。',
+    'Nelson/Rodney改、戦艦1、駆逐2、重巡/航巡/雷巡2（雷巡は1以下）。雷巡2だとB→Kへ逸れる。Cn2索敵66以上。制空目安188（ボス拮抗175＋余裕）、H優勢188は中編成までで最強編成には306必要。',
   'fleet.routeDescription.5-5-kcwiki-middle-transfer-south':
-    '戦艦2、正規/装甲空母1、重巡/航巡/雷巡1、駆逐2で中路からM夜戦へ回るKCWiki中轉下摸流。H/N分岐は手動確認、O→SはCn5索敵162+。',
+    '戦艦2、正規/装甲空母1、重巡/航巡/雷巡1、駆逐2。B-F-D-H-N-M-O-S、正規空母でN→Mを経由。O→SはCn2索敵66以上（旧Cn5 162は使用しない）。制空目安306はH優勢、ボス弱編成優勢224・最強編成優勢392。',
   'fleet.routeDescription.5-5-kcwiki-middle-heavy-cruiser':
-    '長門改二＋陸奥改二、重巡1、航巡1、駆逐2。KCWiki中路重巡配置、4水戦でH点均衡を狙い、支援は手動確認。',
+    '長門改二＋陸奥改二、重巡1、航巡1、駆逐2。Cn2索敵66以上。制空目安140（H拮抗137）。水戦4機は装備例で固定数ではなく、対潜・電探・支援は戦力に応じて調整。',
   'fleet.routeDescription.5-5-south-dd':
-    '軽巡1、雷巡1、駆逐4。水雷退避流、夜瑞雲/瑞雲の制空1+は推奨値として扱い、双レ編成は回避推奨。',
+    '軽巡1、雷巡1、駆逐4。水雷退避流、夜瑞雲/瑞雲の制空目安1+は推奨値として扱い、双レ編成は回避推奨。',
   'fleet.routeDescription.5-5-kcwiki-south-yamato-dd':
     '武蔵改二＋大和改二系＋駆逐4。KCWiki下路推薦配置、夜戦火力重視、Cn2索敵66+を硬条件とする。',
   'fleet.routeDescription.5-5-kcwiki-south-night-carrier-dd':
     '夜戦空母を含む正規/装甲空母2＋駆逐4。KCWiki下路推薦配置、空母偵察機で駆逐の索敵負担を下げる想定。',
   'fleet.routeDescription.5-5-kcwiki-south-bbv-cav-drums':
-    '正規/装甲空母1、航空戦艦1、航巡2、駆逐2。KCWiki下路Saratoga/伊勢/Ташкент系例、4艘にドラム缶を載せてAへ入り、Boss優勢とCn2索敵66+を検査する。',
+    '正規/装甲空母1、航戦1、航巡2、駆逐2。A開始には別々の4艦へドラム缶を装備、Cn2索敵66以上。制空目安410（最強ボス優勢392）。対象の大発系を4艦に装備する別条件もあるが、このテンプレートはドラム缶で検証。',
   'fleet.routeDescription.5-5-kcwiki-south-nagato-dd':
     '長門改二＋陸奥改二＋駆逐4のKCWiki下路夜戦流。索敵が非常に厳しいためCn2索敵66+を硬条件とし、支援と対潜は出撃時の推奨確認に残す。',
   'fleet.routeDescription.5-5-newbie-nagato':
-    '長門・陸奥、航巡2、駆逐2。Yui新手長陸、道中/決戦砲撃支援、制空136+、Cn2索敵66+。',
+    '長門改二＋陸奥改二、航巡2、駆逐2。Cn2索敵66以上。制空目安140（H拮抗137、旧136は不足）。道中/決戦支援を推奨し、対潜はS勝利狙い・ゲージ破壊後の潜水艦強化に応じて調整。',
   'fleet.routeDescription.5-5-kcwiki-bahamut-random-heavy':
-    'KCWiki任意6艘戦艦/空母系と巴哈2014一期3BB3CV/3BB2CVL重火力参考。二期ではP後に約35%逸れるため、現行は手動選択用の隨機上路として扱う。',
+    '戦艦/空母系6のB-K-P-S上路。Cn2索敵80以上でもPから約1/3で逸れる。制空目安410（最強ボス優勢392）。固定進王編成ではなく、支援は攻略目的に応じて選択。',
+  'fleet.routeDescription.4-5-standard-balanced':
+    '戦艦1、正規/装甲空母2、重巡/航巡3。K→TにCn2索敵70以上が必要。制空目安270（K優勢252＋損耗余裕）。三式弾艦1以上を確保し、斬殺は2〜3隻の対地火力を推奨。Yui画像は三式弾3隻と煙幕役1隻。K煙幕は任意の安定化策。',
+  'fleet.routeDescription.4-5-small-ship':
+    '正規/装甲空母0-1、軽空母1-2、軽巡1、駆逐3。HからT直行、制空目安215+。対地DD・先制対潜・長射程空母装備は手動確認。',
+  'fleet.routeDescription.4-5-fast-plus-battleship-carrier':
+    '戦艦1、空母系3、重巡/航巡1＋雷巡/重巡/航巡1。全艦高速＋、制空目安220。雷巡は斬殺時に対地重巡級へ変更可。三式弾艦1以上を確保し、空母は通常艦爆で随伴処理も可。',
+  'fleet.routeDescription.4-5-fast-plus-carrier':
+    '空母系3、雷巡2、航巡/航戦1。航巡採用時は雷巡1を軽空母へ変更可（戦艦級＋空母系4以下）。全艦高速＋。制空目安430、優勢狙いなら220程度でも可。対地水上艦1・対地空母1を確保し、他の空母は随伴処理も可。斬殺時は水戦を砲へ回して対地火力を増やす。',
+  'fleet.routeDescription.4-5-cl-dd-heavy':
+    '戦艦/空母系2、軽巡1、駆逐3。H→T最短、速力・索敵指定なし。空母は戦艦へ変更可。制空目安215（削り優勢207）は任意。対地火力は装備・練度に応じて調整し、出撃前に確認。',
+  'fleet.routeDescription.4-5-cl-dd-light':
+    '戦艦1、正規/装甲空母2、軽巡1、駆逐2。全艦高速以上。Yui新手削り専用、A-B-E-M-R-N-TまたはC-F-I-J-H-T。制空目安220、三式弾艦1を確保。斬殺は別編成を推奨。',
+  'fleet.routeDescription.4-5-bahamut-fast-plus-cv4-cav2':
+    '空母系4、航巡2。全艦高速＋、戦艦級＋空母系4以下でA/C-D-H-T。制空目安430（削り確保414＋損耗余裕）、優勢狙いなら220程度へ調整可。対地空母1以上を確保し、残りは対地攻撃または随伴処理へ配分。',
+  'fleet.routeDescription.5-5-conye-middle-nagato-mogami-yahagi':
+    '長門改二＋陸奥改二、航巡1、軽巡1、駆逐2。最上・矢矧は推奨例で同艦種へ変更可。ボスで梯形陣の特殊砲撃。Cn2索敵66以上が必要、制空目安90（ボス劣勢88）。支援・対潜は攻略目的と練度に応じて調整。',
+  'fleet.routeDescription.5-5-bahamut-cv4-cav-cl':
+    '正規/装甲空母4、航巡1、軽巡1。大船4隻以下でB-K-P-S、P→SにCn2索敵80以上（旧Cn1 43は使用しない）。制空目安410（最強ボス優勢392＋損耗余裕）。',
   'fleet.routeUnknown': '情報源を確認',
   'fleet.airPower': '制空値',
   'fleet.los': '33式索敵',
@@ -480,6 +517,8 @@ export const jp = {
     '{shipName}は通常装備を採用しています。この案では瑞雲立体攻撃の装備条件を満たしていません。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '戦艦／重巡級 {minimum} 隻に三式弾系装備を割り当て、このルートの対地装備モデルを満たしています。',
+  'message.ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED':
+    '対応する水上艦{minimum}隻に三式弾・戦車・上陸用舟艇系の対地装備を配置済みです。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':
     'KC3 が完成装備から艦娘別／組み合わせ装備ボーナス、改修、フィット命中、目標別の実効火力を再計算し、候補を並べ直しました。',
   'message.ANTI_INSTALLATION_CARRIER_READY':
@@ -510,7 +549,7 @@ export const jp = {
   'message.NIGHT_CARRIER_UNAVAILABLE':
     '候補空母に固有の夜戦能力がなく、所持する互換装備でも夜戦空母編成を成立させられません。',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
-    '使用可能な戦艦／重巡級 {minimum} 隻に三式弾系装備を 1 個ずつ割り当てられません。',
+    '対応する水上艦{minimum}隻に、この編成に必要な三式弾・戦車・上陸用舟艇系装備を割り当てられません。',
   'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
     '必要な全空母で、対地攻撃能力と制空条件を同時に満たせません。',
   'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
@@ -777,4 +816,101 @@ export const jp = {
     '選択艦隊に割り当てられる遠征が不足しています。候補が開放済みで、Kanceptsの最低コスト編成に必要な艦種を所持しているか確認してください。',
   'expedition.reason.RESOURCE_CONSTRAINTS':
     'すべての最低収入条件を満たす遠征組み合わせがありません。',
+  'ship.menu': '艦娘おすすめ',
+  'ship.menuTitle': 'NGAガイド評価で所持艦娘の育成優先度を確認',
+  'ship.help.whatQuestion': 'このページは何をおすすめしますか？',
+  'ship.help.whatAnswer':
+    '参照ガイドに載っている所持艦娘の艦型だけを、元の1～10評価順で表示します。各行でガイド掲載の長所、優先理由、推奨用途を説明するため、評価の高い艦型から育成・改造を進められます。',
+  'ship.help.matchQuestion': '表示言語を変えると照合に影響しますか？',
+  'ship.help.matchAnswer':
+    '影響しません。KC3マスターデータの固定日本語艦型名で照合し、カードにはKC3の現在言語での艦名を表示します。',
+  'ship.help.automaticQuestion': '艦娘や装備を自動で変更しますか？',
+  'ship.help.automaticAnswer':
+    'いいえ。これは閲覧専用の育成資料で、改造・装備・出撃を自動実行しません。',
+  'ship.toolbar': '艦娘おすすめの操作',
+  'ship.minimumRating': '最低ガイド評価',
+  'ship.rating.all': 'すべての評価',
+  'ship.rating.five': '5以上',
+  'ship.rating.eight': '8以上',
+  'ship.rating.ten': '10のみ',
+  'ship.sync': '艦娘を再同期',
+  'ship.syncing': '所持艦娘を同期中…',
+  'ship.preparing': '所持艦娘一覧を準備中…',
+  'ship.loading': '所持艦娘を並べ替え中',
+  'ship.loadingDetail': 'KC3の艦型をガイド資料と照合しています…',
+  'ship.unavailable': '所持艦娘データを読み込めません。',
+  'ship.notReady': '艦娘おすすめの準備ができていません',
+  'ship.syncFirst':
+    'ゲームタブがオンラインであることを確認してください。起動直後は一度母港を開いてから再同期してください。',
+  'ship.status':
+    '該当 {matched} 艦型／所持 {total} 隻・育成中 {training}・ガイド形態到達 {ready}・更新 {updated}',
+  'ship.results': '育成優先度',
+  'ship.visibleCount': '{count} 隻を表示',
+  'ship.emptyTitle': 'この評価に該当する所持艦娘はいません',
+  'ship.emptyDetail': '最低評価を下げるか、母港を開いた後にゲームを再同期してください。',
+  'ship.source': 'ガイド出典（貼り付け資料の最終更新 {date}）：',
+  'ship.level': 'Lv. {level}',
+  'ship.heldCount': '{count} 隻所持',
+  'ship.ratingValue': 'ガイド評価 {rating}/10',
+  'ship.state.training': 'ガイド形態まで育成',
+  'ship.state.ready': 'ガイド形態に到達',
+  'ship.section.priorityReason': '優先する理由',
+  'ship.section.usage': '推奨用途',
+  'ship.priorityReason.features':
+    'ガイドは「{features}」を長所として挙げているため、この艦型を育成評価 {rating}/10 としています。',
+  'ship.priorityReason.scoreOnly':
+    '貼り付けたガイドには {rating}/10 の評価のみがあり、固有の長所は記載されていません。改装優先度の目安として表示します。',
+  'ship.usage.unlisted': '貼り付けた表には具体的な用途へ結び付く長所が記載されていません。',
+  'ship.feature.specialAttack': '特殊攻撃',
+  'ship.feature.antiInstallation': '対地',
+  'ship.feature.fiveSlots': '5スロット',
+  'ship.feature.carrierFighter': '艦戦搭載可',
+  'ship.feature.openingTorpedo': '開幕雷撃',
+  'ship.feature.fourSlots': '4スロット',
+  'ship.feature.seaplaneFighter': '水戦搭載可',
+  'ship.feature.pseudoFiveSlots': '実質5スロット',
+  'ship.feature.pseudoFourSlots': '実質4スロット',
+  'ship.feature.highModifier': 'イベント特効が多い',
+  'ship.feature.highFirepower': '高火力',
+  'ship.feature.nightCarrier': '夜戦空母',
+  'ship.feature.armoredCarrier': '装甲空母',
+  'ship.feature.dedicatedAaci': '専用対空CI',
+  'ship.feature.gunSpecialist': '主砲特化改造',
+  'ship.feature.rotaryAsw': '回転翼機対潜',
+  'ship.feature.cve': '護衛空母',
+  'ship.feature.highArmor': '高装甲',
+  'ship.feature.fastPlus': '増設で高速＋',
+  'ship.feature.highLuck': '高運',
+  'ship.feature.versatile': '汎用性',
+  'ship.feature.aviationCruiser': '航空巡洋艦',
+  'ship.feature.openingAsw': '先制対潜',
+  'ship.feature.efficientSupport': '低燃費支援',
+  'ship.feature.supportCarrier': '強力な空母支援',
+  'ship.feature.aswSupport': '対潜支援',
+  'ship.feature.fastYamatoPartner': '高速大和タッチ相方',
+  'ship.feature.cvl': '高火力軽空母',
+  'ship.feature.antiPt': 'PT小鬼群特効',
+  'ship.usage.specialAttack': '高耐久のボスに対する特殊攻撃編成の主力または相方に使います。',
+  'ship.usage.antiInstallation': '対地装備を載せ、集積地などの陸上型を処理します。',
+  'ship.usage.loadoutFlexibility':
+    '追加に近いスロットを使い、火力・制空・先制・対地を両立させます。',
+  'ship.usage.airPower': '艦戦・水戦を載せ、主力装備を崩さず制空を補います。',
+  'ship.usage.openingTorpedo': '甲標的などで開幕雷撃を行い、水雷戦隊を先に処理します。',
+  'ship.usage.eventBonus': '海域の特効倍率を確認してから、イベントの主力として投入します。',
+  'ship.usage.surfaceCombat': '高装甲の水上艦に対する昼戦砲撃の中核に使います。',
+  'ship.usage.nightCarrier': '夜間艦載機による夜戦航空攻撃に使います。',
+  'ship.usage.carrierDurability': '装甲空母の耐久力を生かし、制空と火力を担います。',
+  'ship.usage.antiAir': '空襲が重い海域で専用対空CIを使い、敵機を抑えます。',
+  'ship.usage.gunCombat': '主砲特化の改装形態で昼戦・夜戦の砲撃を担います。',
+  'ship.usage.asw': '回転翼機や対潜装備と組み合わせ、対潜を補います。',
+  'ship.usage.escortCarrier': '低コストで護衛空母や夜戦空母の役割を担わせます。',
+  'ship.usage.durability': '高い装甲を生かし、砲撃や道中の圧力を受けます。',
+  'ship.usage.fastPlus': '増設のタービンと缶で高速＋にし、速度分岐を通します。',
+  'ship.usage.cutin': '高運を魚雷CIや特殊攻撃の発動に使います。',
+  'ship.usage.flexibleRoles': '艦隊に応じて制空・開幕・対地・夜戦の役割を切り替えます。',
+  'ship.usage.seaplaneOperations': '水戦・水爆で巡洋艦の制空と偵察を補います。',
+  'ship.usage.openingAsw': '潜水艦が攻撃する前に先制対潜で処理します。',
+  'ship.usage.support': '支援艦隊で資源消費を抑えるか、火力を補強します。',
+  'ship.usage.carrierSupport': '艦載機と火力で制空と打撃の両方を支援します。',
+  'ship.usage.antiPt': 'PT小鬼群特効装備で命中と処理の安定性を高めます。',
 }

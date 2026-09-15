@@ -128,32 +128,41 @@ export const localizedRouteDescription = (route, translate = t) => {
   return translated && translated !== key ? translated : route?.description || ''
 }
 
-const strategyFacts = (recommendation) => {
+export const strategyFacts = (recommendation, translate = t) => {
   const metrics = recommendation.metrics
   const route = recommendation.route
   const facts = [
     factMarkup(
-      t('fleet.strategyRoute'),
-      route.nodes.length ? route.nodes.join(' → ') : t('fleet.routeUnknown'),
+      translate('fleet.strategyRoute'),
+      route.nodes.length ? route.nodes.join(' → ') : translate('fleet.routeUnknown'),
     ),
-    factMarkup(t('fleet.strategySpeed'), t(`fleet.speed.${metrics.finalSpeedClass}`)),
+    factMarkup(
+      translate('fleet.strategySpeed'),
+      translate(`fleet.speed.${metrics.finalSpeedClass}`),
+    ),
   ]
-  if (metrics.airPowerRequired) {
+  if (metrics.airPowerRequired || metrics.airPowerRecommended > 0) {
     facts.push(
       factMarkup(
-        t('fleet.strategyAirPower'),
-        t('fleet.strategyMinimumValue', {
-          value: metrics.airPower,
-          minimum: metrics.airPowerMinimum,
-        }),
+        translate('fleet.strategyAirPower'),
+        translate(
+          metrics.airPowerRequired
+            ? 'fleet.strategyMinimumValue'
+            : 'fleet.strategyRecommendedValue',
+          {
+            value: metrics.airPower,
+            minimum: metrics.airPowerMinimum,
+            recommended: metrics.airPowerRecommended,
+          },
+        ),
       ),
     )
   }
   if (metrics.losRequired) {
     facts.push(
       factMarkup(
-        t('fleet.strategyLos'),
-        t('fleet.strategyMinimumValue', {
+        translate('fleet.strategyLos'),
+        translate('fleet.strategyMinimumValue', {
           value: metrics.los33.toFixed(1),
           minimum: metrics.losMinimum,
         }),
@@ -163,8 +172,8 @@ const strategyFacts = (recommendation) => {
   if (metrics.openingAswRequired) {
     facts.push(
       factMarkup(
-        t('fleet.strategyOpeningAsw'),
-        t('fleet.strategyMinimumValue', {
+        translate('fleet.strategyOpeningAsw'),
+        translate('fleet.strategyMinimumValue', {
           value: metrics.openingAswCount,
           minimum: metrics.openingAswMinimum,
         }),
@@ -172,11 +181,12 @@ const strategyFacts = (recommendation) => {
     )
   }
   if (metrics.estimatedResourceGain !== null) {
-    const resourceLabel = t(`common.${metrics.resourceTarget}`) || t('fleet.resourceFallback')
+    const resourceLabel =
+      translate(`common.${metrics.resourceTarget}`) || translate('fleet.resourceFallback')
     facts.push(
       factMarkup(
-        t('fleet.strategyResourceGain', { resource: resourceLabel }),
-        t('fleet.strategyResourceValue', {
+        translate('fleet.strategyResourceGain', { resource: resourceLabel }),
+        translate('fleet.strategyResourceValue', {
           gain: metrics.estimatedResourceGain,
           net: metrics.estimatedNetResourceGain,
         }),

@@ -16,15 +16,19 @@
         "anti-installation",
         "anti-installation-modeled",
         "anti-installation-type3-shells-1",
-        "anti-installation-carriers-3",
+        "anti-installation-carriers-1",
         "fixed-route",
         "carrier-opening",
         "flexible-carrier-air-priority",
         "ranking"
       ],
-      "desc": "正規/装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航戦1。全艦高速＋、制空414+。攻略・周回・戦果向け。",
-      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
-      "lastVerified": "2026-08-29",
+      "desc": "正規/装甲空母2（夜戦空母1以上）、軽空母1、雷巡2、航巡/航戦1。全艦高速＋。制空目安430（削り確保414＋損耗余裕）、優勢狙いなら220程度へ調整可。対地空母1・三式弾艦1を確保し、他空母は随伴処理も可。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
+      ],
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -47,7 +51,7 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [10],
+          "stypes": [6, 10],
           "value": 1
         }
       ],
@@ -55,7 +59,8 @@
         {
           "kind": "air-power",
           "minimum": 414,
-          "recommended": 414
+          "recommended": 430,
+          "required": false
         }
       ]
     },
@@ -71,13 +76,16 @@
         "anti-installation",
         "anti-installation-modeled",
         "anti-installation-surface-gears-2",
-        "oasw",
         "fixed-route",
         "carrier-opening"
       ],
-      "desc": "夜戦軽空母1を含む軽空母2、軽巡1、駆逐3。対地駆逐2、先制対潜3、制空207+の低消費最短編成。周回より攻略向け。",
-      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
-      "lastVerified": "2026-08-29",
+      "desc": "夜戦軽空母1を含む軽空母2、軽巡1、駆逐3。制空目安215（削り優勢207）。対地艦2を確保。先制対潜3隻は安定化の推奨で、斬殺時は対潜を減らし対地火力へ配分可。空母は随伴処理も可。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
+      ],
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -103,11 +111,8 @@
         {
           "kind": "air-power",
           "minimum": 207,
-          "recommended": 215
-        },
-        {
-          "kind": "opening-asw",
-          "minimum": 3
+          "recommended": 215,
+          "required": false
         }
       ]
     },
@@ -125,14 +130,18 @@
         "anti-installation",
         "anti-installation-modeled",
         "anti-installation-type3-shells-1",
-        "anti-installation-carriers-3",
+        "anti-installation-carriers-1",
         "fixed-route",
         "carrier-opening",
         "flexible-carrier-air-priority"
       ],
-      "desc": "Nelson改、空母系3、重巡1、雷巡1。全艦高速＋、HマスNelson Touch、制空207+。斬殺時は高速戦艦への変更も手動候補。",
-      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
-      "lastVerified": "2026-08-29",
+      "desc": "Nelson改、空母系3、重巡/航巡1、雷巡1。全艦高速＋、Hで複縦陣Nelson Touch（1/3/5番艦）。制空目安220（削り優勢207）。対地空母1・三式弾艦1を確保し、残りの空母は随伴処理も可。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
+      ],
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -150,12 +159,12 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [11, 18],
+          "stypes": [7, 11, 18],
           "value": 3
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [5],
+          "stypes": [5, 6],
           "value": 1
         },
         {
@@ -168,7 +177,8 @@
         {
           "kind": "air-power",
           "minimum": 207,
-          "recommended": 220
+          "recommended": 220,
+          "required": false
         }
       ]
     },
@@ -184,13 +194,16 @@
         "anti-installation",
         "anti-installation-modeled",
         "anti-installation-type3-shells-1",
-        "anti-installation-carriers-2",
         "carrier-opening",
         "flexible-carrier-air-priority"
       ],
-      "desc": "高速戦艦1、正規/装甲空母2、軽巡1、駆逐2。A-B-E-M-R-N-TまたはC-F-I-J-H-Tを通る削り専用の迂回編成、制空207+。",
-      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
-      "lastVerified": "2026-08-29",
+      "desc": "戦艦1、正規/装甲空母2、軽巡1、駆逐2。全艦高速以上でA-B-E-M-R-N-TまたはC-F-I-J-H-T。削り専用、制空目安220（優勢207）。戦艦の三式弾で対地、空母は随伴処理も可。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
+      ],
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -198,7 +211,7 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [8],
+          "stypes": [8, 9, 10, 12],
           "value": 1
         },
         {
@@ -221,7 +234,8 @@
         {
           "kind": "air-power",
           "minimum": 207,
-          "recommended": 220
+          "recommended": 220,
+          "required": false
         }
       ]
     },
@@ -236,16 +250,18 @@
         "los-cn2-70",
         "anti-installation",
         "anti-installation-modeled",
-        "anti-installation-type3-shells-4",
+        "anti-installation-type3-shells-1",
         "heavy-fleet",
         "smoke-screen"
       ],
-      "desc": "戦艦1、正規/装甲空母2、航巡3。Yui新手斬殺、Kマス煙幕、制空270+、Cn2索敵70+。",
+      "desc": "戦艦1、正規/装甲空母2、重巡/航巡3。K→TにCn2索敵70以上が必要。制空目安270（K優勢252＋損耗余裕）。三式弾艦1以上を確保し、斬殺は2〜3隻の対地火力を推奨。Yui画像は三式弾3隻と煙幕役1隻。K煙幕は任意の安定化策。",
       "sources": [
         "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
       ],
-      "lastVerified": "2026-08-29",
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -263,7 +279,7 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [6],
+          "stypes": [5, 6],
           "value": 3
         }
       ],
@@ -271,7 +287,8 @@
         {
           "kind": "air-power",
           "minimum": 270,
-          "recommended": 270
+          "recommended": 270,
+          "required": false
         },
         {
           "kind": "los",
@@ -288,11 +305,12 @@
       "nodes": ["A/C", "D", "H", "T"],
       "stableBoss": true,
       "tags": ["anti-installation", "oasw", "fixed-route", "carrier-opening"],
-      "desc": "正規/装甲空母0-1、軽空母1-2、軽巡1、駆逐3。HからT直行、制空215+。対地DD・先制対潜・長射程空母装備は手動確認。",
-      "lastVerified": "2026-08-29",
+      "desc": "正規/装甲空母0-1、軽空母1-2、軽巡1、駆逐3。HからT直行、制空目安215+。対地DD・先制対潜・長射程空母装備は手動確認。",
+      "lastVerified": "2026-09-15",
       "sources": [
         "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5"
       ],
       "fleet": [
         {
@@ -339,7 +357,8 @@
         {
           "kind": "air-power",
           "minimum": 215,
-          "recommended": 215
+          "recommended": 215,
+          "required": false
         }
       ]
     },
@@ -355,14 +374,15 @@
         "anti-installation",
         "anti-installation-modeled",
         "anti-installation-type3-shells-1",
-        "anti-installation-carriers-3",
         "fixed-route"
       ],
-      "desc": "戦艦1、空母系3、雷巡1、航巡1。全艦高速＋、Yui中配、制空220+。",
-      "lastVerified": "2026-08-29",
+      "desc": "戦艦1、空母系3、重巡/航巡1＋雷巡/重巡/航巡1。全艦高速＋、制空目安220。雷巡は斬殺時に対地重巡級へ変更可。三式弾艦1以上を確保し、空母は通常艦爆で随伴処理も可。",
+      "lastVerified": "2026-09-15",
       "sources": [
         "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
       ],
       "fleet": [
         {
@@ -381,12 +401,12 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [4],
-          "value": 1
+          "stypes": [4, 5, 6],
+          "value": 2
         },
         {
-          "type": "ExactShipTypeCount",
-          "stypes": [6],
+          "type": "ShipTypeCount",
+          "stypes": [5, 6],
           "value": 1
         }
       ],
@@ -394,7 +414,8 @@
         {
           "kind": "air-power",
           "minimum": 220,
-          "recommended": 220
+          "recommended": 220,
+          "required": false
         }
       ]
     },
@@ -410,17 +431,19 @@
         "anti-installation",
         "anti-installation-modeled",
         "anti-installation-surface-gears-1",
-        "anti-installation-carriers-3",
+        "anti-installation-carriers-1",
         "fixed-route",
         "carrier-opening",
         "flexible-carrier-air-priority",
         "surface-seaplane-air-priority"
       ],
-      "desc": "空母系3、雷巡2、航巡/航戦1。高配高速＋、制空430+。高速＋装備後は制空達成を優先し、余剰空母枠を艦攻／対地艦爆へ配分。水上艦は小スロットで対地装備と高速＋装備を受け、残りを水戦優先。",
-      "lastVerified": "2026-08-29",
+      "desc": "空母系3、雷巡2、航巡/航戦1。航巡採用時は雷巡1を軽空母へ変更可（戦艦級＋空母系4以下）。全艦高速＋。制空目安430、優勢狙いなら220程度でも可。対地水上艦1・対地空母1を確保し、他の空母は随伴処理も可。斬殺時は水戦を砲へ回して対地火力を増やす。",
+      "lastVerified": "2026-09-15",
       "sources": [
         "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
       ],
       "fleet": [
         {
@@ -428,12 +451,27 @@
           "value": 6
         },
         {
-          "type": "ExactShipTypeCount",
+          "type": "ShipTypeCount",
           "stypes": [7, 11, 18],
           "value": 3
         },
         {
-          "type": "ExactShipTypeCount",
+          "type": "MaxShipTypeCount",
+          "stypes": [7, 11, 18],
+          "value": 4
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [11, 18],
+          "value": 3
+        },
+        {
+          "type": "ShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "MaxShipTypeCount",
           "stypes": [4],
           "value": 2
         },
@@ -441,13 +479,19 @@
           "type": "ExactShipTypeCount",
           "stypes": [6, 10],
           "value": 1
+        },
+        {
+          "type": "MaxShipTypeCount",
+          "stypes": [7, 8, 9, 10, 11, 12, 18],
+          "value": 4
         }
       ],
       "calculated": [
         {
           "kind": "air-power",
           "minimum": 430,
-          "recommended": 430
+          "recommended": 430,
+          "required": false
         }
       ]
     },
@@ -459,9 +503,13 @@
       "nodes": ["A/C", "D", "H", "T"],
       "stableBoss": true,
       "tags": ["anti-installation", "fixed-route", "quest-friendly"],
-      "desc": "空母1以上を含む戦艦/空母2、軽巡1、駆逐3。HからT直行、制空215+。",
-      "sources": ["https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5"],
-      "lastVerified": "2026-08-29",
+      "desc": "戦艦/空母系2、軽巡1、駆逐3。H→T最短、速力・索敵指定なし。空母は戦艦へ変更可。制空目安215（削り優勢207）は任意。対地火力は装備・練度に応じて調整し、出撃前に確認。",
+      "sources": [
+        "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
+      ],
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -471,11 +519,6 @@
           "type": "ExactShipTypeCount",
           "stypes": [7, 8, 9, 10, 11, 12, 18],
           "value": 2
-        },
-        {
-          "type": "ShipTypeCount",
-          "stypes": [7, 11, 18],
-          "value": 1
         },
         {
           "type": "ExactShipTypeCount",
@@ -492,7 +535,8 @@
         {
           "kind": "air-power",
           "minimum": 215,
-          "recommended": 215
+          "recommended": 215,
+          "required": false
         }
       ]
     },
@@ -500,8 +544,8 @@
       "id": "4-5-cl-dd-light",
       "name": "Yui・新手磨血",
       "category": "boss",
-      "objectives": ["low-cost", "balanced", "boss-clear"],
-      "nodes": ["A/C", "B/F", "E/I", "M/J", "N/H", "T"],
+      "objectives": ["low-cost", "balanced"],
+      "nodes": ["A-B-E-M-R-N-T / C-F-I-J-H-T"],
       "stableBoss": true,
       "tags": [
         "fast",
@@ -510,12 +554,14 @@
         "anti-installation-type3-shells-1",
         "quest-friendly"
       ],
-      "desc": "高速戦艦1、正規/装甲空母2、軽巡1、駆逐2。Yui新手磨血、初手分岐あり、制空220+。",
+      "desc": "戦艦1、正規/装甲空母2、軽巡1、駆逐2。全艦高速以上。Yui新手削り専用、A-B-E-M-R-N-TまたはC-F-I-J-H-T。制空目安220、三式弾艦1を確保。斬殺は別編成を推奨。",
       "sources": [
         "https://m.kcwiki.cn/wiki/%E8%A5%BF%E6%96%B9%E6%B5%B7%E5%9F%9F/4-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-184.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-184.html",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
       ],
-      "lastVerified": "2026-08-29",
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -523,7 +569,7 @@
         },
         {
           "type": "ExactShipTypeCount",
-          "stypes": [8],
+          "stypes": [8, 9, 10, 12],
           "value": 1
         },
         {
@@ -546,7 +592,8 @@
         {
           "kind": "air-power",
           "minimum": 220,
-          "recommended": 220
+          "recommended": 220,
+          "required": false
         }
       ]
     },
@@ -564,11 +611,11 @@
         "carrier-opening",
         "anti-installation",
         "anti-installation-modeled",
-        "anti-installation-carriers-4",
+        "anti-installation-carriers-1",
         "flexible-carrier-air-priority"
       ],
-      "desc": "正規/装甲/軽空母4、航巡2。全艦高速＋のC/A-D-H-T洗地編成。制空414+を満たし、空母4隻の対地攻撃能力を維持する。",
-      "lastVerified": "2026-08-29",
+      "desc": "空母系4、航巡2。全艦高速＋、戦艦級＋空母系4以下でA/C-D-H-T。制空目安430（削り確保414＋損耗余裕）、優勢狙いなら220程度へ調整可。対地空母1以上を確保し、残りは対地攻撃または随伴処理へ配分。",
+      "lastVerified": "2026-09-15",
       "fleet": [
         {
           "type": "ShipCount",
@@ -589,10 +636,15 @@
         {
           "kind": "air-power",
           "minimum": 414,
-          "recommended": 414
+          "recommended": 430,
+          "required": false
         }
       ],
-      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
+      "sources": [
+        "https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259",
+        "https://wikiwiki.jp/kancolle/西方海域/4-5",
+        "https://zekamashi.net/kancolle-kouryaku/4-5/"
+      ]
     }
   ]
 }

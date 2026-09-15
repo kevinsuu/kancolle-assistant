@@ -64,6 +64,7 @@ export const en = {
   'quest.typeFilter.label': 'Quest types',
   'quest.typeFilter.hint': 'Multi-select · All removes the type limit',
   'quest.type.all': 'All',
+  'quest.type.combined': 'Combined',
   'quest.type.fleet': 'Fleet',
   'quest.type.sortie': 'Sortie',
   'quest.type.exercise': 'Exercise',
@@ -100,7 +101,11 @@ export const en = {
   'quest.syncFirst':
     'Keep the game tab online. After a fresh launch, use the home port once, then sync.',
   'quest.status':
-    '{count} quests · {groups} groups · {daily} daily · {weekly} weekly · {monthly} monthly · {quarterly} quarterly · {yearly} yearly · {oneTime} one-time · {limited} limited · {downstream} boosted by successors · {eo} EOs open · {unavailable} unavailable · Updated {updated}',
+    '{count} quests · {groups} groups · {daily} daily · {weekly} weekly · {monthly} monthly · {quarterly} quarterly · {yearly} yearly · {oneTime} one-time · {limited} limited · {downstream} boosted by successors · {eo} EOs open · {unavailable} unavailable · {source}',
+  'quest.statusSource.live': 'Game synced {updated}',
+  'quest.statusSource.local': 'KC3 local cache — sync to verify',
+  'quest.acceptance.status':
+    'Accepted {active}/{capacity}; {available} acceptance slots remain. Suggested combinations still require your fleet, equipment, route, and acceptance-slot confirmation.',
   'quest.emptyTitle': 'No quests to recommend',
   'quest.emptyDetail':
     'KC3 currently has no open repeatable, one-time, or time-limited quests in its synchronized list.',
@@ -135,16 +140,26 @@ export const en = {
   'quest.reward.actionReport': 'Action Report',
   'quest.reward.screws': 'Improvement Materials ×{count}',
   'quest.reward.screwsGeneric': 'Improvement Materials',
+  'quest.reward.developmentMaterials': 'Development Materials ×{count}',
+  'quest.reward.bucket': 'Buckets ×{count}',
+  'quest.reward.instantBuild': 'Instant Construction Materials ×{count}',
   'quest.reward.other': 'Other materials',
   'quest.reward.choice': 'Selectable reward',
   'quest.reward.material.skilledCrew': 'Skilled Crew',
   'quest.reward.material.newAviationMaterial': 'New Aviation Material',
   'quest.reward.material.daihatsu': 'Daihatsu',
   'quest.reward.material.newRocketMaterial': 'New Rocket Development Material',
+  'quest.reward.material.newGunArmamentMaterial': 'New Gun Armament Material',
+  'quest.reward.material.newArmamentMaterial': 'New Armament Material',
+  'quest.reward.material.catapult': 'Prototype Flight Deck Catapult',
+  'quest.reward.material.reinforcementExpansion': 'Reinforcement Expansion',
+  'quest.reward.material.newAviationBlueprint': 'New Aircraft Design Blueprint',
+  'quest.reward.material.overseasEquipmentTech': 'Overseas Ship Latest Technology',
   'quest.downstream.title': 'Valuable locked successors',
   'quest.downstream.steps': '{count} steps away',
   'quest.group.combined': 'Suggested combination',
   'quest.group.questCount': '{count} quests',
+  'quest.group.repeatedQuestHint': '{count} quest also progresses in another combination',
   'quest.priority.label': 'Recommendation',
   'quest.priority.highest': 'Highest priority',
   'quest.priority.priority': 'Priority',
@@ -174,8 +189,8 @@ export const en = {
   'quest.synergy.extra.fourFiveExtraOperation': '4-5 monthly Extra Operation',
   'quest.synergy.fleet.fourDe': '4 Coastal Defense Ships',
   'quest.synergy.fleet.clFlagshipThreeDd': 'CL flagship + 3 DD',
-  'quest.synergy.fleet.cvlThreeDd': 'CVL + 3 DD',
-  'quest.synergy.fleet.carrierThreeDd': '1+ carrier + 3 DD/DE',
+  'quest.synergy.fleet.cvlThreeDd': 'CVL flagship + 3 DD/DE',
+  'quest.synergy.fleet.carrierThreeDd': 'CL/CVL flagship + 3 DD/DE + 1 carrier',
   'quest.synergy.fleet.twoCarrierTwoDd': '2 CV/CVL + 2 DD + 2 flexible ships',
   'quest.synergy.fleet.variedByStage': 'Change fleet for each step',
   'quest.synergy.fleet.regularEoFleet': 'Use the regular EO fleet',
@@ -252,11 +267,14 @@ export const en = {
   'quest.guidance.insufficientSteel': 'Current steel is below the required cost',
   'quest.guidance.missingShip': 'Missing required ship: {ship}',
   'quest.requirement.ship.yuubariKaiNi': 'Yuubari Kai Ni / Toku / Tei',
+  'quest.requirement.ship.yuubariOrYuraKaiNi': 'Yuubari Kai Ni class or Yura Kai Ni',
   'quest.requirement.ship.naganamiKaiNi': 'Naganami Kai Ni',
   'quest.requirement.ship.desdivThirtyOnePartner': 'Takanami, Okinami, or Asashimo Kai+',
   'quest.deadline': '{remaining} · resets {resetAt}',
   'quest.noFixedDeadline': 'No fixed reset deadline',
   'quest.limitedDeadlineUnknown': 'Final availability deadline is not provided by KC3',
+  'quest.synergy.verificationNotice':
+    'Derived from quest conditions; confirm your ships, equipment, route, and acceptance slots before sortie.',
   'quest.remainingDaysHours': '{days}d {hours}h remaining',
   'quest.remainingHours': '{hours}h remaining',
   'quest.remainingMinutes': '{minutes}m remaining',
@@ -339,6 +357,7 @@ export const en = {
   'fleet.strategyOpeningAsw': 'Opening ASW',
   'fleet.strategyResourceGain': 'Expected {resource}',
   'fleet.strategyMinimumValue': '{value} / min {minimum}',
+  'fleet.strategyRecommendedValue': '{value} / target {recommended} (flexible)',
   'fleet.strategyResourceValue': '{gain} gained / {net} net',
   'fleet.strategyNoDescription': 'Check the linked source for this route.',
   'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
@@ -346,23 +365,23 @@ export const en = {
   'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
     'One BB, two CV/CVB, one CAV, one DD, and one DE on fixed A-E-I-K. The DE uses opening ASW, while carrier slots favor strike aircraft after fleet air power reaches 80+.',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
-    'Two CV/CVB, including at least one night carrier, one CVL, two CLT, and one BBV. The entire fleet reaches Fast+ for A/C-D-H-T, checks air power 414+, and suits clears or repeated ranking runs.',
+    'Two CV/CVB including a night carrier, one CVL, two CLT, and one CAV/BBV. Fast+ is required. Target air power 430 for supremacy (414 at the boss plus losses), or about 220 for superiority. Keep one land-capable carrier and one Type 3 Shell ship; other carriers may clear escorts.',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
-    'Two CVL, including one night carrier, one CL, and three DD. This low-cost shortest route checks air power 207+, three opening-ASW ships, and two anti-installation destroyers; the guide recommends it for clears rather than extended farming because of repair costs.',
+    'Two CVL including a night carrier, one CL, and three DD. Target air power 215 (boss superiority 207), with two surface installation attackers. Three opening-ASW ships are advice; trade ASW for land damage when finishing the gauge. Carriers may clear escorts.',
   'fleet.routeDescription.4-5-kcwiki-fast-plus-special-attack':
-    'Nelson Kai, three CV/CVB, one CA, and one CLT. The fleet reaches Fast+, places Nelson and two non-carriers in positions 1/3/5, and uses Double Line at H for Nelson Touch; air power 207+ is checked.',
+    'Nelson Kai, three carriers, one CA/CAV, and one CLT, all Fast+. Place Nelson and non-carriers in positions 1/3/5 for Double Line Touch at H. Target air power 220; keep one Type 3 Shell ship and one land-capable carrier. Other carriers may clear escorts.',
   'fleet.routeDescription.4-5-kcwiki-detour':
-    'One fast BB, two CV/CVB, one CL, and two DD. It follows A-B-E-M-R-N-T or C-F-I-J-H-T and checks air power 207+; the source recommends this detour only while chipping the gauge.',
+    'One BB, two CV/CVB, one CL, and two DD, all Fast or faster. A-B-E-M-R-N-T or C-F-I-J-H-T; chipping only. Target air power 220, with a Type 3 Shell on a surface finisher. Carriers may clear escorts.',
   'fleet.routeDescription.5-5-middle':
-    'Yamato Kai Ni-class, one friend battleship, one CAV, one CL, and two DD. Yui regular EO middle battleship-cruiser route; air power 138+ and Formula 33 Cn2 LoS 66+.',
+    'Yamato Kai Ni with a supported partner BB, one CAV, one CL, and two DD. Formula 33 Cn2 LoS 66 is required. Target air power 140 (H parity 137), or about 90 for boss disadvantage. Adjust ASW and anti-air cut-ins to the fleet.',
   'fleet.routeDescription.5-5-supply-smoke':
-    'Yamato Kai Ni Juu, Musashi Kai Ni, one carrier, one AO, and two DD. Yui supply boss smoke route; triple smoke screen is a manual sortie check, with air power 300+ and Formula 33 Cn2 LoS 66+.',
+    'Yamato Kai Ni Juu, Musashi Kai Ni, one carrier, one AO, and two DD. Yui supply boss smoke route; triple smoke screen is a manual sortie check, with an advisory air-power target of 300+ and Formula 33 Cn2 LoS 66+.',
   'fleet.routeDescription.5-5-submarine-snipe':
     'Six SS/SSV. Low-resource snipe route; P to S is not fixed and requires Formula 33 Cn2 LoS 80+.',
   'fleet.routeDescription.5-5-kcwiki-upper-yamato-night-carrier':
-    'Yamato Kai Ni-class plus Musashi Kai Ni, two CV/CVB, and two CA/CAV. KCWiki upper Yamato-Musashi night-carrier setup; checks Formula 33 Cn2 LoS 80+ for P to S and boss air superiority 392+ from the image notes.',
+    'Yamato Kai Ni, Musashi Kai Ni, two CV/CVB, and two CA/CAV. P to S requires Formula 33 Cn2 LoS 80. Target air power 410 (strongest boss superiority 392 plus losses). Night carriers are optional backup damage; ordinary carriers are valid.',
   'fleet.routeDescription.5-5-kcwiki-upper-cav':
-    'Akagi Kai Ni Bo plus three battleships and two CAV for the KCWiki upper routing setup. The image example has air power 416 and Formula 33 Cn1 LoS 44.87; second-phase P to S is checked as Formula 33 Cn2 LoS 80+.',
+    'One carrier, three BB, and two CAV. Akagi Kai Ni Bo is an example, not a named-ship requirement. P to S requires Formula 33 Cn2 LoS 80. Target air power 410 (strongest boss superiority 392 plus losses).',
   'fleet.routeDescription.5-5-kcwiki-upper-nelson':
     'Nelson/Rodney Kai, one battleship, two CV/CVB, and two CAV. KCWiki upper Nelson route; sortie air power 410+ is advised and P to S requires Formula 33 Cn2 LoS 80+.',
   'fleet.routeDescription.5-5-kcwiki-upper-night-carrier':
@@ -374,17 +393,17 @@ export const en = {
   'fleet.routeDescription.5-5-kcwiki-upper-random-nagato':
     'Nagato Kai Ni, Mutsu Kai Ni, and four CV/CVB. KCWiki upper random setup 2; supports the Nagato special attack but can branch away after P, so it is treated as a manual route.',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-smoke':
-    'Yamato Kai Ni-class plus Musashi Kai Ni, one night carrier/carrier, one AO, and two DD. KCWiki middle Yamato-Musashi smoke route; triple smoke screen is a manual check, with H-node air parity at 136 and near air supremacy at 138.',
+    'Yamato Kai Ni, Musashi Kai Ni, one carrier, one AO, and two DD. The AO fixes N to O; Formula 33 Cn2 LoS 66 is required. Target air power 140 (H parity 137). Air power 138 grants supremacy only against the weakest H fleet. Adjust smoke, jets, night carriers, and ASW to the fleet.',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-mogami-yahagi':
-    'Yamato Kai Ni-class plus Musashi Kai Ni, Mogami, Yahagi, and two DD. KCWiki middle Yamato-Musashi-Mogami-Yahagi route; H-node air parity at 136, near air supremacy at 138, and Formula 33 Cn2 LoS 66+.',
+    'Yamato Kai Ni, Musashi Kai Ni, one CAV, one CL, and two DD. Mogami/Yahagi are opening-torpedo preferences; same-type substitutes are valid. Formula 33 Cn2 LoS 66 is required. Target air power 140 (H parity 137), or about 90 for boss disadvantage. Supremacy at 138 covers only the weakest H fleet.',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-supply':
-    'Yamato Kai Ni-class plus Musashi Kai Ni, one carrier, one AO, and two DD. KCWiki middle Yamato-Musashi supply route; H-node air parity at 136, near air supremacy at 138, and Formula 33 Cn2 LoS 66+.',
+    'Yamato Kai Ni, Musashi Kai Ni, one carrier, one AO, and two DD. The AO fixes N to O; Formula 33 Cn2 LoS 66 is required. Target air power 140 (H parity 137). Air power 138 grants supremacy only against the weakest H fleet. Adjust smoke, jets, night carriers, and ASW to the fleet.',
   'fleet.routeDescription.5-5-kcwiki-middle-nelson':
-    'Nelson Kai, one battleship, two DD, and two CA/CAV/CLT. KCWiki middle Nelson route; air power 176 gives boss parity, 188+ leans toward H-node superiority, and Formula 33 Cn2 LoS 66+ is required.',
+    'Nelson/Rodney Kai, one BB, two DD, and two CA/CAV/CLT, with at most one CLT. Two CLT would divert B to K. Formula 33 Cn2 LoS 66 is required. Target air power 188 (boss parity 175 plus margin); H superiority 188 covers only medium enemies, while the strongest H fleet needs 306.',
   'fleet.routeDescription.5-5-kcwiki-middle-transfer-south':
-    'Two battleships, one CV/CVB, one CA/CAV/CLT, and two DD. KCWiki middle-to-south route through the M night battle; H/N branching is a manual check, and O to S requires Formula 33 Cn5 LoS 162+.',
+    'Two BB, one CV/CVB, one CA/CAV/CLT, and two DD take B-F-D-H-N-M-O-S. The CV forces N to M; O to S requires Formula 33 Cn2 LoS 66, replacing the old Cn5 162 check. Air power 306 targets H superiority; boss superiority ranges from 224 to 392.',
   'fleet.routeDescription.5-5-kcwiki-middle-heavy-cruiser':
-    'Nagato Kai Ni plus Mutsu Kai Ni, one CA, one CAV, and two DD. KCWiki middle heavy-cruiser setup; uses four seaplane fighters to aim for H-node parity, while support fleet remains a manual check.',
+    'Nagato Kai Ni, Mutsu Kai Ni, one CA, one CAV, and two DD. Formula 33 Cn2 LoS 66 is required. Target air power 140 (H parity 137). Four water fighters are an example, not a required count. Adjust ASW, radars, and support to the fleet.',
   'fleet.routeDescription.5-5-south-dd':
     '1 CL, 1 CLT, and 4 DD. Torpedo-squadron retreat route; Night Zuiun/Zuiun air power 1+ is advice rather than a hard gate. Avoid double Re-class boss formations.',
   'fleet.routeDescription.5-5-kcwiki-south-yamato-dd':
@@ -392,13 +411,29 @@ export const en = {
   'fleet.routeDescription.5-5-kcwiki-south-night-carrier-dd':
     'Two CV/CVB including a night carrier plus four DD. KCWiki lower recommended setup; carrier reconnaissance planes are expected to reduce the destroyers’ LoS burden.',
   'fleet.routeDescription.5-5-kcwiki-south-bbv-cav-drums':
-    'One CV/CVB, one BBV, two CAV, and two DD. KCWiki lower Saratoga/Ise/Tashkent-style example; four ships carry drum canisters to enter A, then boss superiority and Formula 33 Cn2 LoS 66+ are checked.',
+    'One CV/CVB, one BBV, two CAV, and two DD. Four distinct drum-carrying ships are required for A, plus Formula 33 Cn2 LoS 66. Target air power 410 (strongest boss superiority 392). Four ships with eligible landing craft are a separate routing option; this template validates drums.',
   'fleet.routeDescription.5-5-kcwiki-south-nagato-dd':
     'Nagato Kai Ni plus Mutsu Kai Ni and four DD for the KCWiki lower night-battle route. LoS is very tight, so Formula 33 Cn2 LoS 66+ is a hard requirement; support and ASW remain sortie advice.',
   'fleet.routeDescription.5-5-newbie-nagato':
-    'Nagato, Mutsu, two CAV, and two DD. Yui beginner Nagato-Mutsu route; shelling support is advised for both route and boss, with air power 136+ and Formula 33 Cn2 LoS 66+.',
+    'Nagato Kai Ni, Mutsu Kai Ni, two CAV, and two DD. Formula 33 Cn2 LoS 66 is required. Target air power 140 (H parity 137; the old 136 target is short). Support is advised; allow enough ASW for S-rank and stronger post-clear submarines.',
   'fleet.routeDescription.5-5-kcwiki-bahamut-random-heavy':
-    'KCWiki any six battleship/carrier-class ships, with the Bahamut 2014 phase-one 3BB3CV/3BB2CVL heavy-firepower reference. In phase two it branches away after P about 35% of the time, so it is currently a manual random upper route.',
+    'Six BB/carriers take B-K-P-S with about a one-third diversion after P even at Formula 33 Cn2 LoS 80. Target air power 410 (strongest boss superiority 392). This is a random route; adjust support to the objective.',
+  'fleet.routeDescription.4-5-standard-balanced':
+    'One BB, two CV/CVB, and three CA/CAV. K to T requires Formula 33 Cn2 LoS 70. Target air power 270. Keep at least one Type 3 Shell ship; two or three land attackers are advised for the final kill. Yui shows three shell users and one smoke ship. K-node smoke is optional.',
+  'fleet.routeDescription.4-5-fast-plus-battleship-carrier':
+    'One BB, three carriers, one CA/CAV plus one CLT/CA/CAV, all Fast+. Target air power 220. A land-attacking cruiser may replace the CLT for the final kill. Keep at least one Type 3 Shell ship; ordinary carrier dive bombers may clear escorts.',
+  'fleet.routeDescription.4-5-fast-plus-carrier':
+    'Three carriers, two CLT, and one CAV/BBV, all Fast+. With a CAV, one CLT may become a CVL; BB plus carriers must stay at four or fewer. Target air power 430, or about 220 for superiority. Keep one surface land attacker and one land-capable carrier. Other carriers may clear escorts; trade water fighters for guns for the final kill.',
+  'fleet.routeDescription.4-5-cl-dd-heavy':
+    'Two BB/carriers, one CL, and three DD take H to T without speed or LoS requirements. A BB may replace a carrier. Air power 215 is advice. Check installation damage against the available equipment and ship levels before sortie.',
+  'fleet.routeDescription.4-5-cl-dd-light':
+    'One BB, two CV/CVB, one CL, and two DD, all Fast or faster. Yui chipping route: A-B-E-M-R-N-T or C-F-I-J-H-T. Target air power 220 and keep one Type 3 Shell ship. Switch tactics for the final kill.',
+  'fleet.routeDescription.4-5-bahamut-fast-plus-cv4-cav2':
+    'Four carriers and two CAV, all Fast+, take A/C-D-H-T. Target air power 430 (boss supremacy 414 plus losses), or about 220 for superiority. Keep at least one land-capable carrier; the others may attack installations or clear escorts.',
+  'fleet.routeDescription.5-5-conye-middle-nagato-mogami-yahagi':
+    'Nagato Kai Ni, Mutsu Kai Ni, one CAV, one CL, and two DD. Mogami/Yahagi are preferred examples; same-type substitutes are valid. Use Echelon for the boss special attack. Formula 33 Cn2 LoS 66 is required; air power 90 (boss disadvantage 88), support, and ASW are adjustable targets.',
+  'fleet.routeDescription.5-5-bahamut-cv4-cav-cl':
+    'Four CV/CVB, one CAV, and one CL take B-K-P-S with at most four large ships. P to S requires Formula 33 Cn2 LoS 80, replacing the old Cn1 43 check. Target air power 410 (strongest boss superiority 392 plus losses).',
   'fleet.routeUnknown': 'Check source',
   'fleet.airPower': 'Air Power',
   'fleet.los': 'LoS Formula 33',
@@ -489,6 +524,8 @@ export const en = {
     '{shipName} uses an ordinary loadout; this plan does not include a Zuiun Multi-Angle Attack setup.',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '{minimum} battleships or heavy cruisers equip Type 3 Shell-family items, satisfying this route’s anti-installation model.',
+  'message.ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED':
+    'Equipped {minimum} compatible surface ships with Type 3 Shell, tank, or landing-craft installation gear.',
   'message.KC3_COMBAT_EVALUATION_APPLIED':
     'KC3 recalculated ship-specific and combination equipment bonuses, improvements, gun-fit accuracy, and target-specific effective power for each complete loadout before reranking candidates.',
   'message.ANTI_INSTALLATION_CARRIER_READY':
@@ -524,7 +561,7 @@ export const en = {
   'message.NIGHT_CARRIER_UNAVAILABLE':
     'No candidate carrier has an inherent night capability or an owned, compatible night-carrier equipment setup.',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
-    'The account cannot equip {minimum} available battleships or heavy cruisers with one Type 3 Shell-family item each.',
+    'Cannot equip {minimum} compatible surface ships with the Type 3 Shell, tank, or landing-craft gear required by this tactic.',
   'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
     'The required carriers cannot all retain anti-installation attacks while satisfying air-power requirements.',
   'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
@@ -800,4 +837,117 @@ export const en = {
     'Not enough calculable expeditions can be assigned. Confirm candidates are unlocked and the account has enough ship types for Kancepts minimum-cost compositions.',
   'expedition.reason.RESOURCE_CONSTRAINTS':
     'No expedition combination currently satisfies every minimum income condition.',
+  'ship.menu': 'Ship Recommendations',
+  'ship.menuTitle': 'Prioritize owned ships using the NGA guide score',
+  'ship.help.whatQuestion': 'What does this page recommend?',
+  'ship.help.whatAnswer':
+    'It shows only ship families you own that appear in the referenced guide, ordered by its 1–10 rating. Each row explains the guide-listed strengths, priority rationale, and suggested roles; higher-rated families should move earlier in your training plan.',
+  'ship.help.matchQuestion': 'Will changing languages affect matching?',
+  'ship.help.matchAnswer':
+    'No. Matching uses KC3 master data’s canonical Japanese ship-family name, while the card keeps KC3’s current localized ship name.',
+  'ship.help.automaticQuestion': 'Does it change ships or equipment?',
+  'ship.help.automaticAnswer':
+    'No. This is a read-only training reference; it never remodels, equips, or sorties.',
+  'ship.toolbar': 'Ship recommendation controls',
+  'ship.minimumRating': 'Minimum guide rating',
+  'ship.rating.all': 'All ratings',
+  'ship.rating.five': '5 and above',
+  'ship.rating.eight': '8 and above',
+  'ship.rating.ten': '10 only',
+  'ship.sync': 'Resync ships',
+  'ship.syncing': 'Synchronizing owned ships…',
+  'ship.preparing': 'Preparing the owned-ship list…',
+  'ship.loading': 'Ranking owned ships',
+  'ship.loadingDetail': 'Matching KC3 ship families against the guide…',
+  'ship.unavailable': 'Owned ship data could not be read.',
+  'ship.notReady': 'Ship recommendations are not ready',
+  'ship.syncFirst':
+    'Keep the game tab online. After a fresh launch, visit the home port once, then resync.',
+  'ship.status':
+    '{matched} matched families / {total} owned ships · {training} to train · {ready} guide forms reached · Updated {updated}',
+  'ship.results': 'Training priority',
+  'ship.visibleCount': 'Showing {count}',
+  'ship.emptyTitle': 'No owned ships meet this rating',
+  'ship.emptyDetail':
+    'Lower the minimum rating, or synchronize the game after visiting the home port.',
+  'ship.source': 'Guide source (last pasted update {date}):',
+  'ship.level': 'Lv. {level}',
+  'ship.heldCount': '{count} held',
+  'ship.ratingValue': 'Guide rating {rating}/10',
+  'ship.state.training': 'Train toward the guide form',
+  'ship.state.ready': 'Guide form reached',
+  'ship.section.priorityReason': 'Why prioritize it',
+  'ship.section.usage': 'Recommended roles',
+  'ship.priorityReason.features':
+    'The guide highlights {features}, which is why it assigns this family a training score of {rating}/10.',
+  'ship.priorityReason.scoreOnly':
+    'The supplied guide assigns a score of {rating}/10 but does not list a distinct strength; keep this as a remodel-priority reminder.',
+  'ship.usage.unlisted':
+    'The supplied table does not state a strength that can be turned into a specific role.',
+  'ship.feature.specialAttack': 'Special attack',
+  'ship.feature.antiInstallation': 'Anti-installation',
+  'ship.feature.fiveSlots': 'Five slots',
+  'ship.feature.carrierFighter': 'Can carry fighters',
+  'ship.feature.openingTorpedo': 'Opening torpedo',
+  'ship.feature.fourSlots': 'Four slots',
+  'ship.feature.seaplaneFighter': 'Seaplane fighter',
+  'ship.feature.pseudoFiveSlots': 'Near-five-slot layout',
+  'ship.feature.pseudoFourSlots': 'Near-four-slot layout',
+  'ship.feature.highModifier': 'Frequent high event bonuses',
+  'ship.feature.highFirepower': 'High firepower',
+  'ship.feature.nightCarrier': 'Night carrier',
+  'ship.feature.armoredCarrier': 'Armored carrier',
+  'ship.feature.dedicatedAaci': 'Dedicated AA cut-in',
+  'ship.feature.gunSpecialist': 'Gun-specialist remodel',
+  'ship.feature.rotaryAsw': 'Rotary-wing ASW',
+  'ship.feature.cve': 'Escort carrier',
+  'ship.feature.highArmor': 'High armor',
+  'ship.feature.fastPlus': 'Fast+ expansion option',
+  'ship.feature.highLuck': 'High luck',
+  'ship.feature.versatile': 'Versatile role coverage',
+  'ship.feature.aviationCruiser': 'Aviation cruiser',
+  'ship.feature.openingAsw': 'Opening ASW',
+  'ship.feature.efficientSupport': 'Efficient support fleet',
+  'ship.feature.supportCarrier': 'Strong carrier support',
+  'ship.feature.aswSupport': 'ASW support',
+  'ship.feature.fastYamatoPartner': 'Fast Yamato-attack partner',
+  'ship.feature.cvl': 'High-firepower light carrier',
+  'ship.feature.antiPt': 'PT Imp Pack bonus',
+  'ship.usage.specialAttack':
+    'Use as the core or partner of a special-attack fleet against durable boss enemies.',
+  'ship.usage.antiInstallation':
+    'Equip anti-installation gear to handle land targets such as Supply Depots.',
+  'ship.usage.loadoutFlexibility':
+    'Use the extra slot flexibility to keep damage, air power, opening attacks, or land gear together.',
+  'ship.usage.airPower':
+    'Carry fighters or seaplane fighters to cover air power without giving up the fleet’s core loadout.',
+  'ship.usage.openingTorpedo':
+    'Use midget submarines and similar gear for an opening torpedo strike against torpedo squadrons.',
+  'ship.usage.eventBonus':
+    'Assign as an event mainstay when the map’s historical bonus multiplier applies.',
+  'ship.usage.surfaceCombat':
+    'Use as a day-battle shelling core against heavily armored surface enemies.',
+  'ship.usage.nightCarrier': 'Use night aircraft for carrier night air attacks.',
+  'ship.usage.carrierDurability':
+    'Cover air power and damage while taking advantage of armored-carrier durability.',
+  'ship.usage.antiAir':
+    'Use the dedicated AA cut-in on air-raid-heavy maps to suppress enemy aircraft.',
+  'ship.usage.gunCombat': 'Use the gun-focused remodel for day and night shelling.',
+  'ship.usage.asw': 'Pair with rotorcraft or ASW gear to cover anti-submarine work.',
+  'ship.usage.escortCarrier':
+    'Provide escort-carrier or carrier-night-battle utility at a lower cost.',
+  'ship.usage.durability':
+    'Use the high armor to absorb shelling and route pressure more reliably.',
+  'ship.usage.fastPlus':
+    'Use turbines and boilers in expansion to reach Fast+ and pass speed routing.',
+  'ship.usage.cutin': 'Use the high luck for torpedo cut-ins or special-attack activation.',
+  'ship.usage.flexibleRoles':
+    'Switch between air power, opening attacks, land combat, and night battle as the fleet needs.',
+  'ship.usage.seaplaneOperations':
+    'Use seaplane fighters and bombers to add cruiser air power and scouting.',
+  'ship.usage.openingAsw': 'Eliminate submarines with opening ASW before they can attack.',
+  'ship.usage.support': 'Use in support fleets to reduce costs or reinforce firepower.',
+  'ship.usage.carrierSupport':
+    'Use carrier aircraft and firepower to support both air power and damage.',
+  'ship.usage.antiPt': 'Use PT-effective equipment for more reliable hits against PT Imp Packs.',
 }

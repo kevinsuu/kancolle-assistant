@@ -30,6 +30,10 @@ export const EXTERNALLY_CONFIGURED_ROUTE_TAGS = [
   'fastest-radar-setup',
 ] as const
 
+const AUTOMATIC_ROUTE_BLOCKING_EXTERNAL_TAGS = EXTERNALLY_CONFIGURED_ROUTE_TAGS.filter(
+  (tag) => tag !== 'boss-support',
+)
+
 const MODELED_EXTERNAL_ROUTE_TAGS: Readonly<
   Partial<Record<(typeof EXTERNALLY_CONFIGURED_ROUTE_TAGS)[number], string>>
 > = {
@@ -40,6 +44,12 @@ const MODELED_EXTERNAL_ROUTE_TAGS: Readonly<
 
 export const unresolvedExternalRouteTags = (route: RouteTemplate): readonly string[] =>
   EXTERNALLY_CONFIGURED_ROUTE_TAGS.filter(
+    (tag) =>
+      route.tags.includes(tag) && !route.tags.includes(MODELED_EXTERNAL_ROUTE_TAGS[tag] ?? ''),
+  )
+
+const unresolvedAutomaticRouteTags = (route: RouteTemplate): readonly string[] =>
+  AUTOMATIC_ROUTE_BLOCKING_EXTERNAL_TAGS.filter(
     (tag) =>
       route.tags.includes(tag) && !route.tags.includes(MODELED_EXTERNAL_ROUTE_TAGS[tag] ?? ''),
   )
@@ -359,7 +369,7 @@ export const automaticRouteBlockers = (route: RouteTemplate): readonly string[] 
   if (route.tags.includes('random-routing') || route.tags.some((tag) => tag.includes('routing-'))) {
     blockers.push('random-routing')
   }
-  if (unresolvedExternalRouteTags(route).length > 0) {
+  if (unresolvedAutomaticRouteTags(route).length > 0) {
     blockers.push('manual-combat-setup')
   }
   if (route.tags.includes('oasw')) {

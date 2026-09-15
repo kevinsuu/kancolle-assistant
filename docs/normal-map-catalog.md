@@ -184,39 +184,91 @@ main-main-Zuiun-Zuiun-AP-shell setup for Zuiun Multi-Angle Attack while retainin
 artillery spotting. If either aircraft or the full five slots are unavailable, it falls back to a
 main-main-recon-AP-shell combat setup rather than inserting a redundant seaplane fighter.
 
-The 4-5 catalog distinguishes the image-matched CVL/CV/CL/DD3 shortest route at air 215, beginner
-chip route at air 220, Fast+ medium/high-air routes at air 220/430, and beginner K-node smoke final
-route at air 270 plus Cn2 LoS 70. Its modeled heavy and carrier routes validate unique Type 3 Shell
-assignments, while the high-air Fast+ carrier route accepts a Type 3 Shell-family, tank, or
-landing-craft surface finisher and prioritizes water fighters on the remaining aviation
-cruiser/battleship slots. After reserving Fast+ gear, that high-air route flexibly places one
-land-attack-safe strike aircraft per carrier, fills air power to 430, and then uses remaining
-capacity for the strongest compatible torpedo or eligible dive bombers instead of locking two
-large slots to attackers. The KCWiki CL/DD heavy shortest route remains selectable as a sourced
-manual-combat template with air power 215, but it no longer adds solver-only Type 3 Shell or
-land-attack carrier requirements beyond the guide fleet shape. Carrier-heavy variants also exclude
-ordinary dive bombers that would prevent attacks against land installations.
+### 4-5 and 5-5 requirement review (2026-09-15)
 
-The catalog also exposes the four KCWiki image headings requested for 4-5 as distinct route
-options: `高速＋夜母配置（正攻／撈油／戰果衝刺）` (2CV/CVB, 1CVL, 2CLT, 1BBV; Fast+, night carrier,
-air 414), `夜母小船配置` (2CVL, 1CL, 3DD; night carrier, air 207, three opening ASW and two
-anti-installation surface ships), `高速＋特攻配置` (Nelson Kai, 3CV/CVB, 1CA, 1CLT; Fast+,
-Nelson Touch and air 207), and `繞路配置` (1FBB, 2CV/CVB, 1CL, 2DD; air 207 and chipping only).
-All four retain the KCWiki page as their sole source and keep their source-specific fleet ratios
-separate from the existing Yui templates.
+The existing 11 templates for 4-5 and 25 templates for 5-5 were reviewed in place; no new
+configurations were added. Fleet counts define the selected guide strategy, while actual routing
+conditions remain mandatory. A pictured ship or equipment count is not automatically a routing rule.
 
-The 5-5 catalog keeps sourced Yui templates plus current KCWiki alternatives. The Strategy Room list
-now includes the KCWiki headings `潜艇配置`, `上路武大夜母配置`, `上路帶路配置`, `上路納爾遜`,
-`上路夜母`, `上路金剛改二丙`, `上路隨機配置1`, `上路隨機配置2`, `中路武大拉煙流`,
-`中路武大最矢流`, `中路水雷退避流`, `中路武大補給流`, `中路納爾遜`, `中轉下摸流`,
-`中路重巡配置`, `下路武大4DD`, `下路夜母2CV4DD`, `下路航戰航巡`, and `下路長陸4DD`, alongside
-the existing Yui `常規EO/中路戰巡流`, `補給王煙流`, and `新手長陸`. Upper-route templates check
-Cn2 LoS 80 and the current boss air-control line; middle and lower-route templates use their
-route-specific Cn2/Cn5 LoS and H/Boss air thresholds. The additional
-`CoNye・長陸最矢流` keeps the pictured Nagato Kai Ni, Mutsu Kai Ni, Mogami,
-Yahagi, and two-destroyer middle-lower fleet distinct, with Cn2 LoS 66 and the requested boss air
-power 90 target; route support remains a manual sortie check. The Bahamut 2014 composition is
-treated as historical first-phase heavy-fleet advice and is not marked as a fixed current route.
+| Condition    | Required for the selected route/strategy                                                                                             | Flexible advice                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Air power    | No hard air-power constraint in these two maps                                                                                       | Show actual / recommended; retain the numerical air-state line and warn below the target   |
+| Routing      | Fleet composition, Fast+ where applicable, Formula 33 LoS, four distinct drum carriers in the modeled lower 5-5 route                | Source-backed substitutions within those limits                                            |
+| Combat roles | Night carrier or supported special attack when integral to the selected strategy; explicitly modeled minimum anti-installation roles | Additional finishers, carrier escort-clearing roles, opening ASW, AACI, smoke, and support |
+| Named ships  | Activators/helpers required by the selected special-attack template                                                                  | Mogami/Yahagi and other pictured examples where the guide permits same-type substitutes    |
+
+Air-state lines are values **at the battle node**; sortie targets add a margin for aircraft losses.
+The solver aims for the recommended value but can return a lower-air fleet with a warning. The player
+can trade air control for attack power; passing the modeled minimum roles does not guarantee a kill.
+
+#### 4-5
+
+- H→T accepts a Fast+ fleet with battleships plus all carriers at most four, or CL1/DD3 without a
+  speed or LoS requirement. K→T retains Cn2 LoS 70 at HQ level 120; the routing reference advises one
+  extra point below HQ 120. The displayed threshold is the HQ-120 baseline, so check that margin
+  manually on lower-level accounts.
+- Boss chipping air superiority/supremacy is 207/414; the strongest final fleet is 167/333. K-node
+  superiority is at most 252. Thus 215/220, 270, and 430 remain **recommendations for different
+  routes**, rather than universal entry requirements. Fast+ supremacy templates can instead aim
+  near 220–230 for superiority when prioritizing boss-clear firepower over farming stability.
+- The beginner K-node final template accepts CA/CAV3 and requires one Type 3 Shell finisher as its
+  modeled minimum. Two or three finishers are advised for the final kill and can be added manually;
+  the inspected Yui image has three shell ships and one smoke specialist, not four shell ships.
+- Carrier-heavy modeled templates require at most one designated anti-installation carrier. Other
+  carriers may use ordinary dive bombers to clear escorts. The medium Fast+ and chip templates rely
+  on their surface shell finisher and no longer require every carrier to attack the installation.
+- The KCWiki small night-carrier template keeps two separate surface anti-installation ships, which
+  may be compatible DD/CL using tanks or landing craft. Three opening-ASW ships are advisory; the
+  guide explicitly allows reducing ASW for the final kill. The generic small/heavy CL1/DD3 templates
+  retain manual anti-installation checks where their combat roles are not fully modeled.
+- The Fast+ night-carrier template accepts CAV or BBV in its surface-finisher slot. The high-air
+  template permits replacing one CLT with CVL when using CAV, while enforcing the four-large-ship
+  limit; with BBV that extra carrier is not allowed. The medium template permits replacing CLT with
+  CA/CAV for more final-kill firepower. Nelson's template accepts CA/CAV and light carriers.
+- The Yui beginner chip template is chipping/balanced only. Its alternative paths are
+  A-B-E-M-R-N-T and C-F-I-J-H-T; R is included and the template is no longer offered for boss-clear.
+
+Routing and air-state checks use the
+[Japanese wiki 4-5 reference](https://wikiwiki.jp/kancolle/西方海域/4-5). Combat tradeoffs and practical
+air targets use [Zekamashi 4-5](https://zekamashi.net/kancolle-kouryaku/4-5/),
+[KCWiki 4-5 text](https://m.kcwiki.cn/wiki/西方海域/4-5), and the visually inspected
+[Yui 4-5 configurations](https://yuikancolle.blog.fc2.com/blog-entry-184.html).
+
+#### 5-5
+
+- O→S retains Cn2 LoS 66 and P→S Cn2 LoS 80. The middle-to-south template replaces Cn5 162 with
+  Cn2 66, and the Bahamut CV4 template replaces Cn1 43 with Cn2 80. Having sufficient LoS does not
+  remove the roughly one-third P-node diversion for five-or-more-large-ship or submarine fleets.
+- H-node enemy air power can be 46, 125, or 204. Air 138 grants supremacy only against the weakest
+  fleet; parity against the strongest needs 137, so middle templates advise 140 instead of the
+  unsafe 136 or a misleading universal 138 supremacy line. H superiority against the strongest
+  fleet needs 306. Nelson's 188 target covers H superiority only against the middle enemy fleet;
+  it also exceeds the strongest boss parity line of 175.
+- The strongest pre-clear boss needs 392 for superiority, 175 for parity, and 88 to avoid air
+  incapability. Upper carrier templates advise 410 with loss margin; middle/south strategies can
+  target roughly 140 or 90 and accept a lower air state. A 300/306 H-oriented setup does not promise
+  superiority against the strongest boss. These values remain visible even when not achieved.
+- Middle Nelson permits at most one CLT: BB2/CLT2 would instead branch B→K. The Mogami/Yahagi middle
+  templates accept other CAV/CL, with opening torpedoes as a preference; their required special
+  attack pair and Cn2 66 remain enforced. The upper Yamato night-carrier example treats the night
+  carrier as backup-firepower advice, while explicitly night-carrier strategies keep that role.
+- The lower BBV/CAV drum strategy still assigns a drum to each of four distinct ships. The wiki also
+  permits four ships carrying eligible landing-craft variants, but arbitrary drum/craft mixtures
+  and excluded variants are not equivalent. This template validates only the drum alternative;
+  the landing-craft alternative remains a manual configuration.
+- Smoke, support fleets, opening ASW, AACI, and the example count of four seaplane fighters are
+  strategy advice, not universal solver rejection conditions. Damage state, formation, unused
+  special-attack state, and unmodeled retreat equipment must still be checked before sortie.
+
+Routing and air-state checks use the
+[Japanese wiki 5-5 reference](https://wikiwiki.jp/kancolle/南方海域/5-5). Composition flexibility and
+combat tradeoffs use [Zekamashi 5-5](https://zekamashi.net/kancolle-kouryaku/5-5/),
+[KCWiki 5-5 text](https://m.kcwiki.cn/wiki/南方海域/5-5), and the visually inspected
+[Yui 5-5 configurations](https://yuikancolle.blog.fc2.com/blog-entry-185.html). The historical Bahamut
+first-phase heavy-fleet reference remains a manual, random-route strategy under current routing.
+KCWiki's configuration image CDN returned HTTP 403 during this review; equipment corrections rely
+on accessible source text and the inspected Yui images, not inferred contents of those blocked images.
+
 5-6 exposes
 the Yui URL only on image-matched P1 transport, P2 surface, P3 normal, and P3 Fast+ carrier-four
 templates. The 6-5 south route records the supplied air 165 LBAS plan, and the 7-5 catalog
@@ -237,8 +289,8 @@ ship names.
   slots, and hard-validate the finished fleet speed. Fastest remains a catalog-only tag where used.
 - Night-carrier routes require a KC3-recognized inherent ship capability or an assignable owned
   night-aircraft setup before they can produce a recommendation.
-- Numeric air-power and Formula 33 limits are hard constraints only where the source supplied a
-  reviewed value.
+- Formula 33 routing limits remain hard constraints. Air power is hard only when the catalog
+  explicitly requires it; all 4-5 and 5-5 air-power targets are advisory.
 - LBAS requirements are notes/tags and are not assigned by the current gear solver.
 - Historical bonuses and quest-mandated ships are not exhaustively modeled.
 - The 1-3 fuel routes calculate expected gross/net fuel with normal-node Daihatsu and drum bonuses.

@@ -344,6 +344,9 @@ export interface RecommendationDiagnostics {
   readonly recommendationCandidateCount: number
   readonly bestAirPower: number
   readonly airPowerMinimum: number | null
+  readonly airPowerRecommended?: number | null
+  readonly advisoryAirPowerRouteCount?: number
+  readonly advisoryAirPowerShortfallCount?: number
   readonly bestLos: number | null
   readonly losMinimum: number | null
   readonly bestOpeningAsw?: number

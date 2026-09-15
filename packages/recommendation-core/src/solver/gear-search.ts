@@ -11,7 +11,11 @@ import type {
 import type { FleetMember, FleetSearchState } from './internal-types'
 import { calculateFleetMetrics, satisfiesCalculatedConstraints } from '../metrics'
 import { scoreFleet } from './scoring'
-import { createLoadoutPlans, type LoadoutPlan } from './loadout-plans'
+import {
+  createLoadoutPlans,
+  SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS,
+  type LoadoutPlan,
+} from './loadout-plans'
 import { selectDiverseLoadouts } from './loadout-diversity'
 import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
 import { isIseClassKaiNi, isZuiun } from './zuiun'
@@ -1264,7 +1268,7 @@ const solveGearPlan = (
   const antiInstallationSurfaceMemberIndexes = new Set(
     fleet.members
       .map((member, shipIndex) => ({ member, shipIndex }))
-      .filter(({ member }) => ANTI_INSTALLATION_SHELL_SHIP_TYPE_IDS.has(member.ship.shipTypeId))
+      .filter(({ member }) => SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS.has(member.ship.shipTypeId))
       .filter(({ member }) =>
         context.availableEquipment.some(
           (gear) =>

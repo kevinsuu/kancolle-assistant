@@ -54,6 +54,16 @@ const ZEKAMASHI_NAGANAMI_SOURCE = 'https://zekamashi.net/kancolle-kouryaku/nagan
 const CONYE_55_SOURCE = 'https://conye.hatenablog.com/entry/2021/08/13/180323'
 const KANKOREKORE_BY11_SOURCE = 'https://kankorekore.2-d.jp/s089/'
 const ZEKAMASHI_BY11_SOURCE = 'https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/'
+const EO_AUDIT_SOURCES = {
+  '4-5': [
+    'https://wikiwiki.jp/kancolle/西方海域/4-5',
+    'https://zekamashi.net/kancolle-kouryaku/4-5/',
+  ],
+  '5-5': [
+    'https://wikiwiki.jp/kancolle/南方海域/5-5',
+    'https://zekamashi.net/kancolle-kouryaku/5-5/',
+  ],
+}
 const YUIKANCOLLE_EO_GUIDE_SOURCES = {
   '2-5': 'https://yuikancolle.blog.fc2.com/blog-entry-182.html',
   '3-5': 'https://yuikancolle.blog.fc2.com/blog-entry-183.html',
@@ -1247,6 +1257,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     '2026.08.25-overlay',
     '2026.08.29-overlay',
     '2026.08.31-overlay',
+    '2026.09.15-overlay',
   ])
   assert.ok(
     extraOperationRoutes
@@ -1257,7 +1268,10 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     .filter((route) => route.category !== 'leveling')
     .forEach((route) => {
       if (route.metadata.guideSources.includes(BAHAMUT_GS1314520_SOURCE)) {
-        assert.deepEqual(route.metadata.guideSources, [BAHAMUT_GS1314520_SOURCE])
+        assert.deepEqual(route.metadata.guideSources, [
+          BAHAMUT_GS1314520_SOURCE,
+          ...(EO_AUDIT_SOURCES[route.mapId] ?? []),
+        ])
         return
       }
       assert.ok(
@@ -1504,7 +1518,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       )
     } else if (route.id === '4-5-fast-plus-night-carrier') {
       assert.equal(airPower.minimum, 414)
-      assert.equal(airPower.recommended, 414)
+      assert.equal(airPower.recommended, 430)
     } else if (route.id === '4-5-fast-plus-carrier') {
       assert.equal(airPower.minimum, 430)
       assert.equal(airPower.recommended, 430)
@@ -1554,8 +1568,11 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.equal(kcwiki45Routes.length, 4)
   kcwiki45Routes.forEach((route) => {
-    assert.deepEqual(route.metadata.guideSources, [X5_KCWIKI_SOURCES['4-5']])
-    assert.equal(route.metadata.lastVerified, '2026-08-29')
+    assert.deepEqual(route.metadata.guideSources, [
+      X5_KCWIKI_SOURCES['4-5'],
+      ...EO_AUDIT_SOURCES['4-5'],
+    ])
+    assert.equal(route.metadata.lastVerified, '2026-09-15')
   })
   const nightFast45 = kcwiki45Routes.find((route) => route.id === '4-5-fast-plus-night-carrier')
   assert.ok(nightFast45.tags.includes('night-carrier'))
@@ -1570,10 +1587,9 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     ),
   )
   const smallNight45 = kcwiki45Routes.find((route) => route.id === '4-5-kcwiki-night-carrier-small')
-  assert.ok(
-    smallNight45.calculatedConstraints.some(
-      (constraint) => constraint.kind === 'opening-asw' && constraint.minimum === 3,
-    ),
+  assert.equal(
+    smallNight45.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw'),
+    false,
   )
   const specialAttack45 = kcwiki45Routes.find(
     (route) => route.id === '4-5-kcwiki-fast-plus-special-attack',
@@ -1618,7 +1634,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.equal(
     middle55.calculatedConstraints.find((constraint) => constraint.kind === 'air-power').minimum,
-    138,
+    137,
   )
   assert.equal(isAutomaticRouteReady(middle55), true)
 
@@ -1651,8 +1667,6 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     [
       ['長門', 'Nagato'],
       ['陸奥', '陸奧', 'Mutsu'],
-      ['最上', 'Mogami'],
-      ['矢矧', 'Yahagi'],
     ],
   )
   assert.deepEqual(
@@ -1677,8 +1691,8 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       ['los', 66, 2],
     ],
   )
-  assert.equal(isAutomaticRouteReady(conyeNagato55), false)
-  assert.ok(automaticRouteBlockers(conyeNagato55).includes('manual-combat-setup'))
+  assert.equal(isAutomaticRouteReady(conyeNagato55), true)
+  assert.equal(automaticRouteBlockers(conyeNagato55).includes('manual-combat-setup'), false)
 
   const submarine55 = getRouteTemplates('5-5', 'low-cost', '5-5-submarine-snipe')[0]
   assert.deepEqual(
@@ -1781,7 +1795,7 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
       route.sources,
       route.id === '5-4-bahamut-31st-mikawa'
         ? [BAHAMUT_GS1314520_SOURCE, ZEKAMASHI_NAGANAMI_SOURCE]
-        : [BAHAMUT_GS1314520_SOURCE],
+        : [BAHAMUT_GS1314520_SOURCE, ...(EO_AUDIT_SOURCES[route.id.slice(0, 3)] ?? [])],
     )
   })
 
@@ -1833,7 +1847,7 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
       route.metadata.guideSources,
       route.id === '5-4-bahamut-31st-mikawa'
         ? [BAHAMUT_GS1314520_SOURCE, ZEKAMASHI_NAGANAMI_SOURCE]
-        : [BAHAMUT_GS1314520_SOURCE],
+        : [BAHAMUT_GS1314520_SOURCE, ...(EO_AUDIT_SOURCES[route.id.slice(0, 3)] ?? [])],
     )
     assert.equal(route.metadata.confidence, 'community')
   })
@@ -2237,6 +2251,11 @@ test('selected 5-5 route validates the complete current KC3 loadout before gear 
   assert.ok(result.diagnostics.currentLoadoutAcceptedCount > 0)
   assert.ok(result.recommendations[0].metrics.airPower >= 90)
   assert.ok(result.recommendations[0].metrics.los33 >= 66)
+  assert.ok(
+    result.recommendations[0].warnings.some(
+      (warning) => warning.code === 'EXTERNAL_COMBAT_SETUP_REQUIRED',
+    ),
+  )
   const selectedNames = result.recommendations[0].ships.map(({ ship }) => ship.name)
   ;['長門改二', '陸奧改二', '最上改二特', '矢矧改二乙'].forEach((name) => {
     assert.ok(selectedNames.includes(name), `${name} was not selected`)
@@ -2989,8 +3008,11 @@ test('4-5 KCWiki guide exposes four source-matched configurations', () => {
 
   assert.ok(routes.every(Boolean))
   routes.forEach((route) => {
-    assert.deepEqual(route.metadata.guideSources, [X5_KCWIKI_SOURCES['4-5']])
-    assert.equal(route.metadata.lastVerified, '2026-08-29')
+    assert.deepEqual(route.metadata.guideSources, [
+      X5_KCWIKI_SOURCES['4-5'],
+      ...EO_AUDIT_SOURCES['4-5'],
+    ])
+    assert.equal(route.metadata.lastVerified, '2026-09-15')
     assert.equal(isAutomaticRouteReady(route), true)
   })
 
@@ -3001,10 +3023,9 @@ test('4-5 KCWiki guide exposes four source-matched configurations', () => {
     nightFast.calculatedConstraints.find((constraint) => constraint.kind === 'air-power').minimum,
     414,
   )
-  assert.ok(
-    nightSmall.calculatedConstraints.some(
-      (constraint) => constraint.kind === 'opening-asw' && constraint.minimum === 3,
-    ),
+  assert.equal(
+    nightSmall.calculatedConstraints.some((constraint) => constraint.kind === 'opening-asw'),
+    false,
   )
   assert.ok(specialAttack.tags.includes('special-attack-modeled'))
   assert.ok(
@@ -3208,7 +3229,7 @@ test('4-5 KCWiki Nelson Fast+ route reports a missing Nelson', () => {
   assert.ok(result.analysis.reasons.some((reason) => reason.code === 'MISSING_SPECIFIC_SHIP'))
 })
 
-test('4-5 Fast+ carrier route keeps every carrier anti-installation capable', () => {
+test('4-5 Fast+ carrier route retains land attackers while allowing escort-clearing carriers', () => {
   const account = parseKC3AccountSnapshot(create45FastPlusCarrierAntiInstallationSnapshot())
   const route = getRouteTemplates('4-5', 'balanced', '4-5-fast-plus-carrier')[0]
   assert.equal(isAutomaticRouteReady(route), true)
@@ -3227,13 +3248,13 @@ test('4-5 Fast+ carrier route keeps every carrier anti-installation capable', ()
       [7, 11, 18].includes(build.ship.shipTypeId),
     )
     assert.equal(carriers.length, 3)
-    carriers.forEach((build) => {
-      assert.ok(build.equipment.some((gear) => gear?.antiInstallationAircraft))
-      assert.equal(
-        build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
-        false,
-      )
-    })
+    assert.ok(
+      carriers.some(
+        (build) =>
+          build.equipment.some((gear) => gear?.antiInstallationAircraft || gear?.typeId === 8) &&
+          !build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
+      ),
+    )
     assert.ok(
       recommendation.reasons.some((reason) => reason.code === 'ANTI_INSTALLATION_CARRIER_READY'),
     )
@@ -3264,15 +3285,15 @@ test('4-5 Fast+ carrier route accepts torpedo bombers as land-attack-safe carrie
 
   assert.equal(result.status, 'success', JSON.stringify(result))
   assert.ok(result.recommendations[0].metrics.airPower >= 430)
-  result.recommendations[0].ships
-    .filter((build) => [7, 11, 18].includes(build.ship.shipTypeId))
-    .forEach((build) => {
-      assert.ok(build.equipment.some((gear) => gear?.typeId === 8))
-      assert.equal(
-        build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
-        false,
-      )
-    })
+  assert.ok(
+    result.recommendations[0].ships
+      .filter((build) => [7, 11, 18].includes(build.ship.shipTypeId))
+      .some(
+        (build) =>
+          build.equipment.some((gear) => gear?.typeId === 8) &&
+          !build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
+      ),
+  )
 })
 
 test('4-5 high-air Fast+ carrier route preserves two cruiser water-fighter slots', () => {
@@ -3306,10 +3327,11 @@ test('4-5 high-air Fast+ carrier route preserves two cruiser water-fighter slots
     airPowerBySlotSize: { [slotSize]: 80 },
   }))
   raw.equipment.push(landingCraft, ...waterFighters)
-  aviationCruiser.regularEquipableMasterIds.push(
+  aviationCruiser.regularEquipableMasterIds = [
+    ...aviationCruiser.regularEquipableMasterIds,
     landingCraft.masterId,
     ...waterFighters.map((gear) => gear.masterId),
-  )
+  ]
 
   const result = recommendFleet({
     mapId: '4-5',
@@ -3359,24 +3381,25 @@ test('4-5 high-air Fast+ route meets air power before adding flexible carrier at
   const carriers = result.recommendations[0].ships.filter((build) =>
     [7, 11, 18].includes(build.ship.shipTypeId),
   )
-  carriers.forEach((build) => {
-    assert.ok(build.equipment.some((gear) => gear?.typeId === 8))
-    assert.equal(
-      build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
-      false,
-    )
-  })
+  assert.ok(
+    carriers.some(
+      (build) =>
+        build.equipment.some((gear) => gear?.typeId === 8) &&
+        !build.equipment.some((gear) => gear?.typeId === 7 && !gear.antiInstallationAircraft),
+    ),
+  )
   assert.ok(
     carriers.flatMap((build) => build.equipment).filter((gear) => gear?.typeId === 8).length > 3,
   )
   assert.ok(result.diagnostics.evaluatedFleetCandidateCount > 0)
   assert.ok(result.diagnostics.gearSolutionCount > 0)
   assert.ok(result.diagnostics.bestAirPower >= 430)
-  assert.equal(result.diagnostics.airPowerMinimum, 430)
+  assert.equal(result.diagnostics.airPowerMinimum, null)
+  assert.equal(result.diagnostics.airPowerRecommended, 430)
   assert.deepEqual(result.diagnostics.reasonCodes, [])
 })
 
-test('4-5 high-air Fast+ failure diagnostics report the searched air-power ceiling', () => {
+test('4-5 high-air Fast+ returns an advisory shortfall without rejecting the fleet', () => {
   const raw = create45FastPlusCarrierAntiInstallationSnapshot({ shellCount: 1 })
   raw.equipment.forEach((gear) => {
     if ([6, 8].includes(gear.typeId)) gear.airPowerBySlotSize = { 20: 20 }
@@ -3389,12 +3412,23 @@ test('4-5 high-air Fast+ failure diagnostics report the searched air-power ceili
     account: parseKC3AccountSnapshot(raw),
   })
 
-  assert.equal(result.status, 'no-solution')
+  assert.equal(result.status, 'success')
   assert.ok(result.diagnostics.evaluatedFleetCandidateCount > 0)
   assert.ok(result.diagnostics.gearSolutionCount > 0)
-  assert.equal(result.diagnostics.airPowerMinimum, 430)
+  assert.equal(result.diagnostics.airPowerMinimum, null)
+  assert.equal(result.diagnostics.airPowerRecommended, 430)
   assert.ok(result.diagnostics.bestAirPower < 430)
-  assert.ok(result.diagnostics.reasonCodes.includes('AIR_POWER_INSUFFICIENT'))
+  assert.deepEqual(result.diagnostics.reasonCodes, [])
+  assert.equal(result.diagnostics.advisoryAirPowerRouteCount, 1)
+  assert.ok(result.diagnostics.advisoryAirPowerShortfallCount > 0)
+  assert.ok(
+    result.recommendations.every(
+      ({ metrics, warnings }) =>
+        metrics.airPower < 430 &&
+        !metrics.airPowerRequired &&
+        warnings.some(({ code }) => code === 'AIR_POWER_BELOW_RECOMMENDED'),
+    ),
+  )
 })
 
 test('4-5 Fast+ carrier route reports missing mixed anti-installation equipment', () => {
@@ -5014,6 +5048,15 @@ test('1-6 Bahamut heavy route advises air power and OASW but hard-checks LoS', (
   const recommendation = advised.recommendations[0]
   assert.equal(recommendation.metrics.airPower, 0)
   assert.equal(recommendation.metrics.airPowerRequired, false)
+  assert.equal(advised.diagnostics.airPowerMinimum, null)
+  assert.equal(advised.diagnostics.airPowerRecommended, 177)
+  assert.equal(advised.diagnostics.advisoryAirPowerRouteCount, 1)
+  assert.ok(advised.diagnostics.advisoryAirPowerShortfallCount > 0)
+  const targetMetrics = { ...recommendation.metrics, airPower: 177 }
+  assert.ok(
+    scoreFleet(recommendation.ships, targetMetrics, 'balanced', recommendation.route).dimensions
+      .airPowerMargin > recommendation.score.dimensions.airPowerMargin,
+  )
   assert.equal(recommendation.metrics.openingAswCount, 0)
   assert.equal(recommendation.metrics.openingAswRequired, false)
   assert.ok(recommendation.metrics.los33 >= 30)
@@ -5145,4 +5188,174 @@ test('solver returns no-solution when the account cannot meet fleet size', () =>
 
   assert.equal(result.status, 'no-solution')
   assert.ok(result.analysis.reasons.length > 0)
+})
+
+test('4-5 and 5-5 advise air power while preserving routing and tactic requirements', () => {
+  const routes = NORMAL_MAP_ROUTES.filter(({ mapId }) => ['4-5', '5-5'].includes(mapId))
+  for (const route of routes) {
+    for (const constraint of route.calculatedConstraints) {
+      if (constraint.kind === 'air-power') assert.equal(constraint.required, false, route.id)
+    }
+    assert.equal(route.metadata.lastVerified, '2026-09-15')
+    assert.ok(route.metadata.guideSources.includes(EO_AUDIT_SOURCES[route.mapId][0]))
+  }
+  for (const [routeId, minimum] of [
+    ['4-5-standard-balanced', 70],
+    ['5-5-kcwiki-middle-transfer-south', 66],
+    ['5-5-bahamut-cv4-cav-cl', 80],
+  ]) {
+    const route = routes.find(({ id }) => id === routeId)
+    assert.deepEqual(
+      route.calculatedConstraints.find(({ kind }) => kind === 'los'),
+      {
+        kind: 'los',
+        formula: '33',
+        coefficient: 2,
+        minimum,
+      },
+    )
+  }
+  const nelson = routes.find(({ id }) => id === '5-5-kcwiki-middle-nelson')
+  assert.ok(
+    nelson.fleetConstraints.some(
+      (constraint) =>
+        constraint.kind === 'ship-type-count' &&
+        constraint.shipTypeIds.length === 1 &&
+        constraint.shipTypeIds[0] === 4 &&
+        constraint.max === 1,
+    ),
+  )
+  assert.ok(nelson.tags.includes('special-attack-modeled'))
+  const drums = routes.find(({ id }) => id === '5-5-kcwiki-south-bbv-cav-drums')
+  assert.ok(drums.tags.includes('drum-canister-carriers-4'))
+  const chip = routes.find(({ id }) => id === '4-5-cl-dd-light')
+  assert.equal(chip.objectives.includes('boss-clear'), false)
+  assert.deepEqual(chip.nodes, ['A-B-E-M-R-N-T / C-F-I-J-H-T'])
+})
+
+test('5-5 accepts substitute cruisers below the air target but rejects insufficient LoS', () => {
+  const raw = createCurrentNagatoMogamiYahagiSnapshot()
+  raw.ships[2].name = '熊野改二'
+  raw.ships[3].name = '夕張改二特'
+  raw.equipment.forEach((gear) => {
+    gear.airPowerBySlotSize = {}
+  })
+  const input = {
+    mapId: '5-5',
+    routeId: '5-5-conye-middle-nagato-mogami-yahagi',
+    objective: 'boss-clear',
+  }
+  const result = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.ok(
+    result.recommendations.every(
+      ({ metrics, warnings, ships }) =>
+        metrics.airPower === 0 &&
+        metrics.los33 >= 66 &&
+        ships.some(({ ship }) => ship.name === '熊野改二') &&
+        ships.some(({ ship }) => ship.name === '夕張改二特') &&
+        warnings.some(({ code }) => code === 'AIR_POWER_BELOW_RECOMMENDED'),
+    ),
+  )
+  assert.equal(result.diagnostics.airPowerMinimum, null)
+  assert.equal(result.diagnostics.airPowerRecommended, 90)
+  assert.equal(result.diagnostics.advisoryAirPowerRouteCount, 1)
+
+  raw.hqLevel = 120
+  raw.ships.forEach((ship) => {
+    ship.nakedLos = 0
+    ship.stats.los = 0
+  })
+  raw.equipment.forEach((gear) => {
+    gear.stats.los = 0
+    gear.losImprovement = 0
+  })
+  const failed = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(failed.status, 'no-solution')
+  assert.ok(failed.analysis.reasons.some(({ code }) => code === 'LOS_INSUFFICIENT'))
+  assert.equal(
+    failed.analysis.reasons.some(({ code }) => code === 'AIR_POWER_INSUFFICIENT'),
+    false,
+  )
+  assert.equal(failed.diagnostics.airPowerMinimum, null)
+  assert.equal(failed.diagnostics.airPowerRecommended, 90)
+  assert.equal(failed.diagnostics.losMinimum, 66)
+})
+
+test('4-5 Fast+ source permits CAV substitution and one extra CVL while retaining the heavy limit', () => {
+  const raw = create45FastPlusCarrierAntiInstallationSnapshot({ shellCount: 1 })
+  raw.ships[4].shipTypeId = 7
+  const input = { mapId: '4-5', routeId: '4-5-fast-plus-carrier', objective: 'boss-clear' }
+  const result = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.equal(
+    result.recommendations[0].ships.filter(({ ship }) => [7, 11, 18].includes(ship.shipTypeId))
+      .length,
+    4,
+  )
+  assert.equal(result.recommendations[0].metrics.finalSpeedClass, 'fast+')
+  raw.ships[5].shipTypeId = 10
+  const failed = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(failed.status, 'no-solution')
+})
+
+test('4-5 night small fleet equips two land destroyers without forcing three opening-ASW ships', () => {
+  const raw = createFastPlusSnapshot({ nightCarrierRoute: true, nightCarrierSetup: true })
+  const types = [7, 7, 3, 2, 2, 2]
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = types[index]
+    ship.stats.asw = 0
+    ship.openingAswRules = []
+    ship.inherentOpeningAsw = false
+    ship.regularEquipableMasterIds = ship.regularEquipableMasterIds.filter(
+      (id) => ![35, 317, 483].includes(id),
+    )
+  })
+  const tanks = [0, 1].map((index) => ({
+    ...structuredClone(raw.equipment[0]),
+    id: 98500 + index,
+    masterId: 98500 + index,
+    name: `Fixture landing tank ${index}`,
+    typeId: 24,
+    type: '24',
+    stats: { ...raw.equipment[0].stats, asw: 0 },
+    airPowerBySlotSize: {},
+  }))
+  raw.equipment.push(...tanks)
+  for (const ship of raw.ships.filter((ship) => ship.shipTypeId === 2)) {
+    ship.regularEquipableMasterIds.push(...tanks.map(({ masterId }) => masterId))
+  }
+  const input = { mapId: '4-5', routeId: '4-5-kcwiki-night-carrier-small', objective: 'boss-clear' }
+  const result = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  for (const recommendation of result.recommendations) {
+    assert.ok(
+      recommendation.reasons.some(
+        ({ code, values }) =>
+          code === 'ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED' && values.minimum === 2,
+      ),
+    )
+    assert.equal(recommendation.metrics.openingAswRequired, false)
+    assert.equal(recommendation.metrics.openingAswCount, 0)
+    const tankShips = recommendation.ships.filter(({ equipment }) =>
+      equipment.some((gear) => gear?.typeId === 24),
+    )
+    assert.equal(tankShips.length, 2)
+    assert.ok(tankShips.every(({ ship }) => ship.shipTypeId === 2))
+    assert.equal(
+      new Set(
+        tankShips.flatMap(({ equipment }) =>
+          equipment.filter((gear) => gear?.typeId === 24).map(({ id }) => id),
+        ),
+      ).size,
+      2,
+    )
+  }
+  raw.equipment = raw.equipment.filter(({ id }) => id !== tanks[1].id)
+  const failed = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(failed.status, 'no-solution')
+  assert.ok(
+    failed.analysis.reasons.some(({ code }) => code === 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT'),
+  )
+  assert.equal(failed.diagnostics.airPowerMinimum, null)
 })

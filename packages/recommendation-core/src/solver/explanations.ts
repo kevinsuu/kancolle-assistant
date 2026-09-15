@@ -164,7 +164,7 @@ export const recommendationMessages = (
   }
   if (antiInstallationSurfaceCount > 0) {
     reasons.push({
-      code: 'ANTI_INSTALLATION_REQUIREMENT_PASSED',
+      code: 'ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED',
       message: `已為 ${antiInstallationSurfaceCount} 艘水上艦配置三式彈系或戰車／登陸艇系裝備，符合此路線的對陸配置模型。`,
       values: { minimum: antiInstallationSurfaceCount },
     })

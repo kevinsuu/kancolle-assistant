@@ -49,6 +49,7 @@ const summarizeRecommendation = (recommendation) => ({
     airPower: recommendation.metrics.airPower,
     airPowerRequired: recommendation.metrics.airPowerRequired,
     airPowerMinimum: recommendation.metrics.airPowerMinimum,
+    airPowerRecommended: recommendation.metrics.airPowerRecommended,
     los33: recommendation.metrics.los33,
     losRequired: recommendation.metrics.losRequired,
     losMinimum: recommendation.metrics.losMinimum,

@@ -64,6 +64,7 @@ export const tcn = {
   'quest.typeFilter.label': '任務類型',
   'quest.typeFilter.hint': '可複選；全部代表不限類型',
   'quest.type.all': '全部',
+  'quest.type.combined': '共解',
   'quest.type.fleet': '編成',
   'quest.type.sortie': '出擊',
   'quest.type.exercise': '演習',
@@ -98,7 +99,11 @@ export const tcn = {
   'quest.notReady': '任務推薦尚未就緒',
   'quest.syncFirst': '請確認遊戲分頁仍在線；若剛啟動程式，請先回母港操作一次再同步。',
   'quest.status':
-    '任務 {count} 項・組合 {groups} 組・日 {daily}・週 {weekly}・月 {monthly}・季 {quarterly}・年 {yearly}・單次 {oneTime}・限定 {limited}・後續加權 {downstream}・EO 未完成 {eo}・目前不可行 {unavailable}・更新 {updated}',
+    '任務 {count} 項・組合 {groups} 組・日 {daily}・週 {weekly}・月 {monthly}・季 {quarterly}・年 {yearly}・單次 {oneTime}・限定 {limited}・後續加權 {downstream}・EO 未完成 {eo}・目前不可行 {unavailable}・{source}',
+  'quest.statusSource.live': '遊戲同步於 {updated}',
+  'quest.statusSource.local': 'KC3 本機快取・請同步確認',
+  'quest.acceptance.status':
+    '已接取 {active}/{capacity}；尚餘 {available} 個接取欄位。共解方案仍須確認艦隊、裝備、路線與接取欄位。',
   'quest.emptyTitle': '目前沒有可推薦的任務',
   'quest.emptyDetail': 'KC3 已同步的清單中沒有尚未完成的重複、單次或期間限定任務。',
   'quest.period.daily': '日常',
@@ -132,16 +137,26 @@ export const tcn = {
   'quest.reward.actionReport': '戰鬥詳報',
   'quest.reward.screws': '改修資材 ×{count}',
   'quest.reward.screwsGeneric': '改修資材',
+  'quest.reward.developmentMaterials': '開發資材 ×{count}',
+  'quest.reward.bucket': '高速修復材 ×{count}',
+  'quest.reward.instantBuild': '高速建造材 ×{count}',
   'quest.reward.other': '其他素材',
   'quest.reward.choice': '選擇獎勵',
   'quest.reward.material.skilledCrew': '熟練搭乘員',
   'quest.reward.material.newAviationMaterial': '新型航空兵裝資材',
   'quest.reward.material.daihatsu': '大發動艇',
   'quest.reward.material.newRocketMaterial': '新型噴進裝備開發資材',
+  'quest.reward.material.newGunArmamentMaterial': '新型砲熕兵裝資材',
+  'quest.reward.material.newArmamentMaterial': '新型兵裝資材',
+  'quest.reward.material.catapult': '試製甲板彈射器',
+  'quest.reward.material.reinforcementExpansion': '補強增設',
+  'quest.reward.material.newAviationBlueprint': '新型航空機設計圖',
+  'quest.reward.material.overseasEquipmentTech': '海外艦最新技術',
   'quest.downstream.title': '尚未開放的高價值後續',
   'quest.downstream.steps': '距離 {count} 步',
   'quest.group.combined': '建議共解',
   'quest.group.questCount': '{count} 項任務',
+  'quest.group.repeatedQuestHint': '{count} 項任務也會在其他共解方案累積',
   'quest.priority.label': '解題建議',
   'quest.priority.highest': '最優先',
   'quest.priority.priority': '優先',
@@ -171,8 +186,8 @@ export const tcn = {
   'quest.synergy.extra.fourFiveExtraOperation': '4-5 EO 每月攻略',
   'quest.synergy.fleet.fourDe': '4 海防艦',
   'quest.synergy.fleet.clFlagshipThreeDd': '輕巡旗艦＋3 驅逐',
-  'quest.synergy.fleet.cvlThreeDd': '輕空母＋3 驅逐',
-  'quest.synergy.fleet.carrierThreeDd': '至少 1 空母系＋3 驅逐／海防',
+  'quest.synergy.fleet.cvlThreeDd': '輕空母旗艦＋3 驅逐／海防',
+  'quest.synergy.fleet.carrierThreeDd': '輕巡／輕空母旗艦＋3 驅逐／海防＋1 空母系',
   'quest.synergy.fleet.twoCarrierTwoDd': '2 空母系＋2 驅逐＋2 自由位',
   'quest.synergy.fleet.variedByStage': '各步驟更換編成',
   'quest.synergy.fleet.regularEoFleet': '沿用平常 EO 編成',
@@ -243,11 +258,14 @@ export const tcn = {
   'quest.guidance.insufficientSteel': '目前鋼材不足以支付任務成本',
   'quest.guidance.missingShip': '缺少必要艦娘：{ship}',
   'quest.requirement.ship.yuubariKaiNi': '夕張改二／改二特／改二丁',
+  'quest.requirement.ship.yuubariOrYuraKaiNi': '夕張改二型或由良改二',
   'quest.requirement.ship.naganamiKaiNi': '長波改二',
   'quest.requirement.ship.desdivThirtyOnePartner': '高波／沖波／朝霜改以上',
   'quest.deadline': '剩餘 {remaining}・{resetAt} 重置',
   'quest.noFixedDeadline': '沒有固定重置期限',
   'quest.limitedDeadlineUnknown': 'KC3 未提供最終結束時間',
+  'quest.synergy.verificationNotice':
+    '依任務條件推導；出擊前仍請確認持有艦、裝備、路線與接取欄位。',
   'quest.remainingDaysHours': '{days} 天 {hours} 小時',
   'quest.remainingHours': '{hours} 小時',
   'quest.remainingMinutes': '{minutes} 分鐘',
@@ -324,6 +342,7 @@ export const tcn = {
   'fleet.strategyOpeningAsw': '先制對潛',
   'fleet.strategyResourceGain': '預期{resource}',
   'fleet.strategyMinimumValue': '{value}／最低 {minimum}',
+  'fleet.strategyRecommendedValue': '{value}／建議 {recommended}（可彈性調整）',
   'fleet.strategyResourceValue': '{gain} 取得／{net} 淨收益',
   'fleet.strategyNoDescription': '請開啟來源確認此路線。',
   'fleet.routeDescription.4-4-guide-bb-cv2-ca-dd-de':
@@ -331,23 +350,23 @@ export const tcn = {
   'fleet.routeDescription.4-4-bahamut-bb-cv2-cav-dd-de':
     '戰艦1、正規／裝甲空母2、航巡1、驅逐1、海防1。A-E-I-K 固定、海防艦先制對潛；空母達成制空 80+ 後，其餘槽位優先攻擊機。',
   'fleet.routeDescription.4-5-fast-plus-night-carrier':
-    '正規／裝甲空母2（至少1艘夜戰空母）、輕空母1、雷巡2、航戰1。全員高速＋走 A／C-D-H-T 最短路，制空 414+；適合正攻、周回與戰果衝刺。',
+    '正規／裝甲空母2（至少1艘夜母）、輕空母1、雷巡2、航巡／航戰1。全員高速＋走最短路。建議制空430（削血空確414加損耗餘裕），也可改以220左右爭取空優。保留1艘對地空母與1艘三式彈艦，其餘空母可清隨伴。',
   'fleet.routeDescription.4-5-kcwiki-night-carrier-small':
-    '含1艘夜戰輕空母的輕空母2、輕巡1、驅逐3。低消耗最短路，檢查制空 207+、3艘先制對潛與2艘驅逐對陸；桶耗較高，較適合攻略而非長時間周回。',
+    '含1艘夜母的輕空母2、輕巡1、驅逐3。建議制空215（削血空優207），保留2艘水上對地艦。3艘先制對潛是穩定性建議，斬殺時可減少對潛、增加對地火力；空母可清隨伴。',
   'fleet.routeDescription.4-5-kcwiki-fast-plus-special-attack':
-    'Nelson 改、正規／裝甲空母3、重巡1、雷巡1。全員高速＋走最短路，系統將 Nelson 與兩艘非空母艦排在 1／3／5 號位，於 H 點選複縱陣發動 Nelson Touch；制空 207+。',
+    'Nelson改、空母系3、重巡／航巡1、雷巡1。全員高速＋；Nelson與非空母艦排在1／3／5號位，H 點選複縱陣發動特攻。建議制空220，保留1艘三式彈艦與1艘對地空母，其餘空母可清隨伴。',
   'fleet.routeDescription.4-5-kcwiki-detour':
-    '高速戰艦1、正規／裝甲空母2、輕巡1、驅逐2。依初始分歧走 A-B-E-M-R-N-T 或 C-F-I-J-H-T，制空 207+；來源僅建議在削血階段使用。',
+    '戰艦1、正規／裝甲空母2、輕巡1、驅逐2，全員高速以上。走A-B-E-M-R-N-T或C-F-I-J-H-T，僅建議削血。建議制空220；戰艦帶三式彈對地，空母可清隨伴。',
   'fleet.routeDescription.5-5-middle':
-    '大和改二系與友軍戰艦1、航巡1、輕巡1、驅逐2。Yui 常規EO／中路戰巡流，制空 138+、33 式係數 2 索敵 66+。',
+    '大和改二系＋可配對的僚艦戰艦1、航巡1、輕巡1、驅逐2。必須33式係數2索敵66以上。建議制空140（H點空均137），也可用90左右爭取王點空劣。對潛、對空CI等依戰力調整。',
   'fleet.routeDescription.5-5-supply-smoke':
-    '大和改二重、武藏改二、空母1、補給艦1、驅逐2。Yui 補給王煙流；三重煙幕需出擊前手動確認，制空 300+、33 式係數 2 索敵 66+。',
+    '大和改二重、武藏改二、空母1、補給艦1、驅逐2。Yui 補給王煙流；三重煙幕需出擊前手動確認，建議制空 300+、33 式係數 2 索敵 66+。',
   'fleet.routeDescription.5-5-submarine-snipe':
     '潛水／潛母6。低資源狙擊路線；P→S 不固定，需 33 式係數 2 索敵 80+。',
   'fleet.routeDescription.5-5-kcwiki-upper-yamato-night-carrier':
-    '大和改二系＋武藏改二、正規／裝甲空母2、重巡／航巡2。KCWiki 上路武大夜母配置；P→S 檢查 33 式係數 2 索敵 80+，Boss 空優依圖片與備註檢查 392+。',
+    '大和改二系＋武藏改二、正規／裝甲空母2、重巡／航巡2。P→S必須33式係數2索敵80以上。建議制空410（最強王點空優392加損耗餘裕）；夜母是備用火力建議，可換一般空母。',
   'fleet.routeDescription.5-5-kcwiki-upper-cav':
-    '赤城改二戊＋戰艦3＋航巡2的 KCWiki 上路帶路配置。圖片例制空 416、33 式係數 1 索敵 44.87；二期 P→S 以 33 式係數 2 索敵 80+ 檢查。',
+    '空母系1、戰艦3、航巡2。赤城改二戊是圖片範例，並非指定艦。P→S必須33式係數2索敵80以上；建議制空410（最強王點空優392加損耗餘裕）。',
   'fleet.routeDescription.5-5-kcwiki-upper-nelson':
     'Nelson／Rodney 改、戰艦1、正規／裝甲空母2、航巡2。KCWiki 上路納爾遜；出門制空建議 410+，P→S 需 33 式係數 2 索敵 80+。',
   'fleet.routeDescription.5-5-kcwiki-upper-night-carrier':
@@ -359,17 +378,17 @@ export const tcn = {
   'fleet.routeDescription.5-5-kcwiki-upper-random-nagato':
     '長門改二＋陸奧改二＋正規／裝甲空母4。KCWiki 上路隨機配置2；可用胸熱砲擊，但 P 點後可能溝，作為手動選擇路線。',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-smoke':
-    '大和改二系＋武藏改二、夜戰空母／空母1、補給艦1、驅逐2。KCWiki 中路武大拉煙流；三重煙幕需手動確認，H 點制空 136 均衡／138 空確。',
+    '大和改二系＋武藏改二、空母系1、補給艦1、驅逐2。補給艦帶路N→O，必須33式係數2索敵66以上。建議制空140（H點空均137）；138空確只適用H點最弱編成。煙幕、噴射機、夜母及對潛可依戰力調整。',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-mogami-yahagi':
-    '大和改二系＋武藏改二、最上、矢矧、驅逐2。KCWiki 中路武大最矢流；H 點制空 136 均衡／138 空確，33 式係數 2 索敵 66+。',
+    '大和改二系＋武藏改二、航巡1、輕巡1、驅逐2。最上、矢矧是先制雷擊建議，可換同艦種。必須33式係數2索敵66以上。建議制空140（H點空均137），王點空劣約90；138空確只適用H點最弱編成。',
   'fleet.routeDescription.5-5-kcwiki-middle-yamato-supply':
-    '大和改二系＋武藏改二、空母1、補給艦1、驅逐2。KCWiki 中路武大補給流；H 點制空 136 均衡／138 空確，33 式係數 2 索敵 66+。',
+    '大和改二系＋武藏改二、空母系1、補給艦1、驅逐2。補給艦帶路N→O，必須33式係數2索敵66以上。建議制空140（H點空均137）；138空確只適用H點最弱編成。煙幕、噴射機、夜母及對潛可依戰力調整。',
   'fleet.routeDescription.5-5-kcwiki-middle-nelson':
-    'Nelson 改、戰艦1、驅逐2、重巡／航巡／雷巡2。KCWiki 中路 Nelson；制空 176 可在 Boss 均勢，188+ 偏向 H 點優勢，33 式係數 2 索敵 66+。',
+    'Nelson／Rodney改、戰艦1、驅逐2、重巡／航巡／雷巡2，雷巡最多1艘；2艘雷巡會走B→K。必須33式係數2索敵66以上。建議制空188（王點空均175加餘裕）；H點188空優僅涵蓋中等編成，最強編成需306。',
   'fleet.routeDescription.5-5-kcwiki-middle-transfer-south':
-    '戰艦2、正規／裝甲空母1、重巡／航巡／雷巡1、驅逐2。KCWiki 中轉下摸流；從中路轉往 M 夜戰，H/N 分岐需手動確認，O→S 需 33 式係數 5 索敵 162+。',
+    '戰艦2、正規／裝甲空母1、重巡／航巡／雷巡1、驅逐2，走B-F-D-H-N-M-O-S。正規空母使N→M；O→S必須33式係數2索敵66以上，停用舊係數5的162。制空306是H點空優建議，王點弱編成空優224、最強編成392。',
   'fleet.routeDescription.5-5-kcwiki-middle-heavy-cruiser':
-    '長門改二＋陸奧改二、重巡1、航巡1、驅逐2。KCWiki 中路重巡配置；以 4 水戰瞄準 H 點均衡，支援需手動確認。',
+    '長門改二＋陸奧改二、重巡1、航巡1、驅逐2。必須33式係數2索敵66以上，建議制空140（H點空均137）。4架水戰是範例，不固定架數；對潛、電探與支援可依戰力調整。',
   'fleet.routeDescription.5-5-south-dd':
     '輕巡1、雷巡1、驅逐4。水雷退避流；夜瑞雲／瑞雲的制空 1+ 視為建議值，不作為硬門檻。遇到雙レ編成建議避開。',
   'fleet.routeDescription.5-5-kcwiki-south-yamato-dd':
@@ -377,13 +396,29 @@ export const tcn = {
   'fleet.routeDescription.5-5-kcwiki-south-night-carrier-dd':
     '含夜戰空母的正規／裝甲空母2＋驅逐4。KCWiki 下路推薦配置；用空母偵察機降低驅逐艦索敵負擔。',
   'fleet.routeDescription.5-5-kcwiki-south-bbv-cav-drums':
-    '正規／裝甲空母1、航空戰艦1、航巡2、驅逐2。KCWiki 下路 Saratoga／伊勢／Ташкент 系範例；4 艘帶鼓桶進 A，檢查 Boss 優勢與 33 式係數 2 索敵 66+。',
+    '正規／裝甲空母1、航戰1、航巡2、驅逐2。必須在不同4艘船上各帶鼓桶以進A，33式係數2索敵66以上。建議制空410（最強王點空優392）。另有4艘帶特定大發系的帶路條件，此範本僅驗證鼓桶方案。',
   'fleet.routeDescription.5-5-kcwiki-south-nagato-dd':
     '長門改二＋陸奧改二＋驅逐4的 KCWiki 下路夜戰流。索敵非常嚴格，33 式係數 2 索敵 66+ 為硬條件；支援與對潛保留為出擊前建議確認。',
   'fleet.routeDescription.5-5-newbie-nagato':
-    '長門、陸奧、航巡2、驅逐2。Yui 新手長陸；建議道中／決戰砲擊支援，制空 136+、33 式係數 2 索敵 66+。',
+    '長門改二＋陸奧改二、航巡2、驅逐2。必須33式係數2索敵66以上，建議制空140（H點空均137，舊136不足）。建議道中／決戰支援；S勝及斬殺後需留意對潛火力。',
   'fleet.routeDescription.5-5-kcwiki-bahamut-random-heavy':
-    'KCWiki 任意6艘戰艦／空母系，加上巴哈 2014 一期 3BB3CV／3BB2CVL 重火力參考。二期 P 點後約 35% 會溝，現行作為手動選擇的隨機上路。',
+    '戰艦／空母系6走上路B-K-P-S。即使33式係數2索敵80以上，P點後仍約1/3會溝。建議制空410（最強王點空優392）；不是固定進王，支援可依攻略目的調整。',
+  'fleet.routeDescription.4-5-standard-balanced':
+    '戰艦1、正規／裝甲空母2、重巡／航巡3。K→T必須33式係數2索敵70以上。建議制空270；至少保留1艘三式彈艦，斬殺建議2～3艘對地火力。Yui圖片為3艘三式彈與1艘煙幕專員；K點煙幕是穩定性建議。',
+  'fleet.routeDescription.4-5-fast-plus-battleship-carrier':
+    '戰艦1、空母系3、重巡／航巡1＋雷巡／重巡／航巡1。全員高速＋，建議制空220。斬殺可將雷巡換成對地重巡級，保留至少1艘三式彈艦；空母可帶普通艦爆清隨伴。',
+  'fleet.routeDescription.4-5-fast-plus-carrier':
+    '空母系3、雷巡2、航巡／航戰1。選航巡時可將1艘雷巡換成輕空母，但戰艦級＋空母系不得超過4艘。全員高速＋，建議制空430，也可改以220左右爭取空優。保留1艘水上對地艦與1艘對地空母，其餘可清隨伴；斬殺可將水戰槽改配火砲。',
+  'fleet.routeDescription.4-5-cl-dd-heavy':
+    '戰艦／空母系2、輕巡1、驅逐3。H→T最短路，不限速力、無索敵門檻；空母可換戰艦。制空215是建議值，對地火力依裝備與練度調整並於出擊前確認。',
+  'fleet.routeDescription.4-5-cl-dd-light':
+    '戰艦1、正規／裝甲空母2、輕巡1、驅逐2，全員高速以上。Yui新手削血專用，走A-B-E-M-R-N-T或C-F-I-J-H-T。建議制空220、保留1艘三式彈艦；斬殺建議換配置。',
+  'fleet.routeDescription.4-5-bahamut-fast-plus-cv4-cav2':
+    '空母系4、航巡2，全員高速＋走A/C-D-H-T。建議制空430（削血空確414加損耗餘裕），也可改以220左右爭取空優。保留至少1艘對地空母，其餘可負責對地或清隨伴。',
+  'fleet.routeDescription.5-5-conye-middle-nagato-mogami-yahagi':
+    '長門改二＋陸奧改二、航巡1、輕巡1、驅逐2。最上、矢矧是建議，可換同艦種。王點選梯形陣發動特攻，必須33式係數2索敵66以上。建議制空90（王點空劣88），支援與對潛依攻略目的及練度調整。',
+  'fleet.routeDescription.5-5-bahamut-cv4-cav-cl':
+    '正規／裝甲空母4、航巡1、輕巡1，大船不超過4艘走B-K-P-S。P→S必須33式係數2索敵80以上，停用舊係數1的43。建議制空410（最強王點空優392加損耗餘裕）。',
   'fleet.routeUnknown': '依來源確認',
   'fleet.airPower': '制空值',
   'fleet.los': '33 式索敵',
@@ -466,6 +501,8 @@ export const tcn = {
     '{shipName} 採用一般配裝；本方案未配置可成立瑞雲立體攻擊的組合。',
   'message.ANTI_INSTALLATION_REQUIREMENT_PASSED':
     '已為 {minimum} 艘戰艦／重巡級配置三式彈系裝備，符合此路線的對陸配置模型。',
+  'message.ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED':
+    '已為 {minimum} 艘相容水上艦配置三式彈／戰車／登陸艇系對地裝備。',
   'message.KC3_COMBAT_EVALUATION_APPLIED':
     '已由 KC3 依完整配裝複算艦娘別／組合裝備加成、改修、適重命中與目標別有效火力，再重新排序候選方案。',
   'message.ANTI_INSTALLATION_CARRIER_READY':
@@ -493,7 +530,7 @@ export const tcn = {
   'message.NIGHT_CARRIER_UNAVAILABLE':
     '目前候選空母沒有夜戰特性，也無法以持有且相容的裝備成立夜戰空母配置。',
   'message.ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT':
-    '目前無法為 {minimum} 艘可用的戰艦／重巡級各配置一件三式彈系裝備。',
+    '目前無法為 {minimum} 艘相容水上艦各配置此方案需要的三式彈／戰車／登陸艇系裝備。',
   'message.ANTI_INSTALLATION_CARRIER_AIRCRAFT_INSUFFICIENT':
     '目前無法讓路線要求的所有空母同時保有對陸攻擊能力與制空配置。',
   'message.DRUM_CANISTER_EQUIPMENT_INSUFFICIENT':
@@ -752,4 +789,98 @@ export const tcn = {
   'expedition.reason.INSUFFICIENT_EXPEDITIONS':
     '可計算的遠征不足以分配所選艦隊；請確認候選已解鎖，且帳號內有足夠艦種建立 Kancepts 最低成本編成。',
   'expedition.reason.RESOURCE_CONSTRAINTS': '目前沒有符合所有最低收益條件的遠征組合。',
+  'ship.menu': '艦娘推薦',
+  'ship.menuTitle': '依 NGA 攻略評分提高持有艦娘的練船順位',
+  'ship.help.whatQuestion': '這個頁面推薦什麼？',
+  'ship.help.whatAnswer':
+    '只顯示帳號持有、且出現在參考攻略中的艦娘家族，並依原始 1～10 分排序。每列會說明攻略列出的特長、優先理由與建議用途；分數較高的家族可優先安排練度與改造。',
+  'ship.help.matchQuestion': '切換語言會影響比對嗎？',
+  'ship.help.matchAnswer':
+    '不會。比對採 KC3 master data 的固定日文艦娘家族名稱；卡片則保留 KC3 目前語系顯示的艦名。',
+  'ship.help.automaticQuestion': '會自動變更艦娘或裝備嗎？',
+  'ship.help.automaticAnswer': '不會。這是唯讀的練船參考，不會自動改造、換裝或出擊。',
+  'ship.toolbar': '艦娘推薦控制列',
+  'ship.minimumRating': '最低攻略評分',
+  'ship.rating.all': '全部評分',
+  'ship.rating.five': '5 分以上',
+  'ship.rating.eight': '8 分以上',
+  'ship.rating.ten': '僅 10 分',
+  'ship.sync': '重新同步艦娘',
+  'ship.syncing': '正在同步持有艦娘…',
+  'ship.preparing': '正在準備持有艦娘清單…',
+  'ship.loading': '正在排列持有艦娘',
+  'ship.loadingDetail': '以 KC3 艦娘家族比對攻略資料…',
+  'ship.unavailable': '無法讀取持有艦娘資料。',
+  'ship.notReady': '艦娘推薦尚未就緒',
+  'ship.syncFirst': '請確認遊戲分頁仍在線；若剛啟動程式，先回母港操作一次再重新同步。',
+  'ship.status':
+    '符合 {matched} 個家族／持有 {total} 艘・待培養 {training}・已達攻略型態 {ready}・更新 {updated}',
+  'ship.results': '練船順位',
+  'ship.visibleCount': '顯示 {count} 艘',
+  'ship.emptyTitle': '沒有持有艦娘符合此評分',
+  'ship.emptyDetail': '請降低最低評分，或回母港後重新同步遊戲。',
+  'ship.source': '攻略來源（貼上資料最後更新 {date}）：',
+  'ship.level': 'Lv. {level}',
+  'ship.heldCount': '持有 {count} 艘',
+  'ship.ratingValue': '攻略評分 {rating}/10',
+  'ship.state.training': '朝攻略型態培養',
+  'ship.state.ready': '已達攻略型態',
+  'ship.section.priorityReason': '優先理由（攻略摘要）',
+  'ship.section.usage': '建議用途',
+  'ship.priorityReason.features':
+    '攻略摘要將「{features}」列為優勢，因此給予 {rating}/10 的練船優先度。',
+  'ship.priorityReason.scoreOnly':
+    '來源僅列出 {rating}/10 評分，未補充明確特長；此列保留作為改裝優先提醒。',
+  'ship.usage.unlisted': '來源表未列出可轉為具體用途的特長。',
+  'ship.feature.specialAttack': '特殊攻擊',
+  'ship.feature.antiInstallation': '對陸',
+  'ship.feature.fiveSlots': '5 格',
+  'ship.feature.carrierFighter': '可帶艦戰',
+  'ship.feature.openingTorpedo': '開幕雷擊',
+  'ship.feature.fourSlots': '4 格',
+  'ship.feature.seaplaneFighter': '可帶水戰',
+  'ship.feature.pseudoFiveSlots': '偽 5 格',
+  'ship.feature.pseudoFourSlots': '偽 4 格',
+  'ship.feature.highModifier': '活動高倍卡常見',
+  'ship.feature.highFirepower': '高火力',
+  'ship.feature.nightCarrier': '夜戰空母',
+  'ship.feature.armoredCarrier': '裝甲空母',
+  'ship.feature.dedicatedAaci': '專屬對空 CI',
+  'ship.feature.gunSpecialist': '主炮特化改造',
+  'ship.feature.rotaryAsw': '旋翼機先制對潛',
+  'ship.feature.cve': '護衛空母',
+  'ship.feature.highArmor': '高裝甲',
+  'ship.feature.fastPlus': '可在增設達高速＋',
+  'ship.feature.highLuck': '高運',
+  'ship.feature.versatile': '泛用職能',
+  'ship.feature.aviationCruiser': '航空巡洋艦',
+  'ship.feature.openingAsw': '先制對潛',
+  'ship.feature.efficientSupport': '高性價比支援',
+  'ship.feature.supportCarrier': '強力空母支援',
+  'ship.feature.aswSupport': '對潛支援',
+  'ship.feature.fastYamatoPartner': '高速大和摸掛件',
+  'ship.feature.cvl': '高火力輕空母',
+  'ship.feature.antiPt': '對 PT 小鬼群特效',
+  'ship.usage.specialAttack': '作為特殊攻擊編成的主力或搭檔，適合關底高耐久敵。',
+  'ship.usage.antiInstallation': '搭配對地裝備處理集積地等陸上敵。',
+  'ship.usage.loadoutFlexibility': '利用額外格數，同時兼顧輸出、制空、先制或對地裝備。',
+  'ship.usage.airPower': '攜帶艦戰或水戰補足制空，讓編成不必犧牲主力裝備。',
+  'ship.usage.openingTorpedo': '以甲標的等配裝提供開幕雷，先處理水雷戰艦隊。',
+  'ship.usage.eventBonus': '活動中可作為有特效的主力，依海域倍率確認後投入。',
+  'ship.usage.surfaceCombat': '擔任日戰砲擊核心，處理高裝甲水上敵。',
+  'ship.usage.nightCarrier': '以夜間艦載機進行夜戰空襲。',
+  'ship.usage.carrierDurability': '承擔制空與輸出，利用裝甲空母較耐打的特性。',
+  'ship.usage.antiAir': '面對空襲重的海域，以專屬對空 CI 壓制敵機。',
+  'ship.usage.gunCombat': '用主炮特化型態服務日戰與夜戰砲擊。',
+  'ship.usage.asw': '配合旋翼機或對潛裝備兼顧反潛支援。',
+  'ship.usage.escortCarrier': '以較低成本提供護衛空母或夜戰空母機能。',
+  'ship.usage.durability': '高裝甲較適合承受砲擊與道中壓力。',
+  'ship.usage.fastPlus': '以渦輪與鍋爐在增設達高速＋，通過速度分歧。',
+  'ship.usage.cutin': '高運值適合魚雷 CI 或特殊攻擊觸發。',
+  'ship.usage.flexibleRoles': '按艦隊需求改任制空、開幕、對地或夜戰角色。',
+  'ship.usage.seaplaneOperations': '以水戰、水爆等水上機補強巡洋艦的制空與偵察。',
+  'ship.usage.openingAsw': '在敵潛艇開火前以先制對潛處理潛艦。',
+  'ship.usage.support': '作為支援艦隊降低資源消耗或強化火力。',
+  'ship.usage.carrierSupport': '以艦載機與火力支援，兼顧制空和輸出。',
+  'ship.usage.antiPt': '對 PT 小鬼群配特效裝備，提高命中與處理穩定性。',
 }
