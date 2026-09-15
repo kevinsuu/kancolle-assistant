@@ -29,6 +29,7 @@ export const styles = `
   .dqr-filter[data-quest-filter="equipmentMaterials"].is-active { border-color: #a36b22; background: #a36b2212; color: #8a5b21; }
   .dqr-filter[data-quest-chapter].is-active { border-color: #568da3; background: #568da322; color: #356e85; }
   .dqr-filter[data-quest-type="all"] { --dqr-type-color: #356e85; }
+  .dqr-filter[data-quest-type="combined"] { --dqr-type-color: #9b6d00; }
   .dqr-filter[data-quest-type="fleet"] { --dqr-type-color: #72509f; }
   .dqr-filter[data-quest-type="sortie"] { --dqr-type-color: #2b8091; }
   .dqr-filter[data-quest-type="exercise"] { --dqr-type-color: #397ba8; }
@@ -50,6 +51,7 @@ export const styles = `
   body.dark .dqr-filter[data-quest-filter="equipmentMaterials"].is-active { color: #d7a45f; }
   body.dark .dqr-filter[data-quest-chapter].is-active { color: #9acbdd; }
   body.dark .dqr-filter[data-quest-type="all"], body.dark .dqr-filter[data-quest-type="sortie"] { --dqr-type-color: #62b7c5; }
+  body.dark .dqr-filter[data-quest-type="combined"] { --dqr-type-color: #fc0; }
   body.dark .dqr-filter[data-quest-type="fleet"] { --dqr-type-color: #c89cff; }
   body.dark .dqr-filter[data-quest-type="exercise"] { --dqr-type-color: #7db9e2; }
   body.dark .dqr-filter[data-quest-type="expedition"] { --dqr-type-color: #70cf95; }
@@ -69,6 +71,7 @@ export const styles = `
   .dqr-eo-list > span.available { border-color: #b9942d88; background: #d6a40018; color: #b78300; }
   .dqr-eo-list > span.cleared { opacity: .65; }
   body.dark .dqr-eo-strip > div:first-child strong, body.dark .dqr-eo-list > span.available { color: #fc0; }
+  .dqr-acceptance-notice { margin: 4px 0 10px; padding: 7px 10px; border-left: 3px solid #2b8091; color: #666; line-height: 1.4; }
   .dqr-message { min-height: 170px; padding: 70px 20px; text-align: center; }
   .dqr-message strong { display: block; margin-bottom: 5px; font-size: 14px; }
   .dqr-message span { color: #888; }
@@ -82,6 +85,7 @@ export const styles = `
   .dqr-group-heading > div:first-child strong { color: #b78300; font-size: 13px; }
   body.dark .dqr-group-heading > div:first-child strong { color: #fc0; }
   .dqr-group-heading > div:first-child span { color: #888; }
+  .dqr-group-overlap { color: #8a5b21; font-size: 12px; }
   .dqr-group-relations { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
   .dqr-relation { display: inline-flex; align-items: center; min-height: 22px; padding: 1px 7px; border-radius: 11px; color: #fff; font-weight: bold; }
   .dqr-relation.sameSortie { background: #2b8091; }
@@ -168,6 +172,7 @@ export const styles = `
   .dqr-synergy-alternatives > header span { color: var(--dqr-muted); }
   .dqr-synergy-alternatives .dqr-synergy-detail + .dqr-synergy-detail { border-top-style: dashed; }
   .dqr-synergy-detail { padding: 7px 9px 8px 24px; border-top: 1px solid #d6a40044; background: #d6a4000d; }
+  .dqr-synergy-verification { margin: 0 0 6px; color: var(--dqr-muted); font-size: 12px; line-height: 1.35; }
   .dqr-plan-stage { position: relative; margin-top: 6px; padding: 6px 7px 6px 10px; border-left: 2px solid #2b8091; background: #fff8; }
   .dqr-plan-stage:first-child { margin-top: 0; }
   .dqr-plan-stage.sequence { border-left-color: #a36b22; }
@@ -245,6 +250,7 @@ export const panelMarkup = (t) => `
         <div class="dqr-filter-list">
           ${[
             'all',
+            'combined',
             'fleet',
             'sortie',
             'exercise',

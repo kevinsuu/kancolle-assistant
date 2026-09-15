@@ -13,6 +13,7 @@ const FLEET_CANDIDATES = [
   ...Array.from({ length: 3 }, (_, index) => candidate(`ca-${index}`, 'ca')),
   ...Array.from({ length: 2 }, (_, index) => candidate(`cav-${index}`, 'cav')),
   ...Array.from({ length: 3 }, (_, index) => candidate(`carrier-${index}`, 'carrier')),
+  ...Array.from({ length: 3 }, (_, index) => candidate(`cvl-${index}`, 'carrier', 'cvl')),
   ...Array.from({ length: 2 }, (_, index) => candidate(`bb-${index}`, 'bb')),
   ...Array.from({ length: 2 }, (_, index) => candidate(`bbv-${index}`, 'bbv')),
   ...Array.from({ length: 2 }, (_, index) => candidate(`av-${index}`, 'av')),
@@ -52,8 +53,8 @@ const FLEET_CANDIDATES = [
   candidate('yukikaze', 'dd', 'yukikaze'),
   candidate('fletcher-1', 'dd', 'us', 'usuk', 'fletcher-group'),
   candidate('fletcher-2', 'dd', 'us', 'usuk', 'fletcher-group'),
-  candidate('houshou-kai-ni', 'carrier', 'houshou-kai-ni'),
-  candidate('gambier-bay-kai-ni', 'carrier', 'gambier-bay-kai-ni', 'us', 'usuk'),
+  candidate('houshou-kai-ni', 'carrier', 'cvl', 'houshou-kai-ni'),
+  candidate('gambier-bay-kai-ni', 'carrier', 'cvl', 'gambier-bay-kai-ni', 'us', 'usuk'),
   candidate('akagi-kai-ni', 'carrier', 'akagi-kai-ni'),
   candidate('kaga', 'carrier', 'kaga'),
   candidate('shoukaku', 'carrier', 'shoukaku'),
@@ -151,6 +152,11 @@ const OBJECTIVES_BY_CODE = {
     }),
   ]),
 
+  Bm5: SORTIE_FREE,
+  Bw5: SORTIE_FREE,
+  Bw10: SORTIE_FREE,
+  Bq1: SORTIE_FREE,
+  Bq2: SORTIE_FREE,
   Bw6: { ...SORTIE_FREE, maps: ['4-1', '4-2', '4-3', '4-4', '4-5'] },
   Bw7: SORTIE_FREE,
   Bq8: SORTIE_FREE,
@@ -158,6 +164,15 @@ const OBJECTIVES_BY_CODE = {
   B175: SORTIE_FREE,
   B202: objective('sortie', [fleet({ counts: [count('air-defense-ship', 3)] })]),
   Bq9: objective('sortie', [fleet({ counts: [count('carrier', 1)] })]),
+  Bm8: objective('sortie', [
+    fleet({ flag: 'cl', counts: [countAny(['cl', 'cvl'], 1), countAny(['dd', 'de'], 3)] }),
+    fleet({ flag: 'cvl', counts: [countAny(['cl', 'cvl'], 1), countAny(['dd', 'de'], 3)] }),
+  ]),
+  Bq11: objective('sortie', [
+    fleet({ flag: 'cl', counts: [countAny(['cl', 'cvl'], 1), countAny(['dd', 'de'], 3)] }),
+    fleet({ flag: 'cvl', counts: [countAny(['cl', 'cvl'], 1), countAny(['dd', 'de'], 3)] }),
+  ]),
+  Bm6: objective('sortie', [fleet({ counts: [count('carrier', 2), count('dd', 2)] })]),
   By6: objective('sortie', [
     fleet({ flag: ['dd', 'ca', 'cav'], counts: [countAny(['dd', 'de'], 3)] }),
   ]),
@@ -366,6 +381,23 @@ const fleetRulesAreCompatible = (rules) => {
     return rules[index].some((variant) => chooseVariants(index + 1, [...selected, variant]))
   }
   return chooseVariants(0, [])
+}
+
+export const sortieFleetCompatibilityForQuests = (quests) => {
+  const fleetVariants = (Array.isArray(quests) ? quests : []).map((quest) => {
+    const sortieObjectives = normalizedObjectives(quest).filter(({ kind }) => kind === 'sortie')
+    return sortieObjectives.flatMap(({ fleetVariants: variants }) =>
+      Array.isArray(variants) ? variants : [],
+    )
+  })
+  if (fleetVariants.some((variants) => variants.length === 0)) {
+    return { compatible: false, reasonCode: 'MISSING_SORTIE_FLEET_PROFILE' }
+  }
+  const compatible = fleetRulesAreCompatible(fleetVariants)
+  return {
+    compatible,
+    reasonCode: compatible ? null : 'INCOMPATIBLE_FLEET_CONSTRAINTS',
+  }
 }
 
 const sharedAction = (entries) => {

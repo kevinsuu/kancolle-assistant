@@ -21,6 +21,7 @@ const synchronizedQuestScript = (quests) => {
     )
     window.KC3QuestManager.load()
     window.KC3QuestManager.definePage(quests, undefined, 0)
+    window.__kancolleAssistantQuestSynchronizedAt = new Date().toISOString()
     const synchronizedQuestCount = quests.filter((quest) => quest && quest !== -1).length
     if (synchronizedQuestCount === 0) {
       ;(window.KC3QuestManager.open || []).slice().forEach((questId) => {
@@ -158,6 +159,7 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
   const synchronizedOpenQuests = storedQuests
     .filter((quest) => quest && (Number(quest.status) === 1 || Number(quest.status) === 2))
     .map((quest) => questSnapshot(Number(quest.id), quest))
+  const activeQuestCount = synchronizedOpenQuests.filter(({ status }) => status === 2).length
   const limitedOpenQuestCount = synchronizedOpenQuests.filter(({ limited }) => limited).length
   // A limited quest has no dependable final end timestamp in KC3, but its current state,
   // requirements, rewards, and unlocks are still useful. Keep synchronized limited quests in the
@@ -243,6 +245,10 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
 
   return {
     generatedAt: new Date(now).toISOString(),
+    synchronizedAt:
+      typeof window.__kancolleAssistantQuestSynchronizedAt === 'string'
+        ? window.__kancolleAssistantQuestSynchronizedAt
+        : null,
     quests,
     extraOperationStatus,
     account,
@@ -250,6 +256,7 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
       storedQuestCount,
       supportedRepeatableTypeCount: supportedRepeatableEntries.length,
       openQuestCount: openQuestIds.size,
+      activeQuestCount,
       oneTimeOpenQuestCount: quests.filter(
         ({ limited, period, status }) =>
           !limited && period === 'oneTime' && (status === 1 || status === 2),
@@ -281,6 +288,12 @@ const validateSnapshot = (snapshot) => {
   return generatedAt
 }
 
+const validSynchronizedAt = (value) => {
+  if (typeof value !== 'string') return null
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null
+}
+
 export const readKC3QuestRecommendations = async (
   webContents,
   logger = () => {},
@@ -291,6 +304,12 @@ export const readKC3QuestRecommendations = async (
   }
   const snapshot = await webContents.executeJavaScript(KC3_QUEST_SNAPSHOT_SCRIPT, true)
   const now = validateSnapshot(snapshot)
+  const synchronizedAt = validSynchronizedAt(snapshot.synchronizedAt)
+  const snapshotSource = synchronizedAt ? 'liveSync' : 'localCache'
+  const activeQuestCount = Number(
+    snapshot.diagnostics?.activeQuestCount ??
+      snapshot.quests.filter(({ status }) => status === 2).length,
+  )
   const successorGraphTruncated = snapshot.diagnostics?.successorGraphTruncated === true
   const localizedTitleFallbackCount = Number(
     snapshot.diagnostics?.questTitleSourceCounts?.localizedFallback || 0,
@@ -307,6 +326,10 @@ export const readKC3QuestRecommendations = async (
       snapshot.diagnostics?.openQuestCount ??
         snapshot.quests.filter(({ status }) => status === 1 || status === 2).length,
     ),
+    activeQuestCount,
+    questAcceptanceCapacity: 5,
+    snapshotSource,
+    synchronizedAt,
     oneTimeOpenQuestCount: Number(snapshot.diagnostics?.oneTimeOpenQuestCount || 0),
     limitedOpenQuestCount: Number(snapshot.diagnostics?.limitedOpenQuestCount || 0),
     graphQuestCount: Number(snapshot.diagnostics?.graphQuestCount || snapshot.quests.length),
@@ -326,11 +349,17 @@ export const readKC3QuestRecommendations = async (
     outcome: reasonCodes.length > 0 ? 'degraded' : 'success',
     reasonCodes,
   })
-  return rankQuestRecommendations(snapshot.quests, {
-    now,
-    extraOperationStatus: snapshot.extraOperationStatus,
-    account: snapshot.account,
-  })
+  return {
+    ...rankQuestRecommendations(snapshot.quests, {
+      now,
+      extraOperationStatus: snapshot.extraOperationStatus,
+      account: snapshot.account,
+    }),
+    activeQuestCount,
+    questAcceptanceCapacity: 5,
+    snapshotSource,
+    synchronizedAt,
+  }
 }
 
 export { KC3_QUEST_SNAPSHOT_SCRIPT, synchronizedQuestScript }

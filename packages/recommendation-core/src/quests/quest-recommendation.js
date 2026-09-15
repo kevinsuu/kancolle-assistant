@@ -1,7 +1,7 @@
 import { findQuestSynergies, questArsenalProfileSource } from './quest-synergy'
 import { hasQuestObjective, questObjectiveMapIds } from './quest-objective-synergy'
 
-export const QUEST_RECOMMENDATION_RANKING_VERSION = 15
+export const QUEST_RECOMMENDATION_RANKING_VERSION = 18
 
 const RECOMMENDATION_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime']
 const RECOMMENDATION_PERIOD_SET = new Set(RECOMMENDATION_PERIODS)
@@ -69,6 +69,12 @@ const REWARD_PATTERNS = {
   newAviationMaterial: /New Aviation (?:Armament )?Material|新型航空兵装資材|新型航空兵裝資材/iu,
   daihatsu: /Daihatsu|大発動艇|大發動艇/iu,
   newRocketMaterial: /New Rocket Development Material|新型噴進装備開発資材|新型噴進裝備開發資材/iu,
+  newGunArmamentMaterial: /New Gun Armament Material|新型砲熕兵装資材|新型砲熕兵裝資材/iu,
+  newArmamentMaterial: /New Armament Material|新型兵装資材|新型兵裝資材/iu,
+  catapult: /Prototype Flight Deck Catapult|試製甲板カタパルト/iu,
+  reinforcementExpansion: /Reinforcement Expansion|補強増設|补强增设/iu,
+  newAviationBlueprint: /New Aircraft Design Blueprint|新型航空機設計図|新型航空机设计图/iu,
+  overseasEquipmentTech: /Overseas (?:Ship )?Latest Technology|海外艦最新技術|海外舰最新技术/iu,
   choice: /Selectable Reward|Choice Reward|選択報酬|選擇獎勵|选择奖励/iu,
 }
 
@@ -87,7 +93,7 @@ const QUEST_GUIDANCE = {
   888: { tier: 'conditional', reasonKeys: ['highCost'] },
   893: { tier: 'optional', reasonKeys: ['highSortieCount'] },
   903: {
-    requiredShipGroups: [{ masterIds: [622, 623, 624], key: 'yuubariKaiNi' }],
+    requiredShipGroups: [{ masterIds: [488, 622, 623, 624], key: 'yuubariOrYuraKaiNi' }],
     reasonKeys: ['highCost'],
   },
 }
@@ -110,11 +116,16 @@ const BASE_ADVICE_BY_REWARD = {
 
 export const classifyQuestRewards = ({ memo = '', rewardConsumables = [] } = {}) => {
   const rewardText = String(memo)
-  const structuredScrewCount = Number(rewardConsumables[3] || 0)
-  const screwCount = Math.max(
-    0,
-    Number.isFinite(structuredScrewCount) ? Math.trunc(structuredScrewCount) : 0,
-  )
+  const structuredConsumableCount = (index) => {
+    const count = Number(rewardConsumables[index] || 0)
+    return Math.max(0, Number.isFinite(count) ? Math.trunc(count) : 0)
+  }
+  // KC3 stores these as ibuild, bucket, devmat, screws. Keep the indices here rather than
+  // inferring them from localized reward text so every structured consumable remains visible.
+  const instantBuildCount = structuredConsumableCount(0)
+  const bucketCount = structuredConsumableCount(1)
+  const devmatCount = structuredConsumableCount(2)
+  const screwCount = structuredConsumableCount(3)
   const hasBlueprint = REWARD_PATTERNS.blueprint.test(rewardText)
   const hasMedal = REWARD_PATTERNS.medal.test(rewardText)
   const hasActionReport = REWARD_PATTERNS.actionReport.test(rewardText)
@@ -124,6 +135,12 @@ export const classifyQuestRewards = ({ memo = '', rewardConsumables = [] } = {})
     ...(REWARD_PATTERNS.newAviationMaterial.test(rewardText) ? ['newAviationMaterial'] : []),
     ...(REWARD_PATTERNS.daihatsu.test(rewardText) ? ['daihatsu'] : []),
     ...(REWARD_PATTERNS.newRocketMaterial.test(rewardText) ? ['newRocketMaterial'] : []),
+    ...(REWARD_PATTERNS.newGunArmamentMaterial.test(rewardText) ? ['newGunArmamentMaterial'] : []),
+    ...(REWARD_PATTERNS.newArmamentMaterial.test(rewardText) ? ['newArmamentMaterial'] : []),
+    ...(REWARD_PATTERNS.catapult.test(rewardText) ? ['catapult'] : []),
+    ...(REWARD_PATTERNS.reinforcementExpansion.test(rewardText) ? ['reinforcementExpansion'] : []),
+    ...(REWARD_PATTERNS.newAviationBlueprint.test(rewardText) ? ['newAviationBlueprint'] : []),
+    ...(REWARD_PATTERNS.overseasEquipmentTech.test(rewardText) ? ['overseasEquipmentTech'] : []),
   ]
   const isChoiceReward = REWARD_PATTERNS.choice.test(rewardText)
 
@@ -132,6 +149,9 @@ export const classifyQuestRewards = ({ memo = '', rewardConsumables = [] } = {})
     hasMedal,
     hasActionReport,
     hasScrews,
+    instantBuildCount,
+    bucketCount,
+    devmatCount,
     screwCount,
     materialKeys,
     isChoiceReward,
@@ -293,66 +313,137 @@ const questValueBand = (quest, effectiveReward) => {
   return repeatable ? 2 : 1
 }
 
+const SIMULTANEOUS_RELATION_KINDS = new Set([
+  'sameSortie',
+  'sameExercise',
+  'sameExpedition',
+  'sameArsenal',
+])
+
+const uniqueValues = (values) => [...new Set(values)]
+
+const simultaneousStageGroup = (synergy, stage, simultaneousStageCount) => {
+  const supportingStages = (synergy.stages || []).filter(
+    (candidateStage) => !SIMULTANEOUS_RELATION_KINDS.has(candidateStage.kind),
+  )
+  const stages = [stage, ...supportingStages]
+  const stageQuestIds = uniqueValues(
+    (stage.questIds || [])
+      .map(Number)
+      .filter(Number.isFinite)
+      .sort((left, right) => left - right),
+  )
+  const stageId = [
+    synergy.id,
+    stage.kind,
+    stageQuestIds.join('-'),
+    (stage.mapIds || []).join('-'),
+  ].join(':')
+  return {
+    id: simultaneousStageCount === 1 ? synergy.id : stageId,
+    sourcePlanId: synergy.id,
+    priority: synergy.priority,
+    relationKinds: uniqueValues(stages.map(({ kind }) => kind)),
+    mapIds: uniqueValues(stages.flatMap(({ mapIds = [] }) => mapIds)),
+    fleetKey: stages.length === 1 ? stage.fleetKey : 'variedByStage',
+    extraObjectiveKeys: uniqueValues(
+      stages.flatMap(({ extraObjectiveKeys = [] }) => extraObjectiveKeys),
+    ),
+    instructionKeys: uniqueValues(stages.flatMap(({ instructionKeys = [] }) => instructionKeys)),
+    companions: [],
+    stages,
+  }
+}
+
 const groupQuestRecommendations = (recommendations) => {
   const recommendationsById = new Map(recommendations.map((quest) => [Number(quest.id), quest]))
-  const assignedQuestIds = new Set()
   const groups = []
+  const seenStageIds = new Set()
+  const groupedQuestIds = new Set()
 
   recommendations.forEach((quest) => {
     const questId = Number(quest.id)
-    if (assignedQuestIds.has(questId)) return
-
-    const synergy = (quest.synergies || [])
-      .map((candidate) => {
-        const questIds = [questId]
-        candidate.companions.forEach(({ id }) => {
-          const companionId = Number(id)
-          if (recommendationsById.has(companionId) && !assignedQuestIds.has(companionId)) {
-            questIds.push(companionId)
-          }
+    ;(quest.synergies || []).forEach((synergy) => {
+      const simultaneousStages = (synergy.stages || []).filter(
+        ({ kind, questIds = [] }) =>
+          SIMULTANEOUS_RELATION_KINDS.has(kind) &&
+          questIds.filter((id) => recommendationsById.has(Number(id))).length > 1,
+      )
+      simultaneousStages.forEach((stage) => {
+        const stageQuestIds = uniqueValues(
+          (stage.questIds || []).map(Number).filter((id) => recommendationsById.has(id)),
+        ).sort((left, right) => left - right)
+        const stageKey = [
+          synergy.id,
+          stage.kind,
+          stageQuestIds.join('-'),
+          (stage.mapIds || []).join('-'),
+        ].join(':')
+        if (seenStageIds.has(stageKey)) return
+        seenStageIds.add(stageKey)
+        const groupQuests = stageQuestIds.map((id) => recommendationsById.get(id)).filter(Boolean)
+        if (groupQuests.length < 2) return
+        const groupSynergy = simultaneousStageGroup(synergy, stage, simultaneousStages.length)
+        groups.push({
+          id: `synergy:${groupSynergy.id}`,
+          kind: 'combined',
+          resetAt:
+            groupQuests
+              .map(({ resetAt }) => Number(resetAt))
+              .filter(Number.isFinite)
+              .sort((left, right) => left - right)[0] ?? null,
+          quests: groupQuests,
+          synergy: groupSynergy,
         })
-        const uniqueQuestIds = [...new Set(questIds)]
-        const externalCompanionCount = candidate.companions.filter(
-          ({ id }) => !recommendationsById.has(Number(id)),
-        ).length
-        return {
-          candidate,
-          questIds: uniqueQuestIds,
-          objectiveCount:
-            uniqueQuestIds.length + externalCompanionCount + candidate.extraObjectiveKeys.length,
-          // A combined group must contain at least two quests that can be acted on now. Locked
-          // successors and EO objectives remain planning context, but cannot turn one current
-          // quest into a misleading one-item combination.
-          isUseful: uniqueQuestIds.length > 1,
-        }
       })
-      .filter(({ isUseful }) => isUseful)
-      .sort(
-        (left, right) =>
-          right.questIds.length - left.questIds.length ||
-          right.objectiveCount - left.objectiveCount ||
-          Number(right.candidate.priority || 0) - Number(left.candidate.priority || 0) ||
-          left.candidate.id.localeCompare(right.candidate.id),
-      )[0]
-
-    const groupQuests = (synergy?.questIds || [questId])
-      .map((id) => recommendationsById.get(id))
-      .filter(Boolean)
-    groupQuests.forEach(({ id }) => assignedQuestIds.add(Number(id)))
-    groups.push({
-      id: synergy ? `synergy:${synergy.candidate.id}` : `quest:${questId}`,
-      kind: synergy ? 'combined' : 'single',
-      resetAt:
-        groupQuests
-          .map(({ resetAt }) => Number(resetAt))
-          .filter(Number.isFinite)
-          .sort((left, right) => left - right)[0] ?? null,
-      quests: groupQuests,
-      synergy: synergy?.candidate || null,
     })
   })
 
-  return groups
+  const uniqueActionGroups = groups.filter((group, groupIndex) => {
+    const questIds = new Set(group.quests.map(({ id }) => Number(id)))
+    const relationKind = group.synergy?.stages?.[0]?.kind
+    const mapIds = (group.synergy?.stages?.[0]?.mapIds || []).join('|')
+    return !groups.some((candidate, candidateIndex) => {
+      if (candidateIndex === groupIndex) return false
+      const candidateRelationKind = candidate.synergy?.stages?.[0]?.kind
+      const candidateMapIds = (candidate.synergy?.stages?.[0]?.mapIds || []).join('|')
+      if (relationKind !== candidateRelationKind || mapIds !== candidateMapIds) return false
+      const candidateQuestIds = new Set(candidate.quests.map(({ id }) => Number(id)))
+      if (![...questIds].every((id) => candidateQuestIds.has(id))) return false
+      return (
+        candidateQuestIds.size > questIds.size ||
+        (candidateQuestIds.size === questIds.size && candidateIndex < groupIndex)
+      )
+    })
+  })
+  groups.splice(0, groups.length, ...uniqueActionGroups)
+  groups.forEach((group) => {
+    group.quests.forEach(({ id }) => groupedQuestIds.add(Number(id)))
+  })
+
+  recommendations.forEach((quest) => {
+    if (groupedQuestIds.has(Number(quest.id))) return
+    groups.push({
+      id: `quest:${quest.id}`,
+      kind: 'single',
+      resetAt: Number.isFinite(Number(quest.resetAt)) ? Number(quest.resetAt) : null,
+      quests: [quest],
+      synergy: null,
+    })
+  })
+
+  const groupMembershipCount = groups.reduce((counts, group) => {
+    group.quests.forEach(({ id }) => {
+      counts.set(Number(id), (counts.get(Number(id)) || 0) + 1)
+    })
+    return counts
+  }, new Map())
+  return groups.map((group) => ({
+    ...group,
+    repeatedQuestIds: group.quests
+      .map(({ id }) => Number(id))
+      .filter((id) => (groupMembershipCount.get(id) || 0) > 1),
+  }))
 }
 
 export const rankQuestRecommendations = (
@@ -452,28 +543,32 @@ export const rankQuestRecommendations = (
     ]),
   )
 
+  const synergyDiagnostics = { curatedSortieFleetRejections: new Map() }
   const recommendationsWithInternalObjectives = candidates.map((quest) => ({
     ...quest,
-    synergies: findQuestSynergies(quest, questList, { extraOperationStatus }),
+    synergies: findQuestSynergies(quest, questList, {
+      extraOperationStatus,
+      diagnostics: synergyDiagnostics,
+    }),
   }))
   const recommendations = recommendationsWithInternalObjectives.map(
     ({ synergyDescription: _synergyDescription, ...recommendation }) => recommendation,
   )
   const groups = groupQuestRecommendations(recommendations)
-  const selectedSynergyIds = new Set(groups.map(({ synergy }) => synergy?.id).filter(Boolean))
-  const simultaneousRelationKinds = new Set([
-    'sameSortie',
-    'sameExercise',
-    'sameExpedition',
-    'sameArsenal',
-  ])
+  const repeatedQuestIds = new Set(groups.flatMap(({ repeatedQuestIds: ids = [] }) => ids))
+  const repeatedQuestGroupCount = groups.filter(
+    ({ repeatedQuestIds: ids = [] }) => ids.length > 0,
+  ).length
+  const selectedSynergyIds = new Set(
+    groups.map(({ synergy }) => synergy?.sourcePlanId || synergy?.id).filter(Boolean),
+  )
   const alternativeSynergyIds = new Set(
     recommendations.flatMap((quest) =>
       (quest.synergies || [])
         .filter(
           (synergy) =>
             !selectedSynergyIds.has(synergy.id) &&
-            (synergy.relationKinds || []).some((kind) => simultaneousRelationKinds.has(kind)) &&
+            (synergy.relationKinds || []).some((kind) => SIMULTANEOUS_RELATION_KINDS.has(kind)) &&
             (synergy.companions || []).some(({ id }) => questsById.has(Number(id))),
         )
         .map(({ id }) => id),
@@ -481,6 +576,12 @@ export const rankQuestRecommendations = (
   )
   const objectiveDerivedGroups = groups.filter(({ synergy }) =>
     String(synergy?.id || '').startsWith('objective-'),
+  )
+  const curatedSortieFleetRejectionReasonCounts = Object.fromEntries(
+    [...synergyDiagnostics.curatedSortieFleetRejections.values()].reduce((counts, reasonCode) => {
+      counts.set(reasonCode, (counts.get(reasonCode) || 0) + 1)
+      return counts
+    }, new Map()),
   )
   const openArsenalProfileSources = questList
     .filter((quest) => quest.status === 1 || quest.status === 2)
@@ -511,8 +612,13 @@ export const rankQuestRecommendations = (
     groups,
     groupCount: groups.length,
     combinedGroupCount: groups.filter(({ kind }) => kind === 'combined').length,
+    groupingMode: 'separate-simultaneous-actions',
+    repeatedQuestCount: repeatedQuestIds.size,
+    repeatedQuestGroupCount,
     alternativeSynergyCount: alternativeSynergyIds.size,
     objectiveDerivedGroupCount: objectiveDerivedGroups.length,
+    curatedSortieFleetRejectedStageCount: synergyDiagnostics.curatedSortieFleetRejections.size,
+    curatedSortieFleetRejectionReasonCounts,
     objectiveProfiledQuestCount: questList.filter(hasQuestObjective).length,
     arsenalProfiledQuestCount: openArsenalProfileSources.length,
     derivedArsenalProfileCount: openArsenalProfileSources.filter(

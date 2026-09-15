@@ -26,6 +26,11 @@ const formatResetAt = (value) =>
     '—',
   )
 
+const questStatusSource = (result) =>
+  result?.snapshotSource === 'liveSync' && result?.synchronizedAt
+    ? t('quest.statusSource.live', { updated: formatResetAt(result.synchronizedAt) })
+    : t('quest.statusSource.local')
+
 const remainingLabel = (remainingMs) => {
   const totalMinutes = Math.max(1, Math.ceil(Number(remainingMs || 0) / 60_000))
   let days = Math.floor(totalMinutes / 1_440)
@@ -63,6 +68,27 @@ const rewardItems = (reward) => {
       label: t('quest.reward.screwsGeneric'),
     })
   }
+  if (Number(reward?.devmatCount) > 0) {
+    items.push({
+      key: 'developmentMaterials',
+      icon: 'box3.png',
+      label: t('quest.reward.developmentMaterials', { count: reward.devmatCount }),
+    })
+  }
+  if (Number(reward?.bucketCount) > 0) {
+    items.push({
+      key: 'bucket',
+      icon: 'box3.png',
+      label: t('quest.reward.bucket', { count: reward.bucketCount }),
+    })
+  }
+  if (Number(reward?.instantBuildCount) > 0) {
+    items.push({
+      key: 'instantBuild',
+      icon: 'box3.png',
+      label: t('quest.reward.instantBuild', { count: reward.instantBuildCount }),
+    })
+  }
   ;(reward?.materialKeys || []).forEach((key) => {
     items.push({ key, icon: 'gear.png', label: t(`quest.reward.material.${key}`) })
   })
@@ -87,6 +113,7 @@ export const QUEST_REWARD_FILTERS = [
 ]
 
 export const QUEST_TYPE_FILTERS = [
+  'combined',
   'fleet',
   'sortie',
   'exercise',
@@ -324,6 +351,9 @@ const groupsFor = (result) =>
     synergy: quest.synergies?.[0] || null,
   }))
 
+const isCombinedGroup = (group) =>
+  group.kind === 'combined' && Boolean(group.synergy) && (group.quests || []).length > 1
+
 const questMatchesFilters = (quest, filters) => {
   if (filters.size === 0) return true
   const rewards = [quest.reward, ...(quest.downstreamTargets || []).map((target) => target.reward)]
@@ -340,6 +370,12 @@ const questMapChapterKeys = (quest) => [
       .map((world) => `world${world}`),
   ),
 ]
+
+const questMatchesChapterFilters = (quest, chapters) => {
+  if (questTypeFor(quest) !== 'sortie') return true
+  const chapterKeys = questMapChapterKeys(quest)
+  return chapterKeys.length === 0 || chapterKeys.some((chapterKey) => chapters.has(chapterKey))
+}
 
 const normalizeScopedGroup = (group, quests, mapScope, preserveCombination) => {
   const isCombined =
@@ -453,10 +489,12 @@ export const filterAndSortQuestRecommendationGroups = (
     groupsFor(result)
       .map((group, originalIndex) => {
         const sourceQuests = group.quests || []
+        const matchesCombinedType = types.has('combined') && isCombinedGroup(group)
         const quests = sourceQuests.filter(
           (quest) =>
             questMatchesFilters(quest, filters) &&
-            (types.size === 0 || types.has(questTypeFor(quest))),
+            (types.size === 0 || matchesCombinedType || types.has(questTypeFor(quest))) &&
+            questMatchesChapterFilters(quest, chapters),
         )
         return {
           ...group,
@@ -467,20 +505,6 @@ export const filterAndSortQuestRecommendationGroups = (
       })
       .filter((group) => group.quests.length > 0),
   )
-    .map((group) => ({
-      ...group,
-      quests:
-        group.mapScope === 'nonSortie'
-          ? group.quests
-          : group.quests.filter((quest) => {
-              const chapterKeys = questMapChapterKeys(quest)
-              return (
-                chapterKeys.length === 0 ||
-                chapterKeys.some((chapterKey) => chapters.has(chapterKey))
-              )
-            }),
-    }))
-    .filter((group) => group.quests.length > 0)
 
   groups.forEach((group) => {
     group.quests = [...group.quests].sort((left, right) =>
@@ -512,13 +536,25 @@ export const filterAndSortQuestRecommendationGroups = (
     return comparison || left.originalIndex - right.originalIndex
   })
 
-  return {
-    groups: groups.map(
-      ({ originalIndex: _originalIndex, filterRemovedQuest: _filterRemovedQuest, ...group }) =>
-        group,
-    ),
-    visibleQuestCount: groups.reduce((count, group) => count + group.quests.length, 0),
-  }
+  const visibleGroupMembershipCount = groups.reduce((counts, group) => {
+    group.quests.forEach(({ id }) => {
+      counts.set(Number(id), (counts.get(Number(id)) || 0) + 1)
+    })
+    return counts
+  }, new Map())
+  const visibleQuestIds = new Set()
+  const visibleGroups = groups.map(
+    ({ originalIndex: _originalIndex, filterRemovedQuest: _filterRemovedQuest, ...group }) => {
+      group.quests.forEach(({ id }) => visibleQuestIds.add(Number(id)))
+      return {
+        ...group,
+        repeatedQuestIds: group.quests
+          .map(({ id }) => Number(id))
+          .filter((id) => (visibleGroupMembershipCount.get(id) || 0) > 1),
+      }
+    },
+  )
+  return { groups: visibleGroups, visibleQuestCount: visibleQuestIds.size }
 }
 
 export const logQuestTypeFilterChange = (viewState, filtered, logger = globalThis.console) => {
@@ -636,14 +672,48 @@ const SIMULTANEOUS_RELATION_KINDS = new Set([
   'sameArsenal',
 ])
 
+const simultaneousStageScopeKeys = (synergy) =>
+  new Set(
+    synergyStages(synergy)
+      .filter(({ kind }) => SIMULTANEOUS_RELATION_KINDS.has(kind))
+      .map(({ kind, mapIds }) => {
+        const maps = Array.isArray(mapIds) ? [...mapIds].sort().join('|') : ''
+        return `${kind}:${maps}`
+      }),
+  )
+
+const displayedCombinedGroupsFor = (groups) =>
+  groups
+    .filter(({ kind, synergy }) => kind === 'combined' && synergy)
+    .map(({ quests = [], synergy }) => ({
+      participantIds: new Set(quests.map(({ id }) => Number(id))),
+      stageScopeKeys: simultaneousStageScopeKeys(synergy),
+    }))
+
+const alternativeIsCoveredByDisplayedGroup = (participantIds, synergy, displayedCombinedGroups) => {
+  const candidateStageScopeKeys = simultaneousStageScopeKeys(synergy)
+  return displayedCombinedGroups.some(
+    ({ participantIds: displayedParticipantIds, stageScopeKeys }) =>
+      [...participantIds].every((id) => displayedParticipantIds.has(id)) &&
+      [...candidateStageScopeKeys].some((key) => stageScopeKeys.has(key)),
+  )
+}
+
 const alternativeSynergiesForQuest = (
   quest,
   selectedSynergyId,
+  displayedSynergySourceIds,
+  displayedCombinedGroups,
   visibleQuestIds,
   claimedSynergyIds,
 ) =>
   (quest.synergies || []).filter((synergy) => {
-    if (!synergy?.id || synergy.id === selectedSynergyId || claimedSynergyIds.has(synergy.id)) {
+    if (
+      !synergy?.id ||
+      synergy.id === selectedSynergyId ||
+      displayedSynergySourceIds.has(synergy.id) ||
+      claimedSynergyIds.has(synergy.id)
+    ) {
       return false
     }
     const relationKinds = synergy.relationKinds || synergyStages(synergy).map(({ kind }) => kind)
@@ -658,6 +728,9 @@ const alternativeSynergiesForQuest = (
     if (participantIds.size < 2 || ![...participantIds].every((id) => visibleQuestIds.has(id))) {
       return false
     }
+    if (alternativeIsCoveredByDisplayedGroup(participantIds, synergy, displayedCombinedGroups)) {
+      return false
+    }
     claimedSynergyIds.add(synergy.id)
     return true
   })
@@ -666,7 +739,9 @@ const synergyDetailMarkup = (synergy) => {
   const stages = synergyStages(synergy)
   return `<aside class="dqr-synergy-detail" aria-label="${escapeHtml(
     t('quest.synergy.title'),
-  )}">${stages.map(stageMarkup).join('')}</aside>`
+  )}"><p class="dqr-synergy-verification">${escapeHtml(
+    t('quest.synergy.verificationNotice'),
+  )}</p>${stages.map(stageMarkup).join('')}</aside>`
 }
 
 const alternativeSynergiesMarkup = (synergies) => {
@@ -681,7 +756,13 @@ const alternativeSynergiesMarkup = (synergies) => {
 
 const questNodeMarkup = (
   quest,
-  { selectedSynergyId = null, visibleQuestIds, claimedSynergyIds },
+  {
+    selectedSynergyId = null,
+    displayedSynergySourceIds,
+    displayedCombinedGroups,
+    visibleQuestIds,
+    claimedSynergyIds,
+  },
 ) => {
   const tier = adviceTier(quest)
   const period = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime'].includes(
@@ -696,6 +777,8 @@ const questNodeMarkup = (
   const alternativeSynergies = alternativeSynergiesForQuest(
     quest,
     selectedSynergyId,
+    displayedSynergySourceIds,
+    displayedCombinedGroups,
     visibleQuestIds,
     claimedSynergyIds,
   )
@@ -762,6 +845,15 @@ const groupMarkup = (group, renderContext) => {
           isCombined
             ? `<header class="dqr-group-heading">
                 <div><strong>${escapeHtml(t('quest.group.combined'))}</strong><span>${escapeHtml(t('quest.group.questCount', { count: quests.length }))}</span></div>
+                ${
+                  group.repeatedQuestIds?.length
+                    ? `<span class="dqr-group-overlap">${escapeHtml(
+                        t('quest.group.repeatedQuestHint', {
+                          count: group.repeatedQuestIds.length,
+                        }),
+                      )}</span>`
+                    : ''
+                }
                 <div class="dqr-group-relations">${(synergy.relationKinds || ['sameSortie'])
                   .map(
                     (kind) =>
@@ -801,6 +893,24 @@ const extraOperationMarkup = (extraOperations) => {
     </section>`
 }
 
+const questAcceptanceLabel = (result) => {
+  const active = Number(result?.activeQuestCount)
+  const capacity = Number(result?.questAcceptanceCapacity)
+  if (!Number.isFinite(active) || !Number.isFinite(capacity) || capacity < 1) return null
+  const accepted = Math.max(0, Math.trunc(active))
+  const maximum = Math.trunc(capacity)
+  return t('quest.acceptance.status', {
+    active: accepted,
+    capacity: maximum,
+    available: Math.max(0, maximum - accepted),
+  })
+}
+
+const questAcceptanceMarkup = (result) => {
+  const label = questAcceptanceLabel(result)
+  return label ? `<p class="dqr-acceptance-notice bscolor4 fcolor2">${escapeHtml(label)}</p>` : ''
+}
+
 export const questRecommendationListMarkup = (result) => {
   const groups = splitGroupsByMapScope(groupsFor(result)).sort(
     (left, right) => Number(left.mapScope !== 'nonSortie') - Number(right.mapScope !== 'nonSortie'),
@@ -809,8 +919,19 @@ export const questRecommendationListMarkup = (result) => {
     groups.flatMap(({ quests = [] }) => quests.map(({ id }) => Number(id))),
   )
   const claimedSynergyIds = new Set()
-  return `${extraOperationMarkup(result.extraOperations)}<ol class="dqr-list">${groups
-    .map((group) => groupMarkup(group, { visibleQuestIds, claimedSynergyIds }))
+  const displayedSynergySourceIds = new Set(
+    groups.map(({ synergy }) => synergy?.sourcePlanId || synergy?.id).filter(Boolean),
+  )
+  const displayedCombinedGroups = displayedCombinedGroupsFor(groups)
+  return `${questAcceptanceMarkup(result)}${extraOperationMarkup(result.extraOperations)}<ol class="dqr-list">${groups
+    .map((group) =>
+      groupMarkup(group, {
+        displayedSynergySourceIds,
+        displayedCombinedGroups,
+        visibleQuestIds,
+        claimedSynergyIds,
+      }),
+    )
     .join('')}</ol>`
 }
 
@@ -881,7 +1002,12 @@ const questMarkdown = (quest, headingLevel, headingPrefix = '') => {
 }
 
 const synergyMarkdown = (synergy, headingLevel) => {
-  const lines = [`${'#'.repeat(headingLevel)} ${markdownText(t('quest.synergy.title'))}`, '']
+  const lines = [
+    `${'#'.repeat(headingLevel)} ${markdownText(t('quest.synergy.title'))}`,
+    '',
+    markdownText(t('quest.synergy.verificationNotice')),
+    '',
+  ]
   synergyStages(synergy).forEach((stage, stageIndex) => {
     lines.push(
       `${'#'.repeat(headingLevel + 1)} ${stageIndex + 1}. ${markdownText(
@@ -928,6 +1054,8 @@ const synergyMarkdown = (synergy, headingLevel) => {
 const alternativeSynergiesMarkdown = (
   quest,
   selectedSynergyId,
+  displayedSynergySourceIds,
+  displayedCombinedGroups,
   visibleQuestIds,
   claimedSynergyIds,
   headingLevel,
@@ -935,6 +1063,8 @@ const alternativeSynergiesMarkdown = (
   const alternatives = alternativeSynergiesForQuest(
     quest,
     selectedSynergyId,
+    displayedSynergySourceIds,
+    displayedCombinedGroups,
     visibleQuestIds,
     claimedSynergyIds,
   )
@@ -962,6 +1092,7 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
   const selectedTypes = viewState.typeFilters?.length
     ? viewState.typeFilters.map((key) => t(`quest.type.${key}`))
     : [t('quest.type.all')]
+  const acceptanceLabel = questAcceptanceLabel(result)
   const lines = [
     `# ${markdownText(t('quest.title'))}`,
     '',
@@ -980,9 +1111,10 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
         downstream: result.downstreamValueQuestCount || 0,
         eo: result.availableExtraOperationCount || 0,
         unavailable: result.unavailableQuestCount || 0,
-        updated: formatResetAt(result.generatedAt),
+        source: questStatusSource(result),
       }),
     )}`,
+    ...(acceptanceLabel ? [`- ${markdownText(acceptanceLabel)}`] : []),
     '',
     `## ${markdownText(t('quest.exportFilters'))}`,
     '',
@@ -1007,6 +1139,10 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
     filtered.groups.flatMap(({ quests = [] }) => quests.map(({ id }) => Number(id))),
   )
   const claimedSynergyIds = new Set()
+  const displayedSynergySourceIds = new Set(
+    filtered.groups.map(({ synergy }) => synergy?.sourcePlanId || synergy?.id).filter(Boolean),
+  )
+  const displayedCombinedGroups = displayedCombinedGroupsFor(filtered.groups)
   filtered.groups.forEach((group, groupIndex) => {
     const quests = group.quests || []
     const isCombined = group.kind === 'combined' && group.synergy
@@ -1020,6 +1156,15 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
             t(`quest.relation.${kind}`),
           ),
         )}`,
+        ...(group.repeatedQuestIds?.length
+          ? [
+              `- ${markdownText(
+                t('quest.group.repeatedQuestHint', {
+                  count: group.repeatedQuestIds.length,
+                }),
+              )}`,
+            ]
+          : []),
         '',
       )
       quests.forEach((quest) => {
@@ -1028,6 +1173,8 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
           ...alternativeSynergiesMarkdown(
             quest,
             group.synergy.id,
+            displayedSynergySourceIds,
+            displayedCombinedGroups,
             visibleQuestIds,
             claimedSynergyIds,
             5,
@@ -1038,7 +1185,15 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
     } else if (quests[0]) {
       lines.push(...questMarkdown(quests[0], 3, `${groupIndex + 1}. `), '')
       lines.push(
-        ...alternativeSynergiesMarkdown(quests[0], null, visibleQuestIds, claimedSynergyIds, 4),
+        ...alternativeSynergiesMarkdown(
+          quests[0],
+          null,
+          displayedSynergySourceIds,
+          displayedCombinedGroups,
+          visibleQuestIds,
+          claimedSynergyIds,
+          4,
+        ),
       )
     }
   })
@@ -1136,7 +1291,7 @@ const render = (root, result, viewState) => {
     downstream: result.downstreamValueQuestCount || 0,
     eo: result.availableExtraOperationCount || 0,
     unavailable: result.unavailableQuestCount || 0,
-    updated: formatResetAt(result.generatedAt),
+    source: questStatusSource(result),
   })
   const filtered = filterAndSortQuestRecommendationGroups(result, viewState)
   visibleCount.textContent = t('quest.filter.visibleCount', { count: filtered.visibleQuestCount })

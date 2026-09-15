@@ -1,4 +1,7 @@
-import { findObjectiveSynergies } from './quest-objective-synergy'
+import {
+  findObjectiveSynergies,
+  sortieFleetCompatibilityForQuests,
+} from './quest-objective-synergy'
 import {
   createSharedQuestPlan,
   findCompatibleQuestSynergies,
@@ -572,7 +575,17 @@ const stageHasUsefulContent = (stage) =>
   stage.kind === 'unlock' ||
   stage.kind === 'sequence'
 
-export const findQuestSynergies = (anchorQuest, quests, { extraOperationStatus = {} } = {}) => {
+const recordCuratedSortieRejection = (diagnostics, ruleId, stage, reasonCode) => {
+  if (!diagnostics?.curatedSortieFleetRejections) return
+  const stageKey = [ruleId, ...stage.questIds, ...(stage.mapIds || [])].join(':')
+  diagnostics.curatedSortieFleetRejections.set(stageKey, reasonCode)
+}
+
+export const findQuestSynergies = (
+  anchorQuest,
+  quests,
+  { extraOperationStatus = {}, diagnostics } = {},
+) => {
   const questList = Array.isArray(quests) ? quests : []
   const questsById = new Map(questList.map((quest) => [Number(quest.id), quest]))
   const openQuestIds = new Set(questList.filter(isOpenQuest).map(({ id }) => Number(id)))
@@ -588,14 +601,20 @@ export const findQuestSynergies = (anchorQuest, quests, { extraOperationStatus =
     .map((rule) => {
       const stages = rule
         .stages({ openQuestIds, visibleQuestIds, extraOperationStatus })
-        .map((stage) => ({
-          ...stage,
-          extraObjectiveKeys: stage.extraObjectiveKeys || [],
-          instructionKeys: stage.instructionKeys || [],
-          participants: stage.questIds
-            .map((id) => questsById.get(id))
-            .filter(Boolean)
-            .map(({ id, code, name, status, period, resetAt }) => ({
+        .map((stage) => {
+          const stageQuests = stage.questIds.map((id) => questsById.get(id)).filter(Boolean)
+          if (stage.kind === 'sameSortie' && stageQuests.length > 1) {
+            const compatibility = sortieFleetCompatibilityForQuests(stageQuests)
+            if (!compatibility.compatible) {
+              recordCuratedSortieRejection(diagnostics, rule.id, stage, compatibility.reasonCode)
+              return null
+            }
+          }
+          return {
+            ...stage,
+            extraObjectiveKeys: stage.extraObjectiveKeys || [],
+            instructionKeys: stage.instructionKeys || [],
+            participants: stageQuests.map(({ id, code, name, status, period, resetAt }) => ({
               id,
               code,
               name,
@@ -604,7 +623,9 @@ export const findQuestSynergies = (anchorQuest, quests, { extraOperationStatus =
               resetAt,
               locked: !isOpenQuest(questsById.get(Number(id))),
             })),
-        }))
+          }
+        })
+        .filter(Boolean)
         .filter(stageHasUsefulContent)
       if (!stages.some(({ questIds }) => questIds.includes(Number(anchorQuest.id)))) return null
       const relatedQuestIds = unique(stages.flatMap(({ questIds }) => questIds))
@@ -635,8 +656,8 @@ export const findQuestSynergies = (anchorQuest, quests, { extraOperationStatus =
     })
     .filter(Boolean)
   return [
+    ...curatedPlans,
     ...findObjectiveSynergies(anchorQuest, questList),
     ...findSharedActionSynergies(anchorQuest, questList),
-    ...curatedPlans,
   ]
 }

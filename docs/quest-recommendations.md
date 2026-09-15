@@ -5,9 +5,9 @@ page lays out every synchronized, unfinished repeatable, normal one-time, or cur
 time-limited quest as a ranked operations board. The ranking follows the complete unlock chain
 instead of judging only the open quest's immediate reward. Account feasibility, repeatability,
 effective reward value, and task cost
-come before remaining time. Plans distinguish sorties that can be shared, objectives that should
-be run in sequence, prerequisite unlocks, and verified shared exercise, expedition, or arsenal
-actions without hiding an open quest.
+come before remaining time. Plans distinguish curated candidate sorties that can be shared,
+objectives that should be run in sequence, prerequisite unlocks, and compatible exercise,
+expedition, or arsenal actions without hiding an open quest.
 
 The page follows KC3's configured language and supports English (`en`), Traditional Chinese
 (`tcn`), Simplified Chinese (`scn`), and Japanese (`jp`). Controls and quest descriptions remain
@@ -25,6 +25,12 @@ from the active game session, applies it through KC3's own quest manager, and th
 recommendations. A ranked candidate must be open or active and be either a normal one-time quest,
 a currently available time-limited quest, or a KC3 daily, weekly, monthly, quarterly, or yearly
 repeatable quest with a future reset timestamp.
+
+The status line distinguishes a local KC3 cache from data synchronized from the game during the
+current loaded game-tab session. A timestamp is shown only for the latter, so the display never
+presents the time a recommendation was recomputed as the time the game state was refreshed. The
+list also shows the current accepted-quest count out of the five available acceptance slots; it is
+a reminder to make room before accepting a suggested combination, not an automatic acceptance plan.
 
 The live request uses quest tab `0`, which KC3 treats as the complete available list. KC3 then
 marks previously open quests missing from that list as completed, so a claimed quest disappears
@@ -68,7 +74,9 @@ quest ID act as later tie-breakers. One-time quests have no reset-time tie-break
 
 The controls above the list include a multi-select quest-type filter. **All** is the default and
 places no type restriction. Selecting a specific type switches the list to that type; further type
-buttons can be added with OR semantics. Types follow KC3's stable quest-code families: fleet
+buttons can be added with OR semantics. **Combined** is a group-level type: it shows every complete
+suggested shared-action group, regardless of its member quests' KC3 code families, and retains the
+group's shared workflow. Types for individual quests follow KC3's stable quest-code families: fleet
 composition (`A`), sortie (`B`), exercise (`C`), expedition (`D`), arsenal (`F`), and modernization
 (`G`). Supply or repair (`E`) quests have no dedicated type button and remain visible under
 **All**. Unrecognized code families remain available under **Other**. Time-limited quests are
@@ -90,7 +98,9 @@ The same control area can filter for **Medal / Remodel Blueprint**, **Action Rep
 OR semantics. Unlike chapter filters, reward filters apply to both sortie and non-sortie quests. A
 quest matches when either its current reward or a displayed locked successor matches, so filtering
 for a Medal does not hide the prerequisite needed to reach that Medal. The filtered cards remain
-inside their suggested combination group when every member is in the same sortie scope.
+inside their suggested combination group only when every member remains visible in the same sortie
+scope. A reward, type, or chapter filter that removes a member shows the remaining quests as
+individual cards, so the page never claims a partial group is still a shared-action plan.
 
 The default display order is nearest deadline first. The selector can instead order by farthest
 deadline, recommendation from high to low, or fewest quest steps; recommendation is the third
@@ -149,17 +159,20 @@ factor: an equivalent repeatable reward still sorts ahead of its one-time counte
 four primary value bands above.
 
 Selectable rewards are marked so the page does not imply that every displayed item is received
-together. Improvement Material quantity comes from KC3's structured consumable rewards. Medal,
-Remodel Blueprint, Action Report, Skilled Crew, New Aviation Material, Daihatsu, and New Rocket
-Development Material detection uses KC3's localized reward memo. Missing metadata falls back to
-**Other materials**. Skilled Crew, New Aviation Material, Daihatsu, and New Rocket Development
-Material also count as valuable for the four-band ranking. A locked descendant lends its best
-reward category to an open prerequisite, but an already-open or completed descendant does not: it
-ranks independently and cannot duplicate its value across another open branch.
+together. KC3's structured consumable rewards provide quantities for Instant Construction
+Materials, Buckets, Development Materials, and Improvement Materials. Medal, Remodel Blueprint,
+Action Report, Skilled Crew, New Aviation Material, Daihatsu, New Rocket Development Material,
+New Gun Armament Material, New Armament Material, Prototype Flight Deck Catapult, Reinforcement
+Expansion, New Aircraft Design Blueprint, and Overseas Ship Latest Technology detection uses
+KC3's localized reward memo. Missing metadata falls back to **Other materials**. The listed rare
+materials count as valuable for the four-band ranking; ordinary structured consumables are shown
+but do not receive the rare-material ranking boost. A locked descendant lends its best reward
+category to an open prerequisite, but an already-open or completed descendant does not: it ranks
+independently and cannot duplicate its value across another open branch.
 
 The account-aware phase covers requirements that materially change the reference plan:
 
-- Bq13 requires Yuubari Kai Ni, Kai Ni Toku, or Kai Ni Tei;
+- Bq13 requires a Yuubari Kai Ni-class ship or Yura Kai Ni;
 - Bq6 requires Naganami Kai Ni plus an eligible Takanami, Okinami, or Asashimo remodel;
 - Fq3 requires 18,000 steel.
 
@@ -169,10 +182,11 @@ curated high-cost objectives receive low-return or high-cost guidance from the r
 
 ## Planned quest relationships
 
-A **Suggested combination** becomes one branch group only when at least two currently open or
-active quests have a useful relationship:
+A **Suggested combination** is one concrete shared action for at least two currently open or
+active quests under the curated objective conditions:
 
-- **Same sortie** means one fleet and result can advance every listed objective.
+- **Same sortie** means one fleet and result can advance every listed objective when its ship,
+  equipment, routing, and battle-result conditions are all met.
 - **Same exercise** means one exercise with the strictest displayed fleet and victory-rank
   conditions advances every listed objective.
 - **Same expedition** means at least one expedition ID is counted by every listed objective.
@@ -181,15 +195,22 @@ active quests have a useful relationship:
 - **Run in sequence** means the same area should be completed in order with separate fleets.
 - **Successor unlock** means a later node is not available until its prerequisite is completed.
 
+Every combination is advisory: the compatibility solver does not read a player's equipment,
+line-of-sight, speed, route, or remaining acceptance slots. The plan panel and Markdown export
+therefore ask the player to verify those conditions before sortie.
+
 Locked successors and Extra Operation objectives remain planning context. They do not turn a
 single current quest into a one-item **Suggested combination**; valuable locked successors stay in
 the quest card's downstream-reward section until they become available.
 
-Every ranked repeatable or one-time quest appears once. When plans overlap, the highest-ranked
-ungrouped quest selects the plan containing the most ungrouped ranked quests, then the most
-companion objectives and the highest curated plan priority. Weekly quests that reset before
-monthly or quarterly companions can anchor the same combination, so they are not duplicated as
-standalone nodes. A group uses its nearest finite member reset; one-time nodes retain no deadline.
+Different shared actions are always separate groups, even when a repeatable counter can progress
+in more than one of them. The repeated quest appears in each relevant group and the group heading
+identifies that it also progresses elsewhere; it is not silently hidden as an alternative. A group
+uses its nearest finite member reset; one-time nodes retain no deadline.
+
+An **Alternative co-completion plan** is shown only when it adds a distinct shared action. A pair
+that is already fully contained in a displayed group with the same action scope is omitted from
+both the card and Markdown export, because the larger group already presents that plan.
 
 The first phase of curated plans covers:
 
@@ -218,25 +239,25 @@ selection, combination search, caching, the five-quest bound, participant metada
 de-duplication. Changes to those shared rules therefore apply to all four categories at once.
 
 Co-completion is not treated as transitive. If quest A intersects quest B on 3-3 and quest A
-intersects quest C on 1-3, but all three have no common map, the main list keeps each quest card
-once and shows A+C as an alternative plan on C's remaining card after selecting A+B as the primary
-group. Each alternative names its own participants, shared maps, and fleet, so the UI never implies
-that one sortie advances the entire connected set. The Markdown export preserves the same
-alternatives.
+intersects quest C on 1-3, but all three have no common map, the board shows two groups: A+B on
+3-3 and A+C on 1-3. Quest A appears in both groups because each requires a distinct action; the
+board never implies that one sortie advances the entire connected set. The Markdown export
+preserves the same separate groups.
 
 The fleet adapter intersects the action and maps, merges flagship and second-ship requirements,
 minimum or maximum ship-type counts, named-ship groups, allowed ship types, and exclusions, then
 searches for a legal fleet of at most six ships. A common map alone is insufficient: incompatible
-flagship, ship-count, or exclusion rules keep the quests separate. B21 and B37 include their four
-named destroyers, so each can share 3-1 with Bq5 and B162 while remaining incompatible with By11
-and with each other because the combined named-ship minimum would exceed six ships.
+flagship, ship-count, or exclusion rules keep the quests separate. This check also gates every
+curated **Same sortie** stage; if one listed quest has no verified sortie-fleet profile, the stage
+is withheld rather than inferred from the shared map. B21 and B37 include their four named
+destroyers, so each can share 3-1 with Bq5 and B162 while remaining incompatible with By11 and
+with each other because the combined named-ship minimum would exceed six ships.
 
-The objective catalog currently covers the synchronized exercise profiles and the normal-map
-sortie profiles used by the recommendation plans. New profiles use the same data shape and become
-eligible for every compatible combination automatically. Unprofiled exercise and sortie quests
-remain standalone instead of being guessed from broad text or category alone. Generic expedition
-counters still share any success, while specific expedition quests group only when their mission-ID
-sets intersect.
+The objective catalog contains only verified synchronized-exercise and normal-map sortie profiles.
+New profiles use the same data shape and become eligible for every compatible combination
+automatically. Unprofiled exercise and sortie quests remain standalone instead of being guessed
+from broad text or category alone. Generic expedition counters still share any success, while
+specific expedition quests group only when their mission-ID sets intersect.
 
 Arsenal groups combine verified development and construction pairs with equipment discards whose
 type or exact master item advances every grouped quest. Exact-item and exceptional rules remain
@@ -251,10 +272,12 @@ main guns.
 ## Data boundary and diagnostics
 
 The KC3 snapshot reads locally stored quest identities, KC3 successor IDs and time-limited hashes,
-seven EO clear states, owned ship master IDs needed for feasibility checks, and current steel for
-the Fq3 threshold. The renderer receives only bounded quest fields, processed current and
-downstream reward flags, compact plan participants, EO states, and aggregate counts. Raw reward
-memos, unlock arrays, and consumable arrays are removed from open recommendation objects after
+seven EO clear states, owned ship master IDs needed for feasibility checks, current steel for the
+Fq3 threshold, and the aggregate active-quest count. It retains an in-memory timestamp only after
+the current loaded game tab has explicitly synchronized the game quest list. The renderer receives
+only bounded quest fields, processed current and downstream reward flags, compact plan participants,
+EO states, the active count, synchronization source, and aggregate counts. Raw reward memos,
+unlock arrays, and consumable arrays are removed from open recommendation objects after
 classification. The bridge does not expose cookies, credentials, or a complete account snapshot.
 
 Runtime diagnostics use the following structured events:
@@ -264,16 +287,19 @@ Runtime diagnostics use the following structured events:
 - `quest-recommendation.live-sync-failed` and the bounded context-capture failure event record a
   stable context, network, timeout, or response reason code plus a sanitized message, without
   request bodies or authentication data;
-- `quest-recommendation.snapshot-completed` records synchronized, open, one-time, time-limited,
+- `quest-recommendation.snapshot-completed` records the snapshot source and, when available, its
+  in-memory game synchronization timestamp; synchronized, open, active, one-time, time-limited,
   graph, locked and successor planning-node counts; supported KC3 repeatable-type count; aggregate
   account availability and ship count; the seven synchronized EO states; aggregate game-API,
   Japanese-metadata, and localized-fallback title counts; and stable reason codes when bounded
   planning data is incomplete or Japanese title metadata is unavailable;
 - `quest-recommendation.completed` records per-period, time-limited, and per-chapter candidate and
-  group counts,
+  group counts, the grouping mode, and how many quests and groups overlap across distinct
+  simultaneous actions,
   the four value bands, ranking and daily tie-break modes, reward order, downstream-boosted and
-  unavailable counts, objective-profiled quest and solver-derived group counts, relation-kind and
-  available-EO counts, and up to ten leading quest IDs with their periods,
+  unavailable counts, objective-profiled quest and solver-derived group counts, curated
+  same-sortie stages withheld by missing or incompatible fleet profiles (including stable reason
+  counts), relation-kind and available-EO counts, and up to ten leading quest IDs with their periods,
   guidance tiers, value bands and effective-reward sources, selected plan IDs, ranking version, and
   elapsed time;
 - `quest-recommendation.failed` records the stable `KC3_QUEST_DATA_UNAVAILABLE` reason code and a
