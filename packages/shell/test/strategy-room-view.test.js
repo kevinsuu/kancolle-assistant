@@ -16,6 +16,7 @@ import {
   describeMasterShipMaterialTooltipMarkup,
   enrichMasterShipMaterialTooltip,
   enrichMasterShipMaterialTooltipMarkup,
+  enrichMasterShipMaterialTooltipTarget,
   getMasterShipMaterialIdentifier,
   getMasterShipMaterialLanguage,
 } from '../browser/recommendation/master-ship-material-tooltip-ui.js'
@@ -60,12 +61,17 @@ import {
 } from '../browser/recommendation/views/fleet-recommender-view.js'
 import {
   localizedRouteDescription,
+  strategyFacts,
   routeOptionLabel,
 } from '../browser/recommendation/strategy-room-ui.js'
 import {
   recentSectionMarkup,
   styles as recentStyles,
 } from '../browser/recommendation/views/recent-tabs-view.js'
+import {
+  readPinnedTabIds,
+  writePinnedTabIds,
+} from '../browser/recommendation/strategy-room-recent-ui.js'
 import {
   panelMarkup as questMarkup,
   styles as questStyles,
@@ -74,6 +80,8 @@ import {
   panelMarkup as resourceCenterMarkup,
   styles as resourceCenterStyles,
 } from '../browser/recommendation/views/resource-center-view.js'
+import { shipRecommendationCardMarkup } from '../browser/recommendation/ship-recommendation-ui.js'
+import { styles as shipRecommendationStyles } from '../browser/recommendation/views/ship-recommendation-view.js'
 import {
   markup as resourceLedgerMarkup,
   styles as resourceLedgerStyles,
@@ -119,11 +127,117 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: 'c8a0ad55fd74fd5917c8e9ac7165fb65c1bbf19705cc8746db327b07a928c776',
-      jp: '2596fb96e97a8fbe8cfc81d669af3446bd48fa4c10a53d20c6ec499b11672287',
-      scn: '344578f97a1d42053c22c3b0b5da63bb6318b10dead93534584528b2ac07ef39',
-      tcn: 'e91a21db2dc725678d3298735f5f5a7524e40a5a7f666d6e3dc929c757a4d43f',
+      en: '9fdec0979ba45f12df1e0e5a83b68d811303c2d0546504e8f656a3602f7858ae',
+      jp: '9499a267b03758f9c96171b18522a204d2e3232d7ed79e60900ee43e7f4a1ff4',
+      scn: 'd6a640f32473ce72db677fd485619f563367548c156c97d15c069ff57f7d0621',
+      tcn: '8bed93d459c1d497a4bcaefd7737ceea4f2c49e3e5d642d3de04a2a850baafd3',
     },
+  )
+})
+
+test('ship recommendation rows explain source strengths and practical roles', () => {
+  const markup = shipRecommendationCardMarkup(
+    {
+      rating: 10,
+      heldCount: 1,
+      features: ['fiveSlots', 'carrierFighter'],
+      ship: { masterId: 77, name: 'Ise Kai', level: 93 },
+    },
+    translator('en'),
+  )
+
+  assert.match(markup, /dsr-card-body/)
+  assert.match(markup, /Why prioritize it/)
+  assert.match(markup, /Five slots, Can carry fighters/)
+  assert.match(markup, /Recommended roles/)
+  assert.match(markup, /Carry fighters or seaplane fighters to cover air power/)
+  assert.match(
+    shipRecommendationStyles,
+    /\.dsr-list \{ display: grid; grid-template-columns: minmax\(0, 1fr\)/,
+  )
+  assert.match(shipRecommendationStyles, /\.dsr-card-body \{ display: grid; grid-template-columns:/)
+})
+
+test('strategy room pins restore every saved link beyond five with stable order and diagnostics', () => {
+  const storageKey = 'damecon.strategyRoom.recentTabs.v1'
+  const tabIds = Array.from({ length: 64 }, (_, index) => `tab-${index}`)
+  const entries = new Map([[storageKey, JSON.stringify([...tabIds, tabIds[0], null, 7])]])
+  const events = []
+  const storage = {
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => entries.set(key, value),
+  }
+  const logger = {
+    info: (prefix, details) => events.push({ prefix, ...details }),
+  }
+
+  assert.deepEqual(readPinnedTabIds(storage, logger), tabIds)
+  const updatedTabIds = ['new-tab', ...tabIds]
+  assert.equal(writePinnedTabIds(updatedTabIds, storage, logger), true)
+  assert.deepEqual(JSON.parse(entries.get(storageKey)), updatedTabIds)
+  assert.deepEqual(readPinnedTabIds(storage, logger), updatedTabIds)
+  assert.deepEqual(
+    events.map(({ event, outcome, pinnedCount, discardedCount }) => ({
+      event,
+      outcome,
+      pinnedCount,
+      discardedCount,
+    })),
+    [
+      { event: 'pinned-tabs-read', outcome: 'restored', pinnedCount: 64, discardedCount: 3 },
+      { event: 'pinned-tabs-read', outcome: 'restored', pinnedCount: 65, discardedCount: 0 },
+    ],
+  )
+})
+
+test('strategy room pins report damaged storage and persistence failures', () => {
+  const events = []
+  const logger = {
+    warn: (prefix, details) => events.push({ prefix, ...details }),
+  }
+  const unavailableStorage = {
+    getItem: () => {
+      throw new Error('storage access denied')
+    },
+    setItem: () => {
+      throw new Error('quota exceeded')
+    },
+  }
+  assert.deepEqual(readPinnedTabIds({ getItem: () => '{private saved data' }, logger), [])
+  assert.deepEqual(readPinnedTabIds(unavailableStorage, logger), [])
+  const tabIds = ['one', 'two', 'three', 'four', 'five', 'six']
+  assert.equal(writePinnedTabIds(tabIds, unavailableStorage, logger), false)
+  assert.deepEqual(
+    events.map(({ event, outcome, reasonCode, pinnedCount, error }) => ({
+      event,
+      outcome,
+      reasonCode,
+      pinnedCount,
+      error,
+    })),
+    [
+      {
+        event: 'pinned-tabs-read',
+        outcome: 'empty',
+        reasonCode: 'STORAGE_PARSE_FAILED',
+        pinnedCount: 0,
+        error: 'Invalid pinned-tab JSON',
+      },
+      {
+        event: 'pinned-tabs-read',
+        outcome: 'empty',
+        reasonCode: 'STORAGE_READ_FAILED',
+        pinnedCount: 0,
+        error: 'storage access denied',
+      },
+      {
+        event: 'pinned-tabs-write',
+        outcome: 'memory-only',
+        reasonCode: 'STORAGE_WRITE_FAILED',
+        pinnedCount: 6,
+        error: 'quota exceeded',
+      },
+    ],
   )
 })
 
@@ -186,6 +300,23 @@ test('master ship remodel material tooltips enrich KC3 titlealt content', () => 
   assert.match(attributes.get('titlealt'), /試製甲板用彈射器<\/span><span>×2<\/span>/)
   assert.match(attributes.get('titlealt'), /改裝設計圖<\/span><span>×1<\/span>/)
   assert.match(attributes.get('titlealt'), /戰鬥詳報<\/span><span>×2<\/span>/)
+})
+
+test('master ship remodel material tooltips enrich hovered material icons before KC3 opens them', () => {
+  const attributes = new Map([['title', '<img src="/assets/img/useitems/65.png"><span>1</span>']])
+  const element = {
+    matches: (selector) => selector.includes('.tab_mstship'),
+    ownerDocument: { documentElement: { lang: 'zh-Hant' } },
+    getAttribute: (attribute) => attributes.get(attribute) ?? null,
+    setAttribute: (attribute, value) => attributes.set(attribute, value),
+  }
+  const target = {
+    closest: (selector) => (selector.includes('.remodel_blueprint') ? element : null),
+  }
+
+  assert.equal(enrichMasterShipMaterialTooltipTarget(target), true)
+  assert.match(attributes.get('title'), /試製甲板用彈射器<\/span><span>×1<\/span>/)
+  assert.equal(enrichMasterShipMaterialTooltipTarget({}), false)
 })
 
 test('master ship material diagnostics preserve relative and p2 useitem paths and identifiers', () => {
@@ -443,6 +574,26 @@ test('quest rewards preserve medal, action report, screws, and other priority', 
     ],
   )
   assert.equal(classifyQuestRewards({ memo: 'Rewards a Screw.' }).priority, 2)
+
+  const structuredAndRare = classifyQuestRewards({
+    rewardConsumables: [3, 4, 5, 6],
+    memo: '新型砲熕兵装資材x1、新型兵装資材x1、試製甲板カタパルトx1',
+  })
+  assert.deepEqual(
+    {
+      instantBuildCount: structuredAndRare.instantBuildCount,
+      bucketCount: structuredAndRare.bucketCount,
+      devmatCount: structuredAndRare.devmatCount,
+      screwCount: structuredAndRare.screwCount,
+    },
+    { instantBuildCount: 3, bucketCount: 4, devmatCount: 5, screwCount: 6 },
+  )
+  assert.deepEqual(structuredAndRare.materialKeys, [
+    'newGunArmamentMaterial',
+    'newArmamentMaterial',
+    'catapult',
+  ])
+  assert.equal(structuredAndRare.valuable, true)
 })
 
 test('one-time valuable quests keep reward guidance while repeatable equivalents sort first', () => {
@@ -475,7 +626,7 @@ test('one-time valuable quests keep reward guidance while repeatable equivalents
     { now },
   )
 
-  assert.equal(result.rankingVersion, 15)
+  assert.equal(result.rankingVersion, 18)
   assert.deepEqual(
     result.recommendations.map(({ id, valueBand, guidance }) => ({
       id,
@@ -848,6 +999,34 @@ test('quest type filters use KC3 quest categories and support multi-select', () 
     [2],
   )
 
+  const combinationResult = {
+    recommendations: quests,
+    groups: [
+      {
+        id: 'combined-exercise-expedition',
+        kind: 'combined',
+        quests: [quests[2], quests[3]],
+        synergy: { id: 'combined-exercise-expedition' },
+      },
+      { id: 'quest:1', kind: 'single', quests: [quests[0]], synergy: null },
+      { id: 'quest:2', kind: 'single', quests: [quests[1]], synergy: null },
+    ],
+  }
+  const combinedOnly = filterAndSortQuestRecommendationGroups(combinationResult, {
+    typeFilters: ['combined'],
+  })
+  assert.equal(combinedOnly.groups.length, 1)
+  assert.equal(combinedOnly.groups[0].kind, 'combined')
+  assert.deepEqual(idsFor(combinedOnly), [3, 4])
+  assert.deepEqual(
+    idsFor(
+      filterAndSortQuestRecommendationGroups(combinationResult, {
+        typeFilters: ['combined', 'sortie'],
+      }),
+    ),
+    [3, 4, 2],
+  )
+
   const filteredCombination = filterAndSortQuestRecommendationGroups(
     {
       recommendations: quests,
@@ -868,6 +1047,7 @@ test('quest type filters use KC3 quest categories and support multi-select', () 
   const controls = questMarkup(translator('en'))
   assert.equal((controls.match(/data-quest-type=/g) || []).length, QUEST_TYPE_FILTERS.length + 1)
   assert.match(controls, /data-quest-type="all"[^>]*aria-pressed="true"/)
+  assert.match(controls, /data-quest-type="combined"[^>]*aria-pressed="false"/)
   assert.match(controls, /data-quest-type="exercise"[^>]*aria-pressed="false"/)
   assert.doesNotMatch(controls, /data-quest-type="supplyDock"/)
   assert.match(
@@ -1210,8 +1390,13 @@ test('quest recommendations derive unprofiled arsenal discard categories without
 
   assert.deepEqual(
     futureQuests.groups.map(({ quests }) => quests.map(({ id }) => id)),
-    [[9001, 9002], [9003]],
+    [
+      [9001, 9002],
+      [9001, 9003],
+    ],
   )
+  assert.deepEqual(futureQuests.groups[0].repeatedQuestIds, [9001])
+  assert.deepEqual(futureQuests.groups[1].repeatedQuestIds, [9001])
   assert.equal(futureQuests.derivedOnlyArsenalProfileCount, 3)
 
   const preparedBeforeDiscard = rankQuestRecommendations(
@@ -1340,7 +1525,90 @@ test('quest recommendations derive five-quest sortie stacks from maps and fleet 
   )
 })
 
-test('quest recommendations show overlapping map intersections as alternative plans', () => {
+test('curated sortie groups require compatible fleet profiles instead of matching maps alone', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 30 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 280,
+        code: 'Bm8',
+        name: 'Monthly escort fixture',
+        mapIds: ['1-3'],
+        period: 'monthly',
+        status: 1,
+        resetAt,
+        synergyObjectives: [
+          {
+            kind: 'sortie',
+            fleetVariants: [
+              {
+                flag: [],
+                second: [],
+                counts: [],
+                allowed: [],
+                forbidden: ['carrier'],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 894,
+        code: 'Bq9',
+        name: 'Quarterly carrier fixture',
+        mapIds: ['1-3'],
+        period: 'quarterly',
+        status: 1,
+        resetAt,
+      },
+    ],
+    { now },
+  )
+
+  assert.equal(result.combinedGroupCount, 0)
+  assert.equal(result.curatedSortieFleetRejectedStageCount, 1)
+  assert.deepEqual(result.curatedSortieFleetRejectionReasonCounts, {
+    INCOMPATIBLE_FLEET_CONSTRAINTS: 1,
+  })
+})
+
+test('curated sortie groups withhold incomplete fleet profiles instead of guessing from maps', () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const resetAt = now + 30 * 24 * 60 * 60 * 1000
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 280,
+        code: 'Bm8',
+        name: 'Monthly escort fixture',
+        mapIds: ['1-3'],
+        period: 'monthly',
+        status: 1,
+        resetAt,
+        synergyObjectives: [{ kind: 'sortie', fleetVariants: [] }],
+      },
+      {
+        id: 894,
+        code: 'Bq9',
+        name: 'Quarterly carrier fixture',
+        mapIds: ['1-3'],
+        period: 'quarterly',
+        status: 1,
+        resetAt,
+      },
+    ],
+    { now },
+  )
+
+  assert.equal(result.combinedGroupCount, 0)
+  assert.equal(result.curatedSortieFleetRejectedStageCount, 1)
+  assert.deepEqual(result.curatedSortieFleetRejectionReasonCounts, {
+    MISSING_SORTIE_FLEET_PROFILE: 1,
+  })
+})
+
+test('quest recommendations split overlapping map intersections into separate action groups', () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const quest = (id, code, maps) => ({
     id,
@@ -1363,23 +1631,25 @@ test('quest recommendations show overlapping map intersections as alternative pl
 
   assert.deepEqual(
     result.groups.map(({ quests }) => quests.map(({ code }) => code)),
-    [['B162', 'Bw7'], ['Bq8']],
+    [
+      ['B162', 'Bw7'],
+      ['B162', 'Bq8'],
+    ],
   )
-  assert.equal(result.alternativeSynergyCount, 1)
+  assert.equal(result.alternativeSynergyCount, 0)
+  assert.equal(result.groupingMode, 'separate-simultaneous-actions')
+  assert.equal(result.repeatedQuestCount, 1)
+  assert.equal(result.repeatedQuestGroupCount, 2)
   assert.deepEqual(result.groups[0].synergy.mapIds, ['3-3'])
-  const alternative = result.recommendations
-    .find(({ code }) => code === 'Bq8')
-    .synergies.find(({ id }) => id !== result.groups[0].synergy.id)
-  assert.deepEqual(alternative.mapIds, ['1-3'])
-  assert.deepEqual(
-    alternative.companions.map(({ code }) => code),
-    ['B162'],
-  )
+  assert.deepEqual(result.groups[1].synergy.mapIds, ['1-3'])
+  assert.deepEqual(result.groups[0].repeatedQuestIds, [2151])
+  assert.deepEqual(result.groups[1].repeatedQuestIds, [2151])
+  assert.equal(filterAndSortQuestRecommendationGroups(result).visibleQuestCount, 3)
 
   const markup = questRecommendationListMarkup(result)
-  assert.equal((markup.match(/class="dqr-quest-node"/g) || []).length, 3)
-  assert.equal((markup.match(/class="dqr-synergy-alternatives"/g) || []).length, 1)
-  assert.match(markup, /Alternative co-completion plan/)
+  assert.equal((markup.match(/class="dqr-quest-node"/g) || []).length, 4)
+  assert.equal((markup.match(/class="dqr-synergy-alternatives"/g) || []).length, 0)
+  assert.match(markup, /quest also progresses in another combination/)
   assert.match(markup, /Shared maps: 1-3/)
   assert.match(markup, /Shared maps: 3-3/)
 
@@ -1393,8 +1663,87 @@ test('quest recommendations show overlapping map intersections as alternative pl
     },
     exportedAt: '2026-09-01T00:00:00.000Z',
   })
-  assert.match(markdown, /Alternative co-completion plan/)
-  assert.match(markdown, /Choose this instead/)
+  assert.doesNotMatch(markdown, /Alternative co-completion plan/)
+  assert.match(markdown, /quest also progresses in another combination/)
+  assert.match(markdown, /Shared maps: 1-3/)
+  assert.match(markdown, /Shared maps: 3-3/)
+})
+
+test('quest recommendations omit alternative pairs covered by displayed shared-action groups', () => {
+  const sharedArsenalPlan = (id, questIds) => ({
+    id,
+    relationKinds: ['sameArsenal'],
+    stages: [
+      {
+        kind: 'sameArsenal',
+        questIds,
+        mapIds: [],
+        fleetKey: 'sharedArsenal',
+        extraObjectiveKeys: [],
+        instructionKeys: ['sharedArsenal'],
+        participants: [],
+      },
+    ],
+  })
+  const quest = (id, code, synergies = []) => ({
+    id,
+    code,
+    name: code,
+    description: `${code} fixture`,
+    period: 'oneTime',
+    status: 1,
+    resetAt: null,
+    remainingMs: null,
+    reward: { category: 'other' },
+    synergies,
+  })
+  const f79 = quest(79, 'F79', [
+    {
+      ...sharedArsenalPlan('arsenal-f79-f131', [79, 131]),
+      companions: [{ id: 131, code: 'F131', locked: false }],
+    },
+    {
+      ...sharedArsenalPlan('arsenal-f70-f79', [70, 79]),
+      companions: [{ id: 70, code: 'F70', locked: false }],
+    },
+  ])
+  const f39 = quest(39, 'F39')
+  const f69 = quest(69, 'F69')
+  const f70 = quest(70, 'F70')
+  const f131 = quest(131, 'F131')
+  const result = {
+    recommendations: [f39, f69, f70, f79, f131],
+    extraOperations: [],
+    groups: [
+      {
+        id: 'arsenal-f69-f79-f131',
+        kind: 'combined',
+        quests: [f131, f69, f79],
+        synergy: sharedArsenalPlan('arsenal-f69-f79-f131', [69, 79, 131]),
+      },
+      {
+        id: 'arsenal-f39-f70-f79',
+        kind: 'combined',
+        quests: [f39, f70, f79],
+        synergy: sharedArsenalPlan('arsenal-f39-f70-f79', [39, 70, 79]),
+      },
+    ],
+  }
+
+  const markup = questRecommendationListMarkup(result)
+  assert.doesNotMatch(markup, /Alternative co-completion plan/)
+
+  const markdown = questRecommendationMarkdown({
+    result,
+    viewState: {
+      chapterFilters: QUEST_MAP_CHAPTER_KEYS,
+      typeFilters: [],
+      rewardFilters: [],
+      sortMode: 'deadlineAsc',
+    },
+    exportedAt: '2026-09-15T00:00:00.000Z',
+  })
+  assert.doesNotMatch(markdown, /Alternative co-completion plan/)
 })
 
 test('quest recommendations derive compatible 3-1 alternatives for the open northern quests', () => {
@@ -1430,7 +1779,11 @@ test('quest recommendations derive compatible 3-1 alternatives for the open nort
   assert.deepEqual(objectiveCompanionCodes('B21'), ['B162', 'Bq5'])
   assert.deepEqual(
     result.groups.map(({ quests }) => quests.map(({ code }) => code)),
-    [['By11', 'Bq5', 'B162'], ['B37'], ['B21']],
+    [
+      ['By11', 'Bq5', 'B162'],
+      ['B37', 'Bq5', 'B162'],
+      ['B21', 'Bq5', 'B162'],
+    ],
   )
 })
 
@@ -1493,6 +1846,8 @@ test('quest recommendation cards balance requirements, icon rewards, and schedul
     },
   ]
   const markup = questRecommendationListMarkup({
+    activeQuestCount: 4,
+    questAcceptanceCapacity: 5,
     recommendations,
     groups: [
       {
@@ -1526,6 +1881,8 @@ test('quest recommendation cards balance requirements, icon rewards, and schedul
   assert.match(markup, /Valuable locked successors/)
   assert.match(markup, /Action Report successor/)
   assert.match(markup, /2 steps away/)
+  assert.match(markup, /Accepted 4\/5; 1 acceptance slots remain/)
+  assert.match(markup, /confirm your ships, equipment, route, and acceptance slots before sortie/)
   assert.doesNotMatch(markup, /<script>/)
 })
 
@@ -1596,6 +1953,10 @@ const questMarkdownFixture = () => {
     result: {
       status: 'success',
       generatedAt: '2026-09-01T08:37:26.000Z',
+      synchronizedAt: '2026-09-01T08:30:00.000Z',
+      snapshotSource: 'liveSync',
+      activeQuestCount: 2,
+      questAcceptanceCapacity: 5,
       candidateCount: 3,
       groupCount: 2,
       dailyCount: 0,
@@ -1647,6 +2008,9 @@ test('quest Markdown exports the visible list with complete card and combination
   assert.match(markdown, /Action Report/)
   assert.match(markdown, /Weekly submarines/)
   assert.match(markdown, /Improvement Materials ×2/)
+  assert.match(markdown, /Game synced Sep 1, 2026/)
+  assert.match(markdown, /Accepted 2\/5; 3 acceptance slots remain/)
+  assert.match(markdown, /confirm your ships, equipment, route, and acceptance slots before sortie/)
   assert.match(markdown, /Same sortie/)
   assert.match(markdown, /4 Coastal Defense Ships/)
   assert.match(markdown, /Defeat 15 submarines/)
@@ -1909,6 +2273,35 @@ test('quest plans distinguish same-sortie, sequence, and unlock relationships', 
     weeklyWestern.groups[0].quests.map(({ id }) => id).sort((a, b) => a - b),
     [229, 264],
   )
+
+  const splitSouthernOperations = rankQuestRecommendations(
+    [
+      { id: 229, code: 'Bw6', period: 'weekly', status: 1, resetAt: now + 20_000 },
+      { id: 264, code: 'Bm6', period: 'monthly', status: 1, resetAt: now + 30_000 },
+      { id: 280, code: 'Bm8', period: 'monthly', status: 1, resetAt: now + 30_000 },
+      { id: 894, code: 'Bq9', period: 'quarterly', status: 1, resetAt },
+    ],
+    { now },
+  )
+  assert.deepEqual(
+    splitSouthernOperations.groups.map(({ quests, synergy }) => ({
+      questIds: quests.map(({ id }) => id).sort((left, right) => left - right),
+      mapIds: synergy?.mapIds,
+      sourcePlanId: synergy?.sourcePlanId,
+    })),
+    [
+      {
+        questIds: [280, 894],
+        mapIds: ['1-3', '1-4', '2-1'],
+        sourcePlanId: 'southern-logistics-chain',
+      },
+      {
+        questIds: [229, 264],
+        mapIds: ['4-2'],
+        sourcePlanId: 'southern-logistics-chain',
+      },
+    ],
+  )
 })
 
 test('daily prerequisites extend into the monthly Bm8 plan', () => {
@@ -2040,7 +2433,7 @@ test('quest guidance accounts for required ships, steel cost, and selectable rew
   const steelQuest = result.recommendations.find(({ id }) => id === 663)
   const desdivQuest = result.recommendations.find(({ id }) => id === 875)
   assert.equal(yuubariQuest.guidance.tier, 'unavailable')
-  assert.equal(yuubariQuest.guidance.reasonKeys.includes('missingShip:yuubariKaiNi'), true)
+  assert.equal(yuubariQuest.guidance.reasonKeys.includes('missingShip:yuubariOrYuraKaiNi'), true)
   assert.equal(steelQuest.guidance.tier, 'unavailable')
   assert.equal(steelQuest.guidance.reasonKeys.includes('insufficientSteel'), true)
   assert.equal(steelQuest.reward.isChoiceReward, true)
@@ -2049,6 +2442,13 @@ test('quest guidance accounts for required ships, steel cost, and selectable rew
     ['missingShip:naganamiKaiNi', 'missingShip:desdivThirtyOnePartner'],
   )
   assert.equal(result.unavailableQuestCount, 3)
+
+  const yuraEligible = rankQuestRecommendations(
+    [{ id: 903, period: 'quarterly', status: 1, resetAt }],
+    { now, account: { status: 'available', shipMasterIds: [488], steel: 10_000 } },
+  ).recommendations[0]
+  assert.equal(yuraEligible.guidance.feasibility, 'available')
+  assert.equal(yuraEligible.guidance.requiredShipKeys.includes('yuubariOrYuraKaiNi'), true)
 })
 
 const storedExpeditionPlannerSettings = {
@@ -2208,6 +2608,7 @@ test('strategy room styles retain light, dark, selector, and layout contracts', 
   assert.match(questStyles, /\.dqr-filter\[data-quest-filter="medalBlueprint"\]/)
   assert.match(questStyles, /\.dqr-filter\[data-quest-chapter\]\.is-active/)
   assert.match(questStyles, /\.dqr-filter\[data-quest-type="exercise"\]/)
+  assert.match(questStyles, /\.dqr-filter\[data-quest-type="combined"\]/)
   assert.match(questStyles, /\.dqr-toolbar-actions \{[^}]*display: flex/)
   assert.match(questStyles, /\.dqr-toolbar-button:focus-visible/)
   assert.doesNotMatch(questStyles, /\.dqr-chapter-heading/)
@@ -2236,6 +2637,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.typeFilter.label',
       'quest.typeFilter.hint',
       'quest.type.all',
+      'quest.type.combined',
       'quest.type.fleet',
       'quest.type.sortie',
       'quest.type.exercise',
@@ -2282,13 +2684,23 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.reward.actionReport',
       'quest.reward.screws',
       'quest.reward.screwsGeneric',
+      'quest.reward.developmentMaterials',
+      'quest.reward.bucket',
+      'quest.reward.instantBuild',
       'quest.reward.other',
+      'quest.reward.material.newGunArmamentMaterial',
+      'quest.reward.material.newArmamentMaterial',
+      'quest.reward.material.catapult',
       'quest.downstream.title',
       'quest.downstream.steps',
       'quest.noFixedDeadline',
       'quest.limitedDeadlineUnknown',
+      'quest.statusSource.live',
+      'quest.statusSource.local',
+      'quest.acceptance.status',
       'quest.group.combined',
       'quest.group.questCount',
+      'quest.group.repeatedQuestHint',
       'quest.priority.label',
       'quest.priority.highest',
       'quest.priority.priority',
@@ -2303,6 +2715,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.relation.sequence',
       'quest.relation.unlock',
       'quest.synergy.title',
+      'quest.synergy.verificationNotice',
       'quest.synergy.extra.oneFiveExtraOperation',
       'quest.synergy.extra.twoFiveExtraOperation',
       'quest.synergy.fleet.fourDe',
@@ -2318,6 +2731,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.synergy.instruction.northernMedalReportChain',
       'quest.guidance.missingShip',
       'quest.guidance.downstreamValue',
+      'quest.requirement.ship.yuubariOrYuraKaiNi',
     ].forEach((key) => assert.equal(typeof catalog[key], 'string', key))
   })
 })
@@ -2501,4 +2915,54 @@ test('daily improvement categories only include rows KC3 marks as improvable', (
 
   assert.equal(isDailyImprovementEquipmentAvailable(createEquipment('5', true)), false)
   assert.deepEqual(categories, [{ type: '1', name: 'Equipment 1', icon: '/items/1.png', count: 2 }])
+})
+
+test('fleet strategy facts keep advisory air power visible in every language', () => {
+  const recommendation = {
+    route: { nodes: ['B', 'K', 'P', 'S'] },
+    metrics: {
+      finalSpeedClass: 'slow',
+      airPower: 350,
+      airPowerRequired: false,
+      airPowerMinimum: 392,
+      airPowerRecommended: 410,
+      estimatedResourceGain: null,
+    },
+  }
+  for (const language of Object.keys(catalogs)) {
+    const translate = translator(language)
+    const advisory = strategyFacts(recommendation, translate)
+    assert.ok(
+      advisory.includes(
+        translate('fleet.strategyRecommendedValue', {
+          value: 350,
+          recommended: 410,
+        }),
+      ),
+    )
+    assert.equal(
+      advisory.includes(
+        translate('fleet.strategyMinimumValue', {
+          value: 350,
+          minimum: 392,
+        }),
+      ),
+      false,
+    )
+    const required = strategyFacts(
+      {
+        ...recommendation,
+        metrics: { ...recommendation.metrics, airPowerRequired: true },
+      },
+      translate,
+    )
+    assert.ok(
+      required.includes(
+        translate('fleet.strategyMinimumValue', {
+          value: 350,
+          minimum: 392,
+        }),
+      ),
+    )
+  }
 })

@@ -10,8 +10,10 @@ materials KC3Kai can render in this tooltip. This keeps the feature available fr
 isolated preload world, which cannot access KC3Kai's page-global metadata directly.
 
 KC3Kai replaces Master Ship content while switching ships. The preload therefore observes Strategy
-Room changes and reapplies the enrichment to newly generated remodel-material tooltips. It does not
-modify KC3Kai's downloaded extension files, so the behavior survives KC3Kai updates.
+Room changes and reapplies the enrichment to newly generated remodel-material tooltips. It also
+initializes when KC3 opens Strategy Room in a separate window after the page is already parsed, and
+updates the material markup before KC3 opens a hovered tooltip. It does not modify KC3Kai's
+downloaded extension files, so the behavior survives KC3Kai updates.
 
 KC3Kai may store the live tooltip in `titlealt` after its lazy tooltip handler initializes. The
 shell updates both `title` and `titlealt`; an absent `title` must not prevent `titlealt` from being

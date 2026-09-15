@@ -187,6 +187,11 @@ export const enrichMasterShipMaterialTooltip = (element) => {
   return enriched
 }
 
+export const enrichMasterShipMaterialTooltipTarget = (target) => {
+  const element = target?.closest?.(MASTER_SHIP_MATERIAL_SELECTOR)
+  return enrichMasterShipMaterialTooltip(element)
+}
+
 export const refreshMasterShipMaterialTooltips = (root = document, reportDiagnostic = () => {}) => {
   const elements = Array.from(root.querySelectorAll?.(MASTER_SHIP_MATERIAL_SELECTOR) || [])
   const tooltips = elements.map((element) => {
@@ -209,6 +214,11 @@ export const refreshMasterShipMaterialTooltips = (root = document, reportDiagnos
 
 export const injectMasterShipMaterialTooltips = ({ reportDiagnostic = () => {} } = {}) => {
   const startObserving = (content) => {
+    const enrichBeforeTooltipOpens = (event) => {
+      const element = event.target?.closest?.(MASTER_SHIP_MATERIAL_SELECTOR)
+      if (!element || !content.contains(element)) return
+      enrichMasterShipMaterialTooltip(element)
+    }
     let scheduled = false
     const scheduleRefresh = () => {
       if (scheduled) return
@@ -226,7 +236,15 @@ export const injectMasterShipMaterialTooltips = ({ reportDiagnostic = () => {} }
       childList: true,
       subtree: true,
     })
-    window.addEventListener('pagehide', () => observer.disconnect(), { once: true })
+    content.addEventListener('mouseover', enrichBeforeTooltipOpens, true)
+    window.addEventListener(
+      'pagehide',
+      () => {
+        content.removeEventListener('mouseover', enrichBeforeTooltipOpens, true)
+        observer.disconnect()
+      },
+      { once: true },
+    )
     scheduleRefresh()
   }
 

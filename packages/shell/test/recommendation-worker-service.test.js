@@ -6,6 +6,7 @@ import {
   EXPEDITION_PLAN_CHANNEL,
   QUEST_RECOMMENDATIONS_CHANNEL,
   RECOMMEND_CHANNEL,
+  SHIP_RECOMMENDATIONS_CHANNEL,
 } from '../browser/recommendation/channels.js'
 import {
   applyCombatEvaluations,
@@ -22,6 +23,14 @@ import {
 } from '../browser/recommendation/kc3-quest-recommendation.js'
 import { createKC3QuestLiveSync } from '../browser/recommendation/kc3-quest-live-sync.js'
 import { createRecommendationWorkerService } from '../browser/recommendation/recommendation-worker-service.js'
+import {
+  rankOwnedShipRecommendations,
+  summarizeShipRecommendations,
+} from '../browser/recommendation/ship-recommendation.js'
+import { en } from '../browser/recommendation/i18n/en.js'
+import { jp } from '../browser/recommendation/i18n/jp.js'
+import { scn } from '../browser/recommendation/i18n/scn.js'
+import { tcn } from '../browser/recommendation/i18n/tcn.js'
 
 class WorkerDouble extends EventEmitter {
   constructor(handler) {
@@ -220,6 +229,7 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
             storedQuestCount: 20,
             supportedRepeatableTypeCount: 16,
             openQuestCount: 5,
+            activeQuestCount: 2,
             oneTimeOpenQuestCount: 1,
             limitedOpenQuestCount: 1,
             graphQuestCount: 5,
@@ -258,6 +268,9 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
   )
   assert.equal(result.oneTimeCount, 1)
   assert.equal(result.limitedCount, 1)
+  assert.equal(result.activeQuestCount, 2)
+  assert.equal(result.questAcceptanceCapacity, 5)
+  assert.equal(result.snapshotSource, 'localCache')
   assert.equal(result.recommendations.find(({ id }) => id === 265).reward.category, 'actionReport')
   assert.equal(
     result.recommendations.find(({ id }) => id === 265).synergies[0].id,
@@ -271,6 +284,10 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
         storedQuestCount: 20,
         supportedRepeatableTypeCount: 16,
         openQuestCount: 5,
+        activeQuestCount: 2,
+        questAcceptanceCapacity: 5,
+        snapshotSource: 'localCache',
+        synchronizedAt: null,
         oneTimeOpenQuestCount: 1,
         limitedOpenQuestCount: 1,
         graphQuestCount: 5,
@@ -367,6 +384,7 @@ test('KC3 quest live sync is applied before the recommendation snapshot', async 
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const snapshot = {
     generatedAt: new Date(now).toISOString(),
+    synchronizedAt: new Date(now).toISOString(),
     quests: [
       {
         id: 191,
@@ -397,8 +415,11 @@ test('KC3 quest live sync is applied before the recommendation snapshot', async 
   assert.match(scripts[0], /KC3QuestManager\.definePage\(quests, undefined, 0\)/)
   assert.match(scripts[0], /"api_no":191,"api_state":1,"api_title":"日本語の任務タイトル"/)
   assert.match(scripts[0], /__kancolleAssistantJapaneseQuestTitles/)
+  assert.match(scripts[0], /__kancolleAssistantQuestSynchronizedAt/)
   assert.equal(scripts[1], KC3_QUEST_SNAPSHOT_SCRIPT)
   assert.equal(result.recommendations[0].id, 191)
+  assert.equal(result.snapshotSource, 'liveSync')
+  assert.equal(result.synchronizedAt, new Date(now).toISOString())
 })
 
 test('an authoritative empty quest sync closes stale KC3 open and active quests', () => {
@@ -638,8 +659,15 @@ test('quest recommendation IPC validates senders and logs success and failure ou
         rewardCategoryCounts: { medalBlueprint: 1, screws: 1 },
         groupCount: 1,
         combinedGroupCount: 1,
+        groupingMode: 'separate-simultaneous-actions',
+        repeatedQuestCount: 1,
+        repeatedQuestGroupCount: 2,
         alternativeSynergyCount: 2,
         objectiveDerivedGroupCount: 1,
+        curatedSortieFleetRejectedStageCount: 1,
+        curatedSortieFleetRejectionReasonCounts: {
+          INCOMPATIBLE_FLEET_CONSTRAINTS: 1,
+        },
         objectiveProfiledQuestCount: 4,
         arsenalProfiledQuestCount: 6,
         derivedArsenalProfileCount: 3,
@@ -711,8 +739,15 @@ test('quest recommendation IPC validates senders and logs success and failure ou
   assert.equal(logs.at(-1).data.synchronizedQuestCount, 0)
   assert.equal(logs.at(-1).data.groupCount, 1)
   assert.equal(logs.at(-1).data.combinedGroupCount, 1)
+  assert.equal(logs.at(-1).data.groupingMode, 'separate-simultaneous-actions')
+  assert.equal(logs.at(-1).data.repeatedQuestCount, 1)
+  assert.equal(logs.at(-1).data.repeatedQuestGroupCount, 2)
   assert.equal(logs.at(-1).data.alternativeSynergyCount, 2)
   assert.equal(logs.at(-1).data.objectiveDerivedGroupCount, 1)
+  assert.equal(logs.at(-1).data.curatedSortieFleetRejectedStageCount, 1)
+  assert.deepEqual(logs.at(-1).data.curatedSortieFleetRejectionReasonCounts, {
+    INCOMPATIBLE_FLEET_CONSTRAINTS: 1,
+  })
   assert.equal(logs.at(-1).data.objectiveProfiledQuestCount, 4)
   assert.equal(logs.at(-1).data.arsenalProfiledQuestCount, 6)
   assert.equal(logs.at(-1).data.derivedArsenalProfileCount, 3)
@@ -773,6 +808,142 @@ test('quest recommendation IPC validates senders and logs success and failure ou
   assert.equal(logs.at(-1).eventName, 'quest-recommendation.failed')
   assert.equal(logs.at(-1).data.operation, 'rank-quest-value-chains')
   assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_DATA_UNAVAILABLE'])
+})
+
+test('ship recommendations rank canonical ship families and record IPC outcomes', async () => {
+  const ships = [
+    {
+      id: 1,
+      masterId: 80,
+      canonicalName: '長門改二',
+      name: 'Nagato Kai Ni',
+      level: 99,
+      locked: true,
+    },
+    {
+      id: 2,
+      masterId: 77,
+      canonicalName: '伊勢改',
+      name: 'Ise Kai',
+      level: 83,
+      locked: true,
+    },
+    {
+      id: 3,
+      masterId: 1,
+      canonicalName: '吹雪',
+      name: 'Fubuki',
+      level: 31,
+      locked: false,
+    },
+    {
+      id: 4,
+      masterId: 184,
+      canonicalName: '大鯨',
+      name: 'Taigei',
+      level: 35,
+      locked: true,
+    },
+    {
+      id: 5,
+      masterId: 2,
+      canonicalName: '無関係',
+      name: 'Unrelated',
+      level: 99,
+      locked: true,
+    },
+    {
+      id: 6,
+      masterId: 696,
+      canonicalName: '矢矧改二乙',
+      name: 'Yahagi Kai Ni Otsu',
+      level: 99,
+      locked: true,
+    },
+  ]
+  const ranked = rankOwnedShipRecommendations(ships)
+  assert.deepEqual(
+    ranked.map(({ id, rating, ship }) => [id, rating, ship.name, ship.masterId]),
+    [
+      ['ise', 10, 'Ise Kai', 77],
+      ['ryuuhou', 7, 'Taigei', 184],
+      ['fubuki', 7, 'Fubuki', 1],
+    ],
+  )
+  assert.deepEqual(summarizeShipRecommendations(ranked, ships), {
+    matchedFamilyCount: 5,
+    guideFormReachedCount: 2,
+    trainingCandidateCount: 3,
+  })
+
+  const handlers = new Map()
+  const logs = []
+  const ipcMain = { handle: (channel, handler) => handlers.set(channel, handler) }
+  const sender = { getURL: () => 'chrome-extension://fixture/pages/strategy/strategy.html' }
+  const event = {
+    sender,
+    senderFrame: { url: 'chrome-extension://fixture/pages/strategy/strategy.html' },
+  }
+  let shouldFail = false
+  registerRecommendationIpc({
+    ipcMain,
+    getKc3ExtensionId: () => 'fixture',
+    readAccountSnapshot: async () => {
+      if (shouldFail) throw new Error('ship snapshot unavailable')
+      return {
+        generatedAt: '2026-09-11T00:00:00.000Z',
+        ships,
+        equipment: [],
+        metadata: { capabilities: {} },
+      }
+    },
+    recommend: async () => {},
+    planExpeditions: async () => {},
+    summarizeResourceLedger: async () => {},
+    logger: (eventName, data) => logs.push({ eventName, data }),
+  })
+
+  const success = await handlers.get(SHIP_RECOMMENDATIONS_CHANNEL)(event)
+  assert.equal(success.status, 'success')
+  assert.equal(success.trainingCandidateCount, 3)
+  assert.deepEqual(
+    success.recommendations.map((item) => item.id),
+    ['ise', 'ryuuhou', 'fubuki'],
+  )
+  assert.equal(logs.at(-1).eventName, 'ship-recommendation.completed')
+  assert.equal(logs.at(-1).data.ownedShipCount, 6)
+  assert.equal(logs.at(-1).data.matchedFamilyCount, 5)
+  assert.equal(logs.at(-1).data.sourceUpdatedAt, '2026-06-09')
+
+  const invalidRequest = await handlers.get(SHIP_RECOMMENDATIONS_CHANNEL)(event, {
+    forceRefresh: 'true',
+  })
+  assert.equal(invalidRequest.error.code, 'INVALID_REQUEST')
+
+  shouldFail = true
+  const failure = await handlers.get(SHIP_RECOMMENDATIONS_CHANNEL)(event, { forceRefresh: true })
+  assert.equal(failure.status, 'error')
+  assert.equal(failure.error.code, 'KC3_SCHEMA_INVALID')
+  assert.equal(logs.at(-1).eventName, 'ship-recommendation.failed')
+  assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_SCHEMA_INVALID'])
+})
+
+test('ship recommendation labels are available in every Strategy Room language', () => {
+  const keys = [
+    'ship.menu',
+    'ship.help.matchAnswer',
+    'ship.status',
+    'ship.state.training',
+    'ship.section.priorityReason',
+    'ship.section.usage',
+    'ship.priorityReason.features',
+    'ship.feature.specialAttack',
+    'ship.usage.airPower',
+    'ship.feature.fastYamatoPartner',
+  ]
+  ;[en, tcn, scn, jp].forEach((catalog) => {
+    keys.forEach((key) => assert.equal(typeof catalog[key], 'string', key))
+  })
 })
 
 test('fleet recommendations reuse the KC3 account snapshot until an explicit refresh', async () => {
@@ -953,6 +1124,9 @@ test('foreground selected-route recommendations log slow work but wait for the r
       },
       bestAirPower: 412,
       airPowerMinimum: 430,
+      airPowerRecommended: 430,
+      advisoryAirPowerRouteCount: 0,
+      advisoryAirPowerShortfallCount: 0,
       bestLos: 80,
       losMinimum: 66,
       reasonCodes: ['AIR_POWER_INSUFFICIENT'],
@@ -989,6 +1163,9 @@ test('foreground selected-route recommendations log slow work but wait for the r
   assert.equal(completed.data.loadoutSearch.materializedStateCount, 120)
   assert.equal(completed.data.bestAirPower, 412)
   assert.equal(completed.data.airPowerMinimum, 430)
+  assert.equal(completed.data.airPowerRecommended, 430)
+  assert.equal(completed.data.advisoryAirPowerRouteCount, 0)
+  assert.equal(completed.data.advisoryAirPowerShortfallCount, 0)
   assert.equal(completed.data.bestLos, 80)
   assert.equal(completed.data.losMinimum, 66)
   assert.deepEqual(completed.data.reasonCodes, ['AIR_POWER_INSUFFICIENT'])
@@ -1051,7 +1228,10 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
           materializedStateCount: 60,
         },
         bestAirPower: 448,
-        airPowerMinimum: 430,
+        airPowerMinimum: null,
+        airPowerRecommended: 430,
+        advisoryAirPowerRouteCount: 1,
+        advisoryAirPowerShortfallCount: 2,
         bestLos: 76,
         losMinimum: 66,
         zuiunCutInCandidateCount: 2,
@@ -1100,7 +1280,10 @@ test('successful recommendation logs bounded solver diagnostics', async () => {
   assert.equal(completed.data.loadoutSearch.expandedStateCount, 600)
   assert.equal(completed.data.loadoutSearch.materializedStateCount, 60)
   assert.equal(completed.data.bestAirPower, 448)
-  assert.equal(completed.data.airPowerMinimum, 430)
+  assert.equal(completed.data.airPowerMinimum, null)
+  assert.equal(completed.data.airPowerRecommended, 430)
+  assert.equal(completed.data.advisoryAirPowerRouteCount, 1)
+  assert.equal(completed.data.advisoryAirPowerShortfallCount, 2)
   assert.equal(completed.data.bestLos, 76)
   assert.equal(completed.data.losMinimum, 66)
   assert.equal(completed.data.zuiunCutInCandidateCount, 2)
@@ -1560,6 +1743,7 @@ test('fleet recommendation renderer payload omits internal scores', async () => 
             airPower: 0,
             airPowerRequired: false,
             airPowerMinimum: 0,
+            airPowerRecommended: 410,
             los33: 0,
             losRequired: false,
             losMinimum: 0,
@@ -1605,6 +1789,8 @@ test('fleet recommendation renderer payload omits internal scores', async () => 
   assert.equal(result.status, 'success')
   assert.equal(Object.hasOwn(result.recommendations[0], 'score'), false)
   assert.equal(result.recommendations[0].route.description, 'Use the source route notes.')
+  assert.equal(result.recommendations[0].metrics.airPowerRecommended, 410)
+  assert.equal(result.recommendations[0].metrics.airPowerRequired, false)
   assert.deepEqual(result.recommendations[0].route.sources, ['https://example.com/guide'])
   assert.deepEqual(
     result.recommendations[0].reasons.map((reason) => reason.code),

@@ -3,27 +3,54 @@ import { pinButtonMarkup, recentSectionMarkup, styles } from './views/recent-tab
 
 // Keep the original key so existing recent links become the user's initial pinned links.
 const PINNED_TABS_STORAGE_KEY = 'damecon.strategyRoom.recentTabs.v1'
-const MAX_PINNED_TABS = 5
+const PINNED_TABS_LOG_PREFIX = '[Kancolle Assistant] Strategy Room pinned tabs'
 
-const readPinnedTabIds = () => {
+export const readPinnedTabIds = (storage = undefined, logger = globalThis.console) => {
   try {
-    const storedValue = JSON.parse(window.localStorage.getItem(PINNED_TABS_STORAGE_KEY))
+    const storedValue = JSON.parse(
+      (storage ?? window.localStorage).getItem(PINNED_TABS_STORAGE_KEY),
+    )
     if (!Array.isArray(storedValue)) return []
-    return storedValue
-      .filter(
-        (tabId, index, tabIds) => typeof tabId === 'string' && tabIds.indexOf(tabId) === index,
-      )
-      .slice(0, MAX_PINNED_TABS)
-  } catch {
+    const tabIds = storedValue.filter(
+      (tabId, index, tabIds) => typeof tabId === 'string' && tabIds.indexOf(tabId) === index,
+    )
+    logger.info(PINNED_TABS_LOG_PREFIX, {
+      event: 'pinned-tabs-read',
+      outcome: 'restored',
+      pinnedCount: tabIds.length,
+      discardedCount: storedValue.length - tabIds.length,
+    })
+    return tabIds
+  } catch (error) {
+    logger.warn(PINNED_TABS_LOG_PREFIX, {
+      event: 'pinned-tabs-read',
+      outcome: 'empty',
+      pinnedCount: 0,
+      reasonCode: error instanceof SyntaxError ? 'STORAGE_PARSE_FAILED' : 'STORAGE_READ_FAILED',
+      error:
+        error instanceof SyntaxError
+          ? 'Invalid pinned-tab JSON'
+          : String(error?.message || 'unknown').slice(0, 200),
+    })
     return []
   }
 }
 
-const writePinnedTabIds = (tabIds) => {
+export const writePinnedTabIds = (tabIds, storage = undefined, logger = globalThis.console) => {
   try {
-    window.localStorage.setItem(PINNED_TABS_STORAGE_KEY, JSON.stringify(tabIds))
-  } catch {
+    const pinnedStorage = storage ?? window.localStorage
+    pinnedStorage.setItem(PINNED_TABS_STORAGE_KEY, JSON.stringify(tabIds))
+    return true
+  } catch (error) {
     // Strategy Room navigation should keep working if browser storage is unavailable.
+    logger.warn(PINNED_TABS_LOG_PREFIX, {
+      event: 'pinned-tabs-write',
+      outcome: 'memory-only',
+      pinnedCount: tabIds.length,
+      reasonCode: 'STORAGE_WRITE_FAILED',
+      error: String(error?.message || 'unknown').slice(0, 200),
+    })
+    return false
   }
 }
 
@@ -61,12 +88,20 @@ export const injectStrategyRoomRecentTabs = () => {
 
   const togglePinnedTab = (menuItem) => {
     const tabId = menuItem.dataset.id
-    if (pinnedTabIds.includes(tabId)) {
+    const wasPinned = pinnedTabIds.includes(tabId)
+    if (wasPinned) {
       pinnedTabIds = pinnedTabIds.filter((pinnedTabId) => pinnedTabId !== tabId)
     } else {
-      pinnedTabIds = [tabId, ...pinnedTabIds].slice(0, MAX_PINNED_TABS)
+      pinnedTabIds = [tabId, ...pinnedTabIds]
     }
-    writePinnedTabIds(pinnedTabIds)
+    const persisted = writePinnedTabIds(pinnedTabIds)
+    console.info(PINNED_TABS_LOG_PREFIX, {
+      event: 'pinned-tabs-toggle',
+      tabId,
+      outcome: wasPinned ? 'unpinned' : 'pinned',
+      pinnedCount: pinnedTabIds.length,
+      persisted,
+    })
     renderPinnedTabs()
   }
 

@@ -13,6 +13,7 @@ import { injectStrategyRoomRecentTabs } from './browser/recommendation/strategy-
 import { injectQuestRecommendations } from './browser/recommendation/quest-recommendation-ui.js'
 import { injectResourceLedgerSummary } from './browser/recommendation/resource-ledger-ui.js'
 import { injectResourceCenter } from './browser/recommendation/resource-center-ui.js'
+import { injectShipRecommendations } from './browser/recommendation/ship-recommendation-ui.js'
 import { initializeDmmCredentialAutofill } from './browser/security/dmm-credential-autofill.js'
 
 console.log('Trying to inject into', location.pathname)
@@ -46,7 +47,7 @@ if (
   location.protocol === 'chrome-extension:' &&
   location.pathname === '/pages/strategy/strategy.html'
 ) {
-  window.addEventListener('DOMContentLoaded', () => {
+  const initializeStrategyRoom = () => {
     setTimeout(() => {
       const onSnapshotChanged = (callback) => {
         const listener = (_event, message) => callback(message)
@@ -58,11 +59,18 @@ if (
       injectResourceCenter(invoke)
       injectResourceLedgerSummary(invoke)
       injectQuestRecommendations(invoke)
+      injectShipRecommendations(invoke)
       injectStrategyRoomRecentTabs()
       injectDefaultDailyImprovementFilter()
       injectMasterShipMaterialTooltips({ reportDiagnostic: reportMasterShipTooltipDiagnostic })
     }, 0)
-  })
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initializeStrategyRoom, { once: true })
+  } else {
+    initializeStrategyRoom()
+  }
 }
 
 if (location.protocol === 'https:' && location.hostname === 'accounts.dmm.com') {

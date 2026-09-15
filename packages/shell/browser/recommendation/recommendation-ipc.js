@@ -18,11 +18,17 @@ import {
   QUEST_RECOMMENDATIONS_CHANNEL,
   RECOMMEND_CHANNEL,
   RESOURCE_LEDGER_SUMMARY_CHANNEL,
+  SHIP_RECOMMENDATIONS_CHANNEL,
 } from './channels'
 import { readKC3AccountSnapshot, readKC3CombatEvaluations } from './kc3-bridge'
 import { planKC3Expeditions, readKC3ExpeditionSummary } from './kc3-expedition-planner'
 import { readKC3ResourceLedgerSummary } from './kc3-resource-ledger'
 import { readKC3QuestRecommendations } from './kc3-quest-recommendation'
+import {
+  rankOwnedShipRecommendations,
+  SHIP_RECOMMENDATION_SOURCE,
+  summarizeShipRecommendations,
+} from './ship-recommendation'
 
 const errorResult = (code, message) => ({ status: 'error', error: { code, message } })
 const RECOMMENDATION_SLOW_THRESHOLD_MS = 3_000
@@ -484,6 +490,77 @@ export const registerRecommendationIpc = ({
     }
   })
 
+  ipcMain.handle(SHIP_RECOMMENDATIONS_CHANNEL, async (event, request) => {
+    if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
+      return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
+    }
+    if (
+      typeof request !== 'undefined' &&
+      (!request || typeof request !== 'object' || typeof request.forceRefresh !== 'boolean')
+    ) {
+      return errorResult('INVALID_REQUEST', '艦娘推薦請求格式不正確。')
+    }
+
+    const startedAt = Date.now()
+    const forceRefresh = request?.forceRefresh === true
+    logger('ship-recommendation.requested', {
+      operation: 'rank-owned-guide-ships',
+      forceRefresh,
+    })
+    try {
+      const snapshot = await readCachedAccount(event, forceRefresh)
+      if (snapshot.status === 'error') {
+        logger('ship-recommendation.failed', {
+          operation: 'rank-owned-guide-ships',
+          ownedShipCount: 0,
+          matchedFamilyCount: 0,
+          guideFormReachedCount: 0,
+          trainingCandidateCount: 0,
+          sourceUpdatedAt: SHIP_RECOMMENDATION_SOURCE.updatedAt,
+          outcome: 'failed',
+          reasonCodes: [snapshot.error?.code || 'SHIP_RECOMMENDATION_DATA_UNAVAILABLE'],
+          elapsedMs: Date.now() - startedAt,
+        })
+        return snapshot
+      }
+      const recommendations = rankOwnedShipRecommendations(snapshot.ships)
+      const summary = summarizeShipRecommendations(recommendations, snapshot.ships)
+      logger('ship-recommendation.completed', {
+        operation: 'rank-owned-guide-ships',
+        ownedShipCount: snapshot.ships.length,
+        ...summary,
+        sourceUpdatedAt: SHIP_RECOMMENDATION_SOURCE.updatedAt,
+        outcome: 'success',
+        elapsedMs: Date.now() - startedAt,
+      })
+      return {
+        status: 'success',
+        generatedAt: snapshot.generatedAt,
+        shipCount: snapshot.ships.length,
+        source: SHIP_RECOMMENDATION_SOURCE,
+        recommendations,
+        ...summary,
+      }
+    } catch (error) {
+      logger('ship-recommendation.failed', {
+        operation: 'rank-owned-guide-ships',
+        ownedShipCount: 0,
+        matchedFamilyCount: 0,
+        guideFormReachedCount: 0,
+        trainingCandidateCount: 0,
+        sourceUpdatedAt: SHIP_RECOMMENDATION_SOURCE.updatedAt,
+        outcome: 'failed',
+        reasonCodes: ['SHIP_RECOMMENDATION_DATA_UNAVAILABLE'],
+        error: sanitizedErrorMessage(error),
+        elapsedMs: Date.now() - startedAt,
+      })
+      return errorResult(
+        'SHIP_RECOMMENDATION_DATA_UNAVAILABLE',
+        '艦娘推薦資料無法讀取，請稍後再試。',
+      )
+    }
+  })
+
   ipcMain.handle(QUEST_RECOMMENDATIONS_CHANNEL, async (event, request) => {
     if (!isAllowedStrategyRoomSender(event, getKc3ExtensionId())) {
       return errorResult('KC3_UNAVAILABLE', '此功能只能從目前的 KC3 Strategy Room 使用。')
@@ -576,8 +653,13 @@ export const registerRecommendationIpc = ({
         selectedCount: result.recommendations.length,
         groupCount: result.groupCount,
         combinedGroupCount: result.combinedGroupCount,
+        groupingMode: result.groupingMode,
+        repeatedQuestCount: result.repeatedQuestCount,
+        repeatedQuestGroupCount: result.repeatedQuestGroupCount,
         alternativeSynergyCount: result.alternativeSynergyCount,
         objectiveDerivedGroupCount: result.objectiveDerivedGroupCount,
+        curatedSortieFleetRejectedStageCount: result.curatedSortieFleetRejectedStageCount,
+        curatedSortieFleetRejectionReasonCounts: result.curatedSortieFleetRejectionReasonCounts,
         objectiveProfiledQuestCount: result.objectiveProfiledQuestCount,
         arsenalProfiledQuestCount: result.arsenalProfiledQuestCount,
         derivedArsenalProfileCount: result.derivedArsenalProfileCount,
@@ -691,6 +773,7 @@ export const registerRecommendationIpc = ({
       EXPEDITION_PLAN_CHANNEL,
       EXPEDITION_SUMMARY_CHANNEL,
       RESOURCE_LEDGER_SUMMARY_CHANNEL,
+      SHIP_RECOMMENDATIONS_CHANNEL,
       QUEST_RECOMMENDATIONS_CHANNEL,
     ])
       ipcMain.removeHandler?.(channel)
