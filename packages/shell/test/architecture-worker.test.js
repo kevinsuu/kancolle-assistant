@@ -1,7 +1,107 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
 import { createRecommendationWorkerService } from '../browser/recommendation/recommendation-worker-service'
+import { createWebpackBuildGuard } from '../script/webpack-build-guard'
+
+const buildGuardFixture = (t) => {
+  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kancolle-build-guard-test-'))
+  const alive = new Set()
+  const guards = []
+  const logs = []
+  t.after(() => {
+    guards.forEach((guard) => guard.release())
+    fs.rmSync(projectDirectory, { recursive: true, force: true })
+  })
+  const create = (pid) => {
+    alive.add(pid)
+    const runtime = new EventEmitter()
+    runtime.pid = pid
+    runtime.kill = (ownerPid, signal) => {
+      assert.equal(signal, 0)
+      if (!alive.has(ownerPid)) throw Object.assign(new Error('No process'), { code: 'ESRCH' })
+    }
+    const guard = createWebpackBuildGuard({
+      projectDirectory,
+      runtime,
+      logger: (event, data) => logs.push({ event, ...data }),
+    })
+    guards.push(guard)
+    return { guard, runtime }
+  }
+  return { alive, create, logs }
+}
+
+test('webpack guard blocks packaging during development and releases on normal exit', (t) => {
+  const { create, logs } = buildGuardFixture(t)
+  const development = create(101)
+  const packaging = create(102)
+
+  development.guard.acquire('development')
+  development.guard.acquire('development')
+  assert.equal(development.runtime.listenerCount('exit'), 1)
+  assert.throws(() => packaging.guard.acquire('package'), { code: 'WEBPACK_BUILD_IN_USE' })
+  assert.deepEqual(logs.find((log) => log.event === 'build.guard-blocked').owners, [
+    { operation: 'development', pid: 101 },
+  ])
+  development.runtime.emit('exit')
+  packaging.guard.acquire('package')
+  assert.equal(logs.at(-1).outcome, 'acquired')
+  assert.equal(logs.at(-1).operation, 'package')
+})
+
+test('webpack guard blocks development and another package while packaging owns the bundles', (t) => {
+  const { create, logs } = buildGuardFixture(t)
+  const packaging = create(101)
+  const contender = create(102)
+  packaging.guard.acquire('package')
+
+  for (const operation of ['development', 'package']) {
+    assert.throws(() => contender.guard.acquire(operation), { code: 'WEBPACK_BUILD_IN_USE' })
+    assert.equal(logs.at(-1).reasonCode, 'WEBPACK_BUILD_IN_USE')
+    assert.equal(logs.at(-1).ownerCount, 1)
+  }
+  packaging.guard.release()
+  contender.guard.acquire('development')
+  assert.equal(logs.at(-1).outcome, 'acquired')
+})
+
+test('webpack guard recovers dead owners and protects Electron after its Forge parent exits', (t) => {
+  const { alive, create, logs } = buildGuardFixture(t)
+  const development = create(101)
+  const packaging = create(102)
+  const child = new EventEmitter()
+  child.pid = 103
+  alive.add(child.pid)
+  development.guard.acquire('development')
+  development.guard.trackChild(child)
+  // Abrupt parent exit leaves its marker, but the Electron child still needs the preloads.
+  alive.delete(101)
+  assert.throws(() => packaging.guard.acquire('package'), { code: 'WEBPACK_BUILD_IN_USE' })
+  assert.deepEqual(logs.at(-1).owners, [{ operation: 'development', pid: child.pid }])
+  alive.delete(child.pid)
+  packaging.guard.acquire('package')
+  assert.equal(logs.at(-1).staleCount, 1)
+  assert.equal(logs.at(-1).outcome, 'acquired')
+})
+
+test('webpack guard removes a normally closed Electron child marker', (t) => {
+  const { create, alive, logs } = buildGuardFixture(t)
+  const development = create(101)
+  const packaging = create(102)
+  const child = new EventEmitter()
+  child.pid = 103
+  alive.add(child.pid)
+  development.guard.acquire('development')
+  development.guard.trackChild(child)
+  child.emit('exit')
+  development.runtime.emit('exit')
+  packaging.guard.acquire('package')
+  assert.equal(logs.at(-1).staleCount, 0)
+})
 
 class Worker extends EventEmitter {
   messages = []

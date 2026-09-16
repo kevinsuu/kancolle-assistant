@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.19`   | `2026-09-15`   |
+| `v1.0.20`   | `2026-09-16`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.20 highlights (since v1.0.19)
+
+- Added a build guard that prevents packaging from removing webpack preloads while the development app is running, keeping KC3 Strategy Room enhancements available after opening new pages.
+- Added recovery for stale build markers after an interrupted Forge or Electron process, with bounded diagnostics for blocked and acquired build operations.
 
 ### v1.0.19 highlights (since v1.0.18)
 
@@ -51,15 +56,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   replace newer data, and identical requests share work.
 - Proxy startup, shutdown, retries, and update checks have bounded lifecycles. Image processing and
   ZIP extraction run in a dedicated worker to reduce main-process stalls.
-
-### v1.0.15 highlights (since v1.0.14)
-
-- Fleet recommendations compare flexible carrier loadouts, ASW duties, and special-equipment carriers,
-  retaining alternatives for KC3 validation and allowing ordinary slots to remain empty when inventory is limited.
-- Equipment planning avoids repeated air-power calculations and copies only surviving candidates,
-  preserving search limits and hard requirements.
-- Concurrent recommendation requests share account synchronization. Speed and ASW probes perform less
-  duplicate work, renderer tasks improve responsiveness, and explicit resync invalidates stale data across tabs.
 
 ### Project-specific highlights
 

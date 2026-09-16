@@ -1,5 +1,8 @@
 const path = require('path')
 const fs = require('fs/promises')
+const { createWebpackBuildGuard } = require('./script/webpack-build-guard')
+
+const webpackBuildGuard = createWebpackBuildGuard({ projectDirectory: __dirname })
 
 const isNotFoundError = (error) =>
   Boolean(error && typeof error === 'object' && error.code === 'ENOENT')
@@ -118,6 +121,10 @@ module.exports = {
     },
   ].filter(Boolean),
   hooks: {
+    // User hooks run before webpack's hooks delete or move .webpack.
+    preStart: () => webpackBuildGuard.acquire('development'),
+    postStart: (_config, child) => webpackBuildGuard.trackChild(child),
+    prePackage: () => webpackBuildGuard.acquire('package'),
     postPackage: async (config, options) => {
       try {
         await copyBundledExtensions(options.outputPaths[0])
@@ -128,6 +135,8 @@ module.exports = {
         await copyMinimumCache(config, options)
       } catch (error) {
         console.log('Error copying minimum-cache.zip', error)
+      } finally {
+        webpackBuildGuard.release()
       }
     },
   },

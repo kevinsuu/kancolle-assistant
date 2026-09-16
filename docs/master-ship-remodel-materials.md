@@ -25,3 +25,24 @@ KC3Kai ships special remodel-material icons from both `useitems` and its higher-
 For diagnostics, the Strategy Room preload reports bounded material-tooltip state to the main
 process log: content-root and target counts, whether enrichment occurred, and each displayed
 icon's recognized material identifier. Icon paths are shortened and extension IDs are redacted.
+
+## Development troubleshooting
+
+If a newly opened Master Ship page shows only icons and quantities while older Strategy Room tabs
+still have Assistant features, check that `.webpack/renderer/browser/preload.js` exists under
+`packages/shell`. Electron Forge packaging moves the generated bundles into an architecture
+directory such as `.webpack/arm64`, leaving an already running development process pointing to
+missing preload files. Newly opened or reloaded pages then lose the Assistant enhancements.
+
+The Forge hooks now protect the checkout before webpack deletes or moves its bundles. Starting
+development or packaging creates a process marker outside `.webpack`; another command in the same
+checkout stops with `WEBPACK_BUILD_IN_USE` while an owner remains alive. Development also tracks
+the Electron child, so exiting Forge alone cannot expose the running app's preloads to packaging.
+Dead-process markers are removed automatically when the next command runs. Acquisition and blocked
+commands emit `build.guard-*` diagnostics with the operation and owner process IDs.
+
+Close the development app and its Forge process before running `package` or `make` in the same
+checkout, or use a separate checkout for concurrent work. After packaging, restart with `yarn start`
+and reopen the Master Ship page to regenerate and load the development preloads. An app started
+before this guard was installed must first be restarted. This does not require reinstalling KC3Kai
+or clearing its data.
