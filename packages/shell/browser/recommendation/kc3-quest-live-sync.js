@@ -56,7 +56,12 @@ const parseQuestListResponse = (text) => {
   return questList
 }
 
-export const createKC3QuestLiveSync = ({ requestSession, now = Date.now } = {}) => {
+export const createKC3QuestLiveSync = ({
+  requestSession,
+  now = Date.now,
+  scheduleTimeout = setTimeout,
+  cancelTimeout = clearTimeout,
+} = {}) => {
   if (!requestSession || typeof requestSession.fetch !== 'function') {
     throw new TypeError('A fetch-capable Electron session is required.')
   }
@@ -109,30 +114,44 @@ export const createKC3QuestLiveSync = ({ requestSession, now = Date.now } = {}) 
       }
 
       const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), SYNC_TIMEOUT_MS)
+      let timedOut = false
+      let rejectTimeout
+      const timeout = new Promise((_, reject) => {
+        rejectTimeout = reject
+      })
+      const timer = scheduleTimeout(() => {
+        timedOut = true
+        controller.abort()
+        rejectTimeout(syncError('KC3_QUEST_SYNC_TIMEOUT', 'The quest sync request timed out.'))
+      }, SYNC_TIMEOUT_MS)
       const startedAt = now()
       try {
         const body = new URLSearchParams({ ...context.auth, api_tab_id: '0', api_page_no: '1' })
-        const response = await requestSession.fetch(
-          new URL(QUEST_LIST_PATH, context.apiOrigin).href,
-          {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json, text/plain, */*',
-              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        // Bound both response headers and body even when the network stack ignores abort.
+        const fetchRequest = (async () => {
+          const response = await requestSession.fetch(
+            new URL(QUEST_LIST_PATH, context.apiOrigin).href,
+            {
+              method: 'POST',
+              headers: {
+                Accept: 'application/json, text/plain, */*',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              },
+              body: body.toString(),
+              credentials: 'include',
+              signal: controller.signal,
             },
-            body: body.toString(),
-            credentials: 'include',
-            signal: controller.signal,
-          },
-        )
-        if (!response.ok) {
-          throw syncError(
-            'KC3_QUEST_SYNC_REQUEST_FAILED',
-            `The quest sync request returned HTTP ${response.status}.`,
           )
-        }
-        const quests = parseQuestListResponse(await response.text())
+          if (!response.ok) {
+            throw syncError(
+              'KC3_QUEST_SYNC_REQUEST_FAILED',
+              `The quest sync request returned HTTP ${response.status}.`,
+            )
+          }
+          return parseQuestListResponse(await response.text())
+        })()
+        // Promise.race also handles a late rejection from the abandoned request.
+        const quests = await Promise.race([fetchRequest, timeout])
         return {
           quests,
           gameWebContentsId: webContentsId,
@@ -141,13 +160,15 @@ export const createKC3QuestLiveSync = ({ requestSession, now = Date.now } = {}) 
       } catch (error) {
         if (error?.code) throw error
         throw syncError(
-          error?.name === 'AbortError' ? 'KC3_QUEST_SYNC_TIMEOUT' : 'KC3_QUEST_SYNC_REQUEST_FAILED',
-          error?.name === 'AbortError'
+          timedOut || error?.name === 'AbortError'
+            ? 'KC3_QUEST_SYNC_TIMEOUT'
+            : 'KC3_QUEST_SYNC_REQUEST_FAILED',
+          timedOut || error?.name === 'AbortError'
             ? 'The quest sync request timed out.'
             : 'The quest sync request failed.',
         )
       } finally {
-        clearTimeout(timer)
+        cancelTimeout(timer)
       }
     })()
 

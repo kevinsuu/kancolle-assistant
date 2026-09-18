@@ -379,6 +379,94 @@ test('KC3 quest live sync rejects missing context and invalid server data with s
   })
 })
 
+test('KC3 quest live sync returns a retryable timeout when Electron fetch never settles', async () => {
+  let timeoutCallback
+  let abortCount = 0
+  const requestSession = {
+    fetch: async (_url, options) => {
+      options.signal.addEventListener('abort', () => {
+        abortCount++
+      })
+      return new Promise(() => {})
+    },
+  }
+  const liveSync = createKC3QuestLiveSync({
+    requestSession,
+    now: () => 30_000,
+    scheduleTimeout: (callback) => {
+      timeoutCallback = callback
+      return 'timer-id'
+    },
+    cancelTimeout: (timer) => assert.equal(timer, 'timer-id'),
+  })
+  await liveSync.observeRequest({
+    method: 'POST',
+    url: 'https://w02k.kancolle-server.com/kcsapi/api_port/port',
+    webContentsId: 12,
+    uploadData: [{ bytes: Buffer.from('api_token=fixture') }],
+  })
+
+  const synchronization = liveSync.synchronize(12)
+  await Promise.resolve()
+  timeoutCallback()
+  await assert.rejects(synchronization, { code: 'KC3_QUEST_SYNC_TIMEOUT' })
+  assert.equal(abortCount, 1)
+})
+
+test('KC3 quest live sync times out stalled bodies and releases the request for retry', async () => {
+  let expire
+  let rejectBody
+  let calls = 0
+  let cleared = 0
+  let signal
+  const liveSync = createKC3QuestLiveSync({
+    requestSession: {
+      fetch: async (_url, options) => {
+        calls++
+        signal = options.signal
+        return {
+          ok: true,
+          text: () =>
+            calls === 1
+              ? new Promise((_, reject) => {
+                  rejectBody = reject
+                })
+              : Promise.resolve('svdata={"api_result":1,"api_data":{"api_list":[]}}'),
+        }
+      },
+    },
+    scheduleTimeout: (callback, delay) => {
+      assert.equal(delay, 10_000)
+      expire = callback
+      return 1
+    },
+    cancelTimeout: () => {
+      cleared++
+    },
+  })
+  await liveSync.observeRequest({
+    method: 'POST',
+    url: 'https://w02k.kancolle-server.com/kcsapi/api_port/port',
+    webContentsId: 12,
+    uploadData: [{ bytes: Buffer.from('api_token=fixture') }],
+  })
+  const first = liveSync.synchronize(12)
+  const duplicate = liveSync.synchronize(12)
+  await Promise.resolve()
+  assert.equal(typeof rejectBody, 'function')
+  expire()
+  await assert.rejects(first, { code: 'KC3_QUEST_SYNC_TIMEOUT' })
+  await assert.rejects(duplicate, { code: 'KC3_QUEST_SYNC_TIMEOUT' })
+  assert.equal(signal.aborted, true)
+  assert.equal(calls, 1)
+  assert.equal(cleared, 1)
+  assert.deepEqual((await liveSync.synchronize(12)).quests, [])
+  assert.equal(calls, 2)
+  assert.equal(cleared, 2)
+  rejectBody(new Error('late network failure'))
+  await new Promise(setImmediate)
+})
+
 test('KC3 quest live sync is applied before the recommendation snapshot', async () => {
   const scripts = []
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
@@ -456,7 +544,7 @@ test('an authoritative empty quest sync closes stale KC3 open and active quests'
   assert.equal(statuses.get(192).status, 3)
 })
 
-test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
+test('KC3 quest snapshot always prefers official Japanese quest titles', async () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const calculateNextReset = () => now + 24 * 60 * 60 * 1000
   const repeatableTypes = Object.fromEntries(
@@ -466,7 +554,7 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
     ]),
   )
   const japaneseRequests = []
-  const snapshot = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
+  const snapshot = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
     performance: { now: () => 0 },
     KC3QuestManager: {
       list: {
@@ -492,16 +580,20 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
         rewardConsumables: [0, 0, 0, 0],
       }),
     },
-    KC3Translation: {
-      getJSONWithOptions: (...args) => {
-        japaneseRequests.push(args)
-        return {
+    setTimeout,
+    clearTimeout,
+    KC3Translation: { getJSONWithOptions: () => assert.fail('Synchronous XHR must not run') },
+    fetch: async (...args) => {
+      japaneseRequests.push(args)
+      return {
+        ok: true,
+        json: async () => ({
           680: {
             name: '対空兵装の整備拡充',
             desc: '「機銃」系装備x4を廃棄せよ！',
           },
-        }
-      },
+        }),
+      }
     },
     KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
   })
@@ -519,16 +611,25 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', () => {
   assert.equal(snapshot.quests.find(({ id }) => id === 681).limited, true)
   assert.equal(snapshot.diagnostics.oneTimeOpenQuestCount, 1)
   assert.equal(snapshot.diagnostics.limitedOpenQuestCount, 1)
-  assert.deepEqual(japaneseRequests[0].slice(0, 4), ['/data/', 'quests', false, 'jp'])
+  assert.equal(japaneseRequests[0][0], '/data/lang/data/jp/quests.json')
   assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'available')
   assert.deepEqual(snapshot.diagnostics.questTitleSourceCounts, {
     gameApi: 1,
     japaneseMetadata: 1,
     localizedFallback: 0,
   })
+  const logs = []
+  await readKC3QuestRecommendations(
+    { executeJavaScript: async () => snapshot },
+    (eventName, data) => logs.push({ eventName, data }),
+  )
+  assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-completed')
+  assert.equal(logs[0].data.japaneseQuestMetadataStatus, 'available')
+  assert.equal(logs[0].data.outcome, 'success')
+  assert.deepEqual(logs[0].data.reasonCodes, [])
 })
 
-test('KC3 quest snapshot reports a bounded Japanese-title fallback', () => {
+test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const repeatableTypes = Object.fromEntries(
     ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
@@ -536,7 +637,7 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', () => {
       { questIds: [], calculateNextReset: () => now + 24 * 60 * 60 * 1000 },
     ]),
   )
-  const snapshot = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
+  const snapshot = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
     performance: { now: () => 0 },
     KC3QuestManager: {
       list: { q680: { id: 680, status: 1, progress: 0 } },
@@ -547,10 +648,10 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', () => {
       repo: '/data/',
       quest: () => ({ code: 'Fq6', name: 'Localized fallback', desc: '', memo: '' }),
     },
-    KC3Translation: {
-      getJSONWithOptions: () => {
-        throw new Error('fixture metadata failure with a deliberately bounded message')
-      },
+    setTimeout,
+    clearTimeout,
+    fetch: async () => {
+      throw new Error('fixture metadata failure with api_token=secret')
     },
     KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
   })
@@ -559,8 +660,90 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', () => {
   assert.equal(snapshot.quests[0].synergyDescription, '')
   assert.equal(snapshot.diagnostics.japaneseQuestMetadataStatus, 'failed')
   assert.equal(snapshot.diagnostics.questTitleSourceCounts.localizedFallback, 1)
-  assert.match(snapshot.diagnostics.japaneseQuestMetadataMessage, /fixture metadata failure/)
+  assert.equal(
+    snapshot.diagnostics.japaneseQuestMetadataMessage,
+    'Japanese quest metadata load failed',
+  )
+  assert.equal(
+    snapshot.diagnostics.japaneseQuestMetadataReasonCode,
+    'KC3_QUEST_METADATA_LOAD_FAILED',
+  )
+  const logs = []
+  await readKC3QuestRecommendations(
+    { executeJavaScript: async () => snapshot },
+    (eventName, data) => logs.push({ eventName, data }),
+  )
+  assert.equal(logs[0].data.outcome, 'degraded')
+  assert.ok(logs[0].data.reasonCodes.includes('KC3_QUEST_METADATA_LOAD_FAILED'))
+  assert.equal(JSON.stringify(logs).includes('secret'), false)
 })
+
+for (const stalledPhase of ['headers', 'body']) {
+  test(`KC3 quest metadata timeout keeps the event loop available during stalled ${stalledPhase}`, async () => {
+    let expire
+    let signal
+    let cleared = false
+    let rejectLate
+    const stalled = new Promise((_, reject) => {
+      rejectLate = reject
+    })
+    const fixture = {
+      performance: { now: () => 0 },
+      KC3QuestManager: {
+        list: { q680: { id: 680, status: 1 } },
+        load: () => {},
+        repeatableTypes: Object.fromEntries(
+          ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
+            type,
+            { questIds: [], calculateNextReset: () => Date.now() + 86_400_000 },
+          ]),
+        ),
+      },
+      KC3Meta: {
+        repo: '/data/',
+        quest: () => ({ code: 'Fq6', name: 'Cached title', desc: '', memo: '' }),
+      },
+      KC3Translation: { getJSONWithOptions: () => assert.fail('Blocking loader called') },
+      fetch: async (_url, options) => {
+        signal = options.signal
+        return stalledPhase === 'headers' ? stalled : { ok: true, json: () => stalled }
+      },
+      setTimeout: (callback, delay) => {
+        assert.equal(delay, 3_000)
+        expire = callback
+        return 7
+      },
+      clearTimeout: (timer) => {
+        assert.equal(timer, 7)
+        cleared = true
+      },
+      KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
+    }
+    const pending = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(fixture)
+    // A UI event can be processed while the resource request is pending.
+    await new Promise(setImmediate)
+    expire()
+    const snapshot = await pending
+    assert.equal(signal.aborted, true)
+    assert.equal(cleared, true)
+    assert.equal(snapshot.quests[0].name, 'Cached title')
+    const logs = []
+    await readKC3QuestRecommendations(
+      { executeJavaScript: async () => snapshot },
+      (eventName, data) => logs.push({ eventName, data }),
+    )
+    assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-completed')
+    assert.equal(logs[0].data.outcome, 'degraded')
+    assert.ok(logs[0].data.reasonCodes.includes('KC3_QUEST_METADATA_TIMEOUT'))
+    assert.equal(logs[0].data.questTitleSourceCounts.localizedFallback, 1)
+    rejectLate(new Error('late metadata failure'))
+    await new Promise(setImmediate)
+    fixture.fetch = async () => ({ ok: true, json: async () => ({ 680: { name: '日本語' } }) })
+    const retried = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(fixture)
+    assert.equal(retried.quests[0].name, '日本語')
+    assert.equal(retried.diagnostics.japaneseQuestMetadataStatus, 'available')
+  })
+}
 
 test('KC3 quest snapshot degrades instead of failing when the successor graph is truncated', async () => {
   const rootQuestIds = Array.from({ length: 260 }, (_, index) => 2_000 + index)
@@ -578,6 +761,7 @@ test('KC3 quest snapshot degrades instead of failing when the successor graph is
     performance: { now: () => 0 },
     KC3QuestManager: { list, load: () => {}, repeatableTypes },
     KC3Meta: {
+      repo: '/data/',
       quest: (id) => {
         const rootIndex = Number(id) - 2_000
         return {
@@ -593,13 +777,21 @@ test('KC3 quest snapshot degrades instead of failing when the successor graph is
         }
       },
     },
-    KC3Translation: {
-      getJSONWithOptions: () =>
-        new Proxy({}, { get: (_target, id) => ({ name: `Japanese quest ${id}` }) }),
-    },
+    setTimeout,
+    clearTimeout,
+    fetch: async () => ({
+      ok: true,
+      json: async () =>
+        new Proxy(
+          {},
+          { get: (_target, id) => (id === 'then' ? undefined : { name: `Japanese quest ${id}` }) },
+        ),
+    }),
     KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
   }
-  const snapshot = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(windowFixture)
+  const snapshot = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(
+    windowFixture,
+  )
   const logs = []
   const result = await readKC3QuestRecommendations(
     { executeJavaScript: async () => snapshot },

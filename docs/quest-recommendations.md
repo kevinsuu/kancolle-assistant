@@ -26,6 +26,18 @@ recommendations. A ranked candidate must be open or active and be either a norma
 a currently available time-limited quest, or a KC3 daily, weekly, monthly, quarterly, or yearly
 repeatable quest with a future reset timestamp.
 
+The live game API request, including reading its response body, is bounded to ten seconds even
+when the network stack does not settle after cancellation. Failure returns a sync error and
+re-enables the control for retry.
+
+Japanese quest metadata is loaded asynchronously from KC3's bundled `lang/data/jp/quests.json`,
+with a separate three-second limit covering both the response and JSON body. Recommendation
+snapshots do not call KC3's synchronous translation loader, which blocks the renderer and can
+leave the whole Strategy Room unresponsive while the game remains operable. If metadata fails or
+times out, recommendations continue with game API titles or localized cached titles; a later
+refresh retries loading the Japanese metadata. This addresses a blocking path consistent with the
+reported Windows freeze; Windows-specific reproduction still requires testing on an affected PC.
+
 The status line distinguishes a local KC3 cache from data synchronized from the game during the
 current loaded game-tab session. A timestamp is shown only for the latter, so the display never
 presents the time a recommendation was recomputed as the time the game state was refreshed. The
@@ -292,7 +304,9 @@ Runtime diagnostics use the following structured events:
   graph, locked and successor planning-node counts; supported KC3 repeatable-type count; aggregate
   account availability and ship count; the seven synchronized EO states; aggregate game-API,
   Japanese-metadata, and localized-fallback title counts; and stable reason codes when bounded
-  planning data is incomplete or Japanese title metadata is unavailable;
+  planning data is incomplete or Japanese title metadata is unavailable (including
+  `KC3_QUEST_METADATA_TIMEOUT` and `KC3_QUEST_METADATA_LOAD_FAILED`); metadata errors use fixed
+  messages without resource URLs or raw exception details;
 - `quest-recommendation.completed` records per-period, time-limited, and per-chapter candidate and
   group counts, the grouping mode, and how many quests and groups overlap across distinct
   simultaneous actions,

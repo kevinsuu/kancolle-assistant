@@ -40,7 +40,7 @@ const synchronizedQuestScript = (quests) => {
   })()`
 }
 
-const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
+const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
   if (!window.KC3QuestManager || !window.KC3Meta) {
     throw new Error('KC3 quest managers are not ready')
   }
@@ -84,24 +84,46 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
   let japaneseQuests = {}
   let japaneseQuestMetadataStatus = 'unavailable'
   let japaneseQuestMetadataMessage = null
+  let japaneseQuestMetadataReasonCode = null
+  let metadataTimer
   try {
-    if (typeof window.KC3Translation?.getJSONWithOptions === 'function') {
-      japaneseQuests = window.KC3Translation.getJSONWithOptions(
-        window.KC3Meta.repo,
-        'quests',
-        false,
-        'jp',
-        null,
-        false,
-      ) || {}
+    // KC3Translation.getJSONWithOptions uses synchronous XHR, blocking every KC3 control
+    // while the extension resource is loading. Never call it from a recommendation snapshot.
+    if (typeof window.fetch === 'function' && typeof window.KC3Meta.repo === 'string') {
+      const controller = new AbortController()
+      const timeout = new Promise((_, reject) => {
+        metadataTimer = window.setTimeout(() => {
+          reject(Object.assign(new Error('Japanese quest metadata load timed out'), {
+            code: 'KC3_QUEST_METADATA_TIMEOUT',
+          }))
+          controller.abort()
+        }, 3_000)
+      })
+      const loadMetadata = async () => {
+        const response = await window.fetch(window.KC3Meta.repo + 'lang/data/jp/quests.json', {
+          signal: controller.signal,
+        })
+        if (!response.ok) throw new Error('Japanese quest metadata request failed')
+        const data = await response.json()
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          throw new Error('Japanese quest metadata is invalid')
+        }
+        return data
+      }
+      japaneseQuests = await Promise.race([loadMetadata(), timeout])
       japaneseQuestMetadataStatus = 'available'
     }
   } catch (error) {
     japaneseQuests = {}
     japaneseQuestMetadataStatus = 'failed'
-    japaneseQuestMetadataMessage = String(error?.message || error || 'metadata load failed')
-      .replace(/\s+/g, ' ')
-      .slice(0, 160)
+    japaneseQuestMetadataReasonCode = error?.code === 'KC3_QUEST_METADATA_TIMEOUT'
+      ? 'KC3_QUEST_METADATA_TIMEOUT'
+      : 'KC3_QUEST_METADATA_LOAD_FAILED'
+    japaneseQuestMetadataMessage = japaneseQuestMetadataReasonCode === 'KC3_QUEST_METADATA_TIMEOUT'
+      ? 'Japanese quest metadata load timed out'
+      : 'Japanese quest metadata load failed'
+  } finally {
+    if (metadataTimer !== undefined) window.clearTimeout(metadataTimer)
   }
   const questTitleSourceByQuestId = new Map()
 
@@ -273,6 +295,7 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(() => {
       shipCount: account.shipMasterIds.length,
       japaneseQuestMetadataStatus,
       japaneseQuestMetadataMessage,
+      japaneseQuestMetadataReasonCode,
       questTitleSourceCounts,
       elapsedMs: Math.round(window.performance.now() - startedAt),
     },
@@ -315,6 +338,9 @@ export const readKC3QuestRecommendations = async (
     snapshot.diagnostics?.questTitleSourceCounts?.localizedFallback || 0,
   )
   const reasonCodes = [
+    ...(snapshot.diagnostics?.japaneseQuestMetadataReasonCode
+      ? [snapshot.diagnostics.japaneseQuestMetadataReasonCode]
+      : []),
     ...(successorGraphTruncated ? ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'] : []),
     ...(localizedTitleFallbackCount > 0 ? ['KC3_JAPANESE_QUEST_TITLE_UNAVAILABLE'] : []),
   ]

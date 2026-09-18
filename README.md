@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.20`   | `2026-09-16`   |
+| `v1.0.21`   | `2026-09-19`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.21 highlights (since v1.0.20)
+
+- [Quest synchronization](./docs/quest-recommendations.md) now loads Japanese metadata asynchronously with a three-second fallback, removing a synchronous read that could block KC3 controls.
+- The game quest request now has a ten-second limit covering response headers and body, so stalled requests return an error and allow retry.
 
 ### v1.0.20 highlights (since v1.0.19)
 
@@ -41,12 +46,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Master Ship remodel-material tooltips now list each requirement with its icon, localized material
   name, and quantity, including KC3's high-resolution special-material icons.
 - Fixed KC3 extension tab commands from BrowserView tabs, preventing failures when KC3 opens a tab.
-
-### v1.0.17 highlights (since v1.0.16)
-
-- Expedition Recommendations now shows the best plan's combined net hourly fuel, ammunition,
-  steel, bauxite, and bucket yield. It uses the individual cards' collection intervals and
-  estimated resupply costs, while explicitly excluding a busy fleet's current return wait.
 
 ### v1.0.16 highlights (since v1.0.15)
 
