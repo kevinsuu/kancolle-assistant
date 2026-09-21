@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.21`   | `2026-09-19`   |
+| `v1.0.22`   | `2026-09-21`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.22 highlights (since v1.0.21)
+
+- Quest Recommendations adds a dedicated Flight Deck Catapult reward filter and identifies what each shared-action step has actually checked.
+- The quest board removes the long status and acceptance-slot summaries, and shows monthly Extra Operation states as compact map chips.
 
 ### v1.0.21 highlights (since v1.0.20)
 
@@ -46,15 +51,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Master Ship remodel-material tooltips now list each requirement with its icon, localized material
   name, and quantity, including KC3's high-resolution special-material icons.
 - Fixed KC3 extension tab commands from BrowserView tabs, preventing failures when KC3 opens a tab.
-
-### v1.0.16 highlights (since v1.0.15)
-
-- Fleet recommendations, expedition planning, and resource statistics use separate background workers,
-  so a timeout in one operation does not fail the others.
-- Resynchronizing account data updates all subscribed Strategy Room windows; stale results cannot
-  replace newer data, and identical requests share work.
-- Proxy startup, shutdown, retries, and update checks have bounded lifecycles. Image processing and
-  ZIP extraction run in a dedicated worker to reduce main-process stalls.
 
 ### Project-specific highlights
 
