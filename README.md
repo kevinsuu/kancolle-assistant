@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.22`   | `2026-09-21`   |
+| `v1.0.23`   | `2026-09-21`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.23 highlights (since v1.0.22)
+
+- On Windows, manual quest synchronization now uses a bounded Electron network request with the game's session. Stalled, failed, and oversized responses can be cancelled and retried.
 
 ### v1.0.22 highlights (since v1.0.21)
 
@@ -45,12 +49,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Quest Recommendations now reports live-sync status and quest-slot usage, displays more structured rewards, and keeps distinct verified shared-action plans visible with a Combined filter.
 - Updated 4-5 and 5-5 fleet guidance with audited route data, flexible advisory air-power targets, and preserved hard routing, LoS, and anti-installation requirements.
 - Strategy Room pinned links are no longer capped at five, and remodel-material tooltips enrich on hover before KC3 opens them.
-
-### v1.0.18 highlights (since v1.0.17)
-
-- Master Ship remodel-material tooltips now list each requirement with its icon, localized material
-  name, and quantity, including KC3's high-resolution special-material icons.
-- Fixed KC3 extension tab commands from BrowserView tabs, preventing failures when KC3 opens a tab.
 
 ### Project-specific highlights
 
