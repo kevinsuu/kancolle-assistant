@@ -323,8 +323,40 @@ export const readKC3QuestRecommendations = async (
   { synchronizedQuestList } = {},
 ) => {
   if (synchronizedQuestList) {
-    await webContents.executeJavaScript(synchronizedQuestScript(synchronizedQuestList), true)
+    const startedAt = Date.now()
+    logger('quest-recommendation.live-apply-started', {
+      operation: 'apply-current-quest-list',
+      synchronizedQuestCount: synchronizedQuestList.filter((quest) => quest && quest !== -1).length,
+      outcome: 'started',
+      reasonCodes: [],
+    })
+    try {
+      await webContents.executeJavaScript(synchronizedQuestScript(synchronizedQuestList), true)
+      logger('quest-recommendation.live-apply-completed', {
+        operation: 'apply-current-quest-list',
+        elapsedMs: Date.now() - startedAt,
+        outcome: 'success',
+        reasonCodes: [],
+      })
+    } catch (error) {
+      logger('quest-recommendation.live-apply-failed', {
+        operation: 'apply-current-quest-list',
+        elapsedMs: Date.now() - startedAt,
+        outcome: 'failed',
+        reasonCodes: ['KC3_QUEST_SYNC_APPLY_FAILED'],
+        message: String(error?.message || error)
+          .replace(/\s+/g, ' ')
+          .slice(0, 240),
+      })
+      throw error
+    }
   }
+  logger('quest-recommendation.snapshot-started', {
+    operation: 'read-kc3-open-quests',
+    syncMode: synchronizedQuestList ? 'live' : 'local',
+    outcome: 'started',
+    reasonCodes: [],
+  })
   const snapshot = await webContents.executeJavaScript(KC3_QUEST_SNAPSHOT_SCRIPT, true)
   const now = validateSnapshot(snapshot)
   const synchronizedAt = validSynchronizedAt(snapshot.synchronizedAt)

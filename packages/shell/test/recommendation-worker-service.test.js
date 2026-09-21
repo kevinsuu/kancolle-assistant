@@ -276,7 +276,9 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
     result.recommendations.find(({ id }) => id === 265).synergies[0].id,
     'one-five-monthly-stack',
   )
-  assert.deepEqual(logs, [
+  assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-started')
+  assert.equal(logs[0].data.syncMode, 'local')
+  assert.deepEqual(logs.slice(1), [
     {
       eventName: 'quest-recommendation.snapshot-completed',
       data: {
@@ -469,6 +471,7 @@ test('KC3 quest live sync times out stalled bodies and releases the request for 
 
 test('KC3 quest live sync is applied before the recommendation snapshot', async () => {
   const scripts = []
+  const logs = []
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const snapshot = {
     generatedAt: new Date(now).toISOString(),
@@ -493,7 +496,7 @@ test('KC3 quest live sync is applied before the recommendation snapshot', async 
         return scripts.length === 1 ? { synchronizedQuestCount: 1 } : snapshot
       },
     },
-    () => {},
+    (eventName, data) => logs.push({ eventName, data }),
     {
       synchronizedQuestList: [{ api_no: 191, api_state: 1, api_title: '日本語の任務タイトル' }],
     },
@@ -508,6 +511,36 @@ test('KC3 quest live sync is applied before the recommendation snapshot', async 
   assert.equal(result.recommendations[0].id, 191)
   assert.equal(result.snapshotSource, 'liveSync')
   assert.equal(result.synchronizedAt, new Date(now).toISOString())
+  assert.deepEqual(
+    logs.slice(0, 3).map(({ eventName }) => eventName),
+    [
+      'quest-recommendation.live-apply-started',
+      'quest-recommendation.live-apply-completed',
+      'quest-recommendation.snapshot-started',
+    ],
+  )
+  assert.equal(logs[0].data.synchronizedQuestCount, 1)
+  assert.equal(logs[1].data.outcome, 'success')
+  assert.equal(logs[2].data.syncMode, 'live')
+
+  const failureLogs = []
+  await assert.rejects(
+    readKC3QuestRecommendations(
+      {
+        executeJavaScript: async () => {
+          throw new Error('apply failed')
+        },
+      },
+      (eventName, data) => failureLogs.push({ eventName, data }),
+      { synchronizedQuestList: [{ api_no: 191, api_state: 1 }] },
+    ),
+    /apply failed/,
+  )
+  assert.deepEqual(
+    failureLogs.map(({ eventName }) => eventName),
+    ['quest-recommendation.live-apply-started', 'quest-recommendation.live-apply-failed'],
+  )
+  assert.deepEqual(failureLogs[1].data.reasonCodes, ['KC3_QUEST_SYNC_APPLY_FAILED'])
 })
 
 test('an authoritative empty quest sync closes stale KC3 open and active quests', () => {
@@ -623,10 +656,10 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
     { executeJavaScript: async () => snapshot },
     (eventName, data) => logs.push({ eventName, data }),
   )
-  assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-completed')
-  assert.equal(logs[0].data.japaneseQuestMetadataStatus, 'available')
-  assert.equal(logs[0].data.outcome, 'success')
-  assert.deepEqual(logs[0].data.reasonCodes, [])
+  assert.equal(logs.at(-1).eventName, 'quest-recommendation.snapshot-completed')
+  assert.equal(logs.at(-1).data.japaneseQuestMetadataStatus, 'available')
+  assert.equal(logs.at(-1).data.outcome, 'success')
+  assert.deepEqual(logs.at(-1).data.reasonCodes, [])
 })
 
 test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () => {
@@ -673,8 +706,8 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () =>
     { executeJavaScript: async () => snapshot },
     (eventName, data) => logs.push({ eventName, data }),
   )
-  assert.equal(logs[0].data.outcome, 'degraded')
-  assert.ok(logs[0].data.reasonCodes.includes('KC3_QUEST_METADATA_LOAD_FAILED'))
+  assert.equal(logs.at(-1).data.outcome, 'degraded')
+  assert.ok(logs.at(-1).data.reasonCodes.includes('KC3_QUEST_METADATA_LOAD_FAILED'))
   assert.equal(JSON.stringify(logs).includes('secret'), false)
 })
 
@@ -732,10 +765,10 @@ for (const stalledPhase of ['headers', 'body']) {
       { executeJavaScript: async () => snapshot },
       (eventName, data) => logs.push({ eventName, data }),
     )
-    assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-completed')
-    assert.equal(logs[0].data.outcome, 'degraded')
-    assert.ok(logs[0].data.reasonCodes.includes('KC3_QUEST_METADATA_TIMEOUT'))
-    assert.equal(logs[0].data.questTitleSourceCounts.localizedFallback, 1)
+    assert.equal(logs.at(-1).eventName, 'quest-recommendation.snapshot-completed')
+    assert.equal(logs.at(-1).data.outcome, 'degraded')
+    assert.ok(logs.at(-1).data.reasonCodes.includes('KC3_QUEST_METADATA_TIMEOUT'))
+    assert.equal(logs.at(-1).data.questTitleSourceCounts.localizedFallback, 1)
     rejectLate(new Error('late metadata failure'))
     await new Promise(setImmediate)
     fixture.fetch = async () => ({ ok: true, json: async () => ({ 680: { name: '日本語' } }) })
@@ -803,9 +836,9 @@ test('KC3 quest snapshot degrades instead of failing when the successor graph is
   assert.equal(snapshot.diagnostics.successorQueueRemainingCount > 0, true)
   assert.equal(result.candidateCount, rootQuestIds.length)
   assert.equal(result.recommendations.length, rootQuestIds.length)
-  assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-completed')
-  assert.equal(logs[0].data.outcome, 'degraded')
-  assert.deepEqual(logs[0].data.reasonCodes, ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'])
+  assert.equal(logs.at(-1).eventName, 'quest-recommendation.snapshot-completed')
+  assert.equal(logs.at(-1).data.outcome, 'degraded')
+  assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'])
 })
 
 test('quest recommendation IPC validates senders and logs success and failure outcomes', async () => {
@@ -970,6 +1003,8 @@ test('quest recommendation IPC validates senders and logs success and failure ou
   assert.equal(logs.at(-2).data.gameWebContentsId, 42)
   assert.equal(logs.at(-2).data.synchronizedQuestCount, 1)
   assert.equal(logs.at(-2).data.elapsedMs, 6)
+  assert.equal(logs.at(-3).eventName, 'quest-recommendation.live-sync-started')
+  assert.equal(logs.at(-3).data.outcome, 'started')
   assert.equal(logs.at(-1).data.syncMode, 'live')
   assert.equal(logs.at(-1).data.synchronizedQuestCount, 1)
 

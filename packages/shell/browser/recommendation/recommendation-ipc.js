@@ -577,6 +577,11 @@ export const registerRecommendationIpc = ({
     let synchronizedQuestCount = 0
     if (forceSync) {
       const syncStartedAt = Date.now()
+      logger('quest-recommendation.live-sync-started', {
+        operation: 'fetch-current-quest-list',
+        outcome: 'started',
+        reasonCodes: [],
+      })
       try {
         if (typeof syncQuestList !== 'function') {
           throw Object.assign(new Error('Quest live sync is unavailable.'), {

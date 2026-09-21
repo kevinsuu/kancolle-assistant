@@ -30,6 +30,11 @@ The live game API request, including reading its response body, is bounded to te
 when the network stack does not settle after cancellation. Failure returns a sync error and
 re-enables the control for retry.
 
+For diagnosing a stalled manual sync, runtime logs mark the live request, the start and result of
+applying the returned list through KC3, and the start and completion of the recommendation
+snapshot. A missing completion after one of these markers identifies the stage that stopped.
+These records include quest counts and elapsed time, but no authentication fields or quest payloads.
+
 Japanese quest metadata is loaded asynchronously from KC3's bundled `lang/data/jp/quests.json`,
 with a separate three-second limit covering both the response and JSON body. Recommendation
 snapshots do not call KC3's synchronous translation loader, which blocks the renderer and can
