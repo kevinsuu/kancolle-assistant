@@ -724,7 +724,10 @@ class Browser extends EventEmitter {
     this.startupDisplayMetrics = captureStartupDisplayMetrics(screen)
     kccp.logger.log(logSource, 'display.startup-detected', this.startupDisplayMetrics)
     this.initSession()
-    this.questLiveSync = createKC3QuestLiveSync({ requestSession: this.session })
+    this.questLiveSync = createKC3QuestLiveSync({
+      requestSession: this.session,
+      createRequest: process.platform === 'win32' ? (options) => net.request(options) : undefined,
+    })
     setupMenu(this)
     mainBootstrap.registerCoreServices({
       app,

@@ -362,6 +362,116 @@ test('KC3 quest live sync reuses only in-memory game authentication and requests
   assert.doesNotMatch(JSON.stringify(result), /secret-fixture/)
 })
 
+test('KC3 quest live sync uses a bounded Electron request with the game session', async () => {
+  const requestSession = {}
+  const requests = []
+  const createRequest = (options) => {
+    const request = new EventEmitter()
+    request.abort = () => {
+      request.aborted = true
+      request.emit('close')
+    }
+    request.end = (body) => {
+      request.body = body
+      const response = new EventEmitter()
+      response.statusCode = 200
+      queueMicrotask(() => {
+        request.emit('response', response)
+        response.emit('data', Buffer.from('svdata={"api_result":1,"api_data":{"api_list":[]}}'))
+        response.emit('end')
+        request.emit('close')
+      })
+    }
+    requests.push({ options, request })
+    return request
+  }
+  const liveSync = createKC3QuestLiveSync({ requestSession, createRequest })
+  await liveSync.observeRequest({
+    method: 'POST',
+    url: 'https://w01y.kancolle-server.com/kcsapi/api_port/port',
+    webContentsId: 42,
+    uploadData: [{ bytes: Buffer.from('api_token=secret-fixture') }],
+  })
+  assert.deepEqual((await liveSync.synchronize(42)).quests, [])
+  assert.equal(requests[0].options.session, requestSession)
+  assert.equal(requests[0].options.credentials, 'include')
+  assert.equal(requests[0].options.redirect, 'error')
+  assert.equal(new URLSearchParams(requests[0].request.body).get('api_token'), 'secret-fixture')
+})
+
+test('KC3 quest live sync aborts a stalled Electron request and permits retry', async () => {
+  let expire
+  let abortCount = 0
+  const liveSync = createKC3QuestLiveSync({
+    requestSession: {},
+    createRequest: () => {
+      const request = new EventEmitter()
+      request.abort = () => {
+        abortCount++
+        request.emit('close')
+      }
+      request.end = () => {}
+      return request
+    },
+    scheduleTimeout: (callback) => {
+      expire = callback
+      return 1
+    },
+    cancelTimeout: () => {},
+  })
+  await liveSync.observeRequest({
+    method: 'POST',
+    url: 'https://w01y.kancolle-server.com/kcsapi/api_port/port',
+    webContentsId: 42,
+    uploadData: [{ bytes: Buffer.from('api_token=fixture') }],
+  })
+  const pending = liveSync.synchronize(42)
+  expire()
+  await assert.rejects(pending, { code: 'KC3_QUEST_SYNC_TIMEOUT' })
+  await new Promise(setImmediate)
+  const retry = liveSync.synchronize(42)
+  expire()
+  await assert.rejects(retry, { code: 'KC3_QUEST_SYNC_TIMEOUT' })
+  assert.equal(abortCount, 2)
+})
+
+test('KC3 quest live sync rejects HTTP failures and oversized streamed responses', async () => {
+  for (const [statusCode, body, reasonCode] of [
+    [503, Buffer.from('unavailable'), 'KC3_QUEST_SYNC_REQUEST_FAILED'],
+    [200, Buffer.alloc(4 * 1024 * 1024 + 1), 'KC3_QUEST_SYNC_RESPONSE_INVALID'],
+  ]) {
+    let aborted = false
+    const liveSync = createKC3QuestLiveSync({
+      requestSession: {},
+      createRequest: () => {
+        const request = new EventEmitter()
+        request.abort = () => {
+          aborted = true
+          request.emit('close')
+        }
+        request.end = () => {
+          const response = new EventEmitter()
+          response.statusCode = statusCode
+          queueMicrotask(() => {
+            request.emit('response', response)
+            if (!aborted) response.emit('data', body)
+            if (!aborted) response.emit('end')
+          })
+        }
+        return request
+      },
+    })
+    await liveSync.observeRequest({
+      method: 'POST',
+      url: 'https://w01y.kancolle-server.com/kcsapi/api_port/port',
+      webContentsId: 42,
+      uploadData: [{ bytes: Buffer.from('api_token=fixture') }],
+    })
+    await assert.rejects(liveSync.synchronize(42), { code: reasonCode })
+    assert.equal(aborted, true)
+  }
+})
+
 test('KC3 quest live sync rejects missing context and invalid server data with stable codes', async () => {
   const requestSession = {
     fetch: async () => ({ ok: true, status: 200, text: async () => 'svdata={"api_result":1}' }),

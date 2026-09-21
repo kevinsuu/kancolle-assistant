@@ -1,6 +1,7 @@
 const QUEST_LIST_PATH = '/kcsapi/api_get_member/questlist'
 const MAX_CONTEXT_AGE_MS = 24 * 60 * 60 * 1000
 const MAX_QUEST_LIST_LENGTH = 2_048
+const MAX_QUEST_RESPONSE_BYTES = 4 * 1024 * 1024
 const SYNC_TIMEOUT_MS = 10_000
 const REQUIRED_AUTH_FIELD = 'api_token'
 const AUTH_FIELDS = ['api_token', 'api_verno', 'api_starttime']
@@ -56,14 +57,73 @@ const parseQuestListResponse = (text) => {
   return questList
 }
 
+const requestQuestList = (createRequest, requestSession, url, body, setAbort) =>
+  new Promise((resolve, reject) => {
+    const request = createRequest({
+      url,
+      method: 'POST',
+      session: requestSession,
+      credentials: 'include',
+      redirect: 'error',
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+    })
+    setAbort(() => request.abort())
+    request.on('error', reject)
+    request.on('close', () =>
+      reject(syncError('KC3_QUEST_SYNC_REQUEST_FAILED', 'The quest sync request closed early.')),
+    )
+    request.on('response', (response) => {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        reject(
+          syncError(
+            'KC3_QUEST_SYNC_REQUEST_FAILED',
+            `The quest sync request returned HTTP ${response.statusCode}.`,
+          ),
+        )
+        request.abort()
+        return
+      }
+      const chunks = []
+      let byteCount = 0
+      response.on('data', (chunk) => {
+        byteCount += chunk.length
+        if (byteCount > MAX_QUEST_RESPONSE_BYTES) {
+          reject(
+            syncError('KC3_QUEST_SYNC_RESPONSE_INVALID', 'The quest sync response was too large.'),
+          )
+          request.abort()
+          return
+        }
+        chunks.push(chunk)
+      })
+      response.on('error', reject)
+      response.on('aborted', () =>
+        reject(
+          syncError('KC3_QUEST_SYNC_REQUEST_FAILED', 'The quest sync response was interrupted.'),
+        ),
+      )
+      response.on('end', () =>
+        resolve(parseQuestListResponse(Buffer.concat(chunks).toString('utf8'))),
+      )
+    })
+    request.end(body)
+  })
+
 export const createKC3QuestLiveSync = ({
   requestSession,
+  createRequest,
   now = Date.now,
   scheduleTimeout = setTimeout,
   cancelTimeout = clearTimeout,
 } = {}) => {
-  if (!requestSession || typeof requestSession.fetch !== 'function') {
-    throw new TypeError('A fetch-capable Electron session is required.')
+  if (
+    !requestSession ||
+    (typeof requestSession.fetch !== 'function' && typeof createRequest !== 'function')
+  ) {
+    throw new TypeError('An Electron session with a request transport is required.')
   }
 
   const contexts = new Map()
@@ -114,6 +174,7 @@ export const createKC3QuestLiveSync = ({
       }
 
       const controller = new AbortController()
+      let abortRequest = () => controller.abort()
       let timedOut = false
       let rejectTimeout
       const timeout = new Promise((_, reject) => {
@@ -121,35 +182,46 @@ export const createKC3QuestLiveSync = ({
       })
       const timer = scheduleTimeout(() => {
         timedOut = true
-        controller.abort()
+        abortRequest()
         rejectTimeout(syncError('KC3_QUEST_SYNC_TIMEOUT', 'The quest sync request timed out.'))
       }, SYNC_TIMEOUT_MS)
       const startedAt = now()
       try {
         const body = new URLSearchParams({ ...context.auth, api_tab_id: '0', api_page_no: '1' })
         // Bound both response headers and body even when the network stack ignores abort.
-        const fetchRequest = (async () => {
-          const response = await requestSession.fetch(
-            new URL(QUEST_LIST_PATH, context.apiOrigin).href,
-            {
-              method: 'POST',
-              headers: {
-                Accept: 'application/json, text/plain, */*',
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-              },
-              body: body.toString(),
-              credentials: 'include',
-              signal: controller.signal,
-            },
-          )
-          if (!response.ok) {
-            throw syncError(
-              'KC3_QUEST_SYNC_REQUEST_FAILED',
-              `The quest sync request returned HTTP ${response.status}.`,
-            )
-          }
-          return parseQuestListResponse(await response.text())
-        })()
+        const fetchRequest =
+          typeof createRequest === 'function'
+            ? requestQuestList(
+                createRequest,
+                requestSession,
+                new URL(QUEST_LIST_PATH, context.apiOrigin).href,
+                body.toString(),
+                (abort) => {
+                  abortRequest = abort
+                },
+              )
+            : (async () => {
+                const response = await requestSession.fetch(
+                  new URL(QUEST_LIST_PATH, context.apiOrigin).href,
+                  {
+                    method: 'POST',
+                    headers: {
+                      Accept: 'application/json, text/plain, */*',
+                      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    },
+                    body: body.toString(),
+                    credentials: 'include',
+                    signal: controller.signal,
+                  },
+                )
+                if (!response.ok) {
+                  throw syncError(
+                    'KC3_QUEST_SYNC_REQUEST_FAILED',
+                    `The quest sync request returned HTTP ${response.status}.`,
+                  )
+                }
+                return parseQuestListResponse(await response.text())
+              })()
         // Promise.race also handles a late rejection from the abandoned request.
         const quests = await Promise.race([fetchRequest, timeout])
         return {
@@ -158,6 +230,9 @@ export const createKC3QuestLiveSync = ({
           elapsedMs: Math.max(0, now() - startedAt),
         }
       } catch (error) {
+        if (timedOut) {
+          throw syncError('KC3_QUEST_SYNC_TIMEOUT', 'The quest sync request timed out.')
+        }
         if (error?.code) throw error
         throw syncError(
           timedOut || error?.name === 'AbortError'

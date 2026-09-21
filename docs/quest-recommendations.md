@@ -30,6 +30,10 @@ The live game API request, including reading its response body, is bounded to te
 when the network stack does not settle after cancellation. Failure returns a sync error and
 re-enables the control for retry.
 
+On Windows, the request uses Electron's streamed `net.request` with the game session, cookies, and
+proxy settings. It aborts on timeout and rejects responses above 4 MiB before parsing. This avoids
+the `session.fetch` path used by the manual sync in earlier Windows builds.
+
 For diagnosing a stalled manual sync, runtime logs mark the live request, the start and result of
 applying the returned list through KC3, and the start and completion of the recommendation
 snapshot. A missing completion after one of these markers identifies the stage that stopped.
