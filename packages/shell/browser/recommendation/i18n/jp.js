@@ -80,6 +80,7 @@ export const jp = {
   'quest.filter.actionReport': '戦闘詳報',
   'quest.filter.screws': '改修資材',
   'quest.filter.equipmentMaterials': '装備／資材',
+  'quest.filter.catapult': '甲板カタパルト',
   'quest.filter.visibleCount': '{count}件表示',
   'quest.filter.emptyTitle': 'フィルターに一致する任務はありません',
   'quest.filter.emptyDetail':
@@ -274,6 +275,14 @@ export const jp = {
   'quest.limitedDeadlineUnknown': 'KC3に最終終了日時の情報がありません',
   'quest.synergy.verificationNotice':
     '任務条件から導出した案です。出撃前に所持艦・装備・ルート・受託枠を確認してください。',
+  'quest.synergy.verification.profileMatchSortie':
+    '条件一致：海域・編成条件を照合済み。ルート・速力・索敵・制空・装備は確認してください。',
+  'quest.synergy.verification.profileMatchExercise':
+    '条件一致：演習編成条件を照合済み。勝利ランクと所持艦は確認してください。',
+  'quest.synergy.verification.profileMatchAction':
+    '共同行動を照合済み。任務受託状態と達成条件を確認してください。',
+  'quest.synergy.verification.workflowOnly':
+    '進行順の案です。同一行動での達成を保証するものではありません。',
   'quest.remainingDaysHours': '{days}日 {hours}時間',
   'quest.remainingHours': '{hours}時間',
   'quest.remainingMinutes': '{minutes}分',

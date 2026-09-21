@@ -6,6 +6,7 @@ import {
   createSharedQuestPlan,
   findCompatibleQuestSynergies,
   isOpenQuest,
+  verificationForQuestRelation,
 } from './quest-synergy-engine'
 
 // Curated quest plans distinguish sorties that can be shared, objectives that should be run in
@@ -612,6 +613,7 @@ export const findQuestSynergies = (
           }
           return {
             ...stage,
+            verification: verificationForQuestRelation(stage.kind),
             extraObjectiveKeys: stage.extraObjectiveKeys || [],
             instructionKeys: stage.instructionKeys || [],
             participants: stageQuests.map(({ id, code, name, status, period, resetAt }) => ({

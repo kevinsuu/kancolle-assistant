@@ -13,6 +13,18 @@ export const questSynergyParticipant = (quest) => ({
   locked: !isOpenQuest(quest),
 })
 
+// A compatible objective profile proves only the fields the solver can inspect. Keep the
+// remaining player-side checks visible instead of presenting a shared map as a guaranteed sortie.
+export const verificationForQuestRelation = (relationKind) =>
+  ({
+    sameSortie: 'profileMatchSortie',
+    sameExercise: 'profileMatchExercise',
+    sameExpedition: 'profileMatchAction',
+    sameArsenal: 'profileMatchAction',
+    sequence: 'workflowOnly',
+    unlock: 'workflowOnly',
+  })[relationKind] || 'workflowOnly'
+
 export const createSharedQuestPlan = ({
   id,
   priority,
@@ -41,6 +53,7 @@ export const createSharedQuestPlan = ({
     stages: [
       {
         kind: relationKind,
+        verification: verificationForQuestRelation(relationKind),
         questIds,
         mapIds,
         fleetKey,

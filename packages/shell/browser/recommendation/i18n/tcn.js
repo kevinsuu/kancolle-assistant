@@ -78,6 +78,7 @@ export const tcn = {
   'quest.filter.actionReport': '戰鬥詳報',
   'quest.filter.screws': '改修資材',
   'quest.filter.equipmentMaterials': '兵裝／素材',
+  'quest.filter.catapult': '彈射甲板',
   'quest.filter.visibleCount': '顯示 {count} 項',
   'quest.filter.emptyTitle': '沒有符合篩選條件的任務',
   'quest.filter.emptyDetail': '請調整任務類型、章節或獎勵篩選；章節只會篩選出擊任務。',
@@ -266,6 +267,13 @@ export const tcn = {
   'quest.limitedDeadlineUnknown': 'KC3 未提供最終結束時間',
   'quest.synergy.verificationNotice':
     '依任務條件推導；出擊前仍請確認持有艦、裝備、路線與接取欄位。',
+  'quest.synergy.verification.profileMatchSortie':
+    '條件相符：已核對海域與編成條件；仍須確認路線、速度、索敵、制空與裝備。',
+  'quest.synergy.verification.profileMatchExercise':
+    '條件相符：已核對演習編成條件；仍須確認勝利等級與持有艦。',
+  'quest.synergy.verification.profileMatchAction':
+    '已核對共同行動：仍須確認任務受託狀態與完成條件。',
+  'quest.synergy.verification.workflowOnly': '流程建議：此步驟不是同一次行動的完成保證。',
   'quest.remainingDaysHours': '{days} 天 {hours} 小時',
   'quest.remainingHours': '{hours} 小時',
   'quest.remainingMinutes': '{minutes} 分鐘',

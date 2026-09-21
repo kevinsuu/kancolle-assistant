@@ -127,10 +127,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '9fdec0979ba45f12df1e0e5a83b68d811303c2d0546504e8f656a3602f7858ae',
-      jp: '9499a267b03758f9c96171b18522a204d2e3232d7ed79e60900ee43e7f4a1ff4',
-      scn: 'd6a640f32473ce72db677fd485619f563367548c156c97d15c069ff57f7d0621',
-      tcn: '8bed93d459c1d497a4bcaefd7737ceea4f2c49e3e5d642d3de04a2a850baafd3',
+      en: '5b52a05d0ef9df0cb8d621fda6795f767af747f0d2d49a20bb26e72787894f29',
+      jp: '8654bcebcb57e78bc610c7a4cbd533520a785b1b564a80689d826b9e6c0bd127',
+      scn: '9b867c0dc63347f41d15a4a7d2cfc664244b7dcab3f8749fd05f1f9c5611f988',
+      tcn: '46c61f7313177c3ddf8de0918d6d9807068c2cdd106f42b7f117e4379ba4139e',
     },
   )
 })
@@ -1881,8 +1881,7 @@ test('quest recommendation cards balance requirements, icon rewards, and schedul
   assert.match(markup, /Valuable locked successors/)
   assert.match(markup, /Action Report successor/)
   assert.match(markup, /2 steps away/)
-  assert.match(markup, /Accepted 4\/5; 1 acceptance slots remain/)
-  assert.match(markup, /confirm your ships, equipment, route, and acceptance slots before sortie/)
+  assert.doesNotMatch(markup, /Accepted 4\/5; 1 acceptance slots remain/)
   assert.doesNotMatch(markup, /<script>/)
 })
 
@@ -2008,9 +2007,8 @@ test('quest Markdown exports the visible list with complete card and combination
   assert.match(markdown, /Action Report/)
   assert.match(markdown, /Weekly submarines/)
   assert.match(markdown, /Improvement Materials ×2/)
-  assert.match(markdown, /Game synced Sep 1, 2026/)
-  assert.match(markdown, /Accepted 2\/5; 3 acceptance slots remain/)
-  assert.match(markdown, /confirm your ships, equipment, route, and acceptance slots before sortie/)
+  assert.doesNotMatch(markdown, /Game synced Sep 1, 2026/)
+  assert.doesNotMatch(markdown, /Accepted 2\/5; 3 acceptance slots remain/)
   assert.match(markdown, /Same sortie/)
   assert.match(markdown, /4 Coastal Defense Ships/)
   assert.match(markdown, /Defeat 15 submarines/)
@@ -2101,7 +2099,7 @@ test('quest reward filters include valuable successors and keep groups sortable'
     {
       id: 4,
       resetAt: null,
-      reward: { category: 'other', valuable: false },
+      reward: { category: 'other', materialKeys: ['catapult'], valuable: true },
     },
     {
       id: 5,
@@ -2143,6 +2141,14 @@ test('quest reward filters include valuable successors and keep groups sortable'
       }),
     ),
     [5, 4],
+  )
+  assert.deepEqual(
+    idsFor(
+      filterAndSortQuestRecommendationGroups(result, {
+        rewardFilters: ['catapult'],
+      }),
+    ),
+    [4],
   )
   assert.deepEqual(
     idsFor(filterAndSortQuestRecommendationGroups(result, { sortMode: 'deadlineDesc' })),
@@ -2219,10 +2225,10 @@ test('quest plans distinguish same-sortie, sequence, and unlock relationships', 
   assert.equal(plan.id, 'z-front-quarterly-chain')
   assert.deepEqual(plan.relationKinds, ['sameSortie', 'unlock'])
   assert.deepEqual(
-    plan.stages.map(({ kind, mapIds }) => ({ kind, mapIds })),
+    plan.stages.map(({ kind, mapIds, verification }) => ({ kind, mapIds, verification })),
     [
-      { kind: 'sameSortie', mapIds: ['2-4'] },
-      { kind: 'unlock', mapIds: ['1-6', '6-3'] },
+      { kind: 'sameSortie', mapIds: ['2-4'], verification: 'profileMatchSortie' },
+      { kind: 'unlock', mapIds: ['1-6', '6-3'], verification: 'workflowOnly' },
     ],
   )
   assert.equal(plan.stages[1].participants[1].locked, true)
@@ -2230,6 +2236,8 @@ test('quest plans distinguish same-sortie, sequence, and unlock relationships', 
   assert.match(markup, /dqr-relation sameSortie/)
   assert.match(markup, /dqr-relation unlock/)
   assert.match(markup, /dqr-stage-participants/)
+  assert.match(markup, /profileMatchSortie/)
+  assert.match(markup, /Condition match: map and fleet profiles match/)
   assert.match(markup, /class="locked"/)
 
   const monthly = rankQuestRecommendations(
@@ -2651,6 +2659,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.filter.actionReport',
       'quest.filter.screws',
       'quest.filter.equipmentMaterials',
+      'quest.filter.catapult',
       'quest.filter.visibleCount',
       'quest.filter.emptyTitle',
       'quest.filter.emptyDetail',
@@ -2716,6 +2725,10 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.relation.unlock',
       'quest.synergy.title',
       'quest.synergy.verificationNotice',
+      'quest.synergy.verification.profileMatchSortie',
+      'quest.synergy.verification.profileMatchExercise',
+      'quest.synergy.verification.profileMatchAction',
+      'quest.synergy.verification.workflowOnly',
       'quest.synergy.extra.oneFiveExtraOperation',
       'quest.synergy.extra.twoFiveExtraOperation',
       'quest.synergy.fleet.fourDe',

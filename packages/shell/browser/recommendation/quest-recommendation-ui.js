@@ -4,7 +4,7 @@ import { QUEST_CHAPTER_KEYS } from './quest-recommendation'
 import { escapeHtml, formatLocalizedDate } from './strategy-room-format'
 import { panelMarkup, styles } from './views/quest-recommendation-view'
 
-let { locale, t, translateMessage } = createStrategyRoomI18n()
+let { locale, t } = createStrategyRoomI18n()
 const MARKDOWN_EXPORT_LOG_PREFIX = '[KancolleQuestMarkdownExport]'
 const FILTER_LOG_PREFIX = '[KancolleQuestFilter]'
 const SETTINGS_LOG_PREFIX = '[KancolleQuestSettings]'
@@ -25,11 +25,6 @@ const formatResetAt = (value) =>
     { dateStyle: 'medium', timeStyle: 'short', hour12: false },
     '—',
   )
-
-const questStatusSource = (result) =>
-  result?.snapshotSource === 'liveSync' && result?.synchronizedAt
-    ? t('quest.statusSource.live', { updated: formatResetAt(result.synchronizedAt) })
-    : t('quest.statusSource.local')
 
 const remainingLabel = (remainingMs) => {
   const totalMinutes = Math.max(1, Math.ceil(Number(remainingMs || 0) / 60_000))
@@ -110,6 +105,7 @@ export const QUEST_REWARD_FILTERS = [
   'actionReport',
   'screws',
   'equipmentMaterials',
+  'catapult',
 ]
 
 export const QUEST_TYPE_FILTERS = [
@@ -335,6 +331,7 @@ const adviceTier = (quest) =>
   'optional'
 
 const rewardMatchesFilter = (reward, filter) => {
+  if (filter === 'catapult') return reward?.materialKeys?.includes('catapult') === true
   if (filter === 'equipmentMaterials') {
     return rewardCategoryFor(reward) === 'other' || (reward?.materialKeys || []).length > 0
   }
@@ -622,6 +619,9 @@ const stageMarkup = (stage) => {
         <span class="dqr-relation ${escapeHtml(stage.kind)}">${escapeHtml(
           t(`quest.relation.${stage.kind}`),
         )}</span>
+        <span class="dqr-verification ${escapeHtml(stage.verification || 'workflowOnly')}">${escapeHtml(
+          t(`quest.synergy.verification.${stage.verification || 'workflowOnly'}`),
+        )}</span>
         ${
           stage.mapIds?.length
             ? `<strong>${escapeHtml(t('quest.synergy.maps', { maps: stage.mapIds.join(' / ') }))}</strong>`
@@ -657,6 +657,7 @@ const synergyStages = (synergy) =>
   synergy.stages || [
     {
       kind: 'sameSortie',
+      verification: 'profileMatchSortie',
       mapIds: synergy.mapIds || [],
       fleetKey: synergy.fleetKey,
       extraObjectiveKeys: synergy.extraObjectiveKeys || [],
@@ -881,7 +882,6 @@ const extraOperationMarkup = (extraOperations) => {
   if (!extraOperations?.length) return ''
   return `
     <section class="dqr-eo-strip bscolor4 fcolor2" aria-label="${escapeHtml(t('quest.eo.title'))}">
-      <div><strong>${escapeHtml(t('quest.eo.title'))}</strong><span>${escapeHtml(t('quest.eo.hint'))}</span></div>
       <div class="dqr-eo-list">${extraOperations
         .map(
           ({ mapId, status }) =>
@@ -891,24 +891,6 @@ const extraOperationMarkup = (extraOperations) => {
         )
         .join('')}</div>
     </section>`
-}
-
-const questAcceptanceLabel = (result) => {
-  const active = Number(result?.activeQuestCount)
-  const capacity = Number(result?.questAcceptanceCapacity)
-  if (!Number.isFinite(active) || !Number.isFinite(capacity) || capacity < 1) return null
-  const accepted = Math.max(0, Math.trunc(active))
-  const maximum = Math.trunc(capacity)
-  return t('quest.acceptance.status', {
-    active: accepted,
-    capacity: maximum,
-    available: Math.max(0, maximum - accepted),
-  })
-}
-
-const questAcceptanceMarkup = (result) => {
-  const label = questAcceptanceLabel(result)
-  return label ? `<p class="dqr-acceptance-notice bscolor4 fcolor2">${escapeHtml(label)}</p>` : ''
 }
 
 export const questRecommendationListMarkup = (result) => {
@@ -923,7 +905,7 @@ export const questRecommendationListMarkup = (result) => {
     groups.map(({ synergy }) => synergy?.sourcePlanId || synergy?.id).filter(Boolean),
   )
   const displayedCombinedGroups = displayedCombinedGroupsFor(groups)
-  return `${questAcceptanceMarkup(result)}${extraOperationMarkup(result.extraOperations)}<ol class="dqr-list">${groups
+  return `${extraOperationMarkup(result.extraOperations)}<ol class="dqr-list">${groups
     .map((group) =>
       groupMarkup(group, {
         displayedSynergySourceIds,
@@ -1019,6 +1001,9 @@ const synergyMarkdown = (synergy, headingLevel) => {
       lines.push(`- ${markdownText(t('quest.synergy.maps', { maps: stage.mapIds.join(' / ') }))}`)
     }
     lines.push(
+      `- ${markdownText(t(`quest.synergy.verification.${stage.verification || 'workflowOnly'}`))}`,
+    )
+    lines.push(
       `- **${markdownText(t('quest.synergy.fleetLabel'))}:** ${markdownText(
         t(`quest.synergy.fleet.${stage.fleetKey}`),
       )}`,
@@ -1092,30 +1077,10 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
   const selectedTypes = viewState.typeFilters?.length
     ? viewState.typeFilters.map((key) => t(`quest.type.${key}`))
     : [t('quest.type.all')]
-  const acceptanceLabel = questAcceptanceLabel(result)
   const lines = [
     `# ${markdownText(t('quest.title'))}`,
     '',
     `- ${markdownText(t('quest.exportedAt'))}: ${markdownText(formatResetAt(exportedAt))}`,
-    `- ${markdownText(
-      t('quest.status', {
-        count: result.candidateCount,
-        groups: result.groupCount,
-        daily: result.dailyCount,
-        weekly: result.weeklyCount,
-        monthly: result.monthlyCount,
-        quarterly: result.quarterlyCount,
-        yearly: result.yearlyCount,
-        oneTime: result.oneTimeCount || 0,
-        limited: result.limitedCount || 0,
-        downstream: result.downstreamValueQuestCount || 0,
-        eo: result.availableExtraOperationCount || 0,
-        unavailable: result.unavailableQuestCount || 0,
-        source: questStatusSource(result),
-      }),
-    )}`,
-    ...(acceptanceLabel ? [`- ${markdownText(acceptanceLabel)}`] : []),
-    '',
     `## ${markdownText(t('quest.exportFilters'))}`,
     '',
     `- **${markdownText(t('quest.chapterFilter.label'))}:** ${markdownList(selectedChapters)}`,
@@ -1266,33 +1231,14 @@ export const downloadQuestRecommendationMarkdown = (
 }
 
 const render = (root, result, viewState) => {
-  const status = root.querySelector('.dqr-status')
   const output = root.querySelector('.dqr-output')
   const visibleCount = root.querySelector('.dqr-visible-count')
   if (!result || result.status === 'error') {
-    status.classList.add('error')
-    status.textContent = translateMessage(result?.error, 'quest.unavailable')
     visibleCount.textContent = ''
     output.innerHTML = `<div class="dqr-message bscolor3 fcolor2"><strong>${t('quest.notReady')}</strong><span>${t('quest.syncFirst')}</span></div>`
     return null
   }
 
-  status.classList.remove('error')
-  status.textContent = t('quest.status', {
-    count: result.candidateCount,
-    groups: result.groupCount,
-    daily: result.dailyCount,
-    weekly: result.weeklyCount,
-    monthly: result.monthlyCount,
-    quarterly: result.quarterlyCount,
-    yearly: result.yearlyCount,
-    oneTime: result.oneTimeCount || 0,
-    limited: result.limitedCount || 0,
-    downstream: result.downstreamValueQuestCount || 0,
-    eo: result.availableExtraOperationCount || 0,
-    unavailable: result.unavailableQuestCount || 0,
-    source: questStatusSource(result),
-  })
   const filtered = filterAndSortQuestRecommendationGroups(result, viewState)
   visibleCount.textContent = t('quest.filter.visibleCount', { count: filtered.visibleQuestCount })
   if ((result.recommendations || []).length === 0) {
@@ -1426,9 +1372,6 @@ const mountPanel = (invoke) => {
     })
     sortSelect.disabled = true
     refresh.textContent = t(forceSync ? 'quest.syncingLatest' : 'common.refreshing')
-    root.querySelector('.dqr-status').textContent = t(
-      forceSync ? 'quest.syncingStatus' : 'quest.preparing',
-    )
     root.querySelector('.dqr-output').innerHTML =
       `<div class="dqr-message bscolor3 fcolor2"><strong>${t(forceSync ? 'quest.syncingLatest' : 'quest.loading')}</strong><span>${t(forceSync ? 'quest.syncingDetail' : 'quest.loadingDetail')}</span></div>`
     let result
@@ -1472,7 +1415,7 @@ const mountPanel = (invoke) => {
 }
 
 export const injectQuestRecommendations = (invoke) => {
-  ;({ locale, t, translateMessage } = createStrategyRoomI18n())
+  ;({ locale, t } = createStrategyRoomI18n())
   if (!document.querySelector('#damecon-quest-recommendation-style')) {
     const style = document.createElement('style')
     style.id = 'damecon-quest-recommendation-style'

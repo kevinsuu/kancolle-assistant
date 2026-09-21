@@ -59,19 +59,13 @@ export const styles = `
   body.dark .dqr-filter[data-quest-type="modernization"] { --dqr-type-color: #e59abd; }
   body.dark .dqr-filter[data-quest-type="other"] { --dqr-type-color: #9ba7ad; }
   body.dark .dqr-sort { background: #161616; }
-  .dqr-status { min-height: 18px; margin: 8px 0 3px; color: #888; }
-  .dqr-status.error { color: #c55b53; }
   .dqr-output { min-height: 480px; }
-  .dqr-eo-strip { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px; margin: 4px 0 10px; padding: 8px 10px; border-left: 3px solid #b9942d; }
-  .dqr-eo-strip > div:first-child strong, .dqr-eo-strip > div:first-child span { display: block; }
-  .dqr-eo-strip > div:first-child strong { color: #b78300; }
-  .dqr-eo-strip > div:first-child span { margin-top: 2px; color: #888; line-height: 1.35; }
+  .dqr-eo-strip { margin: 4px 0 10px; padding: 8px 10px; border-left: 3px solid #b9942d; }
   .dqr-eo-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
   .dqr-eo-list > span { display: inline-flex; gap: 4px; padding: 3px 6px; border: 1px solid #8884; border-radius: 11px; color: #888; }
   .dqr-eo-list > span.available { border-color: #b9942d88; background: #d6a40018; color: #b78300; }
   .dqr-eo-list > span.cleared { opacity: .65; }
-  body.dark .dqr-eo-strip > div:first-child strong, body.dark .dqr-eo-list > span.available { color: #fc0; }
-  .dqr-acceptance-notice { margin: 4px 0 10px; padding: 7px 10px; border-left: 3px solid #2b8091; color: #666; line-height: 1.4; }
+  body.dark .dqr-eo-list > span.available { color: #fc0; }
   .dqr-message { min-height: 170px; padding: 70px 20px; text-align: center; }
   .dqr-message strong { display: block; margin-bottom: 5px; font-size: 14px; }
   .dqr-message span { color: #888; }
@@ -94,6 +88,13 @@ export const styles = `
   .dqr-relation.sameArsenal { background: #9a633f; }
   .dqr-relation.sequence { background: #a36b22; }
   .dqr-relation.unlock { background: #7b65a5; }
+  .dqr-verification { display: inline-flex; align-items: center; min-height: 20px; padding: 1px 6px; border: 1px solid #8885; border-radius: 10px; color: var(--dqr-muted); font-size: 12px; font-weight: 600; }
+  .dqr-verification.profileMatchSortie, .dqr-verification.profileMatchExercise { border-color: #2b809166; background: #2b80910d; color: #287184; }
+  .dqr-verification.profileMatchAction { border-color: #39875d66; background: #39875d0d; color: #28764b; }
+  .dqr-verification.workflowOnly { border-color: #a36b2266; background: #a36b220d; color: #8a5b21; }
+  body.dark .dqr-verification.profileMatchSortie, body.dark .dqr-verification.profileMatchExercise { color: #9acbdd; }
+  body.dark .dqr-verification.profileMatchAction { color: #70cf95; }
+  body.dark .dqr-verification.workflowOnly { color: #d7a45f; }
   .dqr-branch { display: grid; gap: 6px; margin: 0; padding: 6px; list-style: none; }
   .dqr-quest-node { min-width: 0; margin: 0; }
   .dqr-quest-node:last-child { margin-bottom: 0; }
@@ -195,8 +196,6 @@ export const styles = `
     .dqr-controls { grid-template-columns: 1fr; align-items: stretch; }
     .dqr-sort-block { grid-template-columns: auto minmax(115px, 1fr); }
     .dqr-visible-count { grid-column: auto; text-align: left; }
-    .dqr-eo-strip { display: block; }
-    .dqr-eo-list { margin-top: 6px; }
     .dqr-group-heading { align-items: flex-start; }
     .dqr-group-relations { justify-content: flex-start; }
     .dqr-card-grid { grid-template-columns: 1fr; }
@@ -274,6 +273,7 @@ export const panelMarkup = (t) => `
           <button class="dqr-filter" type="button" data-quest-filter="actionReport" aria-pressed="false">${t('quest.filter.actionReport')}</button>
           <button class="dqr-filter" type="button" data-quest-filter="screws" aria-pressed="false">${t('quest.filter.screws')}</button>
           <button class="dqr-filter" type="button" data-quest-filter="equipmentMaterials" aria-pressed="false">${t('quest.filter.equipmentMaterials')}</button>
+          <button class="dqr-filter" type="button" data-quest-filter="catapult" aria-pressed="false">${t('quest.filter.catapult')}</button>
         </div>
       </div>
       <label class="dqr-sort-block">
@@ -288,7 +288,6 @@ export const panelMarkup = (t) => `
       </label>
     </section>
     <div class="page_padding">
-      <div class="dqr-status" aria-live="polite">${t('quest.preparing')}</div>
       <div class="dqr-output" aria-live="polite">
         <div class="dqr-message bscolor3 fcolor2"><strong>${t('quest.loading')}</strong><span>${t('quest.loadingDetail')}</span></div>
       </div>

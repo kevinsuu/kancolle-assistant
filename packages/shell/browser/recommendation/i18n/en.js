@@ -78,6 +78,7 @@ export const en = {
   'quest.filter.actionReport': 'Action Reports',
   'quest.filter.screws': 'Improvement Materials',
   'quest.filter.equipmentMaterials': 'Equipment / materials',
+  'quest.filter.catapult': 'Flight Deck Catapult',
   'quest.filter.visibleCount': 'Showing {count}',
   'quest.filter.emptyTitle': 'No quests match these filters',
   'quest.filter.emptyDetail':
@@ -275,6 +276,14 @@ export const en = {
   'quest.limitedDeadlineUnknown': 'Final availability deadline is not provided by KC3',
   'quest.synergy.verificationNotice':
     'Derived from quest conditions; confirm your ships, equipment, route, and acceptance slots before sortie.',
+  'quest.synergy.verification.profileMatchSortie':
+    'Condition match: map and fleet profiles match; confirm route, speed, LoS, air power, and equipment.',
+  'quest.synergy.verification.profileMatchExercise':
+    'Condition match: exercise fleet profiles match; confirm victory rank and owned ships.',
+  'quest.synergy.verification.profileMatchAction':
+    'Shared action profile matches; confirm accepted quests and completion conditions.',
+  'quest.synergy.verification.workflowOnly':
+    'Workflow guidance: this step does not guarantee completion from one action.',
   'quest.remainingDaysHours': '{days}d {hours}h remaining',
   'quest.remainingHours': '{hours}h remaining',
   'quest.remainingMinutes': '{minutes}m remaining',

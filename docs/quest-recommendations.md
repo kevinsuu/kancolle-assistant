@@ -38,11 +38,9 @@ times out, recommendations continue with game API titles or localized cached tit
 refresh retries loading the Japanese metadata. This addresses a blocking path consistent with the
 reported Windows freeze; Windows-specific reproduction still requires testing on an affected PC.
 
-The status line distinguishes a local KC3 cache from data synchronized from the game during the
-current loaded game-tab session. A timestamp is shown only for the latter, so the display never
-presents the time a recommendation was recomputed as the time the game state was refreshed. The
-list also shows the current accepted-quest count out of the five available acceptance slots; it is
-a reminder to make room before accepting a suggested combination, not an automatic acceptance plan.
+The page keeps synchronization provenance and current accepted-quest counts internal to the
+recommendation process instead of displaying a status summary or acceptance-slot reminder. It does
+not accept quests or reserve slots automatically.
 
 The live request uses quest tab `0`, which KC3 treats as the complete available list. KC3 then
 marks previously open quests missing from that list as completed, so a claimed quest disappears
@@ -67,7 +65,8 @@ KC3 calculates every reset from its own repeatable-quest rules: daily, weekly, m
 and the twelve month-specific yearly types from `yearlyJan` through `yearlyDec`. Yearly types retain
 their exact KC3 reset type for timestamp calculation and are displayed under one **Yearly** label.
 The snapshot also reads the clear state of the seven monthly Medal Extra Operations: 1-5, 2-5, 3-5,
-4-5, 5-5, 6-5, and 7-5.
+4-5, 5-5, 6-5, and 7-5. The page shows these only as compact map-and-status chips, such as
+`1-5 Cleared` or `7-5 Not synchronized`.
 
 ## Ranking and card layout
 
@@ -106,7 +105,7 @@ the list. If a suggested combination contains both sortie and non-sortie quests,
 cards no longer claim that they can be completed together.
 
 The same control area can filter for **Medal / Remodel Blueprint**, **Action Report**,
-**Improvement Materials**, and **equipment / materials**. Reward filters are multi-select and use
+**Improvement Materials**, **equipment / materials**, and the **Flight Deck Catapult**. Reward filters are multi-select and use
 OR semantics. Unlike chapter filters, reward filters apply to both sortie and non-sortie quests. A
 quest matches when either its current reward or a displayed locked successor matches, so filtering
 for a Medal does not hide the prerequisite needed to reach that Medal. The filtered cards remain
@@ -132,8 +131,8 @@ the quest list loads. Missing, outdated, malformed, or unavailable storage falls
 documented defaults without preventing recommendations from loading.
 
 After the quest data loads, **Export MD** downloads the currently visible list with the active quest
-types, chapter filters, reward filters, and sort order recorded at the top. The report includes the
-status summary, monthly Extra Operations, suggested-combination grouping, every visible quest's
+types, chapter filters, reward filters, and sort order recorded at the top. The report includes
+monthly Extra Operations, suggested-combination grouping, every visible quest's
 completion conditions, guidance, rewards, locked valuable successors, deadline and priority, plus
 each shared workflow's participants, fleet, maps, objectives, and instructions. Loading, failed,
 and empty views keep the export action disabled so the file cannot silently contain stale or hidden
@@ -210,6 +209,26 @@ active quests under the curated objective conditions:
 Every combination is advisory: the compatibility solver does not read a player's equipment,
 line-of-sight, speed, route, or remaining acceptance slots. The plan panel and Markdown export
 therefore ask the player to verify those conditions before sortie.
+
+## Co-completion verification status
+
+Each plan stage makes the scope of its evidence explicit. This avoids treating a shared map as a
+guaranteed shared sortie:
+
+- **Condition match — sortie** means the synchronized objective catalog and fleet solver found a
+  common map and a compatible fleet profile. The player must still verify route, speed,
+  line-of-sight, air power, equipment, and owned ships.
+- **Condition match — exercise** means the exercise fleet profiles match; victory rank and owned
+  ships still need player confirmation.
+- **Shared action profile matches** applies to expedition and arsenal actions whose registered
+  action profile overlaps. Accepted state and the remaining completion conditions remain the
+  player's responsibility.
+- **Workflow guidance** identifies unlock and sequence steps. It intentionally does not claim a
+  single action completes the listed objectives.
+
+This first evidence layer is deliberately conservative. It records what the current solver has
+actually checked; source provenance, route and equipment feasibility, and cost-aware plan ranking
+are later phases rather than implied verification.
 
 Locked successors and Extra Operation objectives remain planning context. They do not turn a
 single current quest into a one-item **Suggested combination**; valuable locked successors stay in

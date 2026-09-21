@@ -78,6 +78,7 @@ export const scn = {
   'quest.filter.actionReport': '战斗详报',
   'quest.filter.screws': '改修资材',
   'quest.filter.equipmentMaterials': '兵装／素材',
+  'quest.filter.catapult': '甲板弹射器',
   'quest.filter.visibleCount': '显示 {count} 项',
   'quest.filter.emptyTitle': '没有符合筛选条件的任务',
   'quest.filter.emptyDetail': '请调整任务类型、章节或奖励筛选；章节只会筛选出击任务。',
