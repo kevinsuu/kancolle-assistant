@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.24`   | `2026-09-23`   |
+| `v1.0.25`   | `2026-09-23`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.25 highlights (since v1.0.24)
+
+- The 5-4 guide now includes a fast battleship and carrier upper-route fleet with interchangeable fast battleships.
+- All 5-4 routes treat air power as a recommended target while retaining required routing LoS; the fast battleship night route now shows its D-node maelstrom correctly.
 
 ### v1.0.24 highlights (since v1.0.23)
 
@@ -42,11 +47,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - [Quest synchronization](./docs/quest-recommendations.md) now loads Japanese metadata asynchronously with a three-second fallback, removing a synchronous read that could block KC3 controls.
 - The game quest request now has a ten-second limit covering response headers and body, so stalled requests return an error and allow retry.
-
-### v1.0.20 highlights (since v1.0.19)
-
-- Added a build guard that prevents packaging from removing webpack preloads while the development app is running, keeping KC3 Strategy Room enhancements available after opening new pages.
-- Added recovery for stale build markers after an interrupted Forge or Electron process, with bounded diagnostics for blocked and acquired build operations.
 
 ### Project-specific highlights
 
