@@ -780,7 +780,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 167)
+  assert.equal(NORMAL_MAP_ROUTES.length, 168)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -1972,6 +1972,23 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
     assert.match(route.description, /Cn2索敵45\+/)
     assert.equal(isAutomaticRouteReady(route), true)
   })
+  const sixth = getRouteTemplates('5-4', 'balanced', '5-4-bahamut-31st-sixth')[0]
+  assert.deepEqual(
+    sixth.fleetConstraints.filter(
+      (constraint) =>
+        constraint.kind === 'specific-ship-name' &&
+        !constraint.names.includes('夕張') &&
+        !constraint.names.includes('由良'),
+    ),
+    [
+      { kind: 'specific-ship-name', names: ['長波改二', 'Naganami Kai Ni'], min: 1 },
+      {
+        kind: 'specific-ship-name',
+        names: ['高波改', 'Takanami Kai', '沖波改', 'Okinami Kai', '朝霜改', 'Asashimo Kai'],
+        min: 1,
+      },
+    ],
+  )
 
   const antiInstallation43 = getRouteTemplates('4-3', 'balanced', '4-3-bahamut-bbv2-cl-dd3')[0]
   assert.equal(isAutomaticRouteReady(antiInstallation43), false)
@@ -1979,6 +1996,76 @@ test('Bahamut illustrated guide adds only the reviewed non-duplicate configurati
 
   const correctedLeveling34 = getRouteTemplates('3-4', 'leveling', '3-4-leveling-carrier')[0]
   assert.deepEqual(correctedLeveling34.nodes, ['A', 'C', 'E', 'G', 'J', 'P'])
+})
+
+test('5-4 fast battleship carrier fleet keeps its upper route and flexible ship choices', () => {
+  const routeId = '5-4-custom-fast-bb-carrier-upper'
+  const rawRoute = verifiedBossFleetCatalog
+    .find((map) => map.area === '5-4')
+    .routes.find((route) => route.id === routeId)
+  assert.deepEqual(rawRoute.sources, ['https://wikiwiki.jp/kancolle/南方海域/5-4'])
+
+  const route = getRouteTemplates('5-4', 'balanced', routeId)[0]
+  assert.deepEqual(route.nodes, ['B', 'C', 'G', 'L', 'P'])
+  assert.deepEqual(
+    route.fleetConstraints
+      .filter((constraint) => constraint.kind === 'ship-type-count' && constraint.exact)
+      .map((constraint) => [constraint.shipTypeIds, constraint.exact]),
+    [
+      [[8], 1],
+      [[11, 18], 2],
+      [[7], 1],
+      [[4], 1],
+      [[5], 1],
+    ],
+  )
+  assert.equal(
+    route.fleetConstraints.some((constraint) => constraint.kind === 'specific-ship-name'),
+    false,
+  )
+  assert.deepEqual(route.calculatedConstraints, [
+    { kind: 'air-power', minimum: 320, recommended: 320, required: false },
+    { kind: 'los', formula: '33', coefficient: 2, minimum: 60 },
+  ])
+  assert.match(route.description, /比叡は他の高速戦艦に変更可能/)
+  assert.ok(route.tags.includes('asw-loadout'))
+  assert.ok(route.tags.includes('anti-air-cut-in'))
+})
+
+test('5-4 routes require routing LoS but advise air power even below parity', () => {
+  const routes = getRouteTemplates('5-4', 'balanced')
+  assert.equal(routes.length, 6)
+  routes.forEach((route) => {
+    const air = route.calculatedConstraints.find((constraint) => constraint.kind === 'air-power')
+    const los = route.calculatedConstraints.find((constraint) => constraint.kind === 'los')
+    assert.ok(los, route.id)
+    if (air) assert.equal(air.required, false, route.id)
+  })
+  const primary = routes.find((route) => route.id === '5-4-guide-fbb2-cav2-dd2')
+  assert.deepEqual(primary.nodes, ['A', 'D', 'E', 'H', 'I', 'J', 'M', 'P'])
+  assert.match(primary.description, /D渦潮対策/)
+
+  const raw = createAllNormalMapsSnapshot()
+  raw.equipment.forEach((gear) => {
+    gear.airPowerBySlotSize = Object.fromEntries(
+      Object.keys(gear.airPowerBySlotSize).map((slotSize) => [slotSize, 0]),
+    )
+  })
+  const result = recommendFleet({
+    mapId: '5-4',
+    routeId: primary.id,
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.equal(result.recommendations[0].metrics.airPower, 0)
+  assert.equal(result.recommendations[0].metrics.airPowerRequired, false)
+  assert.ok(result.recommendations[0].metrics.los33 >= 45)
+  assert.ok(
+    result.recommendations[0].warnings.some(
+      (warning) => warning.code === 'AIR_POWER_BELOW_RECOMMENDED',
+    ),
+  )
 })
 
 test('Zekamashi 5-4 quest guide adds two distinct routes and reuses the Mikawa fleet', () => {
@@ -2058,7 +2145,7 @@ test('Zekamashi 5-4 quest guide adds two distinct routes and reuses the Mikawa f
     ],
   )
   assert.deepEqual(upper.calculatedConstraints, [
-    { kind: 'air-power', minimum: 320, recommended: 320 },
+    { kind: 'air-power', minimum: 320, recommended: 320, required: false },
     { kind: 'los', formula: '33', coefficient: 2, minimum: 60 },
   ])
   assert.ok(upper.tags.includes('higher-risk'))

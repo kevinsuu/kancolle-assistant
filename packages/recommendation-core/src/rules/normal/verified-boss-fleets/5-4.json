@@ -5,13 +5,13 @@
   "routes": [
     {
       "id": "5-4-guide-fbb2-cav2-dd2",
-      "name": "攻略網・上路夜戦",
+      "name": "攻略網・渦潮夜戦",
       "category": "boss",
       "objectives": ["balanced", "boss-clear"],
-      "nodes": ["B", "E", "H", "I", "J", "M", "P"],
+      "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
       "stableBoss": true,
       "tags": ["verified-guide", "guide-primary", "fixed-route", "fast", "night-battle"],
-      "desc": "高速戦艦2、航巡2、駆逐2。攻略網掲載の上ルート編成。",
+      "desc": "高速戦艦2、航巡2、駆逐2でA-D-E-H-I-J-M-P。D渦潮対策に電探を推奨。Cn2索敵45+は必須、ボス制空63+は均衡目標で未達でも出撃可能。",
       "lastVerified": "2026-08-26",
       "fleet": [
         {
@@ -38,7 +38,8 @@
         {
           "kind": "air-power",
           "minimum": 63,
-          "recommended": 63
+          "recommended": 63,
+          "required": false
         },
         {
           "kind": "los",
@@ -64,7 +65,7 @@
         "los-cn2-45",
         "air-power"
       ],
-      "desc": "戦艦1、航巡1、軽巡1、駆逐3（高速統一）。長波改二＋高波/沖波/朝霜改以上1隻で三一駆任務を兼ねるB-E-H-I-J-M-P。Cn2索敵45+、制空65+（推奨142+）。",
+      "desc": "戦艦1、航巡1、軽巡1、駆逐3（高速統一）。長波改二＋高波/沖波/朝霜改以上1隻で三一駆任務を兼ねるB-E-H-I-J-M-P。Cn2索敵45+は必須、制空65+（推奨142+）は目標。",
       "lastVerified": "2026-09-03",
       "fleet": [
         {
@@ -125,7 +126,7 @@
       "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
       "stableBoss": true,
       "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle", "los-cn2-45"],
-      "desc": "航戦1、航巡1、軽巡2、駆逐2。夕張・由良と三一駆指定艦を併用するA-D-E-H-I-J-M-P、優勢140+、Cn2索敵45+。",
+      "desc": "航戦1、航巡1、軽巡2、駆逐2。夕張・由良と三一駆指定艦を併用するA-D-E-H-I-J-M-P。Cn2索敵45+は必須、ボス優勢140+は目標。",
       "lastVerified": "2026-09-03",
       "fleet": [
         {
@@ -164,12 +165,12 @@
         },
         {
           "type": "ContainsShipName",
-          "names": ["長波"],
+          "names": ["長波改二", "Naganami Kai Ni"],
           "count": 1
         },
         {
           "type": "ContainsShipName",
-          "names": ["高波", "沖波", "朝霜"],
+          "names": ["高波改", "Takanami Kai", "沖波改", "Okinami Kai", "朝霜改", "Asashimo Kai"],
           "count": 1
         }
       ],
@@ -177,7 +178,8 @@
         {
           "kind": "air-power",
           "minimum": 140,
-          "recommended": 140
+          "recommended": 140,
+          "required": false
         },
         {
           "kind": "los",
@@ -195,7 +197,7 @@
       "nodes": ["A", "D", "E", "H", "I", "J", "M", "P"],
       "stableBoss": true,
       "tags": ["guide-alternative", "fixed-route", "quest-friendly", "night-battle", "los-cn2-45"],
-      "desc": "重巡3、軽巡1、駆逐2。新三川4隻と長波改二＋高波/沖波/朝霜改以上1隻を兼ねるA-D-E-H-I-J-M-P任務編成、Cn2索敵45+。",
+      "desc": "重巡3、軽巡1、駆逐2。新三川4隻と長波改二＋高波/沖波/朝霜改以上1隻を兼ねるA-D-E-H-I-J-M-P任務編成、Cn2索敵45+は必須。",
       "lastVerified": "2026-09-03",
       "fleet": [
         {
@@ -246,6 +248,41 @@
       ]
     },
     {
+      "id": "5-4-custom-fast-bb-carrier-upper",
+      "name": "自訂・高速戦艦空母上路",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "C", "G", "L", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "upper-route",
+        "higher-risk",
+        "carrier-opening",
+        "opening-torpedo",
+        "anti-air-cut-in",
+        "asw-loadout",
+        "los-cn2-60",
+        "air-power"
+      ],
+      "desc": "高速戦艦1、正規/装甲空母2、軽空母1、雷巡1、重巡1でB-C-G-L-P。比叡は他の高速戦艦に変更可能。戦艦は主砲2・水偵・徹甲弾、空母は艦攻・艦爆・艦戦、軽空母は制空を優先しつつ艦攻を搭載、雷巡は甲標的で先制雷撃、摩耶改二は対空CIの候補。Cn2索敵60+は必須、G優勢320+は目標。C潜水混成への対潜装備・陣形と対空CIは手動確認。",
+      "sources": ["https://wikiwiki.jp/kancolle/南方海域/5-4"],
+      "lastVerified": "2026-09-23",
+      "fleet": [
+        { "type": "ShipCount", "value": 6 },
+        { "type": "ExactShipTypeCount", "stypes": [8], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [11, 18], "value": 2 },
+        { "type": "ExactShipTypeCount", "stypes": [7], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [4], "value": 1 },
+        { "type": "ExactShipTypeCount", "stypes": [5], "value": 1 }
+      ],
+      "calculated": [
+        { "kind": "air-power", "minimum": 320, "recommended": 320, "required": false },
+        { "kind": "los", "coefficient": 2, "minimum": 60 }
+      ]
+    },
+    {
       "id": "5-4-zekamashi-31st-upper",
       "name": "ぜかまし・四腕・三一駆旧上路",
       "category": "boss",
@@ -265,7 +302,7 @@
         "los-cn2-60",
         "air-power"
       ],
-      "desc": "空母2、戦艦1、重巡/航巡/軽巡1、駆逐2。長波改二＋高波/沖波/朝霜改以上1隻でB-C-G-L-P。旧編成（2023時点で非推奨）。G優勢320+、Cn2索敵60+。C潜水混成への対潜装備・陣形と対空CIは手動確認。",
+      "desc": "空母2、戦艦1、重巡/航巡/軽巡1、駆逐2。長波改二＋高波/沖波/朝霜改以上1隻でB-C-G-L-P。旧編成（2023時点で非推奨）。Cn2索敵60+は必須、G優勢320+は目標。C潜水混成への対潜装備・陣形と対空CIは手動確認。",
       "lastVerified": "2026-09-03",
       "fleet": [
         {
@@ -307,7 +344,8 @@
         {
           "kind": "air-power",
           "minimum": 320,
-          "recommended": 320
+          "recommended": 320,
+          "required": false
         },
         {
           "kind": "los",

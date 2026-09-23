@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-29:
 7-1 .. 7-5
 ```
 
-It normalizes 167 canonical strategy templates with explicit source references. A canonical
+It normalizes 168 canonical strategy templates with explicit source references. A canonical
 template represents a different routing condition, phase, or gameplay objective; swapping one ship
 for another of the same accepted type does not create another template. Unsourced resource,
 leveling, or broad heuristic templates are omitted until a direct guide or map reference is added.
@@ -67,8 +67,7 @@ sortie requirements remain explicit: the 3-3 北方海域警備 variant preserve
 cruiser instead of merging it into the generic two-cruiser route; the 3-4 carrier sweep and 3-5
 Hayasui fleet preserve their pictured ship-type counts; the 5-3 Mikawa variant requires four
 eligible quest ships instead of relying on a matching cruiser silhouette;
-both Bahamut 5-4 三一駆 quest variants enforce the M-to-P Formula 33 coefficient 2 LoS 45 gate
-in addition to any listed boss air-power target;
+both Bahamut 5-4 三一駆 quest variants enforce the M-to-P Formula 33 coefficient 2 LoS 45 gate;
 the 3-2 速吸 fleet requires manual Fastest-speed and four-radar confirmation, while anti-installation
 and LBAS routes keep manual setup warnings whenever the solver cannot fully validate the pictured
 loadout.
@@ -77,10 +76,26 @@ The supplied ぜかまし 5-4 三一駆 examples add the distinct fast central f
 fleet. The 三川兼用 screenshot matches the existing Bahamut route's fleet, named-ship constraints,
 and A-D-E-H-I-J-M-P routing, so its article URL is merged into that route instead of creating a
 semantic duplicate. All three require 長波改二 plus one remodeled 高波, 沖波, or 朝霜. The central
-route enforces Formula 33 coefficient-2 LoS 45 and advises air 65 with 142 recommended without
-making air power a hard gate; the upper route enforces LoS 60 and air 320. The article marks the
+route enforces Formula 33 coefficient-2 LoS 45 and advises air 65 with 142 recommended; the upper
+route enforces LoS 60 and advises air 320. The article marks the
 upper fleet as an old, non-recommended option, and its C-node ASW loadout, formation, and AACI
 remain manual sortie checks.
+
+The 5-4 fast battleship and carrier upper-route fleet uses one fast battleship, two regular or
+armored carriers, one light carrier, one torpedo cruiser, and one heavy cruiser. Hiei is an example;
+any fast battleship fills the same slot. The B-C-G-L-P route requires Formula 33 coefficient-2 LoS
+60 and targets air power 320 for G-node superiority. Main guns, seaplane reconnaissance and an
+armor-piercing shell on the battleship, attack/bomber/fighter planes on the carriers, a midget
+submarine on the torpedo cruiser, and Maya Kai Ni's anti-air cut-in are loadout guidance. The C-node
+submarine formation and anti-submarine preparation, plus the cut-in setup, require manual review.
+
+All 5-4 routes enforce their fleet and Formula 33 coefficient-2 LoS conditions for reaching P:
+45 through M or 60 through L. The fast fleet condition on the central 三一駆 route is also checked.
+The guide's fast battleship 2, aviation cruiser 2, destroyer 2 primary fleet follows
+A-D-E-H-I-J-M-P, including the D fuel maelstrom; radar is recommended to reduce its cost. Air
+power 63 at the boss is a parity target, not a routing gate. The other 5-4 air targets (65/142,
+140, and 320) are likewise advisory: a fleet below them remains eligible and receives a warning.
+Quest routes still require their named ships, including the remodeled 三一駆 destroyers.
 
 5-6 was added after the base dataset. Its three phases are curated separately and marked
 `experimental` because routing and preferred compositions are still being refined by the
