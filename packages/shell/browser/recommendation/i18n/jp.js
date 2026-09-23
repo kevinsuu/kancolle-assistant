@@ -64,7 +64,7 @@ export const jp = {
   'quest.exportNone': '選択なし',
   'quest.controls': '任務フィルターと並び順',
   'quest.typeFilter.label': '任務種別',
-  'quest.typeFilter.hint': '複数選択可・すべては種別を限定しません',
+  'quest.typeFilter.hint': '複数選択可・共通進行は選択時のみ組合せを表示します',
   'quest.type.all': 'すべて',
   'quest.type.combined': '同時進行',
   'quest.type.fleet': '編成',

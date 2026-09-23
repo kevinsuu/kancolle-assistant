@@ -127,10 +127,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '5b52a05d0ef9df0cb8d621fda6795f767af747f0d2d49a20bb26e72787894f29',
-      jp: '8654bcebcb57e78bc610c7a4cbd533520a785b1b564a80689d826b9e6c0bd127',
-      scn: '9b867c0dc63347f41d15a4a7d2cfc664244b7dcab3f8749fd05f1f9c5611f988',
-      tcn: '46c61f7313177c3ddf8de0918d6d9807068c2cdd106f42b7f117e4379ba4139e',
+      en: '9b2f63571d9b8269a6b7cdef49d25cdf78d42c2342dca57a1f8c692891dcd100',
+      jp: '1920fb3bc2bcbf4962e62ef921c204e369b793758caa20aa8f297d291b623b96',
+      scn: 'aab3b74c6cb065e1ae0c3bd37c55b556040155b260438c1555ce1f154754e8ce',
+      tcn: 'ffbf98c3b532f86f50749be37c56eeb8ac7543310399f9f60aba73deb3c267f7',
     },
   )
 })
@@ -1027,6 +1027,39 @@ test('quest type filters use KC3 quest categories and support multi-select', () 
     [3, 4, 2],
   )
 
+  const sortieCombinationResult = {
+    recommendations: [quests[1], { id: 9, code: 'Bq2', mapIds: ['2-4'] }],
+    groups: [
+      {
+        id: 'combined-sortie',
+        kind: 'combined',
+        quests: [quests[1], { id: 9, code: 'Bq2', mapIds: ['2-4'] }],
+        synergy: { id: 'combined-sortie' },
+      },
+    ],
+  }
+  const sortieOnly = filterAndSortQuestRecommendationGroups(sortieCombinationResult, {
+    typeFilters: ['sortie'],
+  })
+  assert.deepEqual(idsFor(sortieOnly), [2, 9])
+  assert.equal(
+    sortieOnly.groups.every(({ kind }) => kind === 'single'),
+    true,
+  )
+  assert.doesNotMatch(
+    questRecommendationListMarkup({ ...sortieCombinationResult, groups: sortieOnly.groups }),
+    /Suggested combination/,
+  )
+
+  const combinedSorties = filterAndSortQuestRecommendationGroups(sortieCombinationResult, {
+    typeFilters: ['combined', 'sortie'],
+  })
+  assert.equal(combinedSorties.groups[0].kind, 'combined')
+  assert.match(
+    questRecommendationListMarkup({ ...sortieCombinationResult, groups: combinedSorties.groups }),
+    /Suggested combination/,
+  )
+
   const filteredCombination = filterAndSortQuestRecommendationGroups(
     {
       recommendations: quests,
@@ -1664,9 +1697,21 @@ test('quest recommendations split overlapping map intersections into separate ac
     exportedAt: '2026-09-01T00:00:00.000Z',
   })
   assert.doesNotMatch(markdown, /Alternative co-completion plan/)
-  assert.match(markdown, /quest also progresses in another combination/)
-  assert.match(markdown, /Shared maps: 1-3/)
-  assert.match(markdown, /Shared maps: 3-3/)
+  assert.doesNotMatch(markdown, /quest also progresses in another combination/)
+
+  const combinedMarkdown = questRecommendationMarkdown({
+    result,
+    viewState: {
+      chapterFilters: QUEST_MAP_CHAPTER_KEYS,
+      typeFilters: ['combined'],
+      rewardFilters: [],
+      sortMode: 'deadlineAsc',
+    },
+    exportedAt: '2026-09-01T00:00:00.000Z',
+  })
+  assert.match(combinedMarkdown, /quest also progresses in another combination/)
+  assert.match(combinedMarkdown, /Shared maps: 1-3/)
+  assert.match(combinedMarkdown, /Shared maps: 3-3/)
 })
 
 test('quest recommendations omit alternative pairs covered by displayed shared-action groups', () => {
@@ -1981,7 +2026,7 @@ const questMarkdownFixture = () => {
     },
     viewState: {
       chapterFilters: ['world1'],
-      typeFilters: [],
+      typeFilters: ['combined'],
       rewardFilters: [],
       sortMode: 'deadlineDesc',
     },
@@ -1995,7 +2040,7 @@ test('quest Markdown exports the visible list with complete card and combination
   assert.match(markdown, /^# Quest Recommendations/m)
   assert.match(markdown, /## Applied filters/)
   assert.match(markdown, /Chapter 1/)
-  assert.match(markdown, /Quest types:\*\* All/)
+  assert.match(markdown, /Quest types:\*\* Combined/)
   assert.match(markdown, /Deadline far → near/)
   assert.match(markdown, /Showing 2/)
   assert.match(markdown, /Monthly EO Medal route/)
@@ -2191,20 +2236,8 @@ test('quest recommendation sorting follows displayed advice tiers and deadline t
   )
 
   assert.deepEqual(
-    sorted.groups.map(({ id }) => id.split(':')[0]),
-    [
-      'highest-combined',
-      'priority-near',
-      'priority-far',
-      'recommended',
-      'conditional',
-      'optional',
-      'unavailable',
-    ],
-  )
-  assert.deepEqual(
-    sorted.groups[0].quests.map(({ id }) => id),
-    [1, 2],
+    sorted.groups.flatMap(({ quests }) => quests.map(({ id }) => id)),
+    [1, 4, 3, 5, 6, 7, 8, 2],
   )
 })
 

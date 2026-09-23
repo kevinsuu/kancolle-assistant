@@ -62,7 +62,7 @@ export const en = {
   'quest.exportNone': 'None selected',
   'quest.controls': 'Quest filters and sorting',
   'quest.typeFilter.label': 'Quest types',
-  'quest.typeFilter.hint': 'Multi-select · All removes the type limit',
+  'quest.typeFilter.hint': 'Multi-select · Select Combined to show shared-action groups',
   'quest.type.all': 'All',
   'quest.type.combined': 'Combined',
   'quest.type.fleet': 'Fleet',

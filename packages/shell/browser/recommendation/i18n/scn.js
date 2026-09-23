@@ -62,7 +62,7 @@ export const scn = {
   'quest.exportNone': '未选择',
   'quest.controls': '任务筛选与排序',
   'quest.typeFilter.label': '任务类型',
-  'quest.typeFilter.hint': '可多选；全部代表不限类型',
+  'quest.typeFilter.hint': '可多选；选择“共解”才显示共同行动组合',
   'quest.type.all': '全部',
   'quest.type.combined': '共解',
   'quest.type.fleet': '编成',

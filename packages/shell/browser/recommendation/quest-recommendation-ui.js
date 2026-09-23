@@ -348,6 +348,24 @@ const groupsFor = (result) =>
     synergy: quest.synergies?.[0] || null,
   }))
 
+const individualGroupsFor = (result) => {
+  const questsById = new Map()
+  const sourceQuests = Array.isArray(result.recommendations)
+    ? result.recommendations
+    : groupsFor(result).flatMap(({ quests = [] }) => quests)
+  sourceQuests.forEach((quest) => {
+    const id = Number(quest?.id)
+    if (Number.isFinite(id) && !questsById.has(id)) questsById.set(id, quest)
+  })
+  return [...questsById.values()].map((quest) => ({
+    id: `quest:${quest.id}`,
+    kind: 'single',
+    resetAt: quest.resetAt,
+    quests: [quest],
+    synergy: null,
+  }))
+}
+
 const isCombinedGroup = (group) =>
   group.kind === 'combined' && Boolean(group.synergy) && (group.quests || []).length > 1
 
@@ -482,8 +500,11 @@ export const filterAndSortQuestRecommendationGroups = (
     chapterFilters.filter((chapterKey) => QUEST_MAP_CHAPTER_KEYS.includes(chapterKey)),
   )
   const normalizedSortMode = QUEST_SORT_MODES.includes(sortMode) ? sortMode : 'deadlineAsc'
+  // A normal type view lists each quest once. Shared-action groups are an explicit alternate
+  // view because a quest can participate in more than one verified action.
+  const sourceGroups = types.has('combined') ? groupsFor(result) : individualGroupsFor(result)
   const groups = splitGroupsByMapScope(
-    groupsFor(result)
+    sourceGroups
       .map((group, originalIndex) => {
         const sourceQuests = group.quests || []
         const matchesCombinedType = types.has('combined') && isCombinedGroup(group)
@@ -763,6 +784,7 @@ const questNodeMarkup = (
     displayedCombinedGroups,
     visibleQuestIds,
     claimedSynergyIds,
+    showAlternativeSynergies,
   },
 ) => {
   const tier = adviceTier(quest)
@@ -775,14 +797,16 @@ const questNodeMarkup = (
   const reasons = guidanceReasonLabels(quest.guidance)
   const hasDeadline = quest.remainingMs !== null && quest.resetAt !== null
   const isUrgent = hasDeadline && Number(quest.remainingMs) <= 24 * 60 * 60 * 1000
-  const alternativeSynergies = alternativeSynergiesForQuest(
-    quest,
-    selectedSynergyId,
-    displayedSynergySourceIds,
-    displayedCombinedGroups,
-    visibleQuestIds,
-    claimedSynergyIds,
-  )
+  const alternativeSynergies = showAlternativeSynergies
+    ? alternativeSynergiesForQuest(
+        quest,
+        selectedSynergyId,
+        displayedSynergySourceIds,
+        displayedCombinedGroups,
+        visibleQuestIds,
+        claimedSynergyIds,
+      )
+    : []
   return `
   <li class="dqr-quest-node">
     <article class="dqr-quest-row bscolor3 fcolor2">
@@ -905,6 +929,7 @@ export const questRecommendationListMarkup = (result) => {
     groups.map(({ synergy }) => synergy?.sourcePlanId || synergy?.id).filter(Boolean),
   )
   const displayedCombinedGroups = displayedCombinedGroupsFor(groups)
+  const showAlternativeSynergies = groups.some(isCombinedGroup)
   return `${extraOperationMarkup(result.extraOperations)}<ol class="dqr-list">${groups
     .map((group) =>
       groupMarkup(group, {
@@ -912,6 +937,7 @@ export const questRecommendationListMarkup = (result) => {
         displayedCombinedGroups,
         visibleQuestIds,
         claimedSynergyIds,
+        showAlternativeSynergies,
       }),
     )
     .join('')}</ol>`
@@ -1108,6 +1134,7 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
     filtered.groups.map(({ synergy }) => synergy?.sourcePlanId || synergy?.id).filter(Boolean),
   )
   const displayedCombinedGroups = displayedCombinedGroupsFor(filtered.groups)
+  const showAlternativeSynergies = filtered.groups.some(isCombinedGroup)
   filtered.groups.forEach((group, groupIndex) => {
     const quests = group.quests || []
     const isCombined = group.kind === 'combined' && group.synergy
@@ -1134,32 +1161,36 @@ export const questRecommendationMarkdown = ({ result, viewState, exportedAt = ne
       )
       quests.forEach((quest) => {
         lines.push(...questMarkdown(quest, 4), '')
-        lines.push(
-          ...alternativeSynergiesMarkdown(
-            quest,
-            group.synergy.id,
-            displayedSynergySourceIds,
-            displayedCombinedGroups,
-            visibleQuestIds,
-            claimedSynergyIds,
-            5,
-          ),
-        )
+        if (showAlternativeSynergies) {
+          lines.push(
+            ...alternativeSynergiesMarkdown(
+              quest,
+              group.synergy.id,
+              displayedSynergySourceIds,
+              displayedCombinedGroups,
+              visibleQuestIds,
+              claimedSynergyIds,
+              5,
+            ),
+          )
+        }
       })
       lines.push(...synergyMarkdown(group.synergy, 4))
     } else if (quests[0]) {
       lines.push(...questMarkdown(quests[0], 3, `${groupIndex + 1}. `), '')
-      lines.push(
-        ...alternativeSynergiesMarkdown(
-          quests[0],
-          null,
-          displayedSynergySourceIds,
-          displayedCombinedGroups,
-          visibleQuestIds,
-          claimedSynergyIds,
-          4,
-        ),
-      )
+      if (showAlternativeSynergies) {
+        lines.push(
+          ...alternativeSynergiesMarkdown(
+            quests[0],
+            null,
+            displayedSynergySourceIds,
+            displayedCombinedGroups,
+            visibleQuestIds,
+            claimedSynergyIds,
+            4,
+          ),
+        )
+      }
     }
   })
 

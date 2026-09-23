@@ -62,7 +62,7 @@ export const tcn = {
   'quest.exportNone': '未選擇',
   'quest.controls': '任務篩選與排序',
   'quest.typeFilter.label': '任務類型',
-  'quest.typeFilter.hint': '可複選；全部代表不限類型',
+  'quest.typeFilter.hint': '可複選；選擇「共解」才顯示共同行動組合',
   'quest.type.all': '全部',
   'quest.type.combined': '共解',
   'quest.type.fleet': '編成',

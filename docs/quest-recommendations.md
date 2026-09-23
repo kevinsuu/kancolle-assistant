@@ -93,11 +93,13 @@ guidance, the daily deferral, remaining reset time, current reward, progress, ac
 quest ID act as later tie-breakers. One-time quests have no reset-time tie-breaker.
 
 The controls above the list include a multi-select quest-type filter. **All** is the default and
-places no type restriction. Selecting a specific type switches the list to that type; further type
-buttons can be added with OR semantics. **Combined** is a group-level type: it shows every complete
-suggested shared-action group, regardless of its member quests' KC3 code families, and retains the
-group's shared workflow. Types for individual quests follow KC3's stable quest-code families: fleet
-composition (`A`), sortie (`B`), exercise (`C`), expedition (`D`), arsenal (`F`), and modernization
+places no type restriction. In this normal view every quest is shown once, even when it can advance
+in several shared actions. Selecting a specific type switches the list to that type; further type
+buttons can be added with OR semantics. **Combined** is an explicit group-level view: selecting it
+shows every complete suggested shared-action group, regardless of its member quests' KC3 code
+families, and retains the group's shared workflow. Types for individual quests follow KC3's stable
+quest-code families: fleet composition (`A`), sortie (`B`), exercise (`C`), expedition (`D`), arsenal
+(`F`), and modernization
 (`G`). Supply or repair (`E`) quests have no dedicated type button and remain visible under
 **All**. Unrecognized code families remain available under **Other**. Time-limited quests are
 always placed under **Other**, even if their KC3 code resembles a normal A–G quest family, so the
@@ -117,9 +119,9 @@ The same control area can filter for **Medal / Remodel Blueprint**, **Action Rep
 **Improvement Materials**, **equipment / materials**, and the **Flight Deck Catapult**. Reward filters are multi-select and use
 OR semantics. Unlike chapter filters, reward filters apply to both sortie and non-sortie quests. A
 quest matches when either its current reward or a displayed locked successor matches, so filtering
-for a Medal does not hide the prerequisite needed to reach that Medal. The filtered cards remain
-inside their suggested combination group only when every member remains visible in the same sortie
-scope. A reward, type, or chapter filter that removes a member shows the remaining quests as
+for a Medal does not hide the prerequisite needed to reach that Medal. Suggested-combination groups
+appear only when **Combined** is selected, and only when every member remains visible in the same
+sortie scope. A reward, type, or chapter filter that removes a member shows the remaining quests as
 individual cards, so the page never claims a partial group is still a shared-action plan.
 
 The default display order is nearest deadline first. The selector can instead order by farthest
