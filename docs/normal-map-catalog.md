@@ -122,6 +122,9 @@ Notable overlays include:
   separately uses two CVL, three SS/SSV, and one AV.
 - 2-2 carrier leveling, C-B-A bauxite/transport farming, carrier-submarine transport farming, and
   a manually selectable 6SS low-cost random route.
+- The 6-1 standard carrier, light-cruiser, torpedo-cruiser, and three-submarine route requires
+  air superiority at K with air power 126. The C-node air-supremacy value of 69 is not used as the
+  boss-clear recommendation threshold.
 - 1-5 and 2-2 leveling.
 
 ## Extra Operations

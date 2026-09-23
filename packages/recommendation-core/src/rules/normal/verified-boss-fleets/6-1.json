@@ -11,8 +11,8 @@
       "nodes": ["C", "F", "G", "H", "K"],
       "stableBoss": true,
       "tags": ["verified-guide", "guide-primary", "fixed-route", "carrier-opening"],
-      "desc": "正規空母1、雷巡1、軽巡1、潜水艦3。攻略網掲載の標準編成。",
-      "lastVerified": "2026-08-26",
+      "desc": "正規空母1、雷巡1、軽巡1、潜水艦3。攻略網掲載の標準編成。Kマス航空優勢126+。",
+      "lastVerified": "2026-09-22",
       "fleet": [
         {
           "type": "ShipCount",
@@ -42,8 +42,8 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 69,
-          "recommended": 69
+          "minimum": 126,
+          "recommended": 126
         },
         {
           "kind": "los",

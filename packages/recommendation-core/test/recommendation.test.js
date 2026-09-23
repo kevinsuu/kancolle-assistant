@@ -817,6 +817,11 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     airControl16.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
     { kind: 'air-power', minimum: 19, recommended: 83 },
   )
+  const carrierSubmarine61 = getRouteTemplates('6-1', 'balanced', '6-1-guide-cv-cl-clt-ss3')[0]
+  assert.deepEqual(
+    carrierSubmarine61.calculatedConstraints.find((constraint) => constraint.kind === 'air-power'),
+    { kind: 'air-power', minimum: 126, recommended: 126 },
+  )
   const quarterly16 = getRouteTemplates('1-6', 'balanced', '1-6-kcwiki-quarterly')[0]
   assert.deepEqual(
     quarterly16.fleetConstraints
@@ -1287,7 +1292,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
     assert.ok(
-      ['2026-08-26', '2026-08-29', '2026-08-30', '2026-09-01'].includes(
+      ['2026-08-26', '2026-08-29', '2026-08-30', '2026-09-01', '2026-09-22'].includes(
         route.metadata.lastVerified,
       ),
     )
