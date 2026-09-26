@@ -105,9 +105,15 @@ const requestQuestList = (createRequest, requestSession, url, body, setAbort) =>
           syncError('KC3_QUEST_SYNC_REQUEST_FAILED', 'The quest sync response was interrupted.'),
         ),
       )
-      response.on('end', () =>
-        resolve(parseQuestListResponse(Buffer.concat(chunks).toString('utf8'))),
-      )
+      response.on('end', () => {
+        // EventEmitter callbacks run outside the Promise executor. Parsing errors must
+        // reject this request instead of escaping into Electron's main process.
+        try {
+          resolve(parseQuestListResponse(Buffer.concat(chunks).toString('utf8')))
+        } catch (error) {
+          reject(error)
+        }
+      })
     })
     request.end(body)
   })

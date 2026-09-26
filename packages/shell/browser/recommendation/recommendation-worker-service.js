@@ -212,6 +212,7 @@ export const createRecommendationWorkerService = ({
     runMaintenance: (input, options) => run('maintenance', input, options),
     recommend: recommendFleet,
     recommendFleet,
+    rankQuests: (input, options) => run('quest', input, options),
     planExpeditions: (input, options) => run('expedition', input, options),
     summarizeResourceLedger: (input, options) => run('resource-ledger', input, options),
     dispose,

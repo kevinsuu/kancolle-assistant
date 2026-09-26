@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.0.25`    | `2026-09-23`    |
+| `v1.0.26`    | `2026-09-26`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,11 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.0.26 更新重點（相較 v1.0.25）
+
+- [任務同步](./docs/quest-recommendations.md)遇到格式異常的伺服器回應時會回報失敗並允許重試，避免例外未被捕捉而影響主程序。
+- 任務排名移至獨立背景 worker，超過 30 秒會中止並允許重試，避免排名卡住時阻塞主程序。
 
 ### v1.0.25 更新重點（相較 v1.0.24）
 
@@ -40,11 +45,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 - 任務推薦新增獨立的「彈射甲板」獎勵篩選，並標示各共解步驟實際核對的條件範圍。
 - 任務頁面移除冗長的統計與接取欄位摘要，每月 EO 改以精簡的海域狀態標籤顯示。
-
-### v1.0.21 更新重點（相較 v1.0.20）
-
-- [任務同步](./docs/quest-recommendations.md)改為非同步讀取日文資料，並在三秒逾時後使用現有資料繼續，移除可能阻塞 KC3 操作的同步讀取。
-- 遊戲任務請求的十秒限制涵蓋回應標頭與完整內容，請求卡住時會回報錯誤並允許重試。
 
 ### 本專案功能重點
 

@@ -287,6 +287,7 @@ export const registerRecommendationIpc = ({
   readAccountSnapshot = readKC3AccountSnapshot,
   readCombatEvaluations = readKC3CombatEvaluations,
   readQuestRecommendations = readKC3QuestRecommendations,
+  rankQuests,
   recommendationSlowThresholdMs = RECOMMENDATION_SLOW_THRESHOLD_MS,
   syncQuestList,
 }) => {
@@ -620,6 +621,7 @@ export const registerRecommendationIpc = ({
     try {
       const result = await readQuestRecommendations(getSnapshotExecutionTarget(event), logger, {
         synchronizedQuestList,
+        rankQuests,
       })
       const synergyIds = [
         ...new Set(
@@ -701,14 +703,22 @@ export const registerRecommendationIpc = ({
         selectedCount: 0,
         elapsedMs: Date.now() - startedAt,
         outcome: 'failed',
-        reasonCodes: [forceSync ? 'KC3_QUEST_SYNC_APPLY_FAILED' : 'KC3_QUEST_DATA_UNAVAILABLE'],
+        reasonCodes: [
+          error?.code || (forceSync ? 'KC3_QUEST_SYNC_APPLY_FAILED' : 'KC3_QUEST_DATA_UNAVAILABLE'),
+        ],
         message: sanitizedErrorMessage(error),
       })
       return errorResult(
-        forceSync ? 'KC3_QUEST_SYNC_UNAVAILABLE' : 'KC3_UNAVAILABLE',
-        forceSync
-          ? '已取得最新任務資料，但 KC3 無法套用；請回到遊戲母港後再試。'
-          : 'KC3 任務資料尚未就緒，請先在遊戲任務頁同步後再重新整理。',
+        error?.code === 'KC3_QUEST_RANKING_FAILED'
+          ? error.code
+          : forceSync
+            ? 'KC3_QUEST_SYNC_UNAVAILABLE'
+            : 'KC3_UNAVAILABLE',
+        error?.code === 'KC3_QUEST_RANKING_FAILED'
+          ? '任務推薦計算未完成，請稍後重試。'
+          : forceSync
+            ? '已取得最新任務資料，但 KC3 無法套用；請回到遊戲母港後再試。'
+            : 'KC3 任務資料尚未就緒，請先在遊戲任務頁同步後再重新整理。',
       )
     }
   })

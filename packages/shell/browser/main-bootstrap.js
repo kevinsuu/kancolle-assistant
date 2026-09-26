@@ -29,6 +29,7 @@ export const createMainBootstrap = ({ createKccp = createKccpService } = {}) => 
       ipcMain,
       getKc3ExtensionId,
       recommend: (input, options) => recommendationService.recommend(input, options),
+      rankQuests: (input) => recommendationService.rankQuests(input),
       planExpeditions: (input) => recommendationService.planExpeditions(input),
       summarizeResourceLedger: (input) => recommendationService.summarizeResourceLedger(input),
       logger,

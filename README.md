@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.25`   | `2026-09-23`   |
+| `v1.0.26`   | `2026-09-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.26 highlights (since v1.0.25)
+
+- [Quest synchronization](./docs/quest-recommendations.md) now handles malformed server responses as retryable failures instead of uncaught main-process exceptions.
+- Quest ranking runs in a separate background worker with a 30-second limit, preventing stalled ranking from blocking the main process and allowing retry.
 
 ### v1.0.25 highlights (since v1.0.24)
 
@@ -42,11 +47,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - Quest Recommendations adds a dedicated Flight Deck Catapult reward filter and identifies what each shared-action step has actually checked.
 - The quest board removes the long status and acceptance-slot summaries, and shows monthly Extra Operation states as compact map chips.
-
-### v1.0.21 highlights (since v1.0.20)
-
-- [Quest synchronization](./docs/quest-recommendations.md) now loads Japanese metadata asynchronously with a three-second fallback, removing a synchronous read that could block KC3 controls.
-- The game quest request now has a ten-second limit covering response headers and body, so stalled requests return an error and allow retry.
 
 ### Project-specific highlights
 

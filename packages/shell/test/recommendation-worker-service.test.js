@@ -18,7 +18,7 @@ import {
 } from '../browser/recommendation/kc3-bridge.js'
 import {
   KC3_QUEST_SNAPSHOT_SCRIPT,
-  readKC3QuestRecommendations,
+  readKC3QuestRecommendations as readQuestRecommendationsWithWorker,
   synchronizedQuestScript,
 } from '../browser/recommendation/kc3-quest-recommendation.js'
 import { createKC3QuestLiveSync } from '../browser/recommendation/kc3-quest-live-sync.js'
@@ -31,6 +31,15 @@ import { en } from '../browser/recommendation/i18n/en.js'
 import { jp } from '../browser/recommendation/i18n/jp.js'
 import { scn } from '../browser/recommendation/i18n/scn.js'
 import { tcn } from '../browser/recommendation/i18n/tcn.js'
+
+import { rankQuestRecommendations } from '../browser/recommendation/quest-recommendation.js'
+
+// Domain fixtures inject their ranker; production must supply the worker lane.
+const readKC3QuestRecommendations = (target, logger, options = {}) =>
+  readQuestRecommendationsWithWorker(target, logger, {
+    rankQuests: async ({ quests, options }) => rankQuestRecommendations(quests, options),
+    ...options,
+  })
 
 class WorkerDouble extends EventEmitter {
   constructor(handler) {
@@ -278,7 +287,7 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
   )
   assert.equal(logs[0].eventName, 'quest-recommendation.snapshot-started')
   assert.equal(logs[0].data.syncMode, 'local')
-  assert.deepEqual(logs.slice(1), [
+  assert.deepEqual(logs.slice(1, 2), [
     {
       eventName: 'quest-recommendation.snapshot-completed',
       data: {
@@ -766,10 +775,25 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
     { executeJavaScript: async () => snapshot },
     (eventName, data) => logs.push({ eventName, data }),
   )
-  assert.equal(logs.at(-1).eventName, 'quest-recommendation.snapshot-completed')
-  assert.equal(logs.at(-1).data.japaneseQuestMetadataStatus, 'available')
-  assert.equal(logs.at(-1).data.outcome, 'success')
-  assert.deepEqual(logs.at(-1).data.reasonCodes, [])
+  assert.equal(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').eventName,
+    'quest-recommendation.snapshot-completed',
+  )
+  assert.equal(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .japaneseQuestMetadataStatus,
+    'available',
+  )
+  assert.equal(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .outcome,
+    'success',
+  )
+  assert.deepEqual(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .reasonCodes,
+    [],
+  )
 })
 
 test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () => {
@@ -816,8 +840,16 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () =>
     { executeJavaScript: async () => snapshot },
     (eventName, data) => logs.push({ eventName, data }),
   )
-  assert.equal(logs.at(-1).data.outcome, 'degraded')
-  assert.ok(logs.at(-1).data.reasonCodes.includes('KC3_QUEST_METADATA_LOAD_FAILED'))
+  assert.equal(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .outcome,
+    'degraded',
+  )
+  assert.ok(
+    logs
+      .find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed')
+      .data.reasonCodes.includes('KC3_QUEST_METADATA_LOAD_FAILED'),
+  )
   assert.equal(JSON.stringify(logs).includes('secret'), false)
 })
 
@@ -875,10 +907,26 @@ for (const stalledPhase of ['headers', 'body']) {
       { executeJavaScript: async () => snapshot },
       (eventName, data) => logs.push({ eventName, data }),
     )
-    assert.equal(logs.at(-1).eventName, 'quest-recommendation.snapshot-completed')
-    assert.equal(logs.at(-1).data.outcome, 'degraded')
-    assert.ok(logs.at(-1).data.reasonCodes.includes('KC3_QUEST_METADATA_TIMEOUT'))
-    assert.equal(logs.at(-1).data.questTitleSourceCounts.localizedFallback, 1)
+    assert.equal(
+      logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed')
+        .eventName,
+      'quest-recommendation.snapshot-completed',
+    )
+    assert.equal(
+      logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+        .outcome,
+      'degraded',
+    )
+    assert.ok(
+      logs
+        .find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed')
+        .data.reasonCodes.includes('KC3_QUEST_METADATA_TIMEOUT'),
+    )
+    assert.equal(
+      logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+        .questTitleSourceCounts.localizedFallback,
+      1,
+    )
     rejectLate(new Error('late metadata failure'))
     await new Promise(setImmediate)
     fixture.fetch = async () => ({ ok: true, json: async () => ({ 680: { name: '日本語' } }) })
@@ -946,9 +994,20 @@ test('KC3 quest snapshot degrades instead of failing when the successor graph is
   assert.equal(snapshot.diagnostics.successorQueueRemainingCount > 0, true)
   assert.equal(result.candidateCount, rootQuestIds.length)
   assert.equal(result.recommendations.length, rootQuestIds.length)
-  assert.equal(logs.at(-1).eventName, 'quest-recommendation.snapshot-completed')
-  assert.equal(logs.at(-1).data.outcome, 'degraded')
-  assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'])
+  assert.equal(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').eventName,
+    'quest-recommendation.snapshot-completed',
+  )
+  assert.equal(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .outcome,
+    'degraded',
+  )
+  assert.deepEqual(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .reasonCodes,
+    ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'],
+  )
 })
 
 test('quest recommendation IPC validates senders and logs success and failure outcomes', async () => {
@@ -2940,4 +2999,137 @@ test('snapshot speed fallback preserves patterns and reports its compatibility b
   const completed = logs.find(({ name }) => name === 'recommendation.account-snapshot-completed')
   assert.equal(completed.data.speedStatDirectCount, 0)
   assert.ok(completed.data.speedStatFallbackCount > 0)
+})
+
+test('streamed malformed quest responses reject without escaping the event handler and allow retry', async () => {
+  const responses = [
+    '<html>proxy error</html>',
+    'svdata={"api_result":201}',
+    'svdata={"api_result":1,"api_data":{"api_list":[]}}',
+  ]
+  const liveSync = createKC3QuestLiveSync({
+    requestSession: {},
+    createRequest: () => {
+      const request = new EventEmitter()
+      request.abort = () => {}
+      request.end = () =>
+        queueMicrotask(() => {
+          const response = new EventEmitter()
+          response.statusCode = 200
+          request.emit('response', response)
+          response.emit('data', Buffer.from(responses.shift()))
+          assert.doesNotThrow(() => response.emit('end'))
+          request.emit('close')
+        })
+      return request
+    },
+  })
+  await liveSync.observeRequest({
+    method: 'POST',
+    webContentsId: 42,
+    url: 'https://w01y.kancolle-server.com/kcsapi/api_port/port',
+    uploadData: [{ bytes: Buffer.from('api_token=secret-fixture') }],
+  })
+  for (let i = 0; i < 2; i++) {
+    await assert.rejects(liveSync.synchronize(42), { code: 'KC3_QUEST_SYNC_RESPONSE_INVALID' })
+  }
+  assert.deepEqual((await liveSync.synchronize(42)).quests, [])
+})
+
+test('quest ranking worker timeout leaves other lanes responsive and recovers on retry', async (t) => {
+  const workers = []
+  const logs = []
+  const service = createRecommendationWorkerService({
+    timeoutMs: 20,
+    logger: (eventName, data) => logs.push({ eventName, data }),
+    createWorker: (operation) => {
+      const stall = operation === 'quest' && !workers.some(({ operation }) => operation === 'quest')
+      const worker = new WorkerDouble((target, message) => {
+        if (stall) return
+        queueMicrotask(() =>
+          target.emit('message', {
+            type: 'recommendation:result',
+            id: message.id,
+            result:
+              message.operation === 'quest'
+                ? rankQuestRecommendations(message.input.quests, message.input.options)
+                : { alive: true },
+          }),
+        )
+      })
+      workers.push({ worker, operation })
+      return worker
+    },
+  })
+  t.after(() => service.dispose())
+  const target = {
+    executeJavaScript: async () => ({ generatedAt: new Date().toISOString(), quests: [] }),
+  }
+  const read = () =>
+    readQuestRecommendationsWithWorker(
+      target,
+      (eventName, data) => logs.push({ eventName, data }),
+      { rankQuests: (input) => service.rankQuests(input) },
+    )
+  const failed = assert.rejects(read(), { code: 'KC3_QUEST_RANKING_FAILED' })
+  assert.deepEqual(await service.planExpeditions({}), { alive: true })
+  await failed
+  assert.equal(workers.find(({ operation }) => operation === 'quest').worker.terminated, true)
+  const failure = logs.find(({ eventName }) => eventName === 'quest-recommendation.ranking-failed')
+  assert.deepEqual(failure.data.reasonCodes, ['WORKER_TIMEOUT'])
+  assert.equal(failure.data.questCount, 0)
+  assert.equal(failure.data.outcome, 'failed')
+  assert.equal((await read()).candidateCount, 0)
+  const success = logs.find(
+    ({ eventName }) => eventName === 'quest-recommendation.ranking-completed',
+  )
+  assert.equal(success.data.candidateCount, 0)
+  assert.equal(success.data.outcome, 'success')
+  assert.ok(success.data.elapsedMs >= 0)
+})
+
+test('quest ranking never falls back to synchronous main-process computation', async () => {
+  await assert.rejects(
+    readQuestRecommendationsWithWorker({
+      executeJavaScript: async () => ({ generatedAt: new Date().toISOString(), quests: [] }),
+    }),
+    { code: 'KC3_QUEST_RANKING_FAILED' },
+  )
+})
+
+test('quest IPC forwards snapshot to ranking worker and reports ranking failure separately from sync', async () => {
+  const handlers = new Map()
+  const logs = []
+  let failRanking = false
+  let rankingCalls = 0
+  const snapshot = {
+    generatedAt: '2026-09-01T00:00:00.000Z',
+    quests: [{ id: 191, code: 'B191', status: 1, period: 'oneTime' }],
+  }
+  registerRecommendationIpc({
+    ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
+    getKc3ExtensionId: () => 'fixture',
+    logger: (eventName, data) => logs.push({ eventName, data }),
+    syncQuestList: async () => ({ quests: [{ api_no: 191, api_state: 1 }] }),
+    rankQuests: async (input) => {
+      rankingCalls++
+      assert.deepEqual(input.quests, snapshot.quests)
+      assert.equal(input.options.now, Date.parse(snapshot.generatedAt))
+      if (failRanking) throw Object.assign(new Error('timeout'), { code: 'WORKER_TIMEOUT' })
+      return rankQuestRecommendations(input.quests, input.options)
+    },
+  })
+  const handler = handlers.get(QUEST_RECOMMENDATIONS_CHANNEL)
+  const event = {
+    sender: {
+      getURL: () => 'chrome-extension://fixture/pages/strategy/strategy.html',
+      executeJavaScript: async () => snapshot,
+    },
+  }
+  assert.equal((await handler(event, { forceSync: true })).status, 'success')
+  failRanking = true
+  const result = await handler(event, { forceSync: true })
+  assert.equal(result.error.code, 'KC3_QUEST_RANKING_FAILED')
+  assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_RANKING_FAILED'])
+  assert.equal(rankingCalls, 2)
 })

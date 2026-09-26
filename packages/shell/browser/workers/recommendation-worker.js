@@ -1,12 +1,14 @@
 const { parentPort } = require('worker_threads')
 const {
   planExpeditions,
+  rankQuestRecommendations,
   recommendFleet,
   summarizeResourceLedger,
 } = require('@kancolle-assistant/recommendation-core')
 
 const operations = {
   expedition: planExpeditions,
+  quest: ({ quests, options }) => rankQuestRecommendations(quests, options),
   fleet: recommendFleet,
   'resource-ledger': summarizeResourceLedger,
 }

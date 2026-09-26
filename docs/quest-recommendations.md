@@ -26,17 +26,27 @@ recommendations. A ranked candidate must be open or active and be either a norma
 a currently available time-limited quest, or a KC3 daily, weekly, monthly, quarterly, or yearly
 repeatable quest with a future reset timestamp.
 
+Quest ranking runs in its own background worker, with a 30-second execution limit and a
+separate bounded queue. A stalled ranking is terminated; the next attempt starts a fresh worker.
+It never falls back to running the ranking on Electron's main thread, so ranking cannot block
+KC3's network/IPC processing or other recommendation workers. This protection covers ranking;
+it does not terminate KC3's renderer or reload the game.
+
 The live game API request, including reading its response body, is bounded to ten seconds even
 when the network stack does not settle after cancellation. Failure returns a sync error and
 re-enables the control for retry.
 
 On Windows, the request uses Electron's streamed `net.request` with the game session, cookies, and
 proxy settings. It aborts on timeout and rejects responses above 4 MiB before parsing. This avoids
-the `session.fetch` path used by the manual sync in earlier Windows builds.
+the `session.fetch` path used by the manual sync in earlier Windows builds. Malformed JSON and
+unsuccessful game API responses reject the pending sync inside the response event handler,
+instead of throwing an uncaught exception in Electron's main process. A failed response releases
+the pending request so another click can retry.
 
 For diagnosing a stalled manual sync, runtime logs mark the live request, the start and result of
 applying the returned list through KC3, and the start and completion of the recommendation
-snapshot. A missing completion after one of these markers identifies the stage that stopped.
+snapshot. Ranking also emits `quest-recommendation.ranking-started`, `ranking-completed`, or
+`ranking-failed`, with quest counts, elapsed time, and stable worker failure codes. A missing completion after one of these markers identifies the stage that stopped.
 These records include quest counts and elapsed time, but no authentication fields or quest payloads.
 
 Japanese quest metadata is loaded asynchronously from KC3's bundled `lang/data/jp/quests.json`,

@@ -1,5 +1,3 @@
-import { rankQuestRecommendations } from './quest-recommendation'
-
 const MAX_SYNCHRONIZED_QUEST_COUNT = 2_048
 
 const synchronizedQuestScript = (quests) => {
@@ -320,7 +318,7 @@ const validSynchronizedAt = (value) => {
 export const readKC3QuestRecommendations = async (
   webContents,
   logger = () => {},
-  { synchronizedQuestList } = {},
+  { synchronizedQuestList, rankQuests } = {},
 ) => {
   if (synchronizedQuestList) {
     const startedAt = Date.now()
@@ -407,12 +405,47 @@ export const readKC3QuestRecommendations = async (
     outcome: reasonCodes.length > 0 ? 'degraded' : 'success',
     reasonCodes,
   })
+  const rankingStartedAt = Date.now()
+  const rankingFields = { operation: 'rank-quest-value-chains', questCount: snapshot.quests.length }
+  logger('quest-recommendation.ranking-started', {
+    ...rankingFields,
+    executionMode: 'worker',
+    outcome: 'started',
+    reasonCodes: [],
+  })
+  let ranked
+  try {
+    if (typeof rankQuests !== 'function') {
+      throw Object.assign(new Error('Quest ranking worker is unavailable'), {
+        code: 'KC3_QUEST_WORKER_UNAVAILABLE',
+      })
+    }
+    ranked = await rankQuests({
+      quests: snapshot.quests,
+      options: {
+        now,
+        extraOperationStatus: snapshot.extraOperationStatus,
+        account: snapshot.account,
+      },
+    })
+    logger('quest-recommendation.ranking-completed', {
+      ...rankingFields,
+      candidateCount: ranked.candidateCount,
+      elapsedMs: Date.now() - rankingStartedAt,
+      outcome: 'success',
+      reasonCodes: [],
+    })
+  } catch (error) {
+    logger('quest-recommendation.ranking-failed', {
+      ...rankingFields,
+      elapsedMs: Date.now() - rankingStartedAt,
+      outcome: 'failed',
+      reasonCodes: [error?.code || 'KC3_QUEST_RANKING_FAILED'],
+    })
+    throw Object.assign(new Error('Quest ranking failed'), { code: 'KC3_QUEST_RANKING_FAILED' })
+  }
   return {
-    ...rankQuestRecommendations(snapshot.quests, {
-      now,
-      extraOperationStatus: snapshot.extraOperationStatus,
-      account: snapshot.account,
-    }),
+    ...ranked,
     activeQuestCount,
     questAcceptanceCapacity: 5,
     snapshotSource,
