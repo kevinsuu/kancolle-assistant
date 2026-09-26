@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.0.26`    | `2026-09-26`    |
+| `v1.0.27`    | `2026-09-26`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,11 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.0.27 更新重點（相較 v1.0.26）
+
+- [任務推薦](./docs/quest-recommendations.md)在手動同步失敗後會自動重讀一次 KC3 本機資料，不必切換頁面就能顯示可用清單。
+- 若重讀仍失敗，保留先前清單；同步、排名與讀取失敗會分別提示，並明確標示尚未確認最新狀態。
 
 ### v1.0.26 更新重點（相較 v1.0.25）
 
@@ -40,11 +45,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 ### v1.0.23 更新重點（相較 v1.0.22）
 
 - Windows 的手動任務同步改用具備等待上限的 Electron 網路請求，沿用遊戲連線資訊；請求停滯、失敗或回應過大時可中止並重試。
-
-### v1.0.22 更新重點（相較 v1.0.21）
-
-- 任務推薦新增獨立的「彈射甲板」獎勵篩選，並標示各共解步驟實際核對的條件範圍。
-- 任務頁面移除冗長的統計與接取欄位摘要，每月 EO 改以精簡的海域狀態標籤顯示。
 
 ### 本專案功能重點
 

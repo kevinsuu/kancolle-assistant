@@ -1,3 +1,4 @@
+import './quest-recommendation-loader.test.js'
 import './app-shutdown.test.js'
 import './kccp-runtime.test.js'
 import './mod-update-checker.test.js'

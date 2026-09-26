@@ -26,6 +26,18 @@ recommendations. A ranked candidate must be open or active and be either a norma
 a currently available time-limited quest, or a KC3 daily, weekly, monthly, quarterly, or yearly
 repeatable quest with a future reset timestamp.
 
+If **Sync latest status** fails, the page automatically reads KC3's local quest snapshot once,
+just as reopening the page would. It does not repeat the game API request. If local data is
+available, the list appears immediately with a warning that the latest status could not be
+confirmed. If that read also fails, an already displayed list is retained with the same warning;
+otherwise the page shows a retryable error. Sync, ranking, and local-data failures have distinct
+messages. A later successful sync clears the warning. Responses arriving after navigation are
+ignored, and no background polling or automatic game requests are started.
+
+Renderer diagnostics record `quest-recommendation.load-started`, `local-recovery-started`, and
+`load-completed`, with the outcome, fallback source, candidate count, elapsed time, and error codes.
+Transport exception messages and quest payloads are not logged.
+
 Quest ranking runs in its own background worker, with a 30-second execution limit and a
 separate bounded queue. A stalled ranking is terminated; the next attempt starts a fresh worker.
 It never falls back to running the ranking on Electron's main thread, so ranking cannot block

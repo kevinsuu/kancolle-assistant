@@ -97,6 +97,10 @@ export const scn = {
   'quest.syncingStatus': '正在向游戏取得最新任务状态…',
   'quest.syncingDetail': '读取当前任务清单，并更新 KC3 的任务记录…',
   'quest.unavailable': '无法读取 KC3 任务数据。',
+  'quest.cachedAfterFailure': '未能确认最新状态，当前显示 KC3 现有数据。',
+  'quest.syncFailedDetail': '同步未完成，请确认游戏分页仍在线后再次点击“同步最新状态”。',
+  'quest.rankingFailedDetail': '任务排名计算未完成，请稍后重试。',
+  'quest.loadFailedDetail': '任务数据读取失败，请稍后再次点击“同步最新状态”；无需切换页面。',
   'quest.notReady': '任务推荐尚未就绪',
   'quest.syncFirst': '请确认游戏分页仍在线；若刚启动程序，请先返回母港操作一次再同步。',
   'quest.status':

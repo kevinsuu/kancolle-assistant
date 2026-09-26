@@ -98,6 +98,13 @@ export const en = {
   'quest.syncingStatus': 'Getting the latest quest status from the game…',
   'quest.syncingDetail': 'Reading the current quest list and updating KC3 quest records…',
   'quest.unavailable': 'KC3 quest data could not be read.',
+  'quest.cachedAfterFailure':
+    'The latest status could not be confirmed. Showing existing KC3 data.',
+  'quest.syncFailedDetail':
+    'Sync failed. Keep the game tab online and try Sync latest status again.',
+  'quest.rankingFailedDetail': 'Quest ranking did not finish. Please try again later.',
+  'quest.loadFailedDetail':
+    'Quest data could not be read. Try Sync latest status again; you do not need to switch pages.',
   'quest.notReady': 'Quest recommendations are not ready',
   'quest.syncFirst':
     'Keep the game tab online. After a fresh launch, use the home port once, then sync.',

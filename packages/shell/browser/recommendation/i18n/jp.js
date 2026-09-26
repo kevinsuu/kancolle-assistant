@@ -100,6 +100,13 @@ export const jp = {
   'quest.syncingStatus': 'ゲームから最新の任務状態を取得しています…',
   'quest.syncingDetail': '現在の任務一覧を読み込み、KC3の任務記録を更新しています…',
   'quest.unavailable': 'KC3任務データを読み込めません。',
+  'quest.cachedAfterFailure': '最新状態を確認できなかったため、KC3 の既存データを表示しています。',
+  'quest.syncFailedDetail':
+    '同期できませんでした。ゲームタブの接続を確認して、最新状態の同期を再試行してください。',
+  'quest.rankingFailedDetail':
+    '任務の順位計算が完了しませんでした。しばらくしてから再試行してください。',
+  'quest.loadFailedDetail':
+    '任務データを読み込めませんでした。最新状態の同期を再試行してください。ページの切り替えは不要です。',
   'quest.notReady': '任務推薦を利用できません',
   'quest.syncFirst':
     'ゲームタブをオンラインにしてください。起動直後は母港で一度操作してから同期してください。',

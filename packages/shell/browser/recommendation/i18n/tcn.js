@@ -97,6 +97,10 @@ export const tcn = {
   'quest.syncingStatus': '正在向遊戲取得最新任務狀態…',
   'quest.syncingDetail': '讀取目前任務清單，並更新 KC3 的任務紀錄…',
   'quest.unavailable': '無法讀取 KC3 任務資料。',
+  'quest.cachedAfterFailure': '最新狀態未能確認，目前顯示 KC3 現有資料。',
+  'quest.syncFailedDetail': '同步未完成，請確認遊戲分頁仍在線後再按「同步最新狀態」。',
+  'quest.rankingFailedDetail': '任務排名計算未完成，請稍後再試。',
+  'quest.loadFailedDetail': '任務資料讀取失敗，請稍後再按「同步最新狀態」；不需要切換頁面。',
   'quest.notReady': '任務推薦尚未就緒',
   'quest.syncFirst': '請確認遊戲分頁仍在線；若剛啟動程式，請先回母港操作一次再同步。',
   'quest.status':

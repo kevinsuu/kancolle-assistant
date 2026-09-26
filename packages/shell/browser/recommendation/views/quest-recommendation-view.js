@@ -59,6 +59,7 @@ export const styles = `
   body.dark .dqr-filter[data-quest-type="modernization"] { --dqr-type-color: #e59abd; }
   body.dark .dqr-filter[data-quest-type="other"] { --dqr-type-color: #9ba7ad; }
   body.dark .dqr-sort { background: #161616; }
+  .dqr-load-warning { padding: 10px 14px; margin-bottom: 10px; border: 1px solid #b9942d; background: #d6a40018; }
   .dqr-output { min-height: 480px; }
   .dqr-eo-strip { margin: 4px 0 10px; padding: 8px 10px; border-left: 3px solid #b9942d; }
   .dqr-eo-list { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }

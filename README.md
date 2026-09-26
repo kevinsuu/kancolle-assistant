@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.26`   | `2026-09-26`   |
+| `v1.0.27`   | `2026-09-26`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.27 highlights (since v1.0.26)
+
+- [Quest Recommendations](./docs/quest-recommendations.md) recovers from a failed manual sync by reading KC3's local data once, so usable quests appear without switching pages.
+- Existing results remain available if recovery fails, with distinct sync, ranking, and data-load messages; fallback data is clearly marked as unconfirmed.
 
 ### v1.0.26 highlights (since v1.0.25)
 
@@ -42,11 +47,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.0.23 highlights (since v1.0.22)
 
 - On Windows, manual quest synchronization now uses a bounded Electron network request with the game's session. Stalled, failed, and oversized responses can be cancelled and retried.
-
-### v1.0.22 highlights (since v1.0.21)
-
-- Quest Recommendations adds a dedicated Flight Deck Catapult reward filter and identifies what each shared-action step has actually checked.
-- The quest board removes the long status and acceptance-slot summaries, and shows monthly Extra Operation states as compact map chips.
 
 ### Project-specific highlights
 

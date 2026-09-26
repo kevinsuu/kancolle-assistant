@@ -1,4 +1,4 @@
-import { QUEST_RECOMMENDATIONS_CHANNEL } from './channels'
+import { loadQuestRecommendationResult } from './quest-recommendation-loader'
 import { createStrategyRoomI18n } from './i18n'
 import { QUEST_CHAPTER_KEYS } from './quest-recommendation'
 import { escapeHtml, formatLocalizedDate } from './strategy-room-format'
@@ -1261,12 +1261,19 @@ export const downloadQuestRecommendationMarkdown = (
   }
 }
 
+export const questLoadErrorKey = (code) =>
+  code === 'KC3_QUEST_SYNC_UNAVAILABLE'
+    ? 'quest.syncFailedDetail'
+    : code === 'KC3_QUEST_RANKING_FAILED'
+      ? 'quest.rankingFailedDetail'
+      : 'quest.loadFailedDetail'
+
 const render = (root, result, viewState) => {
   const output = root.querySelector('.dqr-output')
   const visibleCount = root.querySelector('.dqr-visible-count')
   if (!result || result.status === 'error') {
     visibleCount.textContent = ''
-    output.innerHTML = `<div class="dqr-message bscolor3 fcolor2"><strong>${t('quest.notReady')}</strong><span>${t('quest.syncFirst')}</span></div>`
+    output.innerHTML = `<div class="dqr-message bscolor3 fcolor2"><strong>${t('quest.notReady')}</strong><span>${t(questLoadErrorKey(result?.error?.code))}</span></div>`
     return null
   }
 
@@ -1303,10 +1310,19 @@ const mountPanel = (invoke) => {
   sortSelect.value = viewState.sortMode
   let currentResult = null
   let currentView = null
+  let currentWarning = null
   let loadSequence = 0
   const persistViewState = () => writeQuestRecommendationSettings(viewState)
   const renderCurrent = () => {
     currentView = render(root, currentResult, viewState)
+    if (currentWarning) {
+      root
+        .querySelector('.dqr-output')
+        .insertAdjacentHTML(
+          'afterbegin',
+          `<div class="dqr-load-warning" role="status">${t('quest.cachedAfterFailure')} ${t(questLoadErrorKey(currentWarning.code))}</div>`,
+        )
+    }
     exportButton.disabled = !currentView || currentView.visibleQuestCount === 0
   }
 
@@ -1405,14 +1421,15 @@ const mountPanel = (invoke) => {
     refresh.textContent = t(forceSync ? 'quest.syncingLatest' : 'common.refreshing')
     root.querySelector('.dqr-output').innerHTML =
       `<div class="dqr-message bscolor3 fcolor2"><strong>${t(forceSync ? 'quest.syncingLatest' : 'quest.loading')}</strong><span>${t(forceSync ? 'quest.syncingDetail' : 'quest.loadingDetail')}</span></div>`
-    let result
-    try {
-      result = await invoke(QUEST_RECOMMENDATIONS_CHANNEL, { forceSync })
-    } catch {
-      result = { status: 'error', error: { code: 'KC3_UNAVAILABLE' } }
-    }
-    if (sequence !== loadSequence) return
-    currentResult = result
+    const loaded = await loadQuestRecommendationResult({
+      invoke,
+      forceSync,
+      previousResult: currentResult,
+      isCurrent: () => sequence === loadSequence && root.isConnected,
+    })
+    if (!loaded) return
+    currentResult = loaded.result
+    currentWarning = loaded.warning
     renderCurrent()
     refresh.disabled = false
     filterButtons.forEach((button) => {
