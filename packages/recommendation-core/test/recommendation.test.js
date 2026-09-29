@@ -55,6 +55,7 @@ const CONYE_55_SOURCE = 'https://conye.hatenablog.com/entry/2021/08/13/180323'
 const KANKOREKORE_BY11_SOURCE = 'https://kankorekore.2-d.jp/s089/'
 const ZEKAMASHI_BY11_SOURCE = 'https://zekamashi.net/kancolle-kouryaku/nitieibei-batubyou/'
 const EO_AUDIT_SOURCES = {
+  '6-4': ['https://zh.kcwiki.cn/wiki/%E4%B8%AD%E9%83%A8%E6%B5%B7%E5%9F%9F/6-4'],
   '4-5': [
     'https://wikiwiki.jp/kancolle/西方海域/4-5',
     'https://zekamashi.net/kancolle-kouryaku/4-5/',
@@ -628,7 +629,10 @@ const createAllNormalMapsSnapshot = () => {
     Array.from({ length: 40 }, (_, index) => ({
       id: equipmentId++,
       masterId: 20000 + typeId * 100 + index,
-      name: `All-map fixture gear ${typeId}-${index}`,
+      name:
+        typeId === 24
+          ? `大発動艇(八九式中戦車＆陸戦隊) ${index}`
+          : `All-map fixture gear ${typeId}-${index}`,
       typeId,
       iconTypeId: typeId,
       type: String(typeId),
@@ -780,7 +784,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 168)
+  assert.equal(NORMAL_MAP_ROUTES.length, 175)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -1288,11 +1292,11 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   const verifiedGuideRoutes = NORMAL_MAP_ROUTES.filter((route) =>
     route.tags.includes('verified-guide'),
   )
-  assert.equal(verifiedGuideRoutes.length, 41)
+  assert.equal(verifiedGuideRoutes.length, 45)
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
     assert.ok(
-      ['2026-08-26', '2026-08-29', '2026-08-30', '2026-09-01', '2026-09-22'].includes(
+      ['2026-08-26', '2026-08-29', '2026-08-30', '2026-09-01', '2026-09-22', '2026-09-29'].includes(
         route.metadata.lastVerified,
       ),
     )
@@ -5450,4 +5454,100 @@ test('4-5 night small fleet equips two land destroyers without forcing three ope
     failed.analysis.reasons.some(({ code }) => code === 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT'),
   )
   assert.equal(failed.diagnostics.airPowerMinimum, null)
+})
+
+test('6-4 reviewed fleets retain manual combined setups and advisory air power', () => {
+  const routes = getRouteTemplates('6-4', 'balanced')
+  assert.equal(routes.length, 4)
+  for (const route of routes) {
+    assert.ok(route.tags.includes('anti-installation-surface-gears-2'))
+    assert.ok(route.tags.includes('anti-installation-landing-gears'))
+    assert.ok(route.calculatedConstraints.every((constraint) => constraint.required === false))
+    assert.ok(automaticRouteBlockers(route).includes('manual-combat-setup'))
+  }
+  assert.ok(
+    routes
+      .find((route) => route.id === '6-4-guide-fast-left')
+      .tags.includes('flagship-light-cruiser'),
+  )
+  const added = routes.find((route) => route.id === '6-4-yui-akitsushima')
+  assert.ok(
+    added.metadata.guideSources.includes('https://yuikancolle.blog.fc2.com/blog-entry-20.html'),
+  )
+  assert.deepEqual(added.nodes, ['A', 'D', 'C', 'F', 'N'])
+  assert.ok(added.fleetConstraints.some((constraint) => constraint.names?.includes('秋津洲')))
+})
+
+test('7-1 source fleets do not turn opening ASW advice into mandatory conditions', () => {
+  const routes = NORMAL_MAP_ROUTES.filter((route) => route.mapId === '7-1')
+  assert.equal(routes.length, 7)
+  for (const route of routes) {
+    assert.deepEqual(route.calculatedConstraints, [])
+    assert.ok(route.tags.includes('asw-loadout'))
+    assert.equal(isAutomaticRouteReady(route), route.stableBoss)
+    assert.ok(route.metadata.guideSources.some((source) => source.includes('kcwiki.cn')))
+  }
+  const raw = createRawSnapshot({ shipCount: 5 })
+  raw.ships[0].shipTypeId = 3
+  const result = recommendFleet({
+    mapId: '7-1',
+    routeId: '7-1-guide-cl-dd4',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.ok(
+    result.recommendations.every((recommendation) => recommendation.metrics.openingAswCount < 5),
+  )
+})
+
+test('6-4 enforces landing duties on current equipment and diagnoses missing equipment', () => {
+  const raw = createRawSnapshot()
+  ;[9, 2, 6, 3, 2, 2].forEach((shipTypeId, index) => {
+    raw.ships[index].shipTypeId = shipTypeId
+    raw.ships[index].equippedItemIds = raw.equipment
+      .slice(index * 3, index * 3 + 3)
+      .map((gear) => gear.id)
+  })
+  const tanks = raw.equipment.slice(-2)
+  tanks.forEach((gear) => {
+    gear.typeId = 46
+    gear.name = '特二式内火艇'
+  })
+  const run = () =>
+    recommendFleet({
+      mapId: '6-4',
+      routeId: '6-4-guide-fast-left',
+      objective: 'balanced',
+      account: parseKC3AccountSnapshot(raw),
+    })
+  const result = run()
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  result.recommendations.forEach((recommendation) => {
+    assert.equal(recommendation.ships[0].ship.shipTypeId, 3)
+    assert.ok(
+      recommendation.ships.filter((build) => build.equipment.some((gear) => gear?.typeId === 46))
+        .length >= 2,
+    )
+    assert.ok(
+      recommendation.reasons.some(
+        (reason) =>
+          reason.code === 'ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED' &&
+          reason.values.minimum === 2,
+      ),
+    )
+  })
+  tanks.forEach((gear) => {
+    gear.typeId = 24
+    gear.name = '大発動艇'
+  })
+  const failed = run()
+  assert.equal(failed.status, 'no-solution')
+  assert.ok(
+    failed.analysis.reasons.some(
+      (reason) =>
+        reason.code === 'ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT' && reason.values.minimum === 2,
+    ),
+  )
+  assert.ok(failed.diagnostics.reasonCodes.includes('ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT'))
 })

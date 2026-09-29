@@ -21,6 +21,11 @@ const PLAN_LIMIT = 24
 export const SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS = new Set([
   1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 16, 17, 20, 21, 22,
 ])
+// Landing tanks and amphibious tanks used against 6-4's mixed installations.
+// Ordinary transport landing craft and Type 3 shells cannot satisfy this duty.
+export const isInstallationLandingGear = (gear: OwnedEquipment): boolean =>
+  gear.typeId === 46 || (gear.typeId === 24 && /戦車|陸戦隊|M4A1|武装大発|装甲艇/.test(gear.name))
+
 const combinations = (values: readonly number[], count: number): number[][] => {
   if (count === 0) return [[]]
   return values.flatMap((value, index) =>
@@ -62,7 +67,9 @@ export const createLoadoutPlans = (
   )
   const surfaceChoices = combinations(
     eligible([...SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS], (gear) =>
-      [18, 24, 46].includes(gear.typeId),
+      route?.tags.includes('anti-installation-landing-gears')
+        ? isInstallationLandingGear(gear)
+        : [18, 24, 46].includes(gear.typeId),
     ),
     surfaceCount,
   )

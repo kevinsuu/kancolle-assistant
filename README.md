@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.28`   | `2026-09-29`   |
+| `v1.0.29`   | `2026-09-29`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.29 highlights (since v1.0.28)
+
+- Normal-map recommendations now refresh the sourced 6-4 and 7-1 route catalog, distinguish advisory air-power and opening-ASW guidance from hard requirements, and model landing-equipment roles for 6-4.
 
 ### v1.0.28 highlights (since v1.0.27)
 
@@ -43,18 +47,13 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - The 5-4 guide now includes a fast battleship and carrier upper-route fleet with interchangeable fast battleships.
 - All 5-4 routes treat air power as a recommended target while retaining required routing LoS; the fast battleship night route now shows its D-node maelstrom correctly.
 
-### v1.0.24 highlights (since v1.0.23)
-
-- Quest Recommendations lists each quest once by default; select **Combined** to see complete shared-action plans.
-- The standard 6-1 carrier and submarine fleet now requires 126 air power for superiority at the boss node.
-
 ### Project-specific highlights
 
 Compared with the original project, this source adds or improves:
 
 1. **[Account access](./docs/dmm-local-login-storage.md)** — With confirmation, DMM credentials can be encrypted by the operating system's secure storage. An all-traffic mode for a trusted external forward proxy and clearer regional-error guidance are also included.
 2. **[Adaptive game display](./docs/display-auto-fit.md)** — On startup, KC3 is fitted to its rendered content and the remaining display area determines the window and game-canvas scale; later resizing keeps the full game visible when possible without locking the window aspect ratio.
-3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — In KC3 Strategy Room, select a sourced guide template for maps 1-1 through 7-5, including 5-6, and generate up to three account-owned fleets on demand without changing game state.
+3. **[Normal-map fleet recommendations](./docs/fleet-recommender.md)** — In KC3 Strategy Room, select a sourced guide template for maps 1-1 through 7-5, including 5-6, and generate up to three account-owned fleets on demand without changing game state. Route templates retain source links and distinguish hard routing requirements from advisory air-power, opening-ASW, and equipment-role guidance.
 4. **[Ship recommendations](./docs/ship-recommendations.md)** — The Strategy Room **Ship Recommendations** page filters the NGA guide's 1–10 priority table to owned ship families that have not reached a listed guide remodel, uses canonical KC3 master data so language changes cannot alter matches, and shows each ship in a full-width row with its image, source strengths, priority rationale, and practical roles without changing game state.
 5. **[Quest recommendations](./docs/quest-recommendations.md)** — The Strategy Room **任務推薦** page shows official Japanese quest titles, can manually synchronize current game status, filters individual quests by the fleet, sortie, exercise, expedition, arsenal, modernization, or other categories, and lists each quest once by default, showing complete shared-action groups when **Combined** is selected. It filters sortie quests with Chapters 1–7 enabled by default and ranks all open repeatable, normal one-time, and currently available time-limited quests using current and downstream rewards. Reward filters include a dedicated **Flight Deck Catapult** option. Time-limited quests appear under **Other** and are marked when KC3 does not provide their final deadline. Objective rules automatically derive compatible exercise and normal-map sortie stacks of up to five accepted quests; verified expedition and arsenal combinations remain supported, and non-sortie quests stay at the top regardless of chapter filters. Filter and sort settings are retained locally across page and game restarts. The visible quest list, complete conditions, and planning details can be exported as Markdown.
 6. **[Expedition recommendations](./docs/expedition-resource-planner.md)** — The independent Strategy Room **遠征推薦** page shows current resources and uses adjustable resource and bucket weights, selected expeditions, success and Daihatsu settings, and fleets 2–4 to recommend one best pairing. Planning settings are retained locally across page and game restarts; the original Expedition Scorer remains unchanged and expeditions are never dispatched automatically.

@@ -10,9 +10,16 @@
       "objectives": ["balanced", "boss-clear", "low-cost"],
       "nodes": ["D", "E", "G", "H", "K"],
       "stableBoss": true,
-      "tags": ["verified-guide", "guide-primary", "fixed-route", "oasw"],
-      "desc": "軽巡1、駆逐4。全艦先制対潜を目標にする攻略網掲載編成。",
-      "lastVerified": "2026-08-26",
+      "tags": [
+        "verified-guide",
+        "guide-primary",
+        "fixed-route",
+        "asw-loadout",
+        "no-numeric-requirements",
+        "opening-torpedo-preferred"
+      ],
+      "desc": "軽巡1、駆逐4でD-E-G-H-K固定。対潜装備を優先。先制対潜は初攻略2隻、安定周回4～5隻を推奨するが必須条件ではない。Gは単縦、潜水艦マスは単横。制空・索敵条件なし。",
+      "lastVerified": "2026-09-29",
       "fleet": [
         {
           "type": "ShipCount",
@@ -29,12 +36,250 @@
           "value": 4
         }
       ],
-      "calculated": [
-        {
-          "kind": "opening-asw",
-          "minimum": 5
-        }
+      "calculated": [],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/7-1/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"
       ]
+    },
+    {
+      "id": "7-1-guide-cl-dd-de3",
+      "name": "攻略網・軽巡・駆逐・海防3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["D", "E", "G", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-alternative",
+        "fixed-route",
+        "asw-loadout",
+        "no-numeric-requirements",
+        "opening-torpedo-preferred"
+      ],
+      "desc": "軽巡・駆逐・海防3。D-E-G-H-K固定。対潜装備を優先、先制対潜数は推奨に留める。G単縦、潜水艦マス単横。制空・索敵条件なし。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/7-1/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"
+      ]
+    },
+    {
+      "id": "7-1-guide-dd2-de3",
+      "name": "攻略網・駆逐2・海防3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["D", "E", "G", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-alternative",
+        "fixed-route",
+        "asw-loadout",
+        "no-numeric-requirements",
+        "opening-torpedo-preferred"
+      ],
+      "desc": "駆逐2・海防3。D-E-G-H-K固定。対潜装備を優先、先制対潜数は推奨に留める。G単縦、潜水艦マス単横。制空・索敵条件なし。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/7-1/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"
+      ]
+    },
+    {
+      "id": "7-1-guide-dd-de3",
+      "name": "攻略網・駆逐・海防3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-alternative",
+        "fixed-route",
+        "asw-loadout",
+        "no-numeric-requirements",
+        "opening-torpedo-preferred"
+      ],
+      "desc": "駆逐・海防3。F-G-H-K固定。対潜装備を優先、先制対潜数は推奨に留める。G単縦、潜水艦マス単横。制空・索敵条件なし。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/7-1/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"
+      ]
+    },
+    {
+      "id": "7-1-kcwiki-cruiser3-escort",
+      "name": "艦娘百科・初期・軽巡雷巡3＋駆逐海防1",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "H", "K"],
+      "stableBoss": false,
+      "tags": [
+        "guide-alternative",
+        "random-routing",
+        "asw-loadout",
+        "opening-torpedo-preferred",
+        "no-numeric-requirements"
+      ],
+      "desc": "初期・軽巡雷巡3＋駆逐海防1。F-G-H-K、HからI/Jへ逸れる場合あり。対潜装備を優先し、軽巡雷巡は甲標的または主砲でG対策。先制対潜数・特定艦・制空・索敵の必須条件なし。G単縦、他は単横。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 4],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1, 2],
+          "value": 1
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"]
+    },
+    {
+      "id": "7-1-kcwiki-cruiser2-dd-de",
+      "name": "艦娘百科・初期・軽巡雷巡2＋駆逐1海防1",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["F", "G", "H", "K"],
+      "stableBoss": false,
+      "tags": [
+        "guide-alternative",
+        "random-routing",
+        "asw-loadout",
+        "opening-torpedo-preferred",
+        "no-numeric-requirements"
+      ],
+      "desc": "初期・軽巡雷巡2＋駆逐1海防1。F-G-H-K、HからI/Jへ逸れる場合あり。対潜装備を優先し、軽巡雷巡は甲標的または主砲でG対策。先制対潜数・特定艦・制空・索敵の必須条件なし。G単縦、他は単横。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 4],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 1
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"]
+    },
+    {
+      "id": "7-1-kcwiki-av-dd-de3",
+      "name": "艦娘百科・水母・駆逐・海防3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear", "low-cost"],
+      "nodes": ["D", "E", "G", "H", "K"],
+      "stableBoss": true,
+      "tags": [
+        "verified-guide",
+        "guide-alternative",
+        "fixed-route",
+        "asw-loadout",
+        "no-numeric-requirements",
+        "opening-torpedo-preferred",
+        "seaplane-bombers-preferred"
+      ],
+      "desc": "水母1、駆逐1、海防3でD-E-G-H-K固定。水母は日進の水爆3＋甲標的を参考にG対策、他は水聴＋投射機を推奨。未改造海防の輪換は節約案で必須ではない。先制対潜数・制空・索敵条件なし。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"]
     }
   ]
 }

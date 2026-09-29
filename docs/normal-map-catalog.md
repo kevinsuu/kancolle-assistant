@@ -318,3 +318,36 @@ ship names.
 These limitations are surfaced as route-specific warnings with a direct guide link and verification
 date. Internal ranking scores are not displayed; the solver does not silently invent missing game
 formulas or claim that random combat outcomes are guaranteed.
+
+### 6-4 and 7-1 source review (2026-09-29)
+
+6-4 adds Yui's BB/CL/CAV/DD2/Akitsushima left route. The fast CL/BB/CAV/DD3 route and
+Nagato/Mutsu/Akitsushima screenshot overlap existing routes, so they are updated in place.
+The fast route now places CL first; the two-battleship route requires both Kai Ni forms.
+The old Yui article's A→D explanation is superseded by KCWiki's current branch table.
+All four routes treat air power as advice, not a condition: C superiority 36 on the left,
+J superiority 198 on the right. The latter corrects the previous 129 value.
+
+Each 6-4 fleet now allocates landing combat equipment to two compatible ships, reusing the
+existing surface-duty search and its success/failure diagnostics. For these routes, ordinary
+transport Daihatsu and Type 3 shells cannot satisfy that duty: it accepts amphibious tanks
+(type 46) or type-24 equipment named as tanks, land forces, armed Daihatsu or armored boats.
+This is a minimum combat role, not full screenshot replication or a guarantee of sufficient damage.
+Tank/Ka-Mi/WG combinations, additional finishers, AACI, expansion armor, formations and LBAS
+remain manual checks. The manual anti-installation blocker is deliberately retained.
+
+7-1 retains CL1/DD4 and adds CL1/DD1/DE3, DD2/DE3 (D-E-G-H-K), and DD1/DE3 (F-G-H-K).
+KCWiki additionally supplies AV1/DD1/DE3 on D-E-G-H-K, using seaplane bombers and optional
+midget submarines for the surface node. Its two beginner four-ship patterns (CL/CLT3 + DD/DE1;
+CL/CLT2 + DD1/DE1) are retained as manual selections because H can divert to I/J. The inspected
+high/low beginner images share one flexible skeleton and are not duplicated.
+The fixed compositions reach the boss without air-power or LoS thresholds. Opening ASW counts
+are advice (two for initial clears, four to five for stable farming), not a five-ship gate.
+`asw-loadout` preserves ASW equipment allocation independently of that numerical gate.
+`no-numeric-requirements` explicitly records a reviewed route without numerical requirements,
+so absence of artificial thresholds does not disqualify it from automatic selection.
+
+Sources: [Yui 6-4](https://yuikancolle.blog.fc2.com/blog-entry-20.html),
+[KCWiki 6-4](https://zh.kcwiki.cn/wiki/中部海域/6-4),
+[Zekamashi 7-1](https://zekamashi.net/kancolle-kouryaku/7-1/),
+[KCWiki 7-1](https://zh.kcwiki.cn/wiki/南西海域/7-1).

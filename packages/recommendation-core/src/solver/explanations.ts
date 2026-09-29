@@ -65,14 +65,25 @@ export const recommendationMessages = (
     })
   }
 
+  if (route.tags.includes('flagship-light-cruiser') && builds[0]?.ship.shipTypeId === 3) {
+    reasons.push({
+      code: 'FLAGSHIP_REQUIREMENT_PASSED',
+      message: '已將輕巡配置為旗艦，符合高速左路帶路條件。',
+      values: { shipId: builds[0].ship.id, shipTypeId: 3 },
+    })
+  }
+
   if (route.tags.includes('opening-torpedo-preferred')) {
     const openingTorpedoBuild = builds.find(
-      (build) => build.ship.shipTypeId === 3 && build.equipment.some((gear) => gear?.typeId === 22),
+      (build) =>
+        (build.ship.shipTypeId === 3 ||
+          (route.tags.includes('asw-loadout') && [4, 16].includes(build.ship.shipTypeId))) &&
+        build.equipment.some((gear) => gear?.typeId === 22),
     )
     if (openingTorpedoBuild) {
       reasons.push({
         code: 'OPENING_TORPEDO_PREFERENCE_APPLIED',
-        message: `${openingTorpedoBuild.ship.name} 可裝甲標的，已優先採用先制雷擊輕巡配置。`,
+        message: `${openingTorpedoBuild.ship.name} 可裝甲標的，已優先採用先制雷擊配置。`,
         values: {
           shipId: openingTorpedoBuild.ship.id,
           shipName: openingTorpedoBuild.ship.name,
@@ -81,9 +92,27 @@ export const recommendationMessages = (
     } else {
       warnings.push({
         code: 'OPENING_TORPEDO_PREFERENCE_UNAVAILABLE',
-        message: '此方案採用一般輕巡配裝，未採用甲標的先制雷擊偏好。',
+        message: '此方案採用一般配裝，未採用甲標的先制雷擊偏好。',
       })
     }
+  }
+
+  if (route.tags.includes('seaplane-bombers-preferred')) {
+    const count = builds
+      .filter((build) => build.ship.shipTypeId === 16)
+      .flatMap((build) => build.equipment)
+      .filter((gear) => gear?.typeId === 11).length
+    const message = {
+      code:
+        count > 0 ? 'SEAPLANE_BOMBER_PREFERENCE_APPLIED' : 'SEAPLANE_BOMBER_PREFERENCE_UNAVAILABLE',
+      message:
+        count > 0
+          ? `水母已配置 ${count} 架水上爆擊機支援水上戰。`
+          : '水母未配置水上爆擊機，請確認水上戰輸出配置。',
+      values: { count },
+    }
+    if (count > 0) reasons.push(message)
+    else warnings.push(message)
   }
 
   if (metrics.airPowerRecommended > 0 && metrics.airPower >= metrics.airPowerRecommended) {
@@ -165,7 +194,9 @@ export const recommendationMessages = (
   if (antiInstallationSurfaceCount > 0) {
     reasons.push({
       code: 'ANTI_INSTALLATION_SURFACE_REQUIREMENT_PASSED',
-      message: `已為 ${antiInstallationSurfaceCount} 艘水上艦配置三式彈系或戰車／登陸艇系裝備，符合此路線的對陸配置模型。`,
+      message: route.tags.includes('anti-installation-landing-gears')
+        ? `已為 ${antiInstallationSurfaceCount} 艘艦配置戰車／內火艇系對陸裝備；完整對陸組合仍需確認。`
+        : `已為 ${antiInstallationSurfaceCount} 艘水上艦配置三式彈系或戰車／登陸艇系裝備，符合此路線的對陸配置模型。`,
       values: { minimum: antiInstallationSurfaceCount },
     })
   }

@@ -64,7 +64,12 @@ const fixture = (ships, equipment) => {
   }))
   return parseKC3AccountSnapshot(raw)
 }
-const solve = (account, roles, target = route(), { shell = 0, drum = 0, fast = false } = {}) => {
+const solve = (
+  account,
+  roles,
+  target = route(),
+  { shell = 0, surface = 0, drum = 0, fast = false } = {},
+) => {
   const context = createGearSearchContext(account)
   const fleet = {
     members: account.ships.map((ship, index) => ({ ship, role: roles[index] })),
@@ -79,7 +84,7 @@ const solve = (account, roles, target = route(), { shell = 0, drum = 0, fast = f
       null,
     fast,
     shell,
-    0,
+    surface,
     false,
     0,
     false,
@@ -405,4 +410,77 @@ test('1-5 retains explicit ASW-focused ranking while mixed OASW routes keep surf
   assert.ok(
     getRouteTemplates('4-4', 'balanced').every((target) => !target.tags.includes('asw-loadout')),
   )
+})
+
+test('6-4 landing duties allocate compatible tanks and reject transport craft or shells', () => {
+  const target = { ...route(), tags: ['anti-installation-landing-gears'] }
+  const ships = [{ shipTypeId: 2, slotSizes: [0, 0, 0] }]
+  for (const equipment of [
+    [gear(1, 46)],
+    [{ ...gear(2, 24), name: '大発動艇(八九式中戦車＆陸戦隊)' }],
+  ]) {
+    const { solutions } = solve(fixture(ships, equipment), ['escort-destroyer'], target, {
+      surface: 1,
+    })
+    assert.ok(solutions.length > 0)
+    assert.ok(
+      solutions.every((builds) => builds[0].equipment.some((item) => item?.id === equipment[0].id)),
+    )
+  }
+  for (const equipment of [[gear(5, 1)], [gear(3, 18)], [{ ...gear(4, 24), name: '大発動艇' }]]) {
+    const { solutions } = solve(fixture(ships, equipment), ['escort-destroyer'], target, {
+      surface: 1,
+    })
+    assert.equal(solutions.length, 0)
+  }
+})
+
+test('7-1 seaplane tender prioritizes bombers without an air-power gate', () => {
+  const equipment = [
+    gear(1, 11, { bombing: 10 }),
+    gear(2, 11, { bombing: 9 }),
+    gear(3, 11, { bombing: 8 }),
+    gear(4, 45, { antiAir: 20 }),
+  ]
+  const account = fixture([{ shipTypeId: 16, slotSizes: [12, 12, 12] }], equipment)
+  const target = { ...route(), tags: ['seaplane-bombers-preferred'] }
+  const { solutions } = solve(account, ['utility-cruiser'], target)
+  assert.ok(solutions.length > 0)
+  assert.ok(solutions.some((builds) => builds[0].equipment.every((item) => item?.typeId === 11)))
+})
+
+test('7-1 tender reports bomber preference success and fallback counts', () => {
+  const ships = [
+    { shipTypeId: 16, slotSizes: [12, 12, 12] },
+    { shipTypeId: 2 },
+    { shipTypeId: 1 },
+    { shipTypeId: 1 },
+    { shipTypeId: 1 },
+  ]
+  const equipment = [
+    gear(1, 11, { bombing: 10 }),
+    gear(2, 11, { bombing: 9 }),
+    gear(3, 11, { bombing: 8 }),
+  ]
+  for (const withBombers of [true, false]) {
+    const result = recommendFleet({
+      mapId: '7-1',
+      routeId: '7-1-kcwiki-av-dd-de3',
+      objective: 'balanced',
+      account: fixture(ships, withBombers ? equipment : [gear(10, 1)]),
+    })
+    assert.equal(result.status, 'success', JSON.stringify(result))
+    const recommendation = result.recommendations[0]
+    const messages = [...recommendation.reasons, ...recommendation.warnings]
+    assert.ok(
+      messages.some(
+        (message) =>
+          message.code ===
+            (withBombers
+              ? 'SEAPLANE_BOMBER_PREFERENCE_APPLIED'
+              : 'SEAPLANE_BOMBER_PREFERENCE_UNAVAILABLE') &&
+          (withBombers ? message.values.count > 0 : message.values.count === 0),
+      ),
+    )
+  }
 })

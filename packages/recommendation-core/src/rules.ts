@@ -378,7 +378,12 @@ export const automaticRouteBlockers = (route: RouteTemplate): readonly string[] 
     )
     if (!openingAswModeled) blockers.push('opening-asw-unmodeled')
   }
-  if (route.category === 'boss' && world >= 2 && route.calculatedConstraints.length === 0) {
+  if (
+    route.category === 'boss' &&
+    world >= 2 &&
+    route.calculatedConstraints.length === 0 &&
+    !route.tags.includes('no-numeric-requirements')
+  ) {
     blockers.push('combat-thresholds-unmodeled')
   }
   return blockers

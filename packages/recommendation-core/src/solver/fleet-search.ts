@@ -10,6 +10,7 @@ import type {
 } from '../types'
 import type { FleetMember, FleetSearchState } from './internal-types'
 import { isDrumCanister, isNormalResourceLandingCraft } from '../resource'
+import { isInstallationLandingGear } from './loadout-plans'
 import { arrangeSpecialAttack } from './special-attack'
 
 const FLEET_BEAM_WIDTH = 400
@@ -260,6 +261,15 @@ const candidateShipScore = (
   const losRequired = route.calculatedConstraints.some((constraint) => constraint.kind === 'los')
   const seaplaneLosPriority = route.tags.includes('bbv-seaplane-los-priority')
   let routeFit = 0
+  if (
+    route.tags.includes('anti-installation-landing-gears') &&
+    account.equipment.some(
+      (gear) =>
+        isInstallationLandingGear(gear) && ship.regularEquipableMasterIds.includes(gear.masterId),
+    )
+  ) {
+    routeFit += 600
+  }
   if (seaplaneLosPriority && ship.shipTypeId === 10) {
     routeFit += ship.slotSizes.length * 120 + positiveSlotCount * 40 + totalSlotSize * 1.2
     routeFit += supportProfile.compatibleSeaplaneCount > 0 ? 180 : -250
@@ -288,7 +298,8 @@ const candidateShipScore = (
     }
     if (
       route.tags.includes('opening-torpedo-preferred') &&
-      ship.shipTypeId === 3 &&
+      (ship.shipTypeId === 3 ||
+        (route.tags.includes('asw-loadout') && [4, 16].includes(ship.shipTypeId))) &&
       supportProfile.compatibleMidgetSubmarineCount > 0
     ) {
       routeFit += OPENING_TORPEDO_PREFERENCE_BONUS
@@ -359,7 +370,7 @@ const roleForShip = (ship: OwnedShip, route: RouteTemplate): FleetRole => {
   ) {
     return 'escort-destroyer'
   }
-  if (antiSubmarineLoadoutRequired && [1, 2, 3, 21].includes(ship.shipTypeId)) {
+  if (antiSubmarineLoadoutRequired && [1, 2, 3, 4, 21].includes(ship.shipTypeId)) {
     return 'anti-submarine'
   }
   const needsResourceEquipment = route.tags.some((tag) =>
@@ -540,8 +551,13 @@ const arrangeRequiredFlagship = (
   members: readonly FleetMember[],
   route: RouteTemplate,
 ): readonly FleetMember[] => {
-  if (!route.tags.includes('flagship-destroyer')) return members
-  const flagship = members.find((member) => member.ship.shipTypeId === 2)
+  const flagshipType = route.tags.includes('flagship-light-cruiser')
+    ? 3
+    : route.tags.includes('flagship-destroyer')
+      ? 2
+      : null
+  if (flagshipType === null) return members
+  const flagship = members.find((member) => member.ship.shipTypeId === flagshipType)
   if (!flagship || members[0]?.ship.id === flagship.ship.id) return members
   return [flagship, ...members.filter((member) => member.ship.id !== flagship.ship.id)]
 }

@@ -4,6 +4,7 @@ import { recommendationMessages, recommendationTitle } from './solver/explanatio
 import { analyzeFleetAvailability, generateFleetCandidates } from './solver/fleet-search'
 import type { FleetSearchDiagnostics } from './solver/fleet-search'
 import { buildGearSolutions, createGearSearchContext } from './solver/gear-search'
+import { isInstallationLandingGear } from './solver/loadout-plans'
 import { selectDiverseLoadouts } from './solver/loadout-diversity'
 import { scoreFleet } from './solver/scoring'
 import { hasZuiunMultiAngleAttack, isIseClassKaiNi } from './solver/zuiun'
@@ -385,6 +386,19 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             speedRequirementFailed = true
             return
           }
+          if (route.tags.includes('anti-installation-landing-gears')) {
+            const equippedCount = builds.filter((build) =>
+              build.equipment.some((gear) => gear !== null && isInstallationLandingGear(gear)),
+            ).length
+            if (equippedCount < antiInstallationSurfaceCount) {
+              antiInstallationRequirementFailed = true
+              antiInstallationShellMinimum = Math.min(
+                antiInstallationShellMinimum,
+                antiInstallationSurfaceCount,
+              )
+              return
+            }
+          }
           if (!satisfiesCalculatedConstraints(metrics)) return
           if (currentLoadout && gearIndex === 0) currentLoadoutAcceptedCount += 1
           const score = scoreFleet(builds, metrics, input.objective, route)
@@ -476,7 +490,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             buildGearSolutions(
               fleet,
               gearSearchContext,
-              airPowerMinimum,
+              airPowerConstraint?.required === false ? null : airPowerMinimum,
               fastPlusRequired,
               0,
               0,
@@ -493,6 +507,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               mayaAaciPreferred,
               zuiunCutInPreferred,
               openingTorpedoPreferred,
+              { route, hqLevel: input.account.hqLevel, objective: input.objective },
             ).length > 0,
         )
         const canBuildShellSetup = failedGearFleets.some(
@@ -500,7 +515,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
             buildGearSolutions(
               fleet,
               gearSearchContext,
-              airPowerMinimum,
+              airPowerConstraint?.required === false ? null : airPowerMinimum,
               fastPlusRequired,
               antiInstallationShellCount,
               antiInstallationSurfaceCount,
@@ -517,6 +532,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               mayaAaciPreferred,
               zuiunCutInPreferred,
               openingTorpedoPreferred,
+              { route, hqLevel: input.account.hqLevel, objective: input.objective },
             ).length > 0,
         )
         if (
@@ -561,6 +577,7 @@ export const recommendFleet = (input: RecommendFleetInput): RecommendFleetResult
               mayaAaciPreferred,
               zuiunCutInPreferred,
               openingTorpedoPreferred,
+              { route, hqLevel: input.account.hqLevel, objective: input.objective },
             ).length > 0,
         )
       ) {

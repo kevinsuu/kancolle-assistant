@@ -13,6 +13,7 @@ import { calculateFleetMetrics, satisfiesCalculatedConstraints } from '../metric
 import { scoreFleet } from './scoring'
 import {
   createLoadoutPlans,
+  isInstallationLandingGear,
   SURFACE_ANTI_INSTALLATION_SHIP_TYPE_IDS,
   type LoadoutPlan,
 } from './loadout-plans'
@@ -60,6 +61,8 @@ type GearRequirementKind =
   | 'recon'
   | 'ap-shell'
   | 'anti-installation-shell'
+  | 'seaplane-bomber'
+  | 'anti-installation-landing'
   | 'anti-installation-surface'
   | 'anti-installation-aircraft'
   | 'anti-installation-safe-aircraft'
@@ -141,6 +144,7 @@ const isMandatoryRequirementKind = (kind: GearRequirementKind): boolean =>
     'drum-canister',
     'anti-installation-shell',
     'anti-installation-surface',
+    'anti-installation-landing',
     'anti-installation-aircraft',
     'anti-installation-safe-aircraft',
     'zuiun',
@@ -328,12 +332,16 @@ const requirementsForMember = (
     )
     while (requirementKinds.length < slotCount) requirementKinds.push('radar')
   } else if (member.role === 'anti-submarine') {
-    const reservedAswSlots = aswSlots ?? Math.min(3, slotCount)
+    const reservedAswSlots = Math.min(
+      aswSlots ?? Math.min(3, slotCount),
+      slotCount - Number(assignMidgetSubmarine),
+    )
     if (reservedAswSlots > 0) requirementKinds.push('sonar')
     while (requirementKinds.length < reservedAswSlots)
       requirementKinds.push(
         style === 'asw-synergy' || requirementKinds.length === 1 ? 'depth-charge' : 'asw-gear',
       )
+    if (assignMidgetSubmarine) requirementKinds.push('midget-submarine')
     const combatKind = [1, 2].includes(member.ship.shipTypeId) ? 'small-gun' : 'main-gun'
     while (requirementKinds.length < slotCount) requirementKinds.push(combatKind)
   } else if (member.role === 'escort-destroyer') {
@@ -399,6 +407,7 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
   if (kind === 'anti-installation-shell') {
     return isAntiInstallationShell(gear)
   }
+  if (kind === 'anti-installation-landing') return isInstallationLandingGear(gear)
   if (kind === 'anti-installation-surface') {
     return isSurfaceAntiInstallationGear(gear)
   }
@@ -419,6 +428,8 @@ const gearMatchesRequirement = (gear: OwnedEquipment, kind: GearRequirementKind)
     'ap-shell': [19],
     'anti-installation-shell': [],
     'anti-installation-surface': [],
+    'anti-installation-landing': [],
+    'seaplane-bomber': [11],
     'anti-installation-aircraft': [],
     'anti-installation-safe-aircraft': [],
     'carrier-aircraft': [],
@@ -494,6 +505,7 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
   switch (requirement.kind) {
     case 'fighter':
       return (gear.airPowerBySlotSize[String(requirement.slotSize)] ?? 0) * 4 + stats.evasion
+    case 'seaplane-bomber':
     case 'attack-aircraft':
     case 'anti-installation-aircraft':
     case 'anti-installation-safe-aircraft':
@@ -524,6 +536,7 @@ const gearScore = (gear: OwnedEquipment, requirement: GearRequirement): number =
     case 'ap-shell':
     case 'anti-installation-shell':
     case 'anti-installation-surface':
+    case 'anti-installation-landing':
       return stats.firepower * 4 + stats.accuracy * 2 + stats.armor + improvement * 2
     case 'anti-air-gun':
       return stats.antiAir * 6 + stats.firepower * 3 + stats.accuracy * 2 + improvement * 2
@@ -1272,7 +1285,9 @@ const solveGearPlan = (
       .filter(({ member }) =>
         context.availableEquipment.some(
           (gear) =>
-            isSurfaceAntiInstallationGear(gear) &&
+            (routeContext?.route.tags.includes('anti-installation-landing-gears')
+              ? isInstallationLandingGear(gear)
+              : isSurfaceAntiInstallationGear(gear)) &&
             equipmentAvailableForMember(context, member, gear) &&
             member.ship.regularEquipableMasterIds.includes(gear.masterId),
         ),
@@ -1354,7 +1369,9 @@ const solveGearPlan = (
       plan?.guideEquipment !== false &&
       !plan?.disabledGuideIndexes.includes(shipIndex) &&
       openingTorpedoPreferred &&
-      member.ship.shipTypeId === 3 &&
+      (member.ship.shipTypeId === 3 ||
+        (routeContext?.route.tags.includes('asw-loadout') === true &&
+          [4, 16].includes(member.ship.shipTypeId))) &&
       context.availableEquipment.some(
         (gear) =>
           gear.typeId === 22 &&
@@ -1391,7 +1408,23 @@ const solveGearPlan = (
       assignMidgetSubmarine,
       plan?.styles[shipIndex] ?? 'default',
       plan?.aswSlots[shipIndex],
-    )
+    ).map((requirement): GearRequirement => {
+      if (
+        requirement.kind === 'anti-installation-surface' &&
+        routeContext?.route.tags.includes('anti-installation-landing-gears')
+      ) {
+        return { ...requirement, kind: 'anti-installation-landing' }
+      }
+      if (
+        member.ship.shipTypeId === 16 &&
+        routeContext?.route.tags.includes('seaplane-bombers-preferred') &&
+        requirement.kind !== 'midget-submarine' &&
+        requirement.slotSize > 0
+      ) {
+        return { ...requirement, kind: 'seaplane-bomber' }
+      }
+      return requirement
+    })
   })
   // Different guide/style plans can resolve to identical slot requirements. Reuse the actual search.
   solutionCacheKey = JSON.stringify([

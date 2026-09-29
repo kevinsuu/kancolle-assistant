@@ -16,10 +16,13 @@
         "fixed-route",
         "fast",
         "anti-installation",
-        "lbas"
+        "lbas",
+        "anti-installation-surface-gears-2",
+        "anti-installation-landing-gears",
+        "flagship-light-cruiser"
       ],
-      "desc": "軽巡1、戦艦1、航巡1、駆逐3、高速統一。基地航空隊と対地装備前提。",
-      "lastVerified": "2026-08-26",
+      "desc": "軽巡旗艦1、戦艦1、航巡1、駆逐3、高速統一。B-D-C-F-N。対地装備艦2隻を確保。戦車＋内火艇＋WGと主砲2＋対地装備の使い分けを推奨。制空は任意、C優勢36が目安。基地航空隊・陣形・対地装備の組合せは手動確認。",
+      "lastVerified": "2026-09-29",
       "fleet": [
         {
           "type": "ShipCount",
@@ -49,9 +52,15 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 35,
-          "recommended": 35
+          "minimum": 36,
+          "recommended": 36,
+          "required": false
         }
+      ],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/6-4/",
+        "https://yuikancolle.blog.fc2.com/blog-entry-20.html",
+        "https://zh.kcwiki.cn/wiki/%E4%B8%AD%E9%83%A8%E6%B5%B7%E5%9F%9F/6-4"
       ]
     },
     {
@@ -67,10 +76,12 @@
         "anti-installation",
         "special-attack",
         "special-attack-modeled",
-        "lbas"
+        "lbas",
+        "anti-installation-surface-gears-2",
+        "anti-installation-landing-gears"
       ],
-      "desc": "長門・陸奥、航巡1、秋津洲1、駆逐2。A-D-C-F-N左路。長門特殊砲撃、対地装備と基地航空隊が必要、Cは制空喪失回避35+。",
-      "lastVerified": "2026-08-29",
+      "desc": "長門改二・陸奥改二、航巡1、秋津洲1、駆逐2。A-D-C-F-N。対地装備艦2隻を確保。長門に戦車、陸奥に内火艇、航巡・駆逐・秋津洲にも適性に応じ対地装備を推奨。制空は任意。特殊砲撃・基地航空隊・対地装備の組合せは手動確認。",
+      "lastVerified": "2026-09-29",
       "fleet": [
         {
           "type": "ShipCount",
@@ -98,12 +109,12 @@
         },
         {
           "type": "ContainsShipName",
-          "names": ["長門"],
+          "names": ["長門改二"],
           "count": 1
         },
         {
           "type": "ContainsShipName",
-          "names": ["陸奥"],
+          "names": ["陸奥改二"],
           "count": 1
         },
         {
@@ -115,11 +126,15 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 35,
-          "recommended": 35
+          "minimum": 36,
+          "recommended": 36,
+          "required": false
         }
       ],
-      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
+      "sources": [
+        "https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259",
+        "https://zh.kcwiki.cn/wiki/%E4%B8%AD%E9%83%A8%E6%B5%B7%E5%9F%9F/6-4"
+      ]
     },
     {
       "id": "6-4-bahamut-right-carrier",
@@ -128,9 +143,17 @@
       "objectives": ["balanced", "boss-clear"],
       "nodes": ["M", "K", "J", "I", "N"],
       "stableBoss": true,
-      "tags": ["guide-alternative", "fixed-route", "anti-installation", "carrier-opening", "lbas"],
-      "desc": "正規/装甲空母1、航戦1、航巡1、軽巡1、駆逐2。M-K-J-I-N右路。水上艦4隻に対地装備、J優勢129+と基地航空隊を確認。",
-      "lastVerified": "2026-08-29",
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "anti-installation",
+        "carrier-opening",
+        "lbas",
+        "anti-installation-surface-gears-2",
+        "anti-installation-landing-gears"
+      ],
+      "desc": "正規/装甲空母1、航戦1、航巡1、軽巡1、駆逐2。M-K-J-I-N右路。対地装備艦2隻を確保し、追加の対地火力を推奨。制空は任意、J優勢198が目安。基地航空隊・対地装備の組合せは手動確認。",
+      "lastVerified": "2026-09-29",
       "fleet": [
         {
           "type": "ShipCount",
@@ -165,11 +188,81 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 129,
-          "recommended": 129
+          "minimum": 198,
+          "recommended": 198,
+          "required": false
         }
       ],
-      "sources": ["https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259"]
+      "sources": [
+        "https://forum.gamer.com.tw/Co.php?bsn=24698&sn=93259",
+        "https://zh.kcwiki.cn/wiki/%E4%B8%AD%E9%83%A8%E6%B5%B7%E5%9F%9F/6-4"
+      ]
+    },
+    {
+      "id": "6-4-yui-akitsushima",
+      "name": "波濤を越えて・秋津洲一戦艦左路",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "D", "C", "F", "N"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "anti-installation",
+        "anti-installation-surface-gears-2",
+        "anti-installation-landing-gears",
+        "lbas"
+      ],
+      "desc": "戦艦系1、軽巡1、航巡1、駆逐2、秋津洲1。低速可。対地装備艦2隻を確保。駆逐は戦車＋内火艇＋WGと主砲2＋対地装備を推奨、航巡は三式弾、秋津洲は水戦を調整。制空は任意。基地航空隊・陣形・対地装備の組合せは手動確認。旧記事のA→D条件は現行条件に補正。",
+      "lastVerified": "2026-09-29",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["秋津洲"],
+          "count": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 36,
+          "recommended": 36,
+          "required": false
+        }
+      ],
+      "sources": [
+        "https://yuikancolle.blog.fc2.com/blog-entry-20.html",
+        "https://zh.kcwiki.cn/wiki/%E4%B8%AD%E9%83%A8%E6%B5%B7%E5%9F%9F/6-4"
+      ]
     }
   ]
 }
