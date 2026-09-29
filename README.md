@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.27`   | `2026-09-26`   |
+| `v1.0.28`   | `2026-09-29`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.28 highlights (since v1.0.27)
+
+- Master Ship remodel tooltips now supplement incomplete KC3Kai data for Kitakami Kai San, including Arsenal Resources, Development Materials, and Torches with their required quantities.
 
 ### v1.0.27 highlights (since v1.0.26)
 
@@ -43,10 +47,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - Quest Recommendations lists each quest once by default; select **Combined** to see complete shared-action plans.
 - The standard 6-1 carrier and submarine fleet now requires 126 air power for superiority at the boss node.
-
-### v1.0.23 highlights (since v1.0.22)
-
-- On Windows, manual quest synchronization now uses a bounded Electron network request with the game's session. Stalled, failed, and oversized responses can be cancelled and retried.
 
 ### Project-specific highlights
 

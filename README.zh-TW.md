@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.0.27`    | `2026-09-26`    |
+| `v1.0.28`    | `2026-09-29`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,10 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.0.28 更新重點（相較 v1.0.27）
+
+- 艦娘圖鑑的改造提示現在會補上 KC3Kai 尚未完整提供的北上改三工廠資源、開發資材與高速建造材需求數量。
 
 ### v1.0.27 更新重點（相較 v1.0.26）
 
@@ -41,10 +45,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 - 任務推薦預設將每項任務只顯示一次；選取「共解」後才顯示完整的共同行動組合。
 - 6-1 標準空母與潛水艦編成的王點航空優勢門檻修正為制空值 126。
-
-### v1.0.23 更新重點（相較 v1.0.22）
-
-- Windows 的手動任務同步改用具備等待上限的 Electron 網路請求，沿用遊戲連線資訊；請求停滯、失敗或回應過大時可中止並重試。
 
 ### 本專案功能重點
 

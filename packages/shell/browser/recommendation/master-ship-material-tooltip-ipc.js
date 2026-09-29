@@ -30,6 +30,11 @@ const normalizeDiagnostic = (diagnostic) => ({
   targetCount: boundedInteger(diagnostic?.targetCount, MAX_DIAGNOSTIC_ELEMENTS),
   tooltips: Array.isArray(diagnostic?.tooltips)
     ? diagnostic.tooltips.slice(0, MAX_DIAGNOSTIC_ELEMENTS).map((tooltip) => ({
+        remodelTargetId:
+          Number.isInteger(tooltip?.remodelTargetId) && tooltip.remodelTargetId > 0
+            ? tooltip.remodelTargetId
+            : null,
+        supplementalRequirementCount: boundedInteger(tooltip?.supplementalRequirementCount, 12),
         attributes: Array.isArray(tooltip?.attributes)
           ? tooltip.attributes.slice(0, 2).map((attribute) => ({
               iconCount: boundedInteger(attribute?.iconCount, MAX_DIAGNOSTIC_ICONS),

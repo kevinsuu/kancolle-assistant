@@ -19,6 +19,7 @@ import {
   enrichMasterShipMaterialTooltipTarget,
   getMasterShipMaterialIdentifier,
   getMasterShipMaterialLanguage,
+  getMasterShipSupplementalRemodelMaterials,
 } from '../browser/recommendation/master-ship-material-tooltip-ui.js'
 import {
   createStrategyRoomI18n,
@@ -277,6 +278,34 @@ test('master ship remodel material tooltips include localized material names', (
   })
   assert.equal(getMasterShipMaterialLanguage('zh-Hans'), 'scn')
   assert.equal(getMasterShipMaterialLanguage('ja-JP'), 'jp')
+})
+
+test('master ship remodel tooltips supplement missing Kitakami Kai San materials', () => {
+  const attributes = new Map([
+    [
+      'title',
+      '<img src="/assets/img/useitems/58.png"><span>2</span>' +
+        '<img src="/assets/img/useitems/94.png"><span>3</span>',
+    ],
+  ])
+  const target = { textContent: '北上改三' }
+  const shipInfo = { querySelector: () => target }
+  const element = {
+    matches: (selector) => selector.includes('.tab_mstship'),
+    closest: (selector) => (selector === '.shipInfo' ? shipInfo : null),
+    ownerDocument: { documentElement: { lang: 'zh-Hant' } },
+    getAttribute: (attribute) => attributes.get(attribute) ?? null,
+    setAttribute: (attribute, value) => attributes.set(attribute, value),
+  }
+
+  assert.equal(getMasterShipSupplementalRemodelMaterials(element).length, 3)
+  assert.equal(enrichMasterShipMaterialTooltip(element), true)
+  const enriched = attributes.get('title')
+  assert.match(enriched, /工廠資源<\/span><span>×5<\/span>/)
+  assert.match(enriched, /開發資材<\/span><span>×55<\/span>/)
+  assert.match(enriched, /高速建造材<\/span><span>×550<\/span>/)
+  assert.equal((enriched.match(/kca-master-ship-material-list/g) || []).length, 5)
+  assert.equal(enrichMasterShipMaterialTooltip(element), false)
 })
 
 test('master ship remodel material tooltips enrich KC3 titlealt content', () => {

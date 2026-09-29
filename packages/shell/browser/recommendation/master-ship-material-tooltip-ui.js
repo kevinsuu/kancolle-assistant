@@ -5,6 +5,20 @@ const MATERIAL_NAME_CLASS = 'kca-master-ship-material-name'
 const TOOLTIP_ATTRIBUTES = ['title', 'titlealt']
 const TOOLTIP_IMAGE_PATTERN = /<img\b[^>]*\bsrc=(['"])([^'"]+)\1[^>]*>/gi
 
+// KC3Kai derives some remodel requirements locally. Keep narrowly scoped fallbacks for
+// newly-added remodels whose special-material fields have not reached that derived table yet.
+const SUPPLEMENTAL_REMODEL_MATERIALS = {
+  1071: [
+    { source: '/assets/img/useitems/104.png', quantity: 5 },
+    { source: '/assets/img/client/devmat.png', quantity: 55 },
+    { source: '/assets/img/client/ibuild.png', quantity: 550 },
+  ],
+}
+
+const SUPPLEMENTAL_REMODEL_TARGET_NAMES = new Map([
+  [1071, /(?:北上改三|Kitakami Kai San|Kitakami Kai III)/iu],
+])
+
 const MATERIAL_NAMES = {
   en: {
     58: 'Remodel Blueprints',
@@ -110,8 +124,47 @@ export const getMasterShipMaterialName = (iconSource, language) => {
   return identifier.type === 'useitem' ? `素材 #${identifier.id}` : '素材'
 }
 
+const getMasterShipRemodelTarget = (element) => {
+  const shipInfo = element?.closest?.('.shipInfo')
+  const target = shipInfo?.querySelector?.('.remodel_name a')
+  if (!target) return null
+
+  const targetId = Number(
+    target.getAttribute?.('data-sid') ?? target.dataset?.sid ?? target.dataset?.id,
+  )
+  if (Number.isInteger(targetId) && targetId > 0) {
+    return { id: targetId, name: String(target.textContent || '') }
+  }
+
+  return { id: null, name: String(target.textContent || target.innerText || '') }
+}
+
+export const getMasterShipSupplementalRemodelMaterials = (element) => {
+  const target = getMasterShipRemodelTarget(element)
+  if (!target) return []
+
+  const byId = target.id ? SUPPLEMENTAL_REMODEL_MATERIALS[target.id] : null
+  if (byId) return byId
+
+  for (const [targetId, namePattern] of SUPPLEMENTAL_REMODEL_TARGET_NAMES) {
+    if (namePattern.test(target.name)) return SUPPLEMENTAL_REMODEL_MATERIALS[targetId]
+  }
+  return []
+}
+
 const iconSourcesFromTooltipMarkup = (tooltipMarkup) =>
   Array.from(String(tooltipMarkup || '').matchAll(TOOLTIP_IMAGE_PATTERN), (match) => match[2])
+
+const materialIdentifierKey = (identifier) =>
+  identifier ? `${identifier.type}:${identifier.id}` : ''
+
+const materialKeysFromTooltipMarkup = (tooltipMarkup) =>
+  new Set(
+    iconSourcesFromTooltipMarkup(tooltipMarkup)
+      .map(getMasterShipMaterialIdentifier)
+      .map(materialIdentifierKey)
+      .filter(Boolean),
+  )
 
 export const describeMasterShipMaterialTooltipMarkup = (tooltipMarkup, language) => {
   const present = typeof tooltipMarkup === 'string' && tooltipMarkup.length > 0
@@ -124,7 +177,11 @@ export const describeMasterShipMaterialTooltipMarkup = (tooltipMarkup, language)
 
 export const describeMasterShipMaterialTooltip = (element) => {
   const language = element?.ownerDocument?.documentElement?.lang
+  const target = getMasterShipRemodelTarget(element)
+  const supplementalMaterials = getMasterShipSupplementalRemodelMaterials(element)
   return {
+    remodelTargetId: target?.id ?? null,
+    supplementalRequirementCount: supplementalMaterials.length,
     attributes: TOOLTIP_ATTRIBUTES.map((name) => ({
       name,
       ...describeMasterShipMaterialTooltipMarkup(element?.getAttribute?.(name), language),
@@ -132,46 +189,87 @@ export const describeMasterShipMaterialTooltip = (element) => {
   }
 }
 
-export const enrichMasterShipMaterialTooltipMarkup = (tooltipMarkup, language) => {
-  const markup = String(tooltipMarkup || '')
-  if (!markup || markup.includes(MATERIAL_LIST_CLASS) || markup.includes(MATERIAL_NAME_CLASS)) {
-    return markup
-  }
+const materialRowMarkup = (source, quantity, language) => {
+  const name = getMasterShipMaterialName(source, language)
+  if (!name) return ''
 
-  return markup.replace(
-    /(<img\b[^>]*\bsrc=(['"])([^'"]+)\2[^>]*>)(\s*)(<span\b[^>]*>.*?<\/span>)/gi,
-    (match, image, _quote, source, separator, count) => {
-      const name = getMasterShipMaterialName(source, language)
-      if (!name) return match
-      const nameMarkup = [
-        `<span class="${MATERIAL_NAME_CLASS}" style="min-width: 120px;">`,
-        escapeHtml(name),
-        '</span>',
-      ].join('')
-      const quantity = escapeHtml(count.replace(/<[^>]*>/g, '').trim())
-      return [
-        `<div class="${MATERIAL_LIST_CLASS}"`,
-        ' style="align-items: center; display: flex; gap: 4px; line-height: 20px; white-space: nowrap;">',
-        image,
-        nameMarkup,
-        `<span>×${quantity}</span>`,
-        '</div>',
-      ].join('')
-    },
-  )
+  const nameMarkup = [
+    `<span class="${MATERIAL_NAME_CLASS}" style="min-width: 120px;">`,
+    escapeHtml(name),
+    '</span>',
+  ].join('')
+  return [
+    `<div class="${MATERIAL_LIST_CLASS}"`,
+    ' style="align-items: center; display: flex; gap: 4px; line-height: 20px; white-space: nowrap;">',
+    `<img src="${escapeHtml(source)}">`,
+    nameMarkup,
+    `<span>×${escapeHtml(quantity)}</span>`,
+    '</div>',
+  ].join('')
+}
+
+export const enrichMasterShipMaterialTooltipMarkup = (
+  tooltipMarkup,
+  language,
+  supplementalMaterials = [],
+) => {
+  const markup = String(tooltipMarkup || '')
+  if (!markup) return markup
+
+  const enrichedMarkup =
+    markup.includes(MATERIAL_LIST_CLASS) || markup.includes(MATERIAL_NAME_CLASS)
+      ? markup
+      : markup.replace(
+          /(<img\b[^>]*\bsrc=(['"])([^'"]+)\2[^>]*>)(\s*)(<span\b[^>]*>.*?<\/span>)/gi,
+          (match, image, _quote, source, separator, count) => {
+            const name = getMasterShipMaterialName(source, language)
+            if (!name) return match
+            const nameMarkup = [
+              `<span class="${MATERIAL_NAME_CLASS}" style="min-width: 120px;">`,
+              escapeHtml(name),
+              '</span>',
+            ].join('')
+            const quantity = escapeHtml(count.replace(/<[^>]*>/g, '').trim())
+            return [
+              `<div class="${MATERIAL_LIST_CLASS}"`,
+              ' style="align-items: center; display: flex; gap: 4px; line-height: 20px; white-space: nowrap;">',
+              image,
+              nameMarkup,
+              `<span>×${quantity}</span>`,
+              '</div>',
+            ].join('')
+          },
+        )
+
+  const presentMaterials = materialKeysFromTooltipMarkup(enrichedMarkup)
+  return supplementalMaterials.reduce((result, material) => {
+    const identifier = getMasterShipMaterialIdentifier(material?.source)
+    const key = materialIdentifierKey(identifier)
+    if (!key || presentMaterials.has(key)) return result
+
+    const row = materialRowMarkup(material.source, material.quantity, language)
+    if (!row) return result
+    presentMaterials.add(key)
+    return result + row
+  }, enrichedMarkup)
 }
 
 export const enrichMasterShipMaterialTooltip = (element) => {
   if (!element?.matches?.(MASTER_SHIP_MATERIAL_SELECTOR)) return false
 
   const language = element.ownerDocument?.documentElement?.lang
+  const supplementalMaterials = getMasterShipSupplementalRemodelMaterials(element)
   let enriched = false
   let materialCount = 0
 
   for (const attribute of TOOLTIP_ATTRIBUTES) {
     const tooltipMarkup = element.getAttribute(attribute)
     if (!tooltipMarkup) continue
-    const enrichedMarkup = enrichMasterShipMaterialTooltipMarkup(tooltipMarkup, language)
+    const enrichedMarkup = enrichMasterShipMaterialTooltipMarkup(
+      tooltipMarkup,
+      language,
+      supplementalMaterials,
+    )
     if (enrichedMarkup === tooltipMarkup) continue
 
     element.setAttribute(attribute, enrichedMarkup)
@@ -182,6 +280,7 @@ export const enrichMasterShipMaterialTooltip = (element) => {
   if (enriched) {
     console.debug('[Kancolle Assistant] Enriched master-ship remodel material tooltip', {
       materialCount,
+      supplementalMaterialCount: supplementalMaterials.length,
     })
   }
   return enriched

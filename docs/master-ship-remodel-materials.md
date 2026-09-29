@@ -9,6 +9,12 @@ The shell uses the Strategy Room page's configured language and a compact table 
 materials KC3Kai can render in this tooltip. This keeps the feature available from Electron's
 isolated preload world, which cannot access KC3Kai's page-global metadata directly.
 
+For a newly added remodel whose KC3Kai-derived table is temporarily incomplete, the shell may add
+a narrowly scoped fallback keyed by the destination ship's canonical API ID. The current fallback
+covers Kitakami Kai San (ID 1071): Arsenal Resources ×5, Development Materials ×55, and Torches
+×550. Existing KC3Kai material identifiers are preserved and deduplicated, so a later KC3Kai
+update that supplies these values will not display them twice.
+
 KC3Kai replaces Master Ship content while switching ships. The preload therefore observes Strategy
 Room changes and reapplies the enrichment to newly generated remodel-material tooltips. It also
 initializes when KC3 opens Strategy Room in a separate window after the page is already parsed, and
@@ -23,8 +29,9 @@ KC3Kai ships special remodel-material icons from both `useitems` and its higher-
 `useitems_p2` directory. Both paths map to the same use-item IDs and localized names.
 
 For diagnostics, the Strategy Room preload reports bounded material-tooltip state to the main
-process log: content-root and target counts, whether enrichment occurred, and each displayed
-icon's recognized material identifier. Icon paths are shortened and extension IDs are redacted.
+process log: content-root and target counts, whether enrichment occurred, the remodel target ID,
+the fallback requirement count, and each displayed icon's recognized material identifier. Icon paths
+are shortened and extension IDs are redacted.
 
 ## Development troubleshooting
 
