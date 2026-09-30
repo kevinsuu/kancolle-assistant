@@ -14,7 +14,7 @@ The catalog contains all 37 normal maps available on 2026-08-29:
 7-1 .. 7-5
 ```
 
-It normalizes 168 canonical strategy templates with explicit source references. A canonical
+It normalizes 188 canonical strategy templates with explicit source references. A canonical
 template represents a different routing condition, phase, or gameplay objective; swapping one ship
 for another of the same accepted type does not create another template. Unsourced resource,
 leveling, or broad heuristic templates are omitted until a direct guide or map reference is added.
@@ -30,6 +30,70 @@ regression also generates the primary balanced route for every one of the 37 map
 valid multi-constraint fleet from being lost to bounded search.
 
 ## Sources
+
+### World 7: NGA 夢美 review (2026-09-30)
+
+The five supplied saved pages were read together with all 34 downloadable image attachments.
+The post bodies retain tables, but most collapsed explanations are empty in the saved HTML.
+Images include older equipment variants and land-based squadrons; they are not 34 distinct fleets.
+The import adds **13** distinct templates. Equivalent 7-1 fleets and 7-5 P1/P2/P3 shapes remain
+single entries, with direct NGA attribution added where the source corroborates them.
+
+| Map | Direct NGA post                                                     | New variants                                                                                                                        |
+| --- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 7-1 | [454455961](https://bbs.nga.cn/read.php?tid=23451223&pid=454455961) | None; light cruiser + 4 DD and AV + DD + 3 DE already exist                                                                         |
+| 7-2 | [454456055](https://bbs.nga.cn/read.php?tid=23451223&pid=454456055) | P2 CV/CVB + CVL + CAV + CL + 2 DD                                                                                                   |
+| 7-3 | [454456110](https://bbs.nga.cn/read.php?tid=23451223&pid=454456110) | P2 Haguro + Kamikaze + CAV + CL; P2 Haguro + Ashigara + AV + 3 DD including Kamikaze                                                |
+| 7-4 | [454456265](https://bbs.nga.cn/read.php?tid=23451223&pid=454456265) | BBV + CAV + CLT + 3 DD; BBV + CVL + CL + 3 DD; 2 CVL + CL + 3 DD; 2 CL + 3 DD + DE; 3-submarine O-port resource route               |
+| 7-5 | [454456331](https://bbs.nga.cn/read.php?tid=23451223&pid=454456331) | M unlock; P1 BBV + CVL + CAV + CL + 2 DD; P2 BBV + CVL + CL + 3 DD; P3 fast BBV + CAV + CLT + CL + 2 DD; P3 CVL + 2 CAV + CL + 2 DD |
+
+Cross-checks: [7-2](https://zekamashi.net/kancolle-kouryaku/7-2/),
+[7-3](https://zekamashi.net/kancolle-kouryaku/7-3/),
+[7-4](https://zh.kcwiki.cn/wiki/南西海域/7-4), and
+[7-5](https://zekamashi.net/kancolle-kouryaku/7-5/).
+The newest 7-4 low-consumption image with 2 CL + 3 DD + DE is used for C-E-J-L-P;
+the other image with 1 CL + 4 DD + DE must not be assigned that same departure route.
+Some 7-5 images show BBV + 2 CAV, which changes the D branch; these are not silently assigned
+the shorter route from the summary table. Incomplete hidden variants are not inferred.
+Task-table named-ship/remodel/flagship conditions are not new general-purpose fleet rules;
+the recommender does not claim that selecting a generic template satisfies every listed quest.
+
+#### 階段與必要條件
+
+在關卡推薦先選海域，再選攻略階段。7-2、7-3 分為第一、第二階段；7-5 分為
+`7-5-1`、`7-5-2`、`7-5-3` 及獨立的 `M 點解謎`。未分血條的 7-1、7-4 不虛構
+第二階段。既有 5-6 的 P1/P2/P3 也使用同一篩選。階段切換會清除舊結果並篩掉其他
+階段的模板；系統不讀取或自動推進遊戲的解謎／血條進度。
+
+7-5 首次解放需曾突破 7-4；每月依序完成 K（最少2次擊沉）、Q（最少3次擊沉）、
+T（最少3次擊沉）。M 點 S 勝1次可在 P1 完成後、P2 前後處理；Q 與 M 都完成才開放 T。
+選 P1 原編隊直接去 M 仍須重新確認索敵，不能沿用「P1無索敵要求」。
+
+| 用途           | 此模板必須達成                                          | 戰力建議或手動設定                                                                                          |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 7-1            | 各模板艦種／艦數                                        | 無制空、索敵門檻；先制對潛、開幕雷擊與刷閃是穩定度建議                                                      |
+| 7-2-1          | CL1 DD3 的4艘編成                                       | 對潛裝備優先；先制對潛不是必須4艘，無制空與索敵門檻                                                         |
+| 7-2-2          | 所選高速艦隊、33式係數4索敵69以上                       | 攻略期出擊制空370建議；Boss空優359，斬後266；斬後空確531，周回建議550留損耗餘裕。均衡攻略可行               |
+| 7-3-1          | 羽黑＋3DD                                               | 無制空／索敵門檻；任務另有旗艦與勝利次數要求                                                                |
+| 7-3-2 四艘     | 羽黑、神風、CAV1、CL1共4艘                              | 無制空／索敵門檻、不要求高速；水爆及甲標的是輸出建議                                                        |
+| 7-3-2 六艘水母 | 羽黑、足柄、神風、AV1、另2DD，高速統一                  | 無制空／索敵門檻；日進等為戰力偏好                                                                          |
+| 7-4 Boss       | 對應艦種、係數4索敵37以上                               | 多艘先制對潛建議；磨血／斬後制空33和斬殺52～103是劣勢戰術區間。300左右空優取決於陸航先削敵；374不是保證空確 |
+| 7-4 O港        | 全隊潛水系、係數4索敵47以上                             | 無制空要求；內火艇、桶與伊504為收益選項。J存在反潛風險，不標為零風險                                        |
+| 7-5-1          | 對應艦種與數量，低速可                                  | 無索敵要求；制空約123～130、1～2先制對潛是建議；空母可能受K高防空大量損失飛機                               |
+| 7-5 M          | P1完成、H選I、係數4索敵59以上                           | M須S勝1次；制空約130為建議                                                                                  |
+| 7-5-2          | 所選3DD編成，低速可                                     | 無索敵門檻；制空180建議。對集積地／砲台／PT裝備需按敵人分工，必須手動核對，不以三式彈數量取代               |
+| 7-5-3 航戰     | 三驅逐版低速可；兩驅逐雷巡版高速統一；係數4索敵以59驗證 | 資料的航戰型分歧線58，本模板保留1點餘裕；制空123～130與夜戰CI為建議                                         |
+| 7-5-3 輕空母   | CVL1 CAV2 CL1 DD2，係數4索敵63以上，低速可              | 不可沿用航戰型59；制空130與先制對潛為建議                                                                   |
+
+索敵是整隊的33式計算值，並非面板索敵相加；更換艦種、偵察裝備或司令部等級後要
+重新計算。上述資料通常以司令部120級為基準；較低等級建議再留至少1點餘裕。
+制空是出擊時估算，航路損耗、熟練度與敵編成會改變到點狀態。`required: false`
+讓制空不足仍能產生方案並顯示未達建議警告；不代表低制空與高制空有相同通關率。
+原圖等級、運、改修星數及單艦面板值不會直接轉成帶路硬門檻。
+
+陸航、對地／PT分工、陣形及夜戰戰術仍依各路線說明手動確認。7-4陸航與7-5-2
+對地／PT模板保留外部設定標籤和警告；模型不宣稱已驗證這些設定。
+7-4資源舊模板另修正為全隊6艘潛水系，避免原先「6艘中僅1艘潛水」的錯誤放行。
 
 The older broad boss-routing dataset has been removed from runtime and is no longer vendored in the
 normal-map rules. Map options and recommendations are built only from reviewed normal-map guide

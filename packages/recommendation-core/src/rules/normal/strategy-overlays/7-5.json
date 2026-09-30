@@ -11,13 +11,15 @@
       "phase": "P1",
       "nodes": ["A", "B", "D", "F", "G", "H", "K"],
       "stableBoss": true,
-      "tags": ["fixed-route", "historical-bonus", "air-power-123"],
-      "desc": "航戦1、航巡1、雷巡1、軽巡1、駆逐2。制空123+、P1攻略後は同じ編成でMマスへ進める。",
+      "tags": ["fixed-route", "air-power-123"],
+      "desc": "航戦1、航巡1、雷巡1、軽巡1、駆逐2。制空123+、P1攻略後は同じ編成でMマスへ進める。 制空為戰鬥建議而非帶路硬門檻；史實倍卡艦為輸出偏好。A輪形、B單橫、其他水上點單縱。 進K無索敵門檻；解謎M需改選M方案並滿足索敵。",
       "sources": [
         "https://m.kcwiki.cn/wiki/7-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-187.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-187.html",
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
       ],
-      "lastVerified": "2026-08-29",
+      "lastVerified": "2026-09-30",
       "fleet": [
         {
           "type": "ShipCount",
@@ -52,8 +54,9 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 123,
-          "recommended": 123
+          "minimum": 0,
+          "recommended": 123,
+          "required": false
         }
       ]
     },
@@ -65,13 +68,15 @@
       "phase": "P2",
       "nodes": ["A", "B", "D", "F", "J", "O", "Q"],
       "stableBoss": true,
-      "tags": ["anti-installation", "pt", "fixed-route", "historical-bonus", "air-power-180"],
-      "desc": "航戦1、航巡1、軽巡1、駆逐3。Yui第二戦力最短、対地・PT装備必須、制空180+。",
+      "tags": ["anti-installation", "pt", "fixed-route", "air-power-180"],
+      "desc": "航戦1、航巡1、軽巡1、駆逐3。Yui第二戦力最短、対地・PT装備必須、制空180+。 制空為戰鬥建議而非帶路硬門檻；史實倍卡艦為輸出偏好。A輪形、B單橫、其他水上點單縱。 Q為對地/PT戰，必須手動確認能對應敵人的登陸/內火艇及PT命中裝備，不能僅靠通用三式彈計數視為完成。",
       "sources": [
         "https://m.kcwiki.cn/wiki/7-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-187.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-187.html",
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
       ],
-      "lastVerified": "2026-08-29",
+      "lastVerified": "2026-09-30",
       "fleet": [
         {
           "type": "ShipCount",
@@ -101,8 +106,9 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 180,
-          "recommended": 180
+          "minimum": 0,
+          "recommended": 180,
+          "required": false
         }
       ]
     },
@@ -114,13 +120,15 @@
       "phase": "P3",
       "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
       "stableBoss": true,
-      "tags": ["los-cn4-59", "historical-bonus", "fixed-route", "air-power-123"],
-      "desc": "航戦1、航巡1、軽巡1、駆逐3。Yui第三戦力、制空123+、Cn4索敵59+。",
+      "tags": ["los-cn4-59", "fixed-route", "air-power-123"],
+      "desc": "航戦1、航巡1、軽巡1、駆逐3。Yui第三戦力、制空123+、Cn4索敵59+。 制空為戰鬥建議而非帶路硬門檻；史實倍卡艦為輸出偏好。A輪形、B單橫、其他水上點單縱。 本編成為航戰而非一般低速/高速戰艦，係數4索敵以59保留餘裕；更換一般戰艦或空母時門檻可能升至63以上。第三階段須先完成第二階段及M點S勝一次。",
       "sources": [
         "https://m.kcwiki.cn/wiki/7-5",
-        "https://yuikancolle.blog.fc2.com/blog-entry-187.html"
+        "https://yuikancolle.blog.fc2.com/blog-entry-187.html",
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
       ],
-      "lastVerified": "2026-08-29",
+      "lastVerified": "2026-09-30",
       "fleet": [
         {
           "type": "ShipCount",
@@ -150,8 +158,9 @@
       "calculated": [
         {
           "kind": "air-power",
-          "minimum": 123,
-          "recommended": 123
+          "minimum": 0,
+          "recommended": 123,
+          "required": false
         },
         {
           "kind": "los",
@@ -159,6 +168,286 @@
           "minimum": 59
         }
       ]
+    },
+    {
+      "id": "7-5-nga-gimmick-m",
+      "name": "NGA・夢美・M點解謎",
+      "category": "gimmick",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "M",
+      "nodes": ["A", "B", "D", "F", "G", "H", "I", "M"],
+      "stableBoss": false,
+      "tags": ["guide-alternative", "fixed-route"],
+      "desc": "7-5解謎：航戰1＋航巡1＋雷巡1＋輕巡1＋驅逐2。第一階段完成後，能動分歧H選I，在M取得S勝1次；可在第二階段前後完成。33式係數4索敵≥59作為I→M固定門檻；制空約130為建議，非路線限制。不需高速。A輪形、B單橫，其餘單縱。M勝利與第二血條均完成才開放T，系統不會代為判斷帳號是否已解謎。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 130,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 59
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-5-nga-p1-cvl",
+      "name": "NGA・夢美・第一階段・輕空母替代",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P1",
+      "nodes": ["A", "B", "D", "F", "G", "H", "K"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout"],
+      "desc": "7-5-1：航戰1＋輕空母1＋航巡1＋輕巡1＋驅逐2。此編成低速可、進K無索敵門檻。制空約130為空襲與水上戰建議；K敵防空強，空母攻擊機可能全滅，鋁耗通常高於無空母案。建議1～2艘先制對潛，非帶路硬限制。A輪形、B單橫、其他單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 130,
+          "required": false
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-5-nga-p2-cvl",
+      "name": "NGA・夢美・第二階段・輕空母替代",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P2",
+      "nodes": ["A", "B", "D", "F", "J", "O", "Q"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "anti-installation", "pt", "asw-loadout"],
+      "desc": "7-5-2：航戰1＋輕空母1＋輕巡1＋驅逐3，低速可；Q無索敵門檻。制空180是戰鬥建議。Q為集積地與PT，須手動分配有效登陸戰車/內火艇、PT命中裝備；天霧是命中戰術偏好而非帶路必選。通用三式彈不能取代對集積地配置。A輪形、B單橫，其餘單縱；先制對潛1～2艘建議，需保留對地火力。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 180,
+          "required": false
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-5-nga-p3-fast-bbv",
+      "name": "NGA・夢美・第三階段・高速航戰雷巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P3",
+      "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "fast", "asw-loadout"],
+      "desc": "7-5-3：航戰1＋航巡1＋雷巡1＋輕巡1＋驅逐2。此兩驅逐編成必須高速統一，伊勢改二需增速且確認最終速力。33式係數4索敵採≥59（航戰型安全餘裕），不得直接換成一般戰艦沿用門檻。制空130是建議；夜戰CI、史實倍卡及先制對潛為戰力偏好，不是帶路條件。先完成P2及M點S勝。A輪形、B單橫、其餘單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 130,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 59
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-5-nga-p3-cvl",
+      "name": "NGA・夢美・第三階段・輕空母雙航巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P3",
+      "nodes": ["A", "B", "D", "F", "J", "O", "P", "T"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout"],
+      "desc": "7-5-3：輕空母1＋航巡2＋輕巡1＋驅逐2；此特例編成低速可。必須33式係數4索敵≥63，不能套用航戰案59。制空約130建議，需預留道中損耗；夜戰CI與倍卡為建議。先完成P2及M點S勝。A輪形、B單橫、其餘單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 130,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 63
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
+        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+      ],
+      "lastVerified": "2026-09-30"
     }
   ]
 }

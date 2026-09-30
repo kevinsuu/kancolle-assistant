@@ -14,7 +14,12 @@ names continue to come from KC3, while map and route names come from the recomme
 ## Scope
 
 - Maps: all 37 currently available normal maps, including multi-phase maps and 5-6.
-- Routes: 108 canonical strategy templates with explicit source references.
+- Routes: 188 canonical strategy templates with explicit source references.
+- Stages: multi-gauge maps have a stage selector (for example 7-5-1, 7-5-2, 7-5-3
+  and the separate M-node unlock). Only the selected stage's guide templates are listed.
+  Switching map or stage clears the previous result. The selected guide's explanation is visible
+  before generation, including routing requirements, advisory combat targets, and manual setup.
+  Game progress is not detected automatically. See the [World 7 catalog notes](./normal-map-catalog.md#world-7-nga-夢美-review-2026-09-30).
 - Objectives: balanced, boss clear, low cost, leveling, and resource farming remain internal
   ranking contexts. Strategy Room derives the internal context from the selected guide template
   instead of showing a separate objective selector.

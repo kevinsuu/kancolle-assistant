@@ -51,6 +51,213 @@
           "minimum": 37
         }
       ]
+    },
+    {
+      "id": "7-4-nga-beginner-cav",
+      "name": "NGA・夢美・初攻略・航巡雷巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "lbas", "asw-loadout"],
+      "desc": "7-4：航戰1＋航巡1＋雷巡1＋驅逐3。33式係數4索敵≥37為進王硬條件；不要求高速。原圖伊勢改二、最上改二特、北上改二為戰力建議。斬殺Boss制空52～103為劣勢區間，建議約80，但不是帶路門檻；超過103也不會逸航。建議3艘先制對潛。B單橫、E輪形，J/L依對潛火力選單橫或梯形，P單縱。陸航射程須能到P（半徑2），原圖東海1＋陸攻3集中P；陸航與陣形需手動確認。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 80,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 37
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
+        "https://zekamashi.net/kancolle-kouryaku/7-4/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-4-nga-farming-bbv-cvl",
+      "name": "NGA・夢美・海防打撈・航戰夜母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "lbas", "asw-loadout"],
+      "desc": "7-4：航戰1＋輕空母1＋輕巡1＋驅逐3。必須33式係數4索敵≥37，低速可。龍鳳改二戊夜戰為原圖戰術，若改用一般輕空母需由水上艦補足夜戰火力。約300制空是陸航先削E點後的空優建議，374僅有機率空確，非硬條件或保證值；陸航未照設定時不能沿用預期。陸航戰鬥機先派E（半徑3），另波依需求；配置與派遣手動確認。B/J/L單橫、E輪形，P依潛水隨伴與對潛能力選梯形或單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 300,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 37
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
+        "https://zekamashi.net/kancolle-kouryaku/7-4/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-4-nga-farming-cvl2",
+      "name": "NGA・夢美・海防打撈・雙輕空母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "lbas", "asw-loadout"],
+      "desc": "7-4：輕空母2＋輕巡1＋驅逐3；33式係數4索敵≥37必須，低速可。原圖龍鳳改二戊＋瑞鳳改二乙配置，300左右制空為陸航削E後空優建議，不是進王條件；原圖不同版本286～334不可直接當保證線。建議分配先制對潛、對空CI及夜戰輸出。B/J/L單橫、E輪形，P依對潛能力選梯形或單縱；夜戰空母裝備和陸航派遣需手動核對。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 300,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 37
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
+        "https://zekamashi.net/kancolle-kouryaku/7-4/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-4-nga-light-cl2-dd3-de",
+      "name": "NGA・夢美・海防打撈・輕量水雷",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "lbas", "asw-loadout"],
+      "desc": "7-4：輕巡2＋驅逐3＋海防1（原圖能代＋矢矧）。33式係數4索敵≥37必須；無高速要求。原圖矢矧改二乙、水戰與夜偵的制空33，是磨血/斬後Boss劣勢及夜間觸接戰術目標；斬殺劣勢線升至52，不適用33。觸接還需夜偵及其他發動條件，數值達成不保證觸接。建議高練度、多艘先制對潛與夜戰CI，並手動確認陸航。C單橫、E輪形、J/L梯形、P單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 1
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 33,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 37
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
+        "https://zekamashi.net/kancolle-kouryaku/7-4/",
+        "https://zh.kcwiki.cn/wiki/南西海域/7-4"
+      ],
+      "lastVerified": "2026-09-30"
     }
   ]
 }

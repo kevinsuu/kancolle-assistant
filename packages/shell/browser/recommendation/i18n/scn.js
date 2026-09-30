@@ -2,6 +2,9 @@ import { tcn } from './tcn'
 
 export const scn = {
   ...tcn,
+  'fleet.phase': '攻略阶段',
+  'fleet.phaseGimmickM': 'M 点解谜',
+  'fleet.phaseGeneral': '一般／资源路线',
   'common.help': '说明',
   'common.loading': '载入中…',
   'common.refresh': '刷新',

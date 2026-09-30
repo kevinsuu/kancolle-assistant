@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.29`   | `2026-09-29`   |
+| `v1.0.30`   | `2026-09-30`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.30 highlights (since v1.0.29)
+
+- Adds 13 sourced World 7 fleet variants and stage selection, including the 7-5 M unlock. Route descriptions separate mandatory routing thresholds from advisory combat targets.
 
 ### v1.0.29 highlights (since v1.0.28)
 
@@ -41,11 +45,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - [Quest synchronization](./docs/quest-recommendations.md) now handles malformed server responses as retryable failures instead of uncaught main-process exceptions.
 - Quest ranking runs in a separate background worker with a 30-second limit, preventing stalled ranking from blocking the main process and allowing retry.
-
-### v1.0.25 highlights (since v1.0.24)
-
-- The 5-4 guide now includes a fast battleship and carrier upper-route fleet with interchangeable fast battleships.
-- All 5-4 routes treat air power as a recommended target while retaining required routing LoS; the fast battleship night route now shows its D-node maelstrom correctly.
 
 ### Project-specific highlights
 
@@ -178,6 +177,7 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 
 ### 🚀 Current
 
+- [x] World 7 stage-specific fleet selection (including 7-5 M unlock), with separate mandatory routing thresholds and advisory combat targets
 - [x] [Shared account snapshots across Strategy Room windows, with isolated background workers for fleet, expedition, and resource calculations](./docs/shell-runtime-architecture.md)
 - [x] Installer + Application auto-update on startup, game open, and every six hours
 - [x] KC3Kai integration

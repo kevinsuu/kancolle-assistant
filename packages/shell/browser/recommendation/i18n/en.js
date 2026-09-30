@@ -1,4 +1,7 @@
 export const en = {
+  'fleet.phase': 'Stage',
+  'fleet.phaseGimmickM': 'M node unlock',
+  'fleet.phaseGeneral': 'General / resource routes',
   'common.help': 'Help',
   'common.loading': 'Loading…',
   'common.refresh': 'Refresh',

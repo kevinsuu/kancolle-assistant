@@ -31,6 +31,7 @@ export const styles = `
   .dfr-field > span, .dfr-field-label { display: block; font-weight: bold; font-size: 12px; }
   .dfr-field select { width: 218px; height: 26px; margin-top: 4px; }
   .dfr-field-route select { width: 300px; }
+  #dfr-phase-field select { width: 120px; }
   .dfr-route-row { min-height: 36px; padding: 0; font-size: 11px; }
   body:not(.dark) .dfr-route-row { border-radius: 8px; }
   .dfr-route-row summary { min-height: 36px; padding: 6px 10px; cursor: pointer; list-style-position: inside; }
@@ -41,6 +42,8 @@ export const styles = `
   .dfr-source-list { margin: 0; padding: 0 10px 8px 34px; font-size: 10px; line-height: 1.45; }
   .dfr-source-list li { margin: 1px 0; }
   .dfr-source-list a { overflow-wrap: anywhere; }
+  .dfr-route-description { margin: 8px 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+  .dfr-route-description:empty { display: none; }
   .dfr-action-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 8px; }
   .dfr-output { padding-bottom: 20px; }
   .dfr-idle { min-height: 52px; padding: 10px; font-size: 11px; text-align: center; }
@@ -159,6 +162,10 @@ export const panelMarkup = (t) => `
             <span>${t('fleet.map')}</span>
             <select id="dfr-map" class="control_input" disabled></select>
           </label>
+          <label id="dfr-phase-field" class="dfr-field" hidden>
+            <span>${t('fleet.phase')}</span>
+            <select id="dfr-phase" class="control_input" disabled></select>
+          </label>
           <label class="dfr-field dfr-field-route">
             <span>${t('fleet.route')}</span>
             <select id="dfr-route-select" class="control_input" disabled></select>
@@ -173,6 +180,7 @@ export const panelMarkup = (t) => `
           </summary>
           <ol id="dfr-map-sources" class="dfr-source-list"></ol>
         </details>
+        <p id="dfr-route-description" class="dfr-route-description"></p>
         <div class="dfr-action-row">
           <button id="dfr-generate" class="dfr-button" type="button" disabled>
             <span>${t('fleet.generate')}</span>

@@ -103,6 +103,33 @@ export const routeOptionLabel = (route) => {
   return [name, guide].filter(Boolean).join('｜') || route.name
 }
 
+export const routePhaseKey = (route) =>
+  ({ 第一ゲージ: 'P1', 第二ゲージ: 'P2' })[route.phase] ?? route.phase ?? ''
+
+export const routePhaseOptions = (map, translate = t) =>
+  Array.from(new Set(map.routes.map(routePhaseKey))).map((phase) => ({
+    id: phase,
+    label: /^P\d+$/.test(phase)
+      ? `${map.id}-${phase.slice(1)}`
+      : phase === 'M'
+        ? `${map.id} · ${translate('fleet.phaseGimmickM')}`
+        : phase || translate('fleet.phaseGeneral'),
+  }))
+
+export const routesForPhase = (routes, phase) =>
+  routes.filter((route) => routePhaseKey(route) === phase)
+
+export const logPhaseSelection = (mapId, phase, routes, routeId, logger = console) => {
+  logger.info('recommendation.phase-selection', {
+    mapId,
+    phase,
+    routeCount: routes.length,
+    routeId,
+    outcome: routes.length ? 'ready' : 'empty',
+    reasonCode: routes.length ? 'PHASE_ROUTES_AVAILABLE' : 'PHASE_ROUTES_EMPTY',
+  })
+}
+
 const GUIDE_OBJECTIVE_PRIORITY = [
   'balanced',
   'boss-clear',
@@ -345,9 +372,12 @@ const mountPanel = (invoke, onSnapshotChanged) => {
   const syncButton = contentHtml.querySelector('#dfr-sync')
   const generateButton = contentHtml.querySelector('#dfr-generate')
   const mapSelect = contentHtml.querySelector('#dfr-map')
+  const phaseSelect = contentHtml.querySelector('#dfr-phase')
+  const phaseField = contentHtml.querySelector('#dfr-phase-field')
   const routeSelect = contentHtml.querySelector('#dfr-route-select')
   const mapSummary = contentHtml.querySelector('#dfr-map-summary')
   const mapSourceList = contentHtml.querySelector('#dfr-map-sources')
+  const routeDescription = contentHtml.querySelector('#dfr-route-description')
   const output = contentHtml.querySelector('#dfr-output')
   let activePlanSources = null
   let accountReady = false
@@ -361,6 +391,7 @@ const mountPanel = (invoke, onSnapshotChanged) => {
     const routeReady = routeSelect.value.length > 0 && selectedOption?.disabled !== true
     syncButton.disabled = busy || accountSyncing
     mapSelect.disabled = busy || !mapOptionsReady
+    phaseSelect.disabled = busy || !mapOptionsReady
     routeSelect.disabled = busy || !mapOptionsReady
     generateButton.disabled = busy || !mapOptionsReady || !routeReady
     generateButton.querySelector('span').textContent = busy
@@ -392,6 +423,11 @@ const mountPanel = (invoke, onSnapshotChanged) => {
     const mapOption = mapOptions.find((item) => item.id === mapSelect.value)
     if (!mapOption) return
     activePlanSources = null
+    const phases = routePhaseOptions(mapOption)
+    phaseField.hidden = phases.length === 1 && phases[0].id === ''
+    phaseSelect.innerHTML = phases
+      .map((phase) => `<option value="${escapeHtml(phase.id)}">${escapeHtml(phase.label)}</option>`)
+      .join('')
     renderRouteOptions()
   }
 
@@ -399,7 +435,7 @@ const mountPanel = (invoke, onSnapshotChanged) => {
     const mapOption = mapOptions.find((item) => item.id === mapSelect.value)
     if (!mapOption) return
     const previousRouteId = routeSelect.value
-    const routes = mapOption.routes
+    const routes = routesForPhase(mapOption.routes, phaseSelect.value)
     routeSelect.innerHTML = routes
       .map(
         (route) =>
@@ -409,6 +445,7 @@ const mountPanel = (invoke, onSnapshotChanged) => {
     routeSelect.value = routes.some((route) => route.id === previousRouteId)
       ? previousRouteId
       : routes[0]?.id || ''
+    logPhaseSelection(mapOption.id, phaseSelect.value, routes, routeSelect.value)
     renderSourceStatus()
     updateBusy()
   }
@@ -418,10 +455,12 @@ const mountPanel = (invoke, onSnapshotChanged) => {
     if (!mapOption) {
       mapSummary.textContent = t('fleet.loading')
       mapSourceList.innerHTML = ''
+      routeDescription.textContent = ''
       return
     }
     const selectedRouteId = routeSelect.value
     const selectedRoute = mapOption.routes.find((route) => route.id === selectedRouteId)
+    routeDescription.textContent = selectedRoute ? localizedRouteDescription(selectedRoute) : ''
     const routes = selectedRoute ? [selectedRoute] : []
     const sources = activePlanSources ?? uniqueRouteSources(routes)
     mapSummary.textContent = t('fleet.sourceCount', { count: sources.length })
@@ -543,7 +582,13 @@ const mountPanel = (invoke, onSnapshotChanged) => {
     syncAccount({ invalidateResults: true, forceRefresh: true }),
   )
   mapSelect.addEventListener('change', () => {
+    output.innerHTML = ''
     renderMapRoutes()
+  })
+  phaseSelect.addEventListener('change', () => {
+    activePlanSources = null
+    output.innerHTML = ''
+    renderRouteOptions()
   })
   routeSelect.addEventListener('change', () => {
     activePlanSources = null

@@ -64,6 +64,9 @@ import {
   localizedRouteDescription,
   strategyFacts,
   routeOptionLabel,
+  routePhaseOptions,
+  routesForPhase,
+  logPhaseSelection,
 } from '../browser/recommendation/strategy-room-ui.js'
 import {
   recentSectionMarkup,
@@ -92,6 +95,69 @@ const interpolate = (message, values) =>
   String(message).replace(/\{([A-Za-z0-9_]+)\}/g, (match, name) =>
     Object.hasOwn(values, name) ? String(values[name]) : match,
   )
+
+test('fleet stages isolate gauges, M unlock, and unphased routes', () => {
+  const routes = [
+    { id: 'one', phase: 'P1' },
+    { id: 'two', phase: 'P2' },
+    { id: 'three', phase: 'P3' },
+    { id: 'unlock', phase: 'M' },
+    { id: 'resource' },
+  ]
+  const phases = routePhaseOptions({ id: '7-5', routes }, (key) => tcn[key])
+  assert.deepEqual(
+    phases.map((phase) => phase.label),
+    ['7-5-1', '7-5-2', '7-5-3', '7-5 · M 點解謎', '一般／資源路線'],
+  )
+  assert.deepEqual(
+    routesForPhase(routes, 'P2').map((route) => route.id),
+    ['two'],
+  )
+  assert.deepEqual(
+    routesForPhase(routes, 'M').map((route) => route.id),
+    ['unlock'],
+  )
+  assert.deepEqual(
+    routesForPhase(routes, '').map((route) => route.id),
+    ['resource'],
+  )
+  assert.deepEqual(routesForPhase(routes, 'missing'), [])
+  assert.deepEqual(routesForPhase([{ id: 'legacy', phase: '第一ゲージ' }], 'P1'), [
+    { id: 'legacy', phase: '第一ゲージ' },
+  ])
+  const events = []
+  const logger = { info: (...args) => events.push(args) }
+  logPhaseSelection('7-5', 'P2', routesForPhase(routes, 'P2'), 'two', logger)
+  logPhaseSelection('7-5', 'missing', [], '', logger)
+  assert.deepEqual(events, [
+    [
+      'recommendation.phase-selection',
+      {
+        mapId: '7-5',
+        phase: 'P2',
+        routeCount: 1,
+        routeId: 'two',
+        outcome: 'ready',
+        reasonCode: 'PHASE_ROUTES_AVAILABLE',
+      },
+    ],
+    [
+      'recommendation.phase-selection',
+      {
+        mapId: '7-5',
+        phase: 'missing',
+        routeCount: 0,
+        routeId: '',
+        outcome: 'empty',
+        reasonCode: 'PHASE_ROUTES_EMPTY',
+      },
+    ],
+  ])
+  assert.match(
+    fleetMarkup((key) => tcn[key] || key),
+    /id="dfr-phase"/,
+  )
+})
 
 const catalogs = {
   en,
@@ -128,10 +194,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '9b2f63571d9b8269a6b7cdef49d25cdf78d42c2342dca57a1f8c692891dcd100',
-      jp: '1920fb3bc2bcbf4962e62ef921c204e369b793758caa20aa8f297d291b623b96',
-      scn: 'aab3b74c6cb065e1ae0c3bd37c55b556040155b260438c1555ce1f154754e8ce',
-      tcn: 'ffbf98c3b532f86f50749be37c56eeb8ac7543310399f9f60aba73deb3c267f7',
+      en: '3513ec791adeebfcc8226c3726cbf20c7a54c3238c26bcbc38637a1c621429a3',
+      jp: 'f4a208242339fca626b0b57860c7914b4b67a90d2b80a0867b69af970bdaf174',
+      scn: '1bd514c1d56ee601314f2dc672b0291a87eeaddfa8db4bed4e28f6c032d731f3',
+      tcn: 'eb2acebd3995ac9a01145038d864e9511a1222d719fef3e0d8b3aa061a5a72ce',
     },
   )
 })

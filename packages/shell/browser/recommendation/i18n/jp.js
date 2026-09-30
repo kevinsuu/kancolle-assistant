@@ -2,6 +2,9 @@ import { en } from './en'
 
 export const jp = {
   ...en,
+  'fleet.phase': '攻略段階',
+  'fleet.phaseGimmickM': 'Mマスギミック',
+  'fleet.phaseGeneral': '通常・資源ルート',
   'common.help': 'ヘルプ',
   'common.loading': '読み込み中…',
   'common.refresh': '更新',

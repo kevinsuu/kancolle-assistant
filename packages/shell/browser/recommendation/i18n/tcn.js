@@ -1,4 +1,7 @@
 export const tcn = {
+  'fleet.phase': '攻略階段',
+  'fleet.phaseGimmickM': 'M 點解謎',
+  'fleet.phaseGeneral': '一般／資源路線',
   'common.help': '說明',
   'common.loading': '載入中…',
   'common.refresh': '重新整理',

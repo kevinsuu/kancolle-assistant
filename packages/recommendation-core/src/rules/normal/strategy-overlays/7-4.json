@@ -12,26 +12,64 @@
       "objectives": ["resource-fuel", "resource-bauxite", "leveling"],
       "nodes": ["C", "D", "F", "J", "K", "M", "O"],
       "stableBoss": false,
-      "tags": ["submarine", "risk-free", "lbas-proficiency", "los-cn3-32"],
-      "desc": "潜水/潜母1-6。O港で燃料・鋁土回收。",
+      "tags": ["submarine", "lbas-proficiency", "los-cn4-47"],
+      "desc": "潛水/潛母6艘，C-D-F-J-K-M-O。全隊潛水系與33式係數4索敵≥47為固定O港條件；索敵留1以上餘裕較安全。無制空需求，內火艇與運輸桶僅增加資源收益。J可能遇到反潛艦，並非零風險；陸航熟練度訓練及派遣需手動設定。",
       "fleet": [
         {
           "type": "ShipCount",
           "value": 6
         },
         {
-          "type": "ShipTypeCount",
+          "type": "ExactShipTypeCount",
           "stypes": [13, 14],
-          "value": 1
+          "value": 6
         }
       ],
       "calculated": [
         {
           "kind": "los",
-          "coefficient": 3,
-          "minimum": 32
+          "coefficient": 4,
+          "minimum": 47
         }
-      ]
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
+        "https://zh.kcwiki.cn/wiki/南西海域/7-4"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-4-nga-resource-sub3",
+      "name": "NGA・夢美・三潛水艦資源回收",
+      "category": "resource",
+      "objectives": ["resource-fuel", "resource-bauxite", "leveling"],
+      "nodes": ["C", "D", "F", "J", "K", "M", "O"],
+      "stableBoss": false,
+      "tags": ["submarine", "lbas-proficiency", "los-cn4-47"],
+      "desc": "潛水/潛母3艘，C-D-F-J-K-M-O。33式係數4索敵≥47必須，建議再留1以上餘裕；無制空、先制對潛需求。原圖伊13改、伊14改帶水偵和內火艇，伊504帶運輸桶；這些指定艦與內火艇/桶僅供增加收益，非進O門檻。先滿足索敵才配資源裝備，不保證原圖收益。J可能遇反潛艦，須確認損傷與撤退；陸航派遣需手動設定。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 3
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [13, 14],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 47
+        }
+      ],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
+        "https://zh.kcwiki.cn/wiki/南西海域/7-4"
+      ],
+      "lastVerified": "2026-09-30"
     }
   ]
 }

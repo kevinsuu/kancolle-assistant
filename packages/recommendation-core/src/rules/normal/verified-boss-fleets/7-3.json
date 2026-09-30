@@ -6,7 +6,7 @@
     {
       "id": "7-3-guide-p1-haguro-dd3",
       "name": "攻略網・第一ゲージ羽黒",
-      "phase": "第一ゲージ",
+      "phase": "P1",
       "category": "boss",
       "objectives": ["balanced", "boss-clear", "low-cost"],
       "nodes": ["A", "C", "E"],
@@ -39,7 +39,7 @@
     {
       "id": "7-3-guide-p2-haguro-ashigara",
       "name": "攻略網・第二ゲージ重巡",
-      "phase": "第二ゲージ",
+      "phase": "P2",
       "category": "boss",
       "objectives": ["balanced", "boss-clear"],
       "nodes": ["A", "C", "D", "G", "J", "P"],
@@ -78,6 +78,118 @@
           "value": 3
         }
       ]
+    },
+    {
+      "id": "7-3-nga-p2-four",
+      "name": "NGA・夢美・第二階段・羽黑神風四艘",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P2",
+      "nodes": ["A", "C", "D", "G", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "opening-torpedo-preferred"],
+      "desc": "7-3-2：羽黑＋神風＋航巡1＋輕巡1，共4艘。羽黑、神風和4艘限制為這個最短路線的硬條件；無制空、索敵數值要求，也不要求高速統一。水爆、甲標的與夜戰二連為輸出建議，最上改二特、矢矧改二乙並非帶路指定艦。全程單縱；四艘火力不足時可改選六艘史實編成。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒", "Haguro"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["神風", "Kamikaze"],
+          "count": 1
+        }
+      ],
+      "calculated": [],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456110",
+        "https://zekamashi.net/kancolle-kouryaku/7-3/"
+      ],
+      "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-3-nga-p2-historical-av",
+      "name": "NGA・夢美・第二階段・史實水母六艘",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "phase": "P2",
+      "nodes": ["A", "C", "D", "G", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "fast",
+        "opening-torpedo-preferred",
+        "seaplane-bombers-preferred"
+      ],
+      "desc": "7-3-2：羽黑＋足柄＋神風＋水母1＋驅逐2。此六艘最短路線必須三艘指定艦、高速統一；無制空與索敵數值門檻。水母參考日進水爆＋甲標的，其他艦以日夜二連為主。水爆制空僅供戰鬥運用，不必照抄原圖26。全程單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [16],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒", "Haguro"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["足柄", "Ashigara"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["神風", "Kamikaze"],
+          "count": 1
+        }
+      ],
+      "calculated": [],
+      "sources": [
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456110",
+        "https://zekamashi.net/kancolle-kouryaku/7-3/"
+      ],
+      "lastVerified": "2026-09-30"
     }
   ]
 }

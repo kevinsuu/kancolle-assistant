@@ -784,7 +784,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 175)
+  assert.equal(NORMAL_MAP_ROUTES.length, 188)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -1160,7 +1160,16 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   )
   assert.deepEqual(
     maps.find((map) => map.id === '7-5').routes.map((route) => route.id),
-    ['7-5-p1-mixed', '7-5-p2-short', '7-5-p3-light-dd'],
+    [
+      '7-5-p1-mixed',
+      '7-5-p2-short',
+      '7-5-p3-light-dd',
+      '7-5-nga-gimmick-m',
+      '7-5-nga-p1-cvl',
+      '7-5-nga-p2-cvl',
+      '7-5-nga-p3-fast-bbv',
+      '7-5-nga-p3-cvl',
+    ],
   )
   ;[
     '3-5-south-cl-dd-av',
@@ -1267,6 +1276,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     '2026.08.29-overlay',
     '2026.08.31-overlay',
     '2026.09.15-overlay',
+    '2026.09.30-overlay',
   ])
   assert.ok(
     extraOperationRoutes
@@ -1296,9 +1306,15 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
   verifiedGuideRoutes.forEach((route) => {
     assert.equal(route.metadata.confidence, 'verified')
     assert.ok(
-      ['2026-08-26', '2026-08-29', '2026-08-30', '2026-09-01', '2026-09-22', '2026-09-29'].includes(
-        route.metadata.lastVerified,
-      ),
+      [
+        '2026-08-26',
+        '2026-08-29',
+        '2026-08-30',
+        '2026-09-01',
+        '2026-09-22',
+        '2026-09-29',
+        '2026-09-30',
+      ].includes(route.metadata.lastVerified),
     )
     assert.ok(route.metadata.ruleVersion.endsWith('-verified-guide'))
     assert.ok(
@@ -1771,6 +1787,112 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     phaseThree75.calculatedConstraints.find((constraint) => constraint.kind === 'los').minimum,
     59,
   )
+})
+
+test('NGA World 7 variants separate phases, routing thresholds, and manual combat setup', () => {
+  const ngaRoutes = NORMAL_MAP_ROUTES.filter((route) => /^7-\d-nga-/.test(route.id))
+  assert.equal(ngaRoutes.length, 13)
+  const byId = (id) => NORMAL_MAP_ROUTES.find((route) => route.id === id)
+  const pids = { '7-2': 454456055, '7-3': 454456110, '7-4': 454456265, '7-5': 454456331 }
+  for (const route of ngaRoutes) {
+    assert.ok(
+      route.metadata.guideSources.includes(
+        `https://bbs.nga.cn/read.php?tid=23451223&pid=${pids[route.mapId]}`,
+      ),
+    )
+    for (const constraint of route.calculatedConstraints) {
+      if (constraint.kind === 'air-power') assert.equal(constraint.required, false)
+      if (constraint.kind === 'los') assert.equal(constraint.coefficient, 4)
+      assert.notEqual(constraint.kind, 'opening-asw')
+    }
+  }
+  const stages = getMapOptions().find((map) => map.id === '7-5').routes
+  assert.deepEqual(new Set(stages.map((route) => route.phase)), new Set(['P1', 'P2', 'P3', 'M']))
+  const unlock = byId('7-5-nga-gimmick-m')
+  assert.equal(unlock.category, 'gimmick')
+  assert.deepEqual(unlock.nodes, ['A', 'B', 'D', 'F', 'G', 'H', 'I', 'M'])
+  const minimumLos = (id) => byId(id).calculatedConstraints.find((c) => c.kind === 'los')?.minimum
+  assert.equal(minimumLos('7-5-nga-gimmick-m'), 59)
+  assert.equal(minimumLos('7-5-nga-p3-cvl'), 63)
+  assert.equal(minimumLos('7-5-nga-p3-fast-bbv'), 59)
+  assert.equal(minimumLos('7-5-nga-p1-cvl'), undefined)
+  assert.equal(minimumLos('7-5-nga-p2-cvl'), undefined)
+  assert.equal(minimumLos('7-2-nga-p2-carrier-cruisers'), 69)
+  assert.equal(minimumLos('7-4-nga-resource-sub3'), 47)
+  assert.equal(minimumLos('7-4-resource-submarine'), 47)
+  assert.equal(byId('7-2-guide-p1-cl-dd3').calculatedConstraints.length, 0)
+  assert.equal(
+    byId('7-2-guide-p2-heavy').calculatedConstraints.find((c) => c.kind === 'air-power').required,
+    false,
+  )
+  const four = byId('7-3-nga-p2-four')
+  assert.equal(four.calculatedConstraints.length, 0)
+  assert.ok(
+    four.fleetConstraints.some((c) => c.kind === 'specific-ship-name' && c.names.includes('神風')),
+  )
+  assert.ok(
+    four.fleetConstraints.some((c) => c.kind === 'specific-ship-name' && c.names.includes('羽黒')),
+  )
+  assert.deepEqual(byId('7-4-nga-light-cl2-dd3-de').nodes, ['C', 'E', 'J', 'L', 'P'])
+  assert.equal(isAutomaticRouteReady(byId('7-5-nga-p2-cvl')), false)
+  assert.ok(automaticRouteBlockers(byId('7-5-nga-p2-cvl')).length > 0)
+  assert.equal(isAutomaticRouteReady(byId('7-4-nga-farming-bbv-cvl')), false)
+  assert.ok(
+    strategyOverlayCatalog.find((map) => map.area === '7-5').routes.some((r) => r.id === unlock.id),
+  )
+  assert.equal(
+    verifiedBossFleetCatalog.some((map) => map.area === '7-5'),
+    false,
+  )
+})
+
+test('World 7 advises air power but rejects an insufficient stage-specific LoS score', () => {
+  for (const [mapId, routeId, types] of [
+    ['7-2', '7-2-nga-p2-carrier-cruisers', [11, 7, 6, 3, 2, 2]],
+    ['7-5', '7-5-nga-p3-cvl', [7, 6, 6, 3, 2, 2]],
+  ]) {
+    const raw = createRawSnapshot()
+    raw.hqLevel = 1
+    raw.currentFleetShipIds = []
+    raw.ships.forEach((ship, index) => {
+      ship.shipTypeId = types[index]
+      ship.speed = 10
+      ship.nakedLos = 200
+      ship.stats = { ...ship.stats, los: 200 }
+      ship.slotSizes = [0, 0, 0]
+      ship.equippedItemIds = [0, 0, 0]
+    })
+    raw.equipment = raw.equipment.filter((gear) => ![6, 7, 8, 11, 45].includes(gear.typeId))
+    const result = recommendFleet({
+      mapId,
+      routeId,
+      objective: 'balanced',
+      account: parseKC3AccountSnapshot(raw),
+    })
+    assert.equal(result.status, 'success', JSON.stringify(result))
+    assert.equal(result.recommendations[0].metrics.airPowerRequired, false)
+    assert.equal(result.recommendations[0].metrics.airPower, 0)
+    assert.ok(
+      result.recommendations[0].warnings.some(
+        (warning) => warning.code === 'AIR_POWER_BELOW_RECOMMENDED',
+      ),
+    )
+    raw.hqLevel = 120
+    raw.ships.forEach((ship) => {
+      ship.nakedLos = 0
+      ship.stats.los = 0
+    })
+    raw.equipment.forEach((gear) => {
+      gear.stats.los = 0
+    })
+    const blocked = recommendFleet({
+      mapId,
+      routeId,
+      objective: 'balanced',
+      account: parseKC3AccountSnapshot(raw),
+    })
+    assert.equal(blocked.status, 'no-solution', JSON.stringify(blocked))
+  }
 })
 
 test('Bahamut illustrated guide adds only the reviewed non-duplicate configurations', () => {

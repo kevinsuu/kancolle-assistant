@@ -19,7 +19,7 @@
         "opening-torpedo-preferred"
       ],
       "desc": "軽巡1、駆逐4でD-E-G-H-K固定。対潜装備を優先。先制対潜は初攻略2隻、安定周回4～5隻を推奨するが必須条件ではない。Gは単縦、潜水艦マスは単横。制空・索敵条件なし。",
-      "lastVerified": "2026-09-29",
+      "lastVerified": "2026-09-30",
       "fleet": [
         {
           "type": "ShipCount",
@@ -39,7 +39,8 @@
       "calculated": [],
       "sources": [
         "https://zekamashi.net/kancolle-kouryaku/7-1/",
-        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1",
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454455961"
       ]
     },
     {
@@ -256,7 +257,7 @@
         "seaplane-bombers-preferred"
       ],
       "desc": "水母1、駆逐1、海防3でD-E-G-H-K固定。水母は日進の水爆3＋甲標的を参考にG対策、他は水聴＋投射機を推奨。未改造海防の輪換は節約案で必須ではない。先制対潜数・制空・索敵条件なし。",
-      "lastVerified": "2026-09-29",
+      "lastVerified": "2026-09-30",
       "fleet": [
         {
           "type": "ShipCount",
@@ -279,7 +280,10 @@
         }
       ],
       "calculated": [],
-      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1"]
+      "sources": [
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-1",
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454455961"
+      ]
     }
   ]
 }
