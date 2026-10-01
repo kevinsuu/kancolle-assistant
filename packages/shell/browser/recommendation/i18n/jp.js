@@ -146,6 +146,7 @@ export const jp = {
   'quest.card.requirement': '達成条件',
   'quest.card.reward': '任務報酬',
   'quest.card.schedule': '期限／優先度',
+  'quest.resourceRewards': '資源報酬',
   'quest.requirement.unknown': 'KC3に達成条件の説明がありません',
   'quest.reward.blueprint': '改装設計図',
   'quest.reward.medal': '勲章',

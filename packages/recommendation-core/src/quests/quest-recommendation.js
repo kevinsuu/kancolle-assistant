@@ -1,7 +1,7 @@
 import { findQuestSynergies, questArsenalProfileSource } from './quest-synergy'
 import { hasQuestObjective, questObjectiveMapIds } from './quest-objective-synergy'
 
-export const QUEST_RECOMMENDATION_RANKING_VERSION = 18
+export const QUEST_RECOMMENDATION_RANKING_VERSION = 19
 
 const RECOMMENDATION_PERIODS = ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'oneTime']
 const RECOMMENDATION_PERIOD_SET = new Set(RECOMMENDATION_PERIODS)

@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.30`   | `2026-09-30`   |
+| `v1.0.31`   | `2026-10-01`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.31 highlights (since v1.0.30)
+
+- Quest Recommendations now show positive fuel, ammo, steel, and bauxite rewards with KC3 icons and localized amounts. Manual synchronization preserves the API reward data for later local loads.
 
 ### v1.0.30 highlights (since v1.0.29)
 
@@ -40,11 +44,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - [Quest Recommendations](./docs/quest-recommendations.md) recovers from a failed manual sync by reading KC3's local data once, so usable quests appear without switching pages.
 - Existing results remain available if recovery fails, with distinct sync, ranking, and data-load messages; fallback data is clearly marked as unconfirmed.
-
-### v1.0.26 highlights (since v1.0.25)
-
-- [Quest synchronization](./docs/quest-recommendations.md) now handles malformed server responses as retryable failures instead of uncaught main-process exceptions.
-- Quest ranking runs in a separate background worker with a 30-second limit, preventing stalled ranking from blocking the main process and allowing retry.
 
 ### Project-specific highlights
 
@@ -224,7 +223,8 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
       expeditions, and arsenal work, and non-sortie quests kept above every open repeatable and
       normal one-time sortie quest; currently available time-limited quests appear under Other
       with an unknown-final-deadline notice, and filter and sort settings persist locally across
-      page and game restarts
+      page and game restarts; quest cards show positive fuel, ammo, steel, and bauxite rewards with
+      localized KC3 icons and amounts
 - [x] Markdown export of the visible quest list, filters, completion conditions, rewards, deadlines,
       locked successors, and suggested-combination workflows
 - [x] Weighted expedition recommendations with fleet assignments

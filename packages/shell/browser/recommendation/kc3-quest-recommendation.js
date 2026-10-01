@@ -1,4 +1,5 @@
 const MAX_SYNCHRONIZED_QUEST_COUNT = 2_048
+const QUEST_RESOURCE_REWARDS_STORAGE_KEY = 'kancolle-assistant.quest-resource-rewards.v1'
 
 const synchronizedQuestScript = (quests) => {
   if (!Array.isArray(quests) || quests.length > MAX_SYNCHRONIZED_QUEST_COUNT) {
@@ -17,6 +18,26 @@ const synchronizedQuestScript = (quests) => {
         .filter((quest) => quest && quest !== -1 && Number(quest.api_no) > 0 && quest.api_title)
         .map((quest) => [Number(quest.api_no), String(quest.api_title).slice(0, 240)]),
     )
+    const resourceRewards = Object.fromEntries(
+      quests
+        .filter((quest) => quest && quest !== -1 && Number(quest.api_no) > 0)
+        .map((quest) => [
+          Number(quest.api_no),
+          Array.isArray(quest.api_get_material)
+            ? quest.api_get_material.slice(0, 4).map((value) => {
+                const number = Number(value)
+                return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0
+              })
+            : [0, 0, 0, 0],
+        ]),
+    )
+    window.__kancolleAssistantQuestResourceRewards = resourceRewards
+    try {
+      window.localStorage?.setItem(
+        '${QUEST_RESOURCE_REWARDS_STORAGE_KEY}',
+        JSON.stringify(resourceRewards),
+      )
+    } catch {}
     window.KC3QuestManager.load()
     window.KC3QuestManager.definePage(quests, undefined, 0)
     window.__kancolleAssistantQuestSynchronizedAt = new Date().toISOString()
@@ -124,6 +145,16 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
     if (metadataTimer !== undefined) window.clearTimeout(metadataTimer)
   }
   const questTitleSourceByQuestId = new Map()
+  let storedResourceRewards = {}
+  try {
+    const stored = JSON.parse(
+      window.localStorage?.getItem('${QUEST_RESOURCE_REWARDS_STORAGE_KEY}') || '{}',
+    )
+    if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+      storedResourceRewards = stored
+    }
+  } catch {}
+  const synchronizedResourceRewards = window.__kancolleAssistantQuestResourceRewards || {}
 
   const questSnapshot = (questId, quest = {}, locked = false) => {
     const resetPeriod = resetPeriodByQuestId[questId] || 'other'
@@ -148,6 +179,17 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
       questTitleSourceByQuestId.set(questId, titleSource)
     }
     const status = locked ? 0 : Number(quest.status || 0)
+    const resourceValue = (value) => {
+      const number = Number(value)
+      return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0
+    }
+    const materialRewards = Array.isArray(raw.api_get_material)
+      ? raw.api_get_material
+      : Array.isArray(synchronizedResourceRewards[questId])
+        ? synchronizedResourceRewards[questId]
+        : Array.isArray(storedResourceRewards[questId])
+          ? storedResourceRewards[questId]
+          : []
     return {
       id: questId,
       code: String(meta.code || questId).slice(0, 40),
@@ -171,6 +213,12 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
       rewardConsumables: Array.isArray(meta.rewardConsumables)
         ? meta.rewardConsumables.slice(0, 4).map((value) => Number(value || 0))
         : [0, 0, 0, 0],
+      rewardResources: {
+        fuel: resourceValue(materialRewards[0]),
+        ammo: resourceValue(materialRewards[1]),
+        steel: resourceValue(materialRewards[2]),
+        bauxite: resourceValue(materialRewards[3]),
+      },
     }
   }
 
@@ -288,6 +336,9 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
       maximumPlanningQuestCount,
       successorGraphTruncated,
       successorQueueRemainingCount,
+      resourceRewardQuestCount: quests.filter(({ rewardResources }) =>
+        Object.values(rewardResources || {}).some((value) => Number(value) > 0),
+      ).length,
       accountStatus: account.status,
       accountReasonCode,
       shipCount: account.shipMasterIds.length,
@@ -394,6 +445,7 @@ export const readKC3QuestRecommendations = async (
     maximumPlanningQuestCount: Number(snapshot.diagnostics?.maximumPlanningQuestCount || 0),
     successorGraphTruncated,
     successorQueueRemainingCount: Number(snapshot.diagnostics?.successorQueueRemainingCount || 0),
+    resourceRewardQuestCount: Number(snapshot.diagnostics?.resourceRewardQuestCount || 0),
     extraOperationStatuses: snapshot.extraOperationStatus,
     accountStatus: snapshot.diagnostics?.accountStatus || 'unknown',
     accountReasonCode: snapshot.diagnostics?.accountReasonCode || null,

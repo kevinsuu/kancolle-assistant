@@ -1,7 +1,8 @@
 import { loadQuestRecommendationResult } from './quest-recommendation-loader'
 import { createStrategyRoomI18n } from './i18n'
 import { QUEST_CHAPTER_KEYS } from './quest-recommendation'
-import { escapeHtml, formatLocalizedDate } from './strategy-room-format'
+import { LEDGER_RESOURCES } from './resource-metadata'
+import { escapeHtml, formatLocalizedDate, formatLocalizedNumber } from './strategy-room-format'
 import { panelMarkup, styles } from './views/quest-recommendation-view'
 
 let { locale, t } = createStrategyRoomI18n()
@@ -37,6 +38,40 @@ const remainingLabel = (remainingMs) => {
   if (days > 0) return t('quest.remainingDaysHours', { days, hours })
   if (totalMinutes >= 60) return t('quest.remainingHours', { hours: Math.ceil(totalMinutes / 60) })
   return t('quest.remainingMinutes', { minutes: totalMinutes })
+}
+
+const resourceRewardItems = (quest) =>
+  LEDGER_RESOURCES.slice(0, 4)
+    .map((resource) => {
+      const count = Number(quest?.rewardResources?.[resource.key])
+      if (!Number.isFinite(count) || count <= 0) return null
+      return {
+        ...resource,
+        count: Math.trunc(count),
+        label: t(`common.${resource.key}`),
+      }
+    })
+    .filter(Boolean)
+
+const resourceRewardMarkup = (quest) => {
+  const items = resourceRewardItems(quest)
+  if (items.length === 0) return ''
+  return `<div class="dqr-resource-rewards" aria-label="${escapeHtml(
+    t('quest.resourceRewards'),
+  )}">${items
+    .map(
+      (resource) =>
+        `<span class="dqr-resource-reward ${escapeHtml(resource.key)}" title="${escapeHtml(
+          `${resource.label}: ${formatLocalizedNumber(resource.count, locale)}`,
+        )}" aria-label="${escapeHtml(
+          `${resource.label}: ${formatLocalizedNumber(resource.count, locale)}`,
+        )}"><img src="../../assets/img/client/${escapeHtml(
+          resource.icon,
+        )}" alt="" aria-hidden="true"><strong>${escapeHtml(
+          formatLocalizedNumber(resource.count, locale),
+        )}</strong></span>`,
+    )
+    .join('')}</div>`
 }
 
 const rewardItems = (reward) => {
@@ -815,6 +850,7 @@ const questNodeMarkup = (
         <div class="dqr-heading">
           <h2>${escapeHtml(quest.name || t('quest.unknownName'))}</h2>
         </div>
+        ${resourceRewardMarkup(quest)}
         <div class="dqr-tags">
           <span class="dqr-tag period ${period}">${t(`quest.period.${period}`)}</span>
           ${quest.limited ? `<span class="dqr-tag limited">${escapeHtml(t('quest.period.limited'))}</span>` : ''}

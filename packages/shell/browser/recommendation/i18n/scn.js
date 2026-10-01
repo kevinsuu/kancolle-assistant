@@ -139,6 +139,7 @@ export const scn = {
   'quest.card.requirement': '完成条件',
   'quest.card.reward': '任务奖励',
   'quest.card.schedule': '期限／顺序',
+  'quest.resourceRewards': '资源奖励',
   'quest.requirement.unknown': 'KC3 未提供完成条件说明',
   'quest.reward.blueprint': '改装设计图',
   'quest.reward.medal': '勋章',

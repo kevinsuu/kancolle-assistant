@@ -307,6 +307,7 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
         maximumPlanningQuestCount: 1024,
         successorGraphTruncated: false,
         successorQueueRemainingCount: 0,
+        resourceRewardQuestCount: 0,
         extraOperationStatuses: { '1-5': 'available' },
         accountStatus: 'unknown',
         accountReasonCode: null,
@@ -617,7 +618,14 @@ test('KC3 quest live sync is applied before the recommendation snapshot', async 
     },
     (eventName, data) => logs.push({ eventName, data }),
     {
-      synchronizedQuestList: [{ api_no: 191, api_state: 1, api_title: '日本語の任務タイトル' }],
+      synchronizedQuestList: [
+        {
+          api_no: 191,
+          api_state: 1,
+          api_title: '日本語の任務タイトル',
+          api_get_material: [30, 20, 10, 5],
+        },
+      ],
     },
   )
 
@@ -625,6 +633,8 @@ test('KC3 quest live sync is applied before the recommendation snapshot', async 
   assert.match(scripts[0], /KC3QuestManager\.definePage\(quests, undefined, 0\)/)
   assert.match(scripts[0], /"api_no":191,"api_state":1,"api_title":"日本語の任務タイトル"/)
   assert.match(scripts[0], /__kancolleAssistantJapaneseQuestTitles/)
+  assert.match(scripts[0], /__kancolleAssistantQuestResourceRewards/)
+  assert.match(scripts[0], /quest-resource-rewards\.v1/)
   assert.match(scripts[0], /__kancolleAssistantQuestSynchronizedAt/)
   assert.equal(scripts[1], KC3_QUEST_SNAPSHOT_SCRIPT)
   assert.equal(result.recommendations[0].id, 191)
@@ -710,7 +720,12 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
     performance: { now: () => 0 },
     KC3QuestManager: {
       list: {
-        q680: { id: 680, status: 1, progress: 0 },
+        q680: {
+          id: 680,
+          status: 1,
+          progress: 0,
+          raw: () => ({ api_get_material: [300, 200, 100, 50] }),
+        },
         q681: {
           id: 681,
           status: 1,
@@ -735,6 +750,12 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
     setTimeout,
     clearTimeout,
     KC3Translation: { getJSONWithOptions: () => assert.fail('Synchronous XHR must not run') },
+    localStorage: {
+      getItem: (key) =>
+        key === 'kancolle-assistant.quest-resource-rewards.v1'
+          ? JSON.stringify({ 681: [40, 30, 20, 10] })
+          : null,
+    },
     fetch: async (...args) => {
       japaneseRequests.push(args)
       return {
@@ -761,6 +782,19 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
   )
   assert.equal(snapshot.quests.find(({ id }) => id === 681).name, 'ゲームAPIの日本語題名')
   assert.equal(snapshot.quests.find(({ id }) => id === 681).limited, true)
+  assert.deepEqual(snapshot.quests.find(({ id }) => id === 680).rewardResources, {
+    fuel: 300,
+    ammo: 200,
+    steel: 100,
+    bauxite: 50,
+  })
+  assert.deepEqual(snapshot.quests.find(({ id }) => id === 681).rewardResources, {
+    fuel: 40,
+    ammo: 30,
+    steel: 20,
+    bauxite: 10,
+  })
+  assert.equal(snapshot.diagnostics.resourceRewardQuestCount, 2)
   assert.equal(snapshot.diagnostics.oneTimeOpenQuestCount, 1)
   assert.equal(snapshot.diagnostics.limitedOpenQuestCount, 1)
   assert.equal(japaneseRequests[0][0], '/data/lang/data/jp/quests.json')

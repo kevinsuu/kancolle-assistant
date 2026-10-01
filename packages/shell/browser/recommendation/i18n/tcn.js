@@ -139,6 +139,7 @@ export const tcn = {
   'quest.card.requirement': '完成條件',
   'quest.card.reward': '任務獎勵',
   'quest.card.schedule': '期限／順位',
+  'quest.resourceRewards': '資源獎勵',
   'quest.requirement.unknown': 'KC3 未提供完成條件說明',
   'quest.reward.blueprint': '改裝設計圖',
   'quest.reward.medal': '勳章',

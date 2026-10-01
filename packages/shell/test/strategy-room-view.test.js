@@ -691,6 +691,50 @@ test('quest rewards preserve medal, action report, screws, and other priority', 
   assert.equal(structuredAndRare.valuable, true)
 })
 
+test('quest recommendation cards show positive resource rewards with their icons', () => {
+  const now = Date.UTC(2026, 8, 1)
+  const result = rankQuestRecommendations(
+    [
+      {
+        id: 9001,
+        code: 'BwResource',
+        name: 'Resource reward fixture',
+        period: 'weekly',
+        status: 1,
+        resetAt: now + 7 * 24 * 60 * 60 * 1000,
+        rewardResources: { fuel: 300, ammo: 200, steel: 100, bauxite: 50 },
+      },
+    ],
+    { now },
+  )
+  const markup = questRecommendationListMarkup(result)
+
+  assert.match(markup, /class="dqr-resource-rewards"/)
+  assert.match(markup, /fuel\.png/)
+  assert.match(markup, /ammo\.png/)
+  assert.match(markup, /steel\.png/)
+  assert.match(markup, /bauxite\.png/)
+  assert.match(markup, /300.*200.*100.*50/s)
+  assert.doesNotMatch(
+    questRecommendationListMarkup(
+      rankQuestRecommendations(
+        [
+          {
+            id: 9002,
+            code: 'BwNoResource',
+            period: 'weekly',
+            status: 1,
+            resetAt: now + 7 * 24 * 60 * 60 * 1000,
+            rewardResources: { fuel: 0, ammo: 0, steel: 0, bauxite: 0 },
+          },
+        ],
+        { now },
+      ),
+    ),
+    /dqr-resource-rewards/,
+  )
+})
+
 test('one-time valuable quests keep reward guidance while repeatable equivalents sort first', () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const result = rankQuestRecommendations(
@@ -721,7 +765,7 @@ test('one-time valuable quests keep reward guidance while repeatable equivalents
     { now },
   )
 
-  assert.equal(result.rankingVersion, 18)
+  assert.equal(result.rankingVersion, 19)
   assert.deepEqual(
     result.recommendations.map(({ id, valueBand, guidance }) => ({
       id,

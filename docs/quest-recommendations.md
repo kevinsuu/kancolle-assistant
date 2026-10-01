@@ -114,6 +114,13 @@ Improvement Materials or other rare materials, then ordinary rewards. Explicit c
 guidance, the daily deferral, remaining reset time, current reward, progress, active status, and
 quest ID act as later tie-breakers. One-time quests have no reset-time tie-breaker.
 
+The top-right of a quest card also shows positive fuel, ammunition, steel, and bauxite rewards from
+the game's `api_get_material` values. Each resource uses KC3's existing resource icon and a
+localized number; zero-value resources are omitted. The first use after this feature is installed
+may require one **Sync latest status** action to seed resource values from the game API; later local
+loads reuse the bounded task-ID resource cache. Locked successor quests do not invent resource
+values when KC3 has not supplied a live quest record.
+
 The controls above the list include a multi-select quest-type filter. **All** is the default and
 places no type restriction. In this normal view every quest is shown once, even when it can advance
 in several shared actions. Selecting a specific type switches the list to that type; further type

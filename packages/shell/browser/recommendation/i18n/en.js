@@ -145,6 +145,7 @@ export const en = {
   'quest.card.requirement': 'Requirements',
   'quest.card.reward': 'Quest rewards',
   'quest.card.schedule': 'Deadline / rank',
+  'quest.resourceRewards': 'Resource rewards',
   'quest.requirement.unknown': 'KC3 has no requirement description',
   'quest.reward.blueprint': 'Blueprint',
   'quest.reward.medal': 'Medal',
