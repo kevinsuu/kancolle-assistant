@@ -17,7 +17,8 @@
         "https://m.kcwiki.cn/wiki/7-5",
         "https://yuikancolle.blog.fc2.com/blog-entry-187.html",
         "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
-        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+        "https://zekamashi.net/kancolle-kouryaku/7-5/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-5"
       ],
       "lastVerified": "2026-09-30",
       "fleet": [
@@ -74,7 +75,8 @@
         "https://m.kcwiki.cn/wiki/7-5",
         "https://yuikancolle.blog.fc2.com/blog-entry-187.html",
         "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
-        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+        "https://zekamashi.net/kancolle-kouryaku/7-5/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-5"
       ],
       "lastVerified": "2026-09-30",
       "fleet": [
@@ -225,7 +227,8 @@
       ],
       "sources": [
         "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
-        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+        "https://zekamashi.net/kancolle-kouryaku/7-5/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-5"
       ],
       "lastVerified": "2026-09-30"
     },
@@ -390,7 +393,8 @@
       ],
       "sources": [
         "https://bbs.nga.cn/read.php?tid=23451223&pid=454456331",
-        "https://zekamashi.net/kancolle-kouryaku/7-5/"
+        "https://zekamashi.net/kancolle-kouryaku/7-5/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-5"
       ],
       "lastVerified": "2026-09-30"
     },
@@ -448,6 +452,65 @@
         "https://zekamashi.net/kancolle-kouryaku/7-5/"
       ],
       "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-5-kcwiki-p2-fast-bb-cvl",
+      "name": "艦娘百科・天極虛玄・第二階段・高速戰艦輕空母",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "D", "F", "J", "O", "Q"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "fast",
+        "anti-installation",
+        "pt",
+        "asw-loadout"
+      ],
+      "desc": "戰艦系1＋輕空母1＋航巡1＋輕巡1＋驅逐2，高速統一；低速航戰須手動增速並核對最終速力。無索敵門檻，先完成P1。制空180為Q空優171的戰鬥建議，需預留損耗，並不保證所有A空襲編成空均。戰艦徹甲彈、輕巡/航巡/驅逐對地裝備、輕空母雙非對地艦爆＋機槍打PT為原文分工；對地、PT與先制對潛須手動核對。A輪形、B單橫、D/J/Q單縱。來源：艦娘百科天極虛玄。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 180,
+          "required": false
+        }
+      ],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-5"],
+      "lastVerified": "2026-10-01",
+      "phase": "P2"
     }
   ]
 }

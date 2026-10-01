@@ -415,3 +415,52 @@ Sources: [Yui 6-4](https://yuikancolle.blog.fc2.com/blog-entry-20.html),
 [KCWiki 6-4](https://zh.kcwiki.cn/wiki/中部海域/6-4),
 [Zekamashi 7-1](https://zekamashi.net/kancolle-kouryaku/7-1/),
 [KCWiki 7-1](https://zh.kcwiki.cn/wiki/南西海域/7-1).
+
+### KCWiki World 7 review (2026-10-01)
+
+Reviewed the supplied [7-1](https://zh.kcwiki.cn/wiki/南西海域/7-1),
+[7-2](https://zh.kcwiki.cn/wiki/南西海域/7-2),
+[7-3](https://zh.kcwiki.cn/wiki/南西海域/7-3),
+[7-4](https://zh.kcwiki.cn/wiki/南西海域/7-4), and
+[7-5](https://zh.kcwiki.cn/wiki/南西海域/7-5) pages, including their fleet and LBAS images.
+Added **14** distinct templates to the existing per-map catalogs:
+
+| Map | Added configurations                                                                                                                                                             |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7-1 | None: CL + 4 DD, both four-ship cruiser variants, and AV + DD + 3 DE already exist. The pictured Nisshin is a seaplane tender.                                                   |
+| 7-2 | P1: 2 CVL + 3 DE (the guide recommends escort carriers). P2: fast BB-family + CV/CVB + CVL + CL/CAV + 2 DD. P1 leveling: CA + 3 DD; CA + CL + 3 DE; CVL + 3 DD; CL + CVL + 3 DE. |
+| 7-3 | P2: historical CL/CLT variant; Haguro + Kamikaze + 2 CAV; CA + CAV + CLT + 3 DD at fastest speed.                                                                                |
+| 7-4 | BBV + CVL with CA/CAV + 3 DD, CA/CAV + DD + 2 DE, CL + DD + 2 DE, or CLT + 3 DD.                                                                                                 |
+| 7-5 | P2: fast BB-family + CVL + CAV + CL + 2 DD, credited to 天極虛玄.                                                                                                                |
+
+在推薦介面選 **7-2 → 7-2-1 → P1｜第一階段・雙護衛空母＋海防3｜KCWiki**，
+再按生成。此方案固定產生兩艘輕空母及三艘海防；
+不會因缺艦而自動改用原有的輕巡＋三驅逐。護衛空母在遊戲艦種資料中屬於輕空母，
+目前此模板以艦種建模，優先選用護衛空母並手動確認其對潛能力與攻擊機。
+原文允許的替換不代表任意替換後仍可保留同一艦數、起點與路線。
+
+Confirmed duplicates remain single entries: 7-1's four featured fleet shapes; 7-2's CL + 3 DD
+and P2 CLT variant; 7-3's P1 Haguro and P2 historical AV / no-Kamikaze CAV fleets;
+7-4's CL + 3 DD fleet and three-/six-submarine O routes; 7-5's P1, P2 three-DD,
+P3 fast BBV, and M-unlock fleets. Matching routes receive the supplied direct page as a route-level
+source where needed. Equipment-only low/high examples are not separate fleets. Generic routing
+lists, temporary quests, and every possible substitution are not expanded into separate templates.
+
+The new 7-2 P2 template uses Formula 33 coefficient 4 LoS **70**, leaving one point above the
+page's 69 threshold. New 7-4 boss templates use **38**, with a warning to recheck low-HQ LoS,
+and require two opening-ASW ships; three are advised. 7-2 CVL + 3 DD leveling requires manual confirmation that all three
+DD open ASW; the fleet-wide counter could otherwise count the carrier and is not used as a substitute. Other new opening-ASW suggestions remain advice.
+
+Air power is advisory. In particular, 7-4's old 209/273/374 examples depend on HQ, phase, enemy
+roll and LBAS, and do not guarantee superiority/denial for every account. The visually inspected
+range map places E at radius **5** and P at **2**; the existing BBV/CVL farming route also corrects E from 3 to 5. LBAS, formations, night-carrier equipment,
+water-bomber-capable CL selection and anti-installation/PT duties still need manual checking.
+The 7-3 fastest route uses A-C-I-J-P and is blocked from automatic comparison by
+`fastest-required`: fastest speed 20 must be checked manually; this does not impose a radar count
+or claim the solver can assemble fastest-speed equipment.
+
+Existing newer 7-5 P3 LoS rules are retained rather than replaced with the page's old uniform 62:
+[the current routing breakdown](https://zekamashi.net/kancolle-kouryaku/7-5/) distinguishes BBV
+from ordinary battleships/carriers. This is the same fleet, not a new recommendation. The new
+7-5 P2 two-DD fleet requires fast speed and manual anti-installation/PT setup. Its suggested
+180 air power targets Q; it does not promise parity against every A air-raid composition.

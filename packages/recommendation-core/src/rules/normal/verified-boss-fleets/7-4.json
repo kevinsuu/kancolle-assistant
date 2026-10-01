@@ -114,7 +114,7 @@
       "nodes": ["A", "B", "E", "J", "L", "P"],
       "stableBoss": true,
       "tags": ["guide-alternative", "fixed-route", "lbas", "asw-loadout"],
-      "desc": "7-4：航戰1＋輕空母1＋輕巡1＋驅逐3。必須33式係數4索敵≥37，低速可。龍鳳改二戊夜戰為原圖戰術，若改用一般輕空母需由水上艦補足夜戰火力。約300制空是陸航先削E點後的空優建議，374僅有機率空確，非硬條件或保證值；陸航未照設定時不能沿用預期。陸航戰鬥機先派E（半徑3），另波依需求；配置與派遣手動確認。B/J/L單橫、E輪形，P依潛水隨伴與對潛能力選梯形或單縱。",
+      "desc": "7-4：航戰1＋輕空母1＋輕巡1＋驅逐3。必須33式係數4索敵≥37，低速可。龍鳳改二戊夜戰為原圖戰術，若改用一般輕空母需由水上艦補足夜戰火力。約300制空是陸航先削E點後的空優建議，374僅有機率空確，非硬條件或保證值；陸航未照設定時不能沿用預期。陸航戰鬥機先派E（半徑5），另波依需求；配置與派遣手動確認。B/J/L單橫、E輪形，P依潛水隨伴與對潛能力選梯形或單縱。",
       "fleet": [
         {
           "type": "ShipCount",
@@ -156,7 +156,8 @@
       ],
       "sources": [
         "https://bbs.nga.cn/read.php?tid=23451223&pid=454456265",
-        "https://zekamashi.net/kancolle-kouryaku/7-4/"
+        "https://zekamashi.net/kancolle-kouryaku/7-4/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-4"
       ],
       "lastVerified": "2026-09-30"
     },
@@ -258,6 +259,236 @@
         "https://zh.kcwiki.cn/wiki/南西海域/7-4"
       ],
       "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-4-kcwiki-cvl-bbv-ca-dd3",
+      "name": "艦娘百科・航戰輕空母重巡系＋驅逐3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "lbas"],
+      "desc": "原文有一般輕空母與低配夜航兩種裝備示例，合併同一艦種方案；使用夜航時需手動核對夜間飛機、夜間作戰航空要員或艦娘內建夜航能力。 A-B-E-J-L-P，低速可。係數4索敵採38，較司令部120級門檻37留餘裕；較低司令部等級仍需額外確認索敵。至少2艘先制對潛，建議3艘。制空300為戰鬥建議，不保證全階段空優；原文209/273/374依司令部、陸航削空及敵編成而異，不作固定保證。B/J/L單橫、E輪形、P依對潛需求選梯形等陣形。陸航配置及派遣必須手動確認，E半徑5、P半徑2。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 300,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 38
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 2
+        }
+      ],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-4"],
+      "lastVerified": "2026-10-01"
+    },
+    {
+      "id": "7-4-kcwiki-cvl-bbv-ca-dd-de2",
+      "name": "艦娘百科・航戰輕空母重巡系＋驅逐1海防2",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "lbas"],
+      "desc": "海防負責先制對潛，驅逐可分配對空或夜戰；海防較脆且無閉幕雷擊。 A-B-E-J-L-P，低速可。係數4索敵採38，較司令部120級門檻37留餘裕；較低司令部等級仍需額外確認索敵。至少2艘先制對潛，建議3艘。制空300為戰鬥建議，不保證全階段空優；原文209/273/374依司令部、陸航削空及敵編成而異，不作固定保證。B/J/L單橫、E輪形、P依對潛需求選梯形等陣形。陸航配置及派遣必須手動確認，E半徑5、P半徑2。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 300,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 38
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 2
+        }
+      ],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-4"],
+      "lastVerified": "2026-10-01"
+    },
+    {
+      "id": "7-4-kcwiki-cvl-bbv-cl-dd-de2",
+      "name": "艦娘百科・航戰護衛空母輕巡＋驅逐1海防2",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "lbas"],
+      "desc": "磨血/斬後以海防替換非輸出驅逐；輕巡對空CI、空母夜航或水上艦夜戰分工需手動確認。 A-B-E-J-L-P，低速可。係數4索敵採38，較司令部120級門檻37留餘裕；較低司令部等級仍需額外確認索敵。至少2艘先制對潛，建議3艘。制空300為戰鬥建議，不保證全階段空優；原文209/273/374依司令部、陸航削空及敵編成而異，不作固定保證。B/J/L單橫、E輪形、P依對潛需求選梯形等陣形。陸航配置及派遣必須手動確認，E半徑5、P半徑2。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 300,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 38
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 2
+        }
+      ],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-4"],
+      "lastVerified": "2026-10-01"
+    },
+    {
+      "id": "7-4-kcwiki-cvl-bbv-clt-dd3",
+      "name": "艦娘百科・航戰輕空母雷巡＋驅逐3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "B", "E", "J", "L", "P"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "lbas"],
+      "desc": "斬殺可用雷巡替換輕巡，由驅逐補對空CI；雷巡兼顧開幕雷擊與夜戰輸出。 A-B-E-J-L-P，低速可。係數4索敵採38，較司令部120級門檻37留餘裕；較低司令部等級仍需額外確認索敵。至少2艘先制對潛，建議3艘。制空300為戰鬥建議，不保證全階段空優；原文209/273/374依司令部、陸航削空及敵編成而異，不作固定保證。B/J/L單橫、E輪形、P依對潛需求選梯形等陣形。陸航配置及派遣必須手動確認，E半徑5、P半徑2。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [10],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 300,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 38
+        },
+        {
+          "kind": "opening-asw",
+          "minimum": 2
+        }
+      ],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-4"],
+      "lastVerified": "2026-10-01"
     }
   ]
 }

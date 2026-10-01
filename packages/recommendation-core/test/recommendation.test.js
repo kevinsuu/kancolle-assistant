@@ -784,7 +784,7 @@ test('KC3 adapter normalizes a valid account and rejects duplicate instance IDs'
 test('normal map catalog remains complete, valid, unique, and semantically distinct', () => {
   const maps = getMapOptions()
   assert.equal(maps.length, 37)
-  assert.equal(NORMAL_MAP_ROUTES.length, 188)
+  assert.equal(NORMAL_MAP_ROUTES.length, 202)
   assert.equal(NORMAL_MAP_ROUTES.filter((route) => route.id.startsWith('source-')).length, 0)
   assert.ok(maps.flatMap((map) => map.routes).every((route) => route.sources.length > 0))
   assert.ok(NORMAL_MAP_ROUTES.every((route) => route.metadata.guideSources.length > 0))
@@ -1169,6 +1169,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
       '7-5-nga-p2-cvl',
       '7-5-nga-p3-fast-bbv',
       '7-5-nga-p3-cvl',
+      '7-5-kcwiki-p2-fast-bb-cvl',
     ],
   )
   ;[
@@ -1277,6 +1278,7 @@ test('normal map catalog remains complete, valid, unique, and semantically disti
     '2026.08.31-overlay',
     '2026.09.15-overlay',
     '2026.09.30-overlay',
+    '2026.10.01-overlay',
   ])
   assert.ok(
     extraOperationRoutes
@@ -5672,4 +5674,136 @@ test('6-4 enforces landing duties on current equipment and diagnoses missing equ
     ),
   )
   assert.ok(failed.diagnostics.reasonCodes.includes('ANTI_INSTALLATION_EQUIPMENT_INSUFFICIENT'))
+})
+
+test('KCWiki World 7 imports expose distinct phase-specific fleets with direct sources', () => {
+  const expected = {
+    '7-2': [
+      'p1-cve2-de3',
+      'p2-heavy-cruiser',
+      'leveling-ca-dd3',
+      'leveling-ca-cl-de3',
+      'leveling-cvl-dd3',
+      'leveling-cl-cve-de3',
+    ],
+    '7-3': ['p2-historical-cruiser', 'p2-four-cav2', 'p2-fastest'],
+    '7-4': ['cvl-bbv-ca-dd3', 'cvl-bbv-ca-dd-de2', 'cvl-bbv-cl-dd-de2', 'cvl-bbv-clt-dd3'],
+    '7-5': ['p2-fast-bb-cvl'],
+  }
+  for (const [mapId, suffixes] of Object.entries(expected)) {
+    const options = getMapOptions().find((map) => map.id === mapId).routes
+    for (const suffix of suffixes) {
+      const id = `${mapId}-kcwiki-${suffix}`
+      const route = NORMAL_MAP_ROUTES.find((candidate) => candidate.id === id)
+      assert.ok(route, id)
+      assert.equal(options.filter((option) => option.id === id).length, 1)
+      assert.ok(route.metadata.guideSources.includes(zhKcwikiGuideSource(mapId)), id)
+      assert.equal(
+        route.phase,
+        mapId === '7-4'
+          ? undefined
+          : suffix.startsWith('p1-') || suffix.startsWith('leveling-')
+            ? 'P1'
+            : 'P2',
+      )
+      const catalog =
+        suffix.startsWith('leveling-') || mapId === '7-5'
+          ? strategyOverlayCatalog
+          : verifiedBossFleetCatalog
+      assert.ok(catalog.find((map) => map.area === mapId).routes.some((r) => r.id === id))
+      for (const constraint of route.calculatedConstraints) {
+        if (constraint.kind === 'air-power') assert.equal(constraint.required, false)
+        if (constraint.kind === 'los') assert.equal(constraint.coefficient, 4)
+      }
+    }
+  }
+  const byId = (id) => NORMAL_MAP_ROUTES.find((route) => route.id === id)
+  assert.match(byId('7-4-nga-farming-bbv-cvl').description, /先派E（半徑5）/)
+  const leveling = byId('7-2-kcwiki-leveling-cvl-dd3')
+  assert.deepEqual(leveling.calculatedConstraints, [])
+  assert.ok(automaticRouteBlockers(leveling).includes('opening-asw-unmodeled'))
+  const historical = byId('7-3-kcwiki-p2-historical-cruiser')
+  assert.deepEqual(historical.nodes, ['A', 'C', 'D', 'G', 'P'])
+  assert.ok(historical.tags.includes('fast'))
+  assert.deepEqual(
+    historical.fleetConstraints
+      .filter((c) => c.kind === 'specific-ship-name')
+      .map((c) => c.names[0]),
+    ['羽黒', '足柄', '神風'],
+  )
+  const four = byId('7-3-kcwiki-p2-four-cav2')
+  assert.ok(four.fleetConstraints.some((c) => c.shipTypeIds?.includes(6) && c.exact === 2))
+  assert.ok(!four.tags.includes('fast'))
+  const fastest = byId('7-3-kcwiki-p2-fastest')
+  assert.deepEqual(fastest.nodes, ['A', 'C', 'I', 'J', 'P'])
+  assert.ok(automaticRouteBlockers(fastest).includes('manual-combat-setup'))
+  assert.ok(!fastest.tags.includes('radar-required'))
+  assert.ok(!getRouteTemplates('7-3', 'balanced').some((r) => r.id === fastest.id))
+  const lowP2 = byId('7-5-kcwiki-p2-fast-bb-cvl')
+  assert.ok(lowP2.tags.includes('fast'))
+  assert.ok(automaticRouteBlockers(lowP2).includes('manual-combat-setup'))
+  assert.ok(!lowP2.calculatedConstraints.some((c) => c.kind === 'los'))
+  for (const suffix of expected['7-4']) {
+    const route = byId(`7-4-kcwiki-${suffix}`)
+    assert.equal(route.calculatedConstraints.find((c) => c.kind === 'los').minimum, 38)
+    assert.equal(route.calculatedConstraints.find((c) => c.kind === 'opening-asw').minimum, 2)
+    assert.ok(automaticRouteBlockers(route).includes('manual-combat-setup'))
+    assert.match(route.description, /E半徑5、P半徑2/)
+  }
+  assert.equal(NORMAL_MAP_ROUTES.filter((r) => r.mapId === '7-1').length, 7)
+})
+
+test('7-2 selected dual-carrier P1 generates two carriers and three escorts without route fallback', () => {
+  const raw = createRawSnapshot({ shipCount: 10 })
+  const types = [7, 7, 1, 1, 1, 3, 2, 2, 2, 2]
+  raw.currentFleetShipIds = raw.ships.slice(5).map((ship) => ship.id)
+  raw.ships.forEach((ship, index) => {
+    ship.shipTypeId = types[index]
+    ship.name = index === 0 ? '神鷹改二' : index === 1 ? '大鷹改二' : `Fixture ${index}`
+    ship.speedValue = types[index] === 7 || types[index] === 1 ? 5 : 10
+    ship.slotSizes = types[index] === 7 ? [18, 18, 6] : [0, 0, 0]
+  })
+  const input = { mapId: '7-2', routeId: '7-2-kcwiki-p1-cve2-de3', objective: 'balanced' }
+  const result = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  for (const recommendation of result.recommendations) {
+    assert.equal(recommendation.route.id, input.routeId)
+    assert.deepEqual(
+      recommendation.ships.map((build) => build.ship.shipTypeId).sort(),
+      [1, 1, 1, 7, 7],
+    )
+    assert.deepEqual(recommendation.route.nodes, ['C', 'E', 'G'])
+  }
+  assert.ok(result.diagnostics.evaluatedFleetCandidateCount > 0)
+  assert.ok(result.diagnostics.gearSolutionCount > 0)
+  assert.deepEqual(result.diagnostics.reasonCodes, [])
+  raw.ships = raw.ships.filter((ship) => ship.id !== 102)
+  const failed = recommendFleet({ ...input, account: parseKC3AccountSnapshot(raw) })
+  assert.equal(failed.status, 'no-solution', JSON.stringify(failed))
+  assert.ok(failed.analysis.reasons.length > 0)
+  assert.ok(failed.diagnostics.reasonCodes.length > 0)
+  assert.equal(failed.diagnostics.gearSolutionCount, 0)
+})
+
+test('7-3 fastest selection returns a manual speed warning instead of claiming validation', () => {
+  const raw = createRawSnapshot()
+  ;[5, 6, 4, 2, 2, 2].forEach((shipTypeId, index) => {
+    raw.ships[index].shipTypeId = shipTypeId
+  })
+  const result = recommendFleet({
+    mapId: '7-3',
+    routeId: '7-3-kcwiki-p2-fastest',
+    objective: 'balanced',
+    account: parseKC3AccountSnapshot(raw),
+  })
+  assert.equal(result.status, 'success', JSON.stringify(result))
+  assert.ok(result.diagnostics.evaluatedFleetCandidateCount > 0)
+  for (const recommendation of result.recommendations) {
+    assert.equal(recommendation.metrics.finalSpeedClass, 'fast')
+    const warning = recommendation.warnings.find(
+      ({ code }) => code === 'EXTERNAL_COMBAT_SETUP_REQUIRED',
+    )
+    assert.equal(warning?.values.tags, 'fastest-required')
+    assert.match(recommendation.route.description, /全員最速（20）/)
+  }
 })

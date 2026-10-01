@@ -28,6 +28,7 @@ export const EXTERNALLY_CONFIGURED_ROUTE_TAGS = [
   'smoke-screen',
   'special-attack',
   'fastest-radar-setup',
+  'fastest-required',
 ] as const
 
 const AUTOMATIC_ROUTE_BLOCKING_EXTERNAL_TAGS = EXTERNALLY_CONFIGURED_ROUTE_TAGS.filter(

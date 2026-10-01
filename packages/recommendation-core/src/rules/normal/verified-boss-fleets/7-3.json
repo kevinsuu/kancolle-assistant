@@ -34,6 +34,10 @@
           "stypes": [2],
           "value": 3
         }
+      ],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/7-3/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-3"
       ]
     },
     {
@@ -77,6 +81,10 @@
           "stypes": [2],
           "value": 3
         }
+      ],
+      "sources": [
+        "https://zekamashi.net/kancolle-kouryaku/7-3/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-3"
       ]
     },
     {
@@ -187,9 +195,162 @@
       "calculated": [],
       "sources": [
         "https://bbs.nga.cn/read.php?tid=23451223&pid=454456110",
-        "https://zekamashi.net/kancolle-kouryaku/7-3/"
+        "https://zekamashi.net/kancolle-kouryaku/7-3/",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-3"
       ],
       "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-3-kcwiki-p2-historical-cruiser",
+      "name": "艦娘百科・第二階段・史實輕巡／雷巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "C", "D", "G", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "fast",
+        "opening-torpedo-preferred",
+        "no-numeric-requirements"
+      ],
+      "desc": "羽黑＋足柄＋神風＋驅逐2＋輕巡/雷巡1，高速統一。史實三艘為此六艘最短線條件；水母版已有獨立方案。無索敵、制空門檻。開幕雷擊與日夜二連為戰力建議，並非限定圖片艦。水上戰單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒", "Haguro"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["足柄", "Ashigara"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["神風", "Kamikaze"],
+          "count": 1
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-3"],
+      "lastVerified": "2026-10-01",
+      "phase": "P2"
+    },
+    {
+      "id": "7-3-kcwiki-p2-four-cav2",
+      "name": "艦娘百科・第二階段・羽黑神風雙航巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "C", "D", "G", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "seaplane-bombers-preferred",
+        "no-numeric-requirements"
+      ],
+      "desc": "羽黑＋神風＋航巡2，四艘走A-C-D-G-P，不要求高速統一。三艘重巡系使C走D，再由四艘史實條件從G進P；無制空或索敵門檻。水爆、日夜二連為建議，敵防空可能擊落水爆；四艘周回較省資源但Boss勝率較不穩。水上戰單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["羽黒", "Haguro"],
+          "count": 1
+        },
+        {
+          "type": "ContainsShipName",
+          "names": ["神風", "Kamikaze"],
+          "count": 1
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-3"],
+      "lastVerified": "2026-10-01",
+      "phase": "P2"
+    },
+    {
+      "id": "7-3-kcwiki-p2-fastest",
+      "name": "艦娘百科・第二階段・無史實艦最速",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["A", "C", "I", "J", "P"],
+      "stableBoss": true,
+      "tags": [
+        "guide-alternative",
+        "fixed-route",
+        "fastest-required",
+        "asw-loadout",
+        "no-numeric-requirements"
+      ],
+      "desc": "重巡1＋航巡1＋雷巡1＋驅逐3，全員最速（20），不要求羽黑、足柄或神風。C-I-J-P省去D；J單橫，其他水上戰單縱。最速不是高速或高速＋，必須手動檢查每艘增速後速力及鍋爐/渦輪配置；未完成增速不能沿用此路線。無制空與索敵門檻，先制對潛與開幕雷擊為建議。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [4],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-3"],
+      "lastVerified": "2026-10-01",
+      "phase": "P2"
     }
   ]
 }

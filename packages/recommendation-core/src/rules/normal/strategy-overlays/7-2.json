@@ -1,0 +1,136 @@
+{
+  "area": "7-2",
+  "sources": [],
+  "routes": [
+    {
+      "id": "7-2-kcwiki-leveling-ca-dd3",
+      "name": "艦娘百科・第一階段練級・重巡＋驅逐3",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["C", "E", "G"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "no-numeric-requirements"],
+      "desc": "重巡1＋驅逐3，重巡放旗艦育成；C/E單橫，G複縱兼顧潛水與水上隨伴。 C-E-G固定，低速可，無索敵或制空門檻；G是第一血條Boss。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"],
+      "lastVerified": "2026-10-01",
+      "phase": "P1"
+    },
+    {
+      "id": "7-2-kcwiki-leveling-ca-cl-de3",
+      "name": "艦娘百科・第一階段練級・重巡輕巡＋海防3",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["C", "E", "G"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "no-numeric-requirements"],
+      "desc": "重巡1＋可搭水爆的輕巡1＋海防3。水爆輕巡支援重巡日戰二連，艦種條件不會保證輕巡能搭水爆，須手動選艦與配裝。重巡放旗艦育成，C/E單橫，G兼顧對潛及重巡MVP。 C-E-G固定，低速可，無索敵或制空門檻；G是第一血條Boss。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [5],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"],
+      "lastVerified": "2026-10-01",
+      "phase": "P1"
+    },
+    {
+      "id": "7-2-kcwiki-leveling-cvl-dd3",
+      "name": "艦娘百科・第一階段練級・輕空母＋驅逐3",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["C", "E", "G"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "oasw"],
+      "desc": "輕空母1＋驅逐3，三艘驅逐須能先制對潛，需手動逐艘確認；不能以包含輕空母的全隊先制對潛總數取代。輕空母育成/刷閃時放旗艦；要刷驅逐士氣時調整對潛裝備分配MVP，不保證每次MVP或刷閃。C/E單橫，G兼顧水上隨伴。 C-E-G固定，低速可，無索敵或制空門檻；G是第一血條Boss。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 4
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"],
+      "lastVerified": "2026-10-01",
+      "phase": "P1"
+    },
+    {
+      "id": "7-2-kcwiki-leveling-cl-cve-de3",
+      "name": "艦娘百科・第一階段練級・輕巡護衛空母＋海防3",
+      "category": "leveling",
+      "objectives": ["leveling"],
+      "nodes": ["C", "E", "G"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "no-numeric-requirements"],
+      "desc": "輕巡1＋護衛空母1＋海防3；原文建議四格輕巡兼顧水爆與對潛、海防對潛三件套、空母保留攻擊機。輕空母欄不保證護衛空母能力，水爆搭載、先制對潛及MVP分配須依實際艦娘確認。 C-E-G固定，低速可，無索敵或制空門檻；G是第一血條Boss。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"],
+      "lastVerified": "2026-10-01",
+      "phase": "P1"
+    }
+  ]
+}

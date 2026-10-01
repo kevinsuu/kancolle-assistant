@@ -17,6 +17,7 @@ import map55 from './5-5.json'
 import map56 from './5-6.json'
 import map63 from './6-3.json'
 import map65 from './6-5.json'
+import map72 from './7-2.json'
 import map74 from './7-4.json'
 import map75 from './7-5.json'
 
@@ -41,6 +42,7 @@ const perMapStrategyOverlays = [
   map56,
   map63,
   map65,
+  map72,
   map74,
   map75,
 ] as readonly unknown[]

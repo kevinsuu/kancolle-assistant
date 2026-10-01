@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.31`   | `2026-10-01`   |
+| `v1.0.32`   | `2026-10-02`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.32 highlights (since v1.0.31)
+
+- Adds 14 distinct [KCWiki World 7 fleet and leveling templates](./docs/normal-map-catalog.md), including 7-2 P1 with two light carriers and three escort ships. Selected templates retain their fleet composition and report missing ships instead of switching routes.
+- Corrects the 7-4 E-node land-based air squadron radius to 5 and marks fastest-speed and other unsupported setup requirements for manual confirmation.
 
 ### v1.0.31 highlights (since v1.0.30)
 
@@ -39,11 +44,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.0.28 highlights (since v1.0.27)
 
 - Master Ship remodel tooltips now supplement incomplete KC3Kai data for Kitakami Kai San, including Arsenal Resources, Development Materials, and Torches with their required quantities.
-
-### v1.0.27 highlights (since v1.0.26)
-
-- [Quest Recommendations](./docs/quest-recommendations.md) recovers from a failed manual sync by reading KC3's local data once, so usable quests appear without switching pages.
-- Existing results remain available if recovery fails, with distinct sync, ranking, and data-load messages; fallback data is clearly marked as unconfirmed.
 
 ### Project-specific highlights
 

@@ -33,7 +33,8 @@
       "calculated": [],
       "sources": [
         "https://zekamashi.net/kancolle-kouryaku/7-2/",
-        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456055"
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456055",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"
       ]
     },
     {
@@ -93,7 +94,8 @@
       ],
       "sources": [
         "https://zekamashi.net/kancolle-kouryaku/7-2/",
-        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456055"
+        "https://bbs.nga.cn/read.php?tid=23451223&pid=454456055",
+        "https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"
       ]
     },
     {
@@ -155,6 +157,93 @@
         "https://zekamashi.net/kancolle-kouryaku/7-2/"
       ],
       "lastVerified": "2026-09-30"
+    },
+    {
+      "id": "7-2-kcwiki-p1-cve2-de3",
+      "name": "艦娘百科・第一階段・雙護衛空母＋海防3",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["C", "E", "G"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "asw-loadout", "no-numeric-requirements"],
+      "desc": "輕空母2＋海防3，C-E-G固定，低速可，無制空與索敵門檻。原圖神鷹改二、大鷹改二為護衛空母參考；艦種欄以輕空母建模，優先選可對潛的護衛空母並確認攻擊機與對潛能力。海防以聲納、投射機、爆雷配裝，先制對潛為戰力建議。G有水上隨伴，空母須保留對水上輸出；C/E單橫，G依對潛及清水上需求選陣。不可把海防直接全換驅逐仍沿用五艘起點。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 5
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 2
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [1],
+          "value": 3
+        }
+      ],
+      "calculated": [],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"],
+      "lastVerified": "2026-10-01",
+      "phase": "P1"
+    },
+    {
+      "id": "7-2-kcwiki-p2-heavy-cruiser",
+      "name": "艦娘百科・第二階段・戰艦空母航巡／輕巡",
+      "category": "boss",
+      "objectives": ["balanced", "boss-clear"],
+      "nodes": ["B", "C", "D", "I", "M"],
+      "stableBoss": true,
+      "tags": ["guide-alternative", "fixed-route", "fast", "asw-loadout"],
+      "desc": "戰艦系1＋正規/裝甲空母1＋輕空母1＋航巡/輕巡1＋驅逐2，高速統一。雷巡版已有獨立方案。P1完成後才可攻略P2；係數4索敵採70，較頁面69留1點餘裕。制空370為M空優359加少量損耗的建議，非帶路要求，仍需檢查道中損耗。C單橫，其餘水上戰單縱。",
+      "fleet": [
+        {
+          "type": "ShipCount",
+          "value": 6
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [8, 9, 10, 12],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [11, 18],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [7],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [3, 6],
+          "value": 1
+        },
+        {
+          "type": "ExactShipTypeCount",
+          "stypes": [2],
+          "value": 2
+        }
+      ],
+      "calculated": [
+        {
+          "kind": "air-power",
+          "minimum": 0,
+          "recommended": 370,
+          "required": false
+        },
+        {
+          "kind": "los",
+          "coefficient": 4,
+          "minimum": 70
+        }
+      ],
+      "sources": ["https://zh.kcwiki.cn/wiki/%E5%8D%97%E8%A5%BF%E6%B5%B7%E5%9F%9F/7-2"],
+      "lastVerified": "2026-10-01",
+      "phase": "P2"
     }
   ]
 }
