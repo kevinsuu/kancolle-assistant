@@ -52,6 +52,8 @@ import {
 } from './display/game-auto-fit'
 import {
   DEVTOOLS_LOCALE_INFOBAR_DEFAULTS_VERSION,
+  KC3_QUEST_CAPACITY_LOG_PREFIX,
+  applyKc3QuestPanelCapacity,
   estimateKc3SidebarWidth,
   initializeDevToolsPreferences,
   showKc3DevToolsPanel,
@@ -77,6 +79,7 @@ const kccp = { logger: kccpService.logger, kccpLogSource: kccpService.logSource 
 const logSource = 'kancolle-assistant'
 const legacyAppName = 'Damecon'
 const legacyConfigId = 'damecon-browser'
+const kc3QuestDiagnosticContents = new WeakSet()
 
 const homePath = app.getPath('home')
 const hideHome = function (filePath) {
@@ -1695,27 +1698,48 @@ class Browser extends EventEmitter {
     const type = webContents.getType()
     const url = webContents.getURL()
     const webContentsId = webContents.id
+    let kc3QuestCapacityRefreshTimer = null
 
-    webContents.once('destroyed', () => browser.questLiveSync?.forget(webContentsId))
+    webContents.once('destroyed', () => {
+      if (kc3QuestCapacityRefreshTimer) clearTimeout(kc3QuestCapacityRefreshTimer)
+      browser.questLiveSync?.forget(webContentsId)
+    })
 
     webContents.setBackgroundThrottling(configStore.get('window.behavior.occlusion'))
 
-    webContents.on('devtools-opened', (e) => {
+    const refreshKc3QuestPanelCapacity = async (requestTrigger) => {
+      const inspectedUrl = webContents.getURL()
+      if (!isKc3GamePageUrl(inspectedUrl) || !browser.currentKc3ExtensionId) return
+
       const devtools = webContents.devToolsWebContents
-      kccp.logger.log(logSource, 'DevTools opened')
       if (!devtools) return
 
-      devtools.on('did-create-window', (window, details) => {
-        kccp.logger.log(logSource, 'Window created', details)
+      const result = await applyKc3QuestPanelCapacity(devtools, browser.currentKc3ExtensionId)
+      kccp.logger.log(logSource, 'display.game-kc3-quest-capacity', {
+        requestTrigger,
+        ...result,
       })
+    }
 
+    const scheduleKc3QuestPanelCapacity = (requestTrigger) => {
+      if (kc3QuestCapacityRefreshTimer) clearTimeout(kc3QuestCapacityRefreshTimer)
+      kc3QuestCapacityRefreshTimer = setTimeout(() => {
+        kc3QuestCapacityRefreshTimer = null
+        void refreshKc3QuestPanelCapacity(requestTrigger).catch((error) => {
+          kccp.logger.error(logSource, 'Unable to refresh KC3 quest capacity.', {
+            requestTrigger,
+            error: error.message,
+          })
+        })
+      }, 200)
+    }
+
+    const prepareKc3DevToolsPanel = () => {
       const inspectedUrl = webContents.getURL()
-      const isKc3GamePage =
-        inspectedUrl === kc3StartPageUrl ||
-        inspectedUrl === DMMPageUrl ||
-        inspectedUrl.startsWith(`${DMMPageUrl}?`) ||
-        inspectedUrl.startsWith(`${DMMPageUrl}/`)
-      if (!isKc3GamePage || !browser.currentKc3ExtensionId) return
+      if (!isKc3GamePageUrl(inspectedUrl) || !browser.currentKc3ExtensionId) return
+
+      const devtools = webContents.devToolsWebContents
+      if (!devtools) return
 
       const panelReady = showKc3DevToolsPanel({
         devToolsWebContents: devtools,
@@ -1731,6 +1755,8 @@ class Browser extends EventEmitter {
           if (result.found) {
             kccp.logger.log(logSource, 'KanColle DevTools panel moved first and selected.')
             kccp.logger.log(logSource, 'display.game-kc3-layout', result.layout)
+            kccp.logger.log(logSource, 'display.game-kc3-quest-capacity', result.questCapacity)
+            scheduleKc3QuestPanelCapacity('panel-selected')
           } else {
             kccp.logger.error(
               logSource,
@@ -1741,6 +1767,54 @@ class Browser extends EventEmitter {
         .catch((error) => {
           kccp.logger.error(logSource, 'Unable to activate the KanColle DevTools panel.', error)
         })
+    }
+
+    webContents.on('devtools-opened', (e) => {
+      const devtools = webContents.devToolsWebContents
+      kccp.logger.log(logSource, 'DevTools opened')
+      if (!devtools) return
+
+      if (!kc3QuestDiagnosticContents.has(devtools)) {
+        kc3QuestDiagnosticContents.add(devtools)
+        devtools.on('console-message', (_event, level, message) => {
+          if (typeof message !== 'string' || !message.startsWith(KC3_QUEST_CAPACITY_LOG_PREFIX)) {
+            return
+          }
+
+          try {
+            const diagnostics = JSON.parse(message.slice(KC3_QUEST_CAPACITY_LOG_PREFIX.length))
+            kccp.logger.log(logSource, 'display.game-kc3-quest-capacity', diagnostics)
+          } catch (error) {
+            kccp.logger.error(logSource, 'Unable to parse KC3 quest-capacity diagnostics.', {
+              level,
+              error: error.message,
+            })
+          }
+        })
+        devtools.on('did-frame-navigate', (_event, frameUrl) => {
+          const extensionId = browser.currentKc3ExtensionId
+          const panelUrlPrefix = extensionId
+            ? `chrome-extension://${extensionId}/pages/devtools/`
+            : null
+          if (panelUrlPrefix && frameUrl?.startsWith(panelUrlPrefix)) {
+            scheduleKc3QuestPanelCapacity('extension-frame-navigated')
+          }
+        })
+      }
+
+      devtools.on('did-create-window', (window, details) => {
+        kccp.logger.log(logSource, 'Window created', details)
+      })
+
+      prepareKc3DevToolsPanel()
+    })
+
+    webContents.on('did-navigate', () => {
+      if (webContents.isDevToolsOpened()) prepareKc3DevToolsPanel()
+    })
+
+    webContents.on('devtools-resized', () => {
+      scheduleKc3QuestPanelCapacity('devtools-resized')
     })
 
     //*

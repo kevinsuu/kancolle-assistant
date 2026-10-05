@@ -19,6 +19,23 @@ tab zoom. The scale uses 0.001 increments and preserves the game's original aspe
 combined game and KC3 layout adapts closely to different displays without stretching the game or
 relying on a fixed screen resolution.
 
+For KC3 themes that expose the responsive `.module.quests` markup, KanColle Assistant reserves at
+least eight rendered quest rows using the theme's own row height and gap. The quest area keeps its
+natural height, has no injected upper limit, and grows downward instead of introducing an internal
+scrollbar when KC3 renders more rows. Natsuiro's fixed seven-row quest area grows from 126 to 144
+pixels, while its horizontal and vertical wrappers grow by the same single 18-pixel row. The existing
+background layer remains at 100% of the wrapper, so it follows the extra row without filling the whole
+DevTools viewport; unused space below the panel stays visible. In Natsuiro's horizontal layout, the
+800-by-450-pixel background image is fitted vertically to the 468-pixel wrapper without repeating, and
+the bottom status module moves down by the same 18 pixels while preserving its original bottom inset.
+This does not resize or modify the KanColle game page or canvas. Themes with a different quest markup
+are left unchanged. The capacity rule is reapplied when the inspected game page navigates while
+DevTools is already open, so late-loading KC3 panels receive the same layout.
+It also watches the quest container and recalculates after KC3 renders or refreshes accepted quests,
+avoiding the smaller line-height fallback used before the first quest row exists. When KC3 keeps
+multiple theme frames alive, the visible frame with rendered quests is preferred over hidden
+zero-height frames. Capacity is refreshed after KC3 frame navigation and DevTools resizing.
+
 KC3's `direct.html` is only a launcher, so it is not used for sizing. After the main tab navigates
 to the configured DMM game URL, the main process scans the tab's frame subtree for the real
 `<canvas width="1200" height="720">`. Only a DMM game navigation starts this scan; unrelated HTTP(S)
@@ -56,6 +73,7 @@ Structured logs use these lifecycle events:
 display.startup-detected
 display.game-auto-fit-scheduled
 display.game-kc3-layout
+display.game-kc3-quest-capacity
 display.game-window-layout
 display.game-auto-fit-waiting-canvas
 display.game-canvas-found
@@ -63,6 +81,10 @@ display.game-auto-fit
 display.game-resize-fit
 ```
 
-They contain display dimensions, scale factor, canvas and viewport dimensions, and the selected
-zoom factor. A missing canvas uses `display.game-auto-fit-timeout`; unexpected failures use
+They contain display dimensions, scale factor, canvas and viewport dimensions, the selected zoom
+factor, and KC3 quest-capacity measurements when the theme supports them. Quest-capacity logs include
+the trigger, measured and visible quest counts, row source and height, reserved height, viewport and
+wrapper overflow, and a stable outcome such as `eight-rows-visible` or `viewport-clipped`. Frame
+candidate summaries identify hidden zero-height panels without exposing player data. A missing canvas
+uses `display.game-auto-fit-timeout`; unexpected failures use
 `display.game-auto-fit-error`.

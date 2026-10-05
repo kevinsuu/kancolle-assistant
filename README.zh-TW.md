@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.0.32`    | `2026-10-02`    |
+| `v1.0.33`    | `2026-10-05`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,10 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.0.33 更新重點（相較 v1.0.32）
+
+- KC3 Natsuiro 的 KanColle 面板現在會保留八列已接任務；面板、底部狀態列與背景只同步增加一列高度，並保留下方未使用的開發者工具空間。
 
 ### v1.0.32 更新重點（相較 v1.0.31）
 
@@ -38,10 +42,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 ### v1.0.29 更新重點（相較 v1.0.28）
 
 - 普通海域推薦更新 6-4 與 7-1 的來源路線，區分制空與先制對潛建議和必要條件，並在 6-4 建模對地裝備職責。
-
-### v1.0.28 更新重點（相較 v1.0.27）
-
-- 艦娘圖鑑的改造提示現在會補上 KC3Kai 尚未完整提供的北上改三工廠資源、開發資材與高速建造材需求數量。
 
 ### 本專案功能重點
 

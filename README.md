@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.32`   | `2026-10-02`   |
+| `v1.0.33`   | `2026-10-05`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.33 highlights (since v1.0.32)
+
+- KC3's Natsuiro KanColle panel now reserves eight accepted-quest rows. The panel, bottom status module, and background grow by exactly one row while unused DevTools space remains visible.
 
 ### v1.0.32 highlights (since v1.0.31)
 
@@ -40,10 +44,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.0.29 highlights (since v1.0.28)
 
 - Normal-map recommendations now refresh the sourced 6-4 and 7-1 route catalog, distinguish advisory air-power and opening-ASW guidance from hard requirements, and model landing-equipment roles for 6-4.
-
-### v1.0.28 highlights (since v1.0.27)
-
-- Master Ship remodel tooltips now supplement incomplete KC3Kai data for Kitakami Kai San, including Arsenal Resources, Development Materials, and Torches with their required quantities.
 
 ### Project-specific highlights
 
