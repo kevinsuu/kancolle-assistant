@@ -48,9 +48,6 @@
           </div>
           <!-- /ko -->
         </div>
-        <div id="version">
-          <span data-bind="text: version"></span>
-        </div>
       </div>
       <div id="settings-container">
         <div class="settings-content">
@@ -83,6 +80,11 @@
           <!-- /ko -->
         </div>
       </div>
+    </div>
+    <!-- /ko -->
+    <!-- ko if: settingsInitialized -->
+    <div id="version" aria-label="Application version">
+      <span data-bind="text: `v${versionNumber}`"></span>
     </div>
     <!-- /ko -->
   </div>

@@ -26,6 +26,7 @@ export const createWebUiCommandRouter = ({
       case 'get-damecon-info':
         result = {
           version: `${app.getName()} v${app.getVersion()}`,
+          versionNumber: app.getVersion(),
           paths: {
             home: homeDataLocation,
             app: appDir,

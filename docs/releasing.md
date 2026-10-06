@@ -4,6 +4,10 @@
 version. The root `package.json` version belongs to the base workspace and must not be used as the
 KanColle Assistant release version.
 
+The Settings page displays this application version as `v<version>` in its lower-right corner. It
+is read from Electron's `app.getVersion()`, so it follows `packages/shell/package.json` without a
+second UI-specific version constant.
+
 ## Prepare a release
 
 Use one release commit for the app version and its user-facing documentation:

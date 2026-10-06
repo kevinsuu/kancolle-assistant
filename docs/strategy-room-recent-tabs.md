@@ -2,6 +2,10 @@
 
 KanColle Assistant adds a `常用連結` section between the KC3 Strategy Room logo and its first
 `提督` menu.
+Opening Strategy Room at startup or from the KC3 toolbar icon now uses the same managed tab. If a
+Strategy Room tab already exists, the app selects it instead of opening a separate native window.
+This keeps `常用連結` and all KanColle Assistant recommendation panels on the same shared
+Strategy Room component path regardless of how the page was opened.
 Hovering or focusing a Strategy Room tab reveals a pin button. All available tabs can be pinned,
 with no fixed count limit and the newest pin first. Adding a pin keeps every existing link, and
 opening a tab never changes the pinned order. Press the pin again to remove that tab from `常用連結`.

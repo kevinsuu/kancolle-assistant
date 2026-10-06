@@ -241,6 +241,8 @@ const createRouterFixture = () => {
 
 test('webui command router preserves return values and proxy handler order', async () => {
   const fixture = createRouterFixture()
+  const info = await fixture.route(null, { type: 'get-damecon-info' })
+  assert.equal(info.versionNumber, '1.0.0')
   assert.equal(
     await fixture.route(null, { type: 'get-damecon-version' }),
     'KanColle Assistant v1.0.0',

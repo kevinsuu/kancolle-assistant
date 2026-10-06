@@ -1,6 +1,7 @@
 import { registerAppShutdown } from './services/app-shutdown'
 import { installExtensionWindowResolver } from './services/extension-window-routing'
 import { applyProxySettings, readProxyDestination } from './services/proxy-settings'
+import { isKc3StrategyRoomUrl, openManagedKc3StrategyRoom } from './services/strategy-room-routing'
 import path from 'path'
 import fsSync, { utimesSync } from 'fs'
 const https = require('https')
@@ -1484,6 +1485,40 @@ class Browser extends EventEmitter {
   }
 
   windowOpenHandler(webContents, details) {
+    if (isKc3StrategyRoomUrl(details.url, this.currentKc3ExtensionId)) {
+      let sourceWin = null
+      try {
+        sourceWin = this.getWindowFromWebContents(webContents)
+      } catch (error) {
+        kccp.logger.log(logSource, 'strategy-room.source-window-resolution-failed', {
+          source: 'kc3-window-open',
+          disposition: details.disposition,
+          reasonCode: 'SOURCE_WINDOW_UNAVAILABLE',
+          error: error.message,
+        })
+      }
+
+      queueMicrotask(() => {
+        openManagedKc3StrategyRoom({
+          url: details.url,
+          extensionId: this.currentKc3ExtensionId,
+          windows: this.windows,
+          preferredWindow: sourceWin || this.getFocusedWindow(),
+          source: 'kc3-window-open',
+          disposition: details.disposition,
+          logger: (event, data) => kccp.logger.log(logSource, event, data),
+        })
+
+        // KC3's browser-action popup does not close itself after window.open().
+        if (this.popup) {
+          this.popup.destroy()
+          this.popup = undefined
+        }
+      })
+
+      return { action: 'deny' }
+    }
+
     switch (details.disposition) {
       case 'foreground-tab':
       case 'background-tab':
@@ -1522,6 +1557,7 @@ class Browser extends EventEmitter {
           // extension popups don't auto-close when using window.open for whatever reason
           if (this.popup) {
             this.popup.destroy()
+            this.popup = undefined
           }
         })
 
@@ -2099,8 +2135,17 @@ class Browser extends EventEmitter {
 
     const kc3StratRoomUrl = 'chrome-extension://' + kc3ExtensionId + '/pages/strategy/strategy.html'
     if (configStore.get('kc3kai.startup.openStratRoom')) {
-      const stratRoomTab = currentWin.tabs.create({ initialUrl: kc3StratRoomUrl })
-      startTab = startTab || stratRoomTab
+      const result = openManagedKc3StrategyRoom({
+        url: kc3StratRoomUrl,
+        extensionId: kc3ExtensionId,
+        windows: this.windows,
+        preferredWindow: currentWin,
+        source: 'startup',
+        disposition: 'startup',
+        focusWindow: false,
+        logger: (event, data) => kccp.logger.log(logSource, event, data),
+      })
+      startTab = startTab || result.tab
     }
 
     if (startTab) currentWin.tabs.select(startTab.id)

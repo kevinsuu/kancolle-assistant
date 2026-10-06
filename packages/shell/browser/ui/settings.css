@@ -70,13 +70,20 @@
 }
 
 #version {
-  width: 110%;
-  padding: 0 10px 0 0;
-  text-align: center;
-  color: var(--chrome-bg-color);
-  font-size: 9pt;
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 3px;
+  color: var(--control-text-color);
+  background-color: var(--control-hover-light-bg-color);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  text-shadow: 1px 1px 1px var(--control-hover-layered-bg-color);
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 #settings-container {

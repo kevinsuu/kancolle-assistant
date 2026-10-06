@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.0.33`   | `2026-10-05`   |
+| `v1.0.34`   | `2026-10-06`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,14 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.0.34 highlights (since v1.0.33)
+
+- Opening Strategy Room at startup or from KC3's toolbar now reuses the same managed tab, keeping
+  pinned links and all KanColle Assistant recommendation panels available through either entry
+  point.
+- Settings now displays the application version from Electron metadata in a fixed lower-right
+  badge.
 
 ### v1.0.33 highlights (since v1.0.32)
 
@@ -40,10 +48,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.0.30 highlights (since v1.0.29)
 
 - Adds 13 sourced World 7 fleet variants and stage selection, including the 7-5 M unlock. Route descriptions separate mandatory routing thresholds from advisory combat targets.
-
-### v1.0.29 highlights (since v1.0.28)
-
-- Normal-map recommendations now refresh the sourced 6-4 and 7-1 route catalog, distinguish advisory air-power and opening-ASW guidance from hard requirements, and model landing-equipment roles for 6-4.
 
 ### Project-specific highlights
 

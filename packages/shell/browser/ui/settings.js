@@ -106,6 +106,7 @@ class Settings {
   ]
 
   version = ''
+  versionNumber = ''
 
   logMaxLength = 50
 
@@ -800,6 +801,7 @@ class Settings {
     )
     this.paths = appInfo.paths
     this.version = appInfo.version
+    this.versionNumber = appInfo.versionNumber
     this.kccpStatus(appInfo.kccpStatus)
 
     await this.prepKccpConfig()
