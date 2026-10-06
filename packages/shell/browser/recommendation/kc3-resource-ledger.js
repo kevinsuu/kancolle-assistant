@@ -158,18 +158,37 @@ export const readKC3ResourceLedgerSummary = async (
   webContents,
   request,
   summarizer = summarizeResourceLedger,
+  logger = () => {},
 ) => {
   const now = Date.now()
   const window = getResourceLedgerWindow(request.range, now)
-  const value = await readCachedKC3ResourceLedgerSnapshot(webContents, {
-    ...request,
-    ...window,
-    now,
-  })
-  return summarizer({
-    snapshot: parseKC3ResourceLedgerSnapshot(value),
-    range: request.range,
-    now,
-    granularity: request.granularity,
-  })
+  const context = { range: request.range, granularity: request.granularity || 'hourly' }
+  try {
+    const value = await readCachedKC3ResourceLedgerSnapshot(webContents, {
+      ...request,
+      ...window,
+      now,
+    })
+    const result = await summarizer({
+      snapshot: parseKC3ResourceLedgerSnapshot(value),
+      range: request.range,
+      now,
+      granularity: request.granularity,
+    })
+    logger('resource-ledger.completed', {
+      ...context,
+      granularity: result.granularity.key,
+      entryCount: result.entryCount,
+      bucketCount: result.hours.length,
+      elapsedMs: Date.now() - now,
+    })
+    return result
+  } catch (error) {
+    logger('resource-ledger.summary-failed', {
+      ...context,
+      reason: 'RESOURCE_LEDGER_SUMMARY_FAILED',
+      elapsedMs: Date.now() - now,
+    })
+    throw error
+  }
 }

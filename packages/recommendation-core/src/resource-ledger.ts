@@ -10,8 +10,13 @@ export const RESOURCE_LEDGER_KEYS = [
 ] as const
 
 export type ResourceLedgerKey = (typeof RESOURCE_LEDGER_KEYS)[number]
-export type ResourceLedgerRange = 'today' | 'yesterday' | 'rolling24'
-export type ResourceLedgerGranularity = 'minute' | 'fiveMinute' | 'thirtyMinute' | 'hourly'
+export type ResourceLedgerRange = 'today' | 'yesterday' | 'rolling24' | 'rolling5days'
+export type ResourceLedgerGranularity =
+  | 'minute'
+  | 'fiveMinute'
+  | 'tenMinute'
+  | 'thirtyMinute'
+  | 'hourly'
 export type ResourceLedgerValues = Readonly<Record<ResourceLedgerKey, number>>
 export type NullableResourceLedgerValues = Readonly<Record<ResourceLedgerKey, number | null>>
 
@@ -69,7 +74,7 @@ export interface ResourceLedgerSummary {
     readonly timeZone: 'Asia/Tokyo'
   }
   readonly granularity: {
-    readonly key: ResourceLedgerGranularity
+    readonly key: ResourceLedgerGranularity | 'daily'
     readonly minutes: number
   }
   readonly summary: Readonly<
@@ -97,11 +102,13 @@ export interface ResourceLedgerSummary {
 const MINUTE_MS = 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
 const JST_OFFSET_MS = 9 * HOUR_MS
-const GRANULARITY_MINUTES: Readonly<Record<ResourceLedgerGranularity, number>> = {
+const GRANULARITY_MINUTES: Readonly<Record<ResourceLedgerGranularity | 'daily', number>> = {
   minute: 1,
   fiveMinute: 5,
+  tenMinute: 10,
   thirtyMinute: 30,
   hourly: 60,
+  daily: 1440,
 }
 const RESOURCE_INDEXES: Readonly<Record<ResourceLedgerKey, number>> = {
   fuel: 0,
@@ -144,6 +151,13 @@ export const getResourceLedgerWindow = (
       currentHour,
       startHour: Math.floor((todayStart - 24 * HOUR_MS) / HOUR_MS),
       endHourExclusive: Math.floor(todayStart / HOUR_MS),
+    }
+  }
+  if (range === 'rolling5days') {
+    return {
+      currentHour,
+      startHour: Math.floor(todayStart / HOUR_MS) - 4 * 24,
+      endHourExclusive: currentHour + 1,
     }
   }
   if (range === 'rolling24') {
@@ -269,6 +283,7 @@ export const normalizeResourceLedgerGranularity = (
   if (
     value === 'minute' ||
     value === 'fiveMinute' ||
+    value === 'tenMinute' ||
     value === 'thirtyMinute' ||
     value === 'hourly'
   ) {
@@ -288,13 +303,14 @@ export const summarizeResourceLedger = ({
   readonly now: number
   readonly granularity?: ResourceLedgerGranularity
 }): ResourceLedgerSummary => {
-  const normalizedGranularity = normalizeResourceLedgerGranularity(granularity) || 'hourly'
+  const normalizedGranularity =
+    range === 'rolling5days' ? 'daily' : normalizeResourceLedgerGranularity(granularity) || 'hourly'
   const bucketMinutes = GRANULARITY_MINUTES[normalizedGranularity]
   const startMinute = snapshot.startHour * 60
   const hourlyEndMinute = snapshot.endHourExclusive * 60
   const currentMinute = Math.floor(now / MINUTE_MS)
   const endMinuteExclusive =
-    normalizedGranularity === 'hourly' || range === 'yesterday'
+    normalizedGranularity === 'hourly' || normalizedGranularity === 'daily' || range === 'yesterday'
       ? hourlyEndMinute
       : Math.min(hourlyEndMinute, currentMinute + 1)
   const buckets = new Map<
@@ -399,7 +415,15 @@ export const summarizeResourceLedger = ({
     endMinuteExclusive: number
     values: NullableResourceLedgerValues
   }[] = []
-  for (const bucket of buckets.values()) {
+  // Inventory curves retain the underlying hourly snapshots even when flows are daily totals.
+  const inventoryBuckets =
+    normalizedGranularity === 'daily'
+      ? Array.from({ length: snapshot.endHourExclusive - snapshot.startHour }, (_, index) => {
+          const hour = snapshot.startHour + index
+          return { hour, startMinute: hour * 60, endMinuteExclusive: (hour + 1) * 60 }
+        })
+      : buckets.values()
+  for (const bucket of inventoryBuckets) {
     while (
       materialIndex < materialSnapshots.length &&
       materialSnapshots[materialIndex].hour * 60 <= bucket.startMinute
@@ -438,10 +462,17 @@ export const summarizeResourceLedger = ({
   const labelForHour = (hour: number): string => hourFormatter.format(new Date(hour * HOUR_MS))
   const labelForMinute = (minute: number): string =>
     minuteFormatter.format(new Date(minute * MINUTE_MS))
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Tokyo',
+    month: 'numeric',
+    day: 'numeric',
+  })
   const labelForBucket = (bucket: { hour: number; startMinute: number }): string =>
-    normalizedGranularity === 'hourly'
-      ? labelForHour(bucket.hour)
-      : labelForMinute(bucket.startMinute)
+    normalizedGranularity === 'daily'
+      ? dateFormatter.format(new Date(bucket.startMinute * MINUTE_MS))
+      : normalizedGranularity === 'hourly'
+        ? labelForHour(bucket.hour)
+        : labelForMinute(bucket.startMinute)
 
   return {
     generatedAt: new Date(now).toISOString(),

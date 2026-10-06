@@ -88,3 +88,10 @@ wrapper overflow, and a stable outcome such as `eight-rows-visible` or `viewport
 candidate summaries identify hidden zero-height panels without exposing player data. A missing canvas
 uses `display.game-auto-fit-timeout`; unexpected failures use
 `display.game-auto-fit-error`.
+
+Switching back to the game tab and applying a tab-content layout update also schedule the same
+debounced responsive fit. This catches resizes made while Strategy Room is selected and delayed
+tab-bar layout updates. Startup stability requires a nonzero top-level viewport; hidden tabs do
+not complete fitting using a stale child-frame size. Responsive fits skip an unavailable viewport
+with `display.game-resize-fit-skipped` and reason `viewport-unavailable`.
+Canvas-fit frame URLs omit query strings and fragments to avoid logging game session tokens.

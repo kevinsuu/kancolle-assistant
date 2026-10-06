@@ -122,6 +122,7 @@ class Tabs extends EventEmitter {
     this.tabList.forEach((tab) => {
       tab.updateLayout(headerHeight)
     })
+    this.emit('layout-updated')
   }
 }
 

@@ -19,7 +19,12 @@ Use one release commit for the app version and its user-facing documentation:
    most recent released app versions, including the new release. Remove the oldest section when
    adding a sixth; GitHub Releases retain the full history. Do not list planned or incomplete
    features as released.
-4. Run the relevant tests and build before committing.
+4. Run `yarn build` once before committing unless the user explicitly confirms the current changes
+   have already been validated and requests that the build be skipped. Building packages the app
+   without launching it; do not start the app or run local test suites as part of release
+   validation. The tag-triggered release workflow runs its tests and packaging checks before
+   creating the GitHub Release. If the build is blocked by a running game or development process,
+   leave it running and stop unless the user confirms validation and asks to proceed without it.
 5. Commit with a Conventional Commit such as `chore(release): v0.12.0`.
 
 Changing or pushing the package version alone does not create a release. The release starts only

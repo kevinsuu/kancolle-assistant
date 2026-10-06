@@ -46,6 +46,17 @@ const MEASURE_VIEWPORT_SCRIPT = `({
   height: Math.max(document.documentElement.clientHeight, window.innerHeight || 0),
 })`
 
+const safeFrameUrl = (value) => {
+  try {
+    const url = new URL(value)
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return ''
+  }
+}
+
+const hasViewport = (viewport) => Number(viewport?.width) > 0 && Number(viewport?.height) > 0
+
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value))
 
 const waitForMainFrame = async (webContents) => {
@@ -122,8 +133,9 @@ const waitForStableGameCanvas = async (
 
   while (!webContents.isDestroyed() && Date.now() - startedAt < timeoutMs) {
     const candidate = await findLargestCanvas(webContents)
-    if (candidate) {
-      const measurementKey = roundedMeasurementKey(candidate.frame, candidate.measurement)
+    const topViewport = candidate ? await measureTopViewport(webContents) : null
+    if (candidate && hasViewport(topViewport)) {
+      const measurementKey = `${roundedMeasurementKey(candidate.frame, candidate.measurement)}:${Math.round(topViewport.width)}:${Math.round(topViewport.height)}`
       if (measurementKey === previousKey) stableCount += 1
       else {
         previousKey = measurementKey
@@ -297,6 +309,11 @@ export const fitGameTabToCurrentViewport = async ({ tab, logger }) => {
     return { applied: false, reason: 'responsive-fit-disabled' }
   }
 
+  if (!tab.visible || !hasViewport(topViewport)) {
+    logger?.('display.game-resize-fit-skipped', { reason: 'viewport-unavailable' })
+    return { applied: false, reason: 'viewport-unavailable' }
+  }
+
   const measurement = withResponsiveViewport(candidate.measurement, topViewport)
   const zoomFactor = calculateResponsiveGameZoom(candidate.measurement, currentZoom, topViewport)
   const changed = Math.abs(zoomFactor - currentZoom) >= ZOOM_STEP
@@ -334,9 +351,11 @@ export const fitGameTabOnce = async ({
   if (webContents.isDestroyed()) return { applied: false, reason: 'destroyed' }
 
   if (!initialMeasurement) {
-    const frameUrls = (webContents.mainFrame.framesInSubtree || []).map((frame) => frame?.url || '')
+    const frameUrls = (webContents.mainFrame.framesInSubtree || []).map((frame) =>
+      safeFrameUrl(frame?.url),
+    )
     logger('display.game-auto-fit-waiting-canvas', {
-      url: webContents.getURL(),
+      url: safeFrameUrl(webContents.getURL()),
       timeoutMs,
       frameUrls,
     })
@@ -359,7 +378,7 @@ export const fitGameTabOnce = async ({
 
   logger('display.game-canvas-found', {
     source: initialMeasurement ? 'renderer-signal' : 'main-process-frame-scan',
-    frameUrl: candidate.measurement.url,
+    frameUrl: safeFrameUrl(candidate.measurement.url),
     canvas: candidate.measurement.canvas,
     viewport: candidate.measurement.viewport,
     waitedMs: candidate.waitedMs,
@@ -395,7 +414,7 @@ export const fitGameTabOnce = async ({
     physicalWorkAreaSize: displayMetrics.physicalWorkAreaSize,
     waitedMs: candidate.waitedMs,
     stableSamples: candidate.stableSamples,
-    frameUrl: candidate.measurement.url,
+    frameUrl: safeFrameUrl(candidate.measurement.url),
     canvas: candidate.measurement.canvas,
     parent: candidate.measurement.parent,
     frameViewport: candidate.measurement.viewport,

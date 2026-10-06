@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { calculateGameAndSidebarWindowLayout } from '../browser/display/game-auto-fit.js'
+import {
+  calculateGameAndSidebarWindowLayout,
+  fitGameTabToCurrentViewport,
+  fitGameTabOnce,
+} from '../browser/display/game-auto-fit.js'
 import {
   calculateKc3QuestPanelHeightIncrease,
   calculateKc3QuestPanelMinHeight,
@@ -204,4 +208,84 @@ test('KC3 layout diagnostics preserve unsupported quest theme reasons', async ()
 
   assert.equal(result.layout.questCapacity.applied, false)
   assert.equal(result.layout.questCapacity.reason, 'quest-module-unavailable')
+})
+
+test('responsive fit skips a hidden viewport and corrects zoom after it becomes visible', async () => {
+  let viewport = { width: 0, height: 0 }
+  const zooms = []
+  const events = []
+  const measurement = {
+    canvas: { width: 1200, height: 720, left: 0, top: 0 },
+    viewport: { width: 1200, height: 720 },
+  }
+  const tab = {
+    visible: true,
+    gameResponsiveFitEnabled: true,
+    webContents: {
+      isDestroyed: () => false,
+      getZoomFactor: () => 1,
+      setZoomFactor: (zoom) => zooms.push(zoom),
+      mainFrame: {
+        executeJavaScript: async () => viewport,
+        framesInSubtree: [{ executeJavaScript: async () => measurement }],
+      },
+    },
+  }
+  const logger = (event, fields) => events.push({ event, ...fields })
+  const skipped = await fitGameTabToCurrentViewport({ tab, logger })
+  assert.equal(skipped.reason, 'viewport-unavailable')
+  assert.deepEqual(zooms, [])
+  assert.deepEqual(events[0], {
+    event: 'display.game-resize-fit-skipped',
+    reason: 'viewport-unavailable',
+  })
+  viewport = { width: 900, height: 540 }
+  const fitted = await fitGameTabToCurrentViewport({ tab, logger })
+  assert.equal(fitted.applied, true)
+  assert.deepEqual(zooms, [0.75])
+  assert.equal(events[1].event, 'display.game-resize-fit')
+  assert.deepEqual(events[1].effectiveViewport, viewport)
+})
+
+test('startup waits for a visible top viewport and removes query data from diagnostics', async () => {
+  let viewportReads = 0
+  const logs = []
+  const zooms = []
+  const url = 'https://example.test/kcs2/index.php?api_token=test-secret#fragment'
+  const measurement = {
+    url,
+    canvas: { width: 1200, height: 720, left: 0, top: 0 },
+    viewport: { width: 1200, height: 720 },
+  }
+  const webContents = {
+    isDestroyed: () => false,
+    isLoadingMainFrame: () => false,
+    getURL: () => url,
+    getZoomFactor: () => 1,
+    setZoomFactor: (zoom) => zooms.push(zoom),
+    mainFrame: {
+      executeJavaScript: async () => {
+        viewportReads += 1
+        if (viewportReads === 1) {
+          assert.deepEqual(zooms, [])
+          return { width: 0, height: 0 }
+        }
+        return { width: 1200, height: 720 }
+      },
+      framesInSubtree: [{ url, routingId: 1, executeJavaScript: async () => measurement }],
+    },
+  }
+  const result = await fitGameTabOnce({
+    tab: { webContents },
+    displayMetrics: displayMetrics(1920, 1080),
+    logger: (event, fields) => logs.push({ event, ...fields }),
+    pollIntervalMs: 1,
+    stableSamples: 1,
+    timeoutMs: 1000,
+  })
+  assert.equal(result.applied, true)
+  assert.ok(viewportReads >= 3)
+  assert.equal(logs.at(-1).event, 'display.game-auto-fit')
+  assert.equal(logs.at(-1).frameUrl, 'https://example.test/kcs2/index.php')
+  assert.doesNotMatch(JSON.stringify(logs), /test-secret|api_token|fragment/)
 })

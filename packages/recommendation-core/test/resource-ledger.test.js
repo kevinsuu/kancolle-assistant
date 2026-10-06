@@ -133,3 +133,49 @@ test('summarizes records into minute, five-minute, and thirty-minute buckets', (
   assert.equal(byThirtyMinutes.hours[0].spent.fuel, 3)
   assert.equal(byThirtyMinutes.hours[1].gained.fuel, 7)
 })
+
+test('five-day windows aggregate five JST calendar days and retain hourly inventory', () => {
+  const window = getResourceLedgerWindow('rolling5days', NOW)
+  assert.equal(window.startHour, TODAY_START_HOUR - 4 * 24)
+  assert.equal(window.endHourExclusive, Math.floor(NOW / HOUR_MS) + 1)
+  const start = window.startHour * 60
+  const snapshot = {
+    ...window,
+    generatedAt: new Date(NOW).toISOString(),
+    current: values({ fuel: 120 }),
+    records: [
+      { hour: window.startHour - 1, minute: start - 1, type: 'quest', data: [999] },
+      { hour: window.startHour, minute: start + 9, type: 'quest', data: [20] },
+      { hour: window.startHour, minute: start + 10, type: 'sortie', data: [-5] },
+      { hour: window.startHour + 24, type: 'quest', data: [7] },
+      { hour: window.endHourExclusive, type: 'quest', data: [999] },
+    ],
+    materialSnapshots: [{ hour: window.startHour - 1, values: { fuel: 100 } }],
+    consumableSnapshots: [],
+  }
+  for (const granularity of ['minute', 'fiveMinute', 'tenMinute', 'thirtyMinute', 'hourly']) {
+    const result = summarizeResourceLedger({
+      snapshot,
+      range: 'rolling5days',
+      now: NOW,
+      granularity,
+    })
+    assert.deepEqual(result.summary.fuel, { gained: 27, spent: 5, net: 22, current: 120 })
+    assert.equal(result.entryCount, 3)
+    assert.deepEqual(
+      result.hours.map((hour) => hour.label),
+      ['8/21', '8/22', '8/23', '8/24', '8/25'],
+    )
+    assert.equal(result.inventoryHours[0].values.fuel, 100)
+    assert.equal(result.inventoryHours.at(-1).values.fuel, 120)
+    assert.equal(result.granularity.key, 'daily')
+    assert.equal(result.granularity.minutes, 1440)
+    assert.equal(result.hours.length, 5)
+    assert.equal(result.hours[0].gained.fuel, 20)
+    assert.equal(result.hours[0].spent.fuel, 5)
+    assert.equal(result.hours[1].gained.fuel, 7)
+    assert.equal(result.hours[2].gained.fuel, 0)
+    assert.equal(result.hours.at(-1).endMinuteExclusive, window.endHourExclusive * 60)
+    assert.equal(result.inventoryHours.length, window.endHourExclusive - window.startHour)
+  }
+})

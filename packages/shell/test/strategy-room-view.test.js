@@ -190,14 +190,25 @@ const viewSnapshot = (language) => {
   return createHash('sha256').update(output).digest('hex')
 }
 
+test('resource center offers five-day history with hourly-only activity controls', () => {
+  for (const catalog of Object.values(catalogs)) {
+    const markup = resourceCenterMarkup((key) => catalog[key] || key)
+    for (const range of ['today', 'yesterday', 'rolling24', 'rolling5days']) {
+      assert.ok(markup.includes(`data-range="${range}"`))
+    }
+    assert.doesNotMatch(markup, /type="date"/)
+    assert.doesNotMatch(markup, /data-granularity=/)
+  }
+})
+
 test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '3513ec791adeebfcc8226c3726cbf20c7a54c3238c26bcbc38637a1c621429a3',
-      jp: 'f4a208242339fca626b0b57860c7914b4b67a90d2b80a0867b69af970bdaf174',
-      scn: '1bd514c1d56ee601314f2dc672b0291a87eeaddfa8db4bed4e28f6c032d731f3',
-      tcn: 'eb2acebd3995ac9a01145038d864e9511a1222d719fef3e0d8b3aa061a5a72ce',
+      en: '4609371461bb1e4247b79fccb8c3e0491355dc3225e23a87868de7f0604d7585',
+      jp: '445a0e86c6fa61faebba4657e41334247cc217927089d35febd5ffa079c904ea',
+      scn: '3afa83dd369a39ea84a3f3be72d1ba295035b37724fe991b709c96fba341c868',
+      tcn: '95171cbacba4501d53a4275f9c65f4532d83e7fba74c4e9c63bb3a6806de3531',
     },
   )
 })

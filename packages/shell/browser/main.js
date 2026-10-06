@@ -1416,6 +1416,8 @@ class Browser extends EventEmitter {
         void refitSelectedGameTab()
       }, resizeFitDelayMs)
     }
+    newTabbedWindow.tabs.on('tab-selected', scheduleSelectedGameTabRefit)
+    newTabbedWindow.tabs.on('layout-updated', scheduleSelectedGameTabRefit)
     const persistWindowSize = () => {
       if (!pendingWindowSize) return
       configStore.set({

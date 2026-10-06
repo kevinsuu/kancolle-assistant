@@ -144,7 +144,7 @@ const ALLOWED_EXPEDITION_IDS = new Set([
   102,
   110,
 ])
-const RESOURCE_LEDGER_RANGES = ['today', 'yesterday', 'rolling24']
+const RESOURCE_LEDGER_RANGES = ['today', 'yesterday', 'rolling24', 'rolling5days']
 const EXPEDITION_LOG_RESOURCE_KEYS = [...RESOURCE_KEYS, 'bucket']
 
 const parsePriorityPreference = (preference) => {
@@ -480,6 +480,7 @@ export const registerRecommendationIpc = ({
           event.sender,
           { range: request.range, granularity, forceRefresh: request.forceRefresh === true },
           summarizeResourceLedgerInWorker,
+          logger,
         )),
       }
     } catch (error) {

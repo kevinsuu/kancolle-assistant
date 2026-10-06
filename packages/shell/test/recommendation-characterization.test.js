@@ -363,3 +363,46 @@ test('KC3 resource ledger preserves ranges, categories, and inventory carry-forw
   assert.equal(thirtyMinute.hours[0].gained.fuel, 10)
   assert.equal(thirtyMinute.hours[3].spent.fuel, 4)
 })
+
+test('resource ledger logs five-day granularity outcomes and failures', async () => {
+  await withRuntime(createLedgerWindow(), async () => {
+    const events = []
+    const logger = (event, fields) => events.push({ event, ...fields })
+    const target = {
+      executeJavaScript: async (source) => {
+        const request = JSON.parse(source.match(/\)\((\{[\s\S]*\})\)$/)[1])
+        return kc3ResourceLedgerMainWorld(request)
+      },
+    }
+    const request = { range: 'rolling5days', granularity: 'tenMinute' }
+    const result = await readKC3ResourceLedgerSummary(target, request, undefined, logger)
+    assert.equal(result.granularity.minutes, 1440)
+    assert.deepEqual(events[0], {
+      event: 'resource-ledger.completed',
+      ...request,
+      granularity: 'daily',
+      entryCount: result.entryCount,
+      bucketCount: result.hours.length,
+      elapsedMs: 0,
+    })
+    await assert.rejects(
+      readKC3ResourceLedgerSummary(
+        {
+          executeJavaScript: async () => {
+            throw new Error('unavailable')
+          },
+        },
+        request,
+        undefined,
+        logger,
+      ),
+      /unavailable/,
+    )
+    assert.deepEqual(events[1], {
+      event: 'resource-ledger.summary-failed',
+      ...request,
+      reason: 'RESOURCE_LEDGER_SUMMARY_FAILED',
+      elapsedMs: 0,
+    })
+  })
+})

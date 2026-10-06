@@ -1,0 +1,3 @@
+interface:
+  display_name: 'KanColle Release'
+  short_description: 'Validate, commit, tag, and publish app releases'

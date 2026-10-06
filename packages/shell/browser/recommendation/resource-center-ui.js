@@ -250,7 +250,6 @@ const mountPanel = (invoke) => {
   const root = contentHtml.querySelector('.drc-root')
   const refresh = root.querySelector('.drc-refresh')
   let range = 'today'
-  let granularity = 'hourly'
   let selectedResource = 'fuel'
   let data = null
   let loadSequence = 0
@@ -280,7 +279,7 @@ const mountPanel = (invoke) => {
     try {
       const result = await invoke(RESOURCE_LEDGER_SUMMARY_CHANNEL, {
         range,
-        granularity,
+        granularity: 'hourly',
         forceRefresh,
       })
       if (sequence !== loadSequence) return
@@ -301,15 +300,6 @@ const mountPanel = (invoke) => {
     button.addEventListener('click', () => {
       range = button.dataset.range
       root.querySelectorAll('[data-range]').forEach((item) => {
-        item.setAttribute('aria-pressed', String(item === button))
-      })
-      void load()
-    })
-  })
-  root.querySelectorAll('[data-granularity]').forEach((button) => {
-    button.addEventListener('click', () => {
-      granularity = button.dataset.granularity
-      root.querySelectorAll('[data-granularity]').forEach((item) => {
         item.setAttribute('aria-pressed', String(item === button))
       })
       void load()

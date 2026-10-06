@@ -117,3 +117,12 @@ test('extension tab removal drops destroyed tabs from the collection', () => {
   assert.equal(destroyCount, 1)
 })
 import './architecture-worker.test.js'
+
+test('tab layout updates notify listeners after all content bounds are applied', () => {
+  const tabs = new Tabs({}, {})
+  const calls = []
+  tabs.tabList = [{ updateLayout: (height) => calls.push(height) }]
+  tabs.on('layout-updated', () => calls.push('updated'))
+  tabs.updateLayout(32)
+  assert.deepEqual(calls, [32, 'updated'])
+})

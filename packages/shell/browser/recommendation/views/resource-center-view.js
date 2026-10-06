@@ -137,13 +137,7 @@ export const panelMarkup = (t) => `
           <button class="drc-option" type="button" data-range="today" aria-pressed="true">${t('common.today')}</button>
           <button class="drc-option" type="button" data-range="yesterday" aria-pressed="false">${t('common.yesterday')}</button>
           <button class="drc-option" type="button" data-range="rolling24" aria-pressed="false">24 h</button>
-        </div>
-        <div class="drc-range" aria-label="${t('resource.granularity')}">
-          <span class="drc-range-label">${t('resource.granularity')}</span>
-          <button class="drc-option" type="button" data-granularity="minute" aria-pressed="false">${t('resource.granularity.minute')}</button>
-          <button class="drc-option" type="button" data-granularity="fiveMinute" aria-pressed="false">${t('resource.granularity.fiveMinute')}</button>
-          <button class="drc-option" type="button" data-granularity="thirtyMinute" aria-pressed="false">${t('resource.granularity.thirtyMinute')}</button>
-          <button class="drc-option" type="button" data-granularity="hourly" aria-pressed="true">${t('resource.granularity.hourly')}</button>
+          <button class="drc-option" type="button" data-range="rolling5days" aria-pressed="false">${t('common.rolling5days')}</button>
         </div>
       </div>
       <button class="drc-refresh" type="button">${t('common.refresh')}</button>
