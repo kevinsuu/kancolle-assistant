@@ -1,3 +1,7 @@
+import {
+  recordedBattleRank,
+  refreshSortieBattleRanks,
+} from '../browser/recommendation/sortie-battle-rank-ui.js'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import test from 'node:test'
@@ -3161,4 +3165,44 @@ test('fleet strategy facts keep advisory air power visible in every language', (
       ),
     )
   }
+})
+
+test('sortie ranks use recorded results and report missing results without guessing', () => {
+  assert.equal(recordedBattleRank('../../assets/img/client/ratings/S.png'), 'S')
+  assert.equal(recordedBattleRank('../../assets/img/client/ratings/A.png'), 'A')
+  assert.equal(recordedBattleRank('../../assets/img/client/ratings/undefined.png'), null)
+  const badge = { className: '', textContent: '' }
+  const edge = {
+    dataset: {},
+    textContent: 'K',
+    querySelector: () => null,
+    append: (value) => {
+      assert.equal(value.textContent, 'S')
+    },
+  }
+  const node = (src) => ({
+    querySelector: (selector) =>
+      selector === '.node_id' ? { textContent: 'K' } : { getAttribute: () => src },
+  })
+  const row = {
+    querySelectorAll: (selector) =>
+      selector === '.sortie_edge'
+        ? [edge]
+        : [node('/ratings/S.png'), node('/ratings/undefined.png')],
+  }
+  const root = { querySelectorAll: () => [row], ownerDocument: { createElement: () => badge } }
+  const events = []
+  assert.deepEqual(
+    refreshSortieBattleRanks(root, (...args) => events.push(args)),
+    { added: 1, missing: 1 },
+  )
+  assert.equal(events[0][1].addedCount, 1)
+  assert.equal(events[0][1].missingResultCount, 1)
+  assert.equal(events[0][1].reasonCode, 'MISSING_RECORDED_RANK')
+  assert.deepEqual(
+    refreshSortieBattleRanks(root, (...args) => events.push(args)),
+    { added: 0, missing: 1 },
+  )
+  assert.equal(events[1][1].outcome, 'result-unavailable')
+  assert.equal(edge.dataset.kcaNodeLabel, 'K')
 })

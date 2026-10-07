@@ -29,3 +29,16 @@ Strategy Room after changing KC3's language.
 
 Pinned links support mouse, Enter, and Space activation. Before any tabs are pinned, the section
 explains how to add one.
+
+## Normal-map battle results
+
+Normal-map sortie logs show the recorded battle rank (SS/S/A/B/C/D/E) in a small badge
+on each battle node, including boss nodes, without expanding the battle details. Badges
+reuse the results already loaded by KC3 and appear when its battle detail rendering finishes.
+Paging and map filters refresh the badges automatically. Resource and other non-battle
+nodes have no rank; missing or unfinished results are never inferred from node colors.
+The existing route labels, boss markers, and detailed result images remain available.
+
+These ranks help check a quest's victory requirement, but do not certify quest completion:
+fleet composition, quest acceptance, and required counts still apply. Console diagnostics
+summarize displayed and unavailable recorded results without player payloads.

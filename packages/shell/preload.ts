@@ -9,6 +9,7 @@ import { injectDefaultDailyImprovementFilter } from './browser/recommendation/da
 import { injectExpeditionGoalPlanner } from './browser/recommendation/expedition-goal-ui.js'
 import { injectMasterShipMaterialTooltips } from './browser/recommendation/master-ship-material-tooltip-ui.js'
 import { injectFleetRecommender } from './browser/recommendation/strategy-room-ui.js'
+import { injectSortieBattleRanks } from './browser/recommendation/sortie-battle-rank-ui.js'
 import { injectStrategyRoomRecentTabs } from './browser/recommendation/strategy-room-recent-ui.js'
 import { injectQuestRecommendations } from './browser/recommendation/quest-recommendation-ui.js'
 import { injectResourceLedgerSummary } from './browser/recommendation/resource-ledger-ui.js'
@@ -61,6 +62,7 @@ if (
       injectQuestRecommendations(invoke)
       injectShipRecommendations(invoke)
       injectStrategyRoomRecentTabs()
+      injectSortieBattleRanks()
       injectDefaultDailyImprovementFilter()
       injectMasterShipMaterialTooltips({ reportDiagnostic: reportMasterShipTooltipDiagnostic })
     }, 0)

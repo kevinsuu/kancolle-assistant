@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.1.0`    | `2026-10-06`   |
+| `v1.2.0`    | `2026-10-07`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.2.0 highlights (since v1.1.0)
+
+- Normal-map sortie logs show recorded victory ranks on every battle node, including bosses, so quest victory requirements can be checked without expanding battle details.
 
 ### v1.1.0 highlights (since v1.0.34)
 
@@ -46,10 +50,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - Adds 14 distinct [KCWiki World 7 fleet and leveling templates](./docs/normal-map-catalog.md), including 7-2 P1 with two light carriers and three escort ships. Selected templates retain their fleet composition and report missing ships instead of switching routes.
 - Corrects the 7-4 E-node land-based air squadron radius to 5 and marks fastest-speed and other unsupported setup requirements for manual confirmation.
-
-### v1.0.31 highlights (since v1.0.30)
-
-- Quest Recommendations now show positive fuel, ammo, steel, and bauxite rewards with KC3 icons and localized amounts. Manual synchronization preserves the API reward data for later local loads.
 
 ### Project-specific highlights
 
@@ -182,6 +182,7 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 
 ### 🚀 Current
 
+- [x] Recorded battle ranks on each normal-map sortie-log battle node, including bosses
 - [x] World 7 stage-specific fleet selection (including 7-5 M unlock), with separate mandatory routing thresholds and advisory combat targets
 - [x] [Shared account snapshots across Strategy Room windows, with isolated background workers for fleet, expedition, and resource calculations](./docs/shell-runtime-architecture.md)
 - [x] Installer + Application auto-update on startup, game open, and every six hours
