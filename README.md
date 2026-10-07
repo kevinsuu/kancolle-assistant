@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.2.0`    | `2026-10-07`   |
+| `v1.2.1`    | `2026-10-07`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.2.1 highlights (since v1.2.0)
+
+- Fixes KC3 sidebar width measurement during delayed theme loading, keeping the initial width until a visible theme is ready and then completing window and game auto-fit.
 
 ### v1.2.0 highlights (since v1.1.0)
 
@@ -45,11 +49,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.0.33 highlights (since v1.0.32)
 
 - KC3's Natsuiro KanColle panel now reserves eight accepted-quest rows. The panel, bottom status module, and background grow by exactly one row while unused DevTools space remains visible.
-
-### v1.0.32 highlights (since v1.0.31)
-
-- Adds 14 distinct [KCWiki World 7 fleet and leveling templates](./docs/normal-map-catalog.md), including 7-2 P1 with two light carriers and three escort ships. Selected templates retain their fleet composition and report missing ships instead of switching routes.
-- Corrects the 7-4 E-node land-based air squadron radius to 5 and marks fastest-speed and other unsupported setup requirements for manual confirmation.
 
 ### Project-specific highlights
 

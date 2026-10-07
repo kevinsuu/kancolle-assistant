@@ -12,7 +12,14 @@ Retina and other high-DPI displays.
 When KC3 DevTools is configured to open docked on the right, KanColle Assistant initially estimates
 its width as a proportion of the display work area. After the selected KC3 theme loads, the
 application measures the panel's actual content width and adjusts the divider so the panel is not
-clipped. The remaining display area determines the largest complete 1200:720 game scale up to the
+clipped. Width measurements accept only a visible theme wrapper with nonzero width and height;
+launcher pages and hidden theme frames cannot shrink the sidebar. If the theme is not visible
+after startup polling, the initial sidebar estimate is retained and window fitting is deferred.
+Panel navigation and selection retry width measurement for up to 30 one-second retries.
+DevTools resizing also refreshes the visible theme width without selecting a tab or resetting
+the divider to the initial ratio. A late successful measurement completes the deferred window
+fit and recalculates the game zoom. Diagnostics identify `visible-theme-unavailable` and
+the width-refresh trigger and retry count. The remaining display area determines the largest complete 1200:720 game scale up to the
 game's native 1.0 scale, so large displays do not force the startup window to the full available
 width. The same scale is applied as soon as the DMM game page loads instead of inheriting an older
 tab zoom. The scale uses 0.001 increments and preserves the game's original aspect ratio, so the

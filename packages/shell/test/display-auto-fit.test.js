@@ -9,6 +9,7 @@ import {
   calculateKc3QuestPanelHeightIncrease,
   calculateKc3QuestPanelMinHeight,
   showKc3DevToolsPanel,
+  fitKc3DevToolsWidth,
 } from '../browser/devtools/kc3-devtools.js'
 
 const displayMetrics = (width, height) => ({
@@ -32,6 +33,7 @@ const createKc3DevTools = (questCapacity) => {
           contentWidth: 320,
           viewportWidth: 320,
           hasWrapper: true,
+          frameVisible: capacity.frameVisible !== false,
           url: panelUrl,
         }
       },
@@ -288,4 +290,73 @@ test('startup waits for a visible top viewport and removes query data from diagn
   assert.equal(logs.at(-1).event, 'display.game-auto-fit')
   assert.equal(logs.at(-1).frameUrl, 'https://example.test/kcs2/index.php')
   assert.doesNotMatch(JSON.stringify(logs), /test-secret|api_token|fragment/)
+})
+
+test('KC3 width ignores launcher and hidden themes, then fits the late visible theme', async () => {
+  let visible = false
+  let adjustments = 0
+  let launcherReads = 0
+  const panelUrl = 'chrome-extension://kc3/pages/devtools/themes/natsuiro/natsuiro.html'
+  const devtools = {
+    isDestroyed: () => false,
+    mainFrame: {
+      framesInSubtree: [
+        {
+          url: 'chrome-extension://kc3/pages/devtools/init.html',
+          executeJavaScript: async () => {
+            launcherReads += 1
+            return { contentWidth: 251, viewportWidth: 251, hasWrapper: true, frameVisible: true }
+          },
+        },
+        {
+          url: panelUrl,
+          executeJavaScript: async () => ({
+            contentWidth: 800,
+            viewportWidth: 251,
+            hasWrapper: true,
+            frameVisible: visible,
+            url: panelUrl,
+          }),
+        },
+      ],
+    },
+    executeJavaScript: async (script) => {
+      adjustments += 1
+      assert.ok(script.includes('previousSidebarWidth + 549'))
+      return { layout: { applied: true, sidebarWidth: 800, measurementSource: 'panel-content' } }
+    },
+  }
+  const hidden = await fitKc3DevToolsWidth({ devToolsWebContents: devtools, extensionId: 'kc3' })
+  assert.equal(hidden.layout.applied, false)
+  assert.equal(hidden.layout.reason, 'visible-theme-unavailable')
+  assert.equal(hidden.layout.measurementFailureCount, 0)
+  assert.equal(adjustments, 0)
+  visible = true
+  const ready = await fitKc3DevToolsWidth({ devToolsWebContents: devtools, extensionId: 'kc3' })
+  assert.equal(ready.layout.sidebarWidth, 800)
+  assert.equal(launcherReads, 0)
+  assert.equal(adjustments, 3)
+})
+
+test('KC3 width reports frame measurement failures without changing the divider', async () => {
+  const devtools = {
+    isDestroyed: () => false,
+    mainFrame: {
+      framesInSubtree: [
+        {
+          url: 'chrome-extension://kc3/pages/devtools/themes/natsuiro/natsuiro.html',
+          executeJavaScript: async () => {
+            throw new Error('Frame detached')
+          },
+        },
+      ],
+    },
+    executeJavaScript: async () => {
+      assert.fail('Divider must remain unchanged')
+    },
+  }
+  const result = await fitKc3DevToolsWidth({ devToolsWebContents: devtools, extensionId: 'kc3' })
+  assert.equal(result.layout.applied, false)
+  assert.equal(result.layout.reason, 'visible-theme-unavailable')
+  assert.equal(result.layout.measurementFailureCount, 1)
 })

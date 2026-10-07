@@ -62,6 +62,9 @@ const MEASURE_KC3_PANEL_SCRIPT = `(() => {
   return {
     contentWidth,
     viewportWidth,
+    frameVisible: Boolean(wrapperRect?.width > 0 && wrapperRect?.height > 0 &&
+      viewportWidth > 0 && root.clientHeight > 0 &&
+      getComputedStyle(wrapper).visibility !== 'hidden'),
     hasWrapper: Boolean(wrapper),
     url: location.href,
   }
@@ -309,41 +312,43 @@ const isLiveFrame = (frame) =>
   typeof frame.executeJavaScript === 'function' &&
   !(typeof frame.isDestroyed === 'function' && frame.isDestroyed())
 
-const measureKc3Panel = async (devToolsWebContents, extensionId) => {
+const measureKc3Panel = async (devToolsWebContents, extensionId, attempts) => {
   const panelUrlPrefix = `chrome-extension://${extensionId}/pages/devtools/`
-  let fallbackMeasurement = null
+  let measurementFailureCount = 0
 
-  for (let attempt = 0; attempt < KC3_PANEL_MEASURE_ATTEMPTS; attempt += 1) {
-    if (devToolsWebContents.isDestroyed()) return null
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (devToolsWebContents.isDestroyed()) return { measurement: null, measurementFailureCount }
 
     const frames = (devToolsWebContents.mainFrame.framesInSubtree || []).filter(
       (frame) =>
-        isLiveFrame(frame) && typeof frame.url === 'string' && frame.url.startsWith(panelUrlPrefix),
+        isLiveFrame(frame) &&
+        typeof frame.url === 'string' &&
+        frame.url.startsWith(panelUrlPrefix + 'themes/'),
     )
     const measurements = await Promise.all(
       frames.map(async (frame) => {
         try {
           return await frame.executeJavaScript(MEASURE_KC3_PANEL_SCRIPT, true)
         } catch {
+          measurementFailureCount += 1
           return null
         }
       }),
     )
     const validMeasurements = measurements.filter(
-      (measurement) => measurement?.contentWidth > 0 && measurement?.viewportWidth > 0,
+      (measurement) =>
+        measurement?.frameVisible &&
+        measurement?.contentWidth > 0 &&
+        measurement?.viewportWidth > 0,
     )
     const wrapperMeasurement = validMeasurements
       .filter((measurement) => measurement.hasWrapper)
       .sort((left, right) => right.contentWidth - left.contentWidth)[0]
-    if (wrapperMeasurement) return wrapperMeasurement
-    fallbackMeasurement = validMeasurements.sort(
-      (left, right) => right.contentWidth - left.contentWidth,
-    )[0]
-
-    await delay(KC3_PANEL_MEASURE_INTERVAL_MS)
+    if (wrapperMeasurement) return { measurement: wrapperMeasurement, measurementFailureCount }
+    if (attempt + 1 < attempts) await delay(KC3_PANEL_MEASURE_INTERVAL_MS)
   }
 
-  return fallbackMeasurement
+  return { measurement: null, measurementFailureCount }
 }
 
 export const applyKc3QuestPanelCapacity = async (devToolsWebContents, extensionId) => {
@@ -551,18 +556,34 @@ export const showKc3DevToolsPanel = async ({ devToolsWebContents, extensionId })
     return { panelId, ...selectedPanel }
   }
 
-  let measurement = await measureKc3Panel(devToolsWebContents, extensionId)
+  const layoutResult = await fitKc3DevToolsWidth({
+    devToolsWebContents,
+    extensionId,
+    attempts: KC3_PANEL_MEASURE_ATTEMPTS,
+  })
   const questCapacity = await applyKc3QuestPanelCapacity(devToolsWebContents, extensionId)
+  return {
+    panelId,
+    ...selectedPanel,
+    layout: withQuestCapacity(layoutResult.layout, questCapacity),
+    questCapacity,
+  }
+}
+
+// Refresh width without selecting another tab or resetting the user's divider to the initial ratio.
+export const fitKc3DevToolsWidth = async ({ devToolsWebContents, extensionId, attempts = 1 }) => {
+  if (!devToolsWebContents || devToolsWebContents.isDestroyed() || !extensionId) {
+    return { layout: { applied: false, reason: 'unavailable' } }
+  }
+  const measured = await measureKc3Panel(devToolsWebContents, extensionId, attempts)
+  let measurement = measured.measurement
+  let measurementFailureCount = measured.measurementFailureCount
   if (!measurement) {
     return {
-      panelId,
-      ...selectedPanel,
-      questCapacity,
-      layout: withQuestCapacity(selectedPanel.layout, questCapacity),
+      layout: { applied: false, reason: 'visible-theme-unavailable', measurementFailureCount },
     }
   }
-
-  let fittedPanel = selectedPanel
+  let fittedPanel = null
   for (let iteration = 0; iteration < 3; iteration += 1) {
     const contentOverflow = measurement.contentWidth - measurement.viewportWidth
     fittedPanel = await devToolsWebContents.executeJavaScript(
@@ -589,7 +610,9 @@ export const showKc3DevToolsPanel = async ({ devToolsWebContents, extensionId })
         const totalHeight = ownerSplit.element.clientHeight
         const previousSidebarWidth = ownerSplit.sidebarSize()
         const requestedSidebarWidth = previousSidebarWidth + ${JSON.stringify(contentOverflow)}
-        ownerSplit.setSidebarSize(Math.min(totalWidth - 1, Math.max(1, requestedSidebarWidth)))
+        if (Math.abs(${JSON.stringify(contentOverflow)}) > 1) {
+          ownerSplit.setSidebarSize(Math.min(totalWidth - 1, Math.max(1, requestedSidebarWidth)))
+        }
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
 
         const appliedSidebarWidth = ownerSplit.sidebarSize()
@@ -615,15 +638,11 @@ export const showKc3DevToolsPanel = async ({ devToolsWebContents, extensionId })
     )
 
     if (!fittedPanel.layout?.applied || Math.abs(contentOverflow) <= 1) break
-    const nextMeasurement = await measureKc3Panel(devToolsWebContents, extensionId)
-    if (!nextMeasurement) break
-    measurement = nextMeasurement
+    const nextMeasurement = await measureKc3Panel(devToolsWebContents, extensionId, attempts)
+    measurementFailureCount += nextMeasurement.measurementFailureCount
+    if (!nextMeasurement.measurement) break
+    measurement = nextMeasurement.measurement
   }
 
-  return {
-    panelId,
-    ...fittedPanel,
-    questCapacity,
-    layout: withQuestCapacity(fittedPanel.layout, questCapacity),
-  }
+  return { ...fittedPanel, layout: { ...fittedPanel.layout, measurementFailureCount } }
 }

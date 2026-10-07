@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.2.0`     | `2026-10-07`    |
+| `v1.2.1`     | `2026-10-07`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,10 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.2.1 更新重點（相較 v1.2.0）
+
+- 修正 KC3 主題延遲載入時的側欄寬度誤判；主題可見前保留初始寬度，載入後再完成視窗與遊戲畫面自動配適。
 
 ### v1.2.0 更新重點（相較 v1.1.0）
 
@@ -40,11 +44,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 ### v1.0.33 更新重點（相較 v1.0.32）
 
 - KC3 Natsuiro 的 KanColle 面板現在會保留八列已接任務；面板、底部狀態列與背景只同步增加一列高度，並保留下方未使用的開發者工具空間。
-
-### v1.0.32 更新重點（相較 v1.0.31）
-
-- 新增 14 組不重複的[艦娘百科第七章攻略與練級配置](./docs/normal-map-catalog.md)，包含 7-2 P1 雙輕空母＋三海防；指定方案會保留編成，缺艦時回報無解，不會改用其他路線。
-- 修正 7-4 E 點陸航航程為 5，並標示最速及其他尚需手動確認的配裝條件。
 
 ### 本專案功能重點
 

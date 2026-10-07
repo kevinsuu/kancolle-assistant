@@ -56,6 +56,7 @@ import {
   KC3_QUEST_CAPACITY_LOG_PREFIX,
   applyKc3QuestPanelCapacity,
   estimateKc3SidebarWidth,
+  fitKc3DevToolsWidth,
   initializeDevToolsPreferences,
   showKc3DevToolsPanel,
 } from './devtools/kc3-devtools'
@@ -1737,6 +1738,9 @@ class Browser extends EventEmitter {
     const url = webContents.getURL()
     const webContentsId = webContents.id
     let kc3QuestCapacityRefreshTimer = null
+    let kc3WidthRefreshRunning = false
+    let kc3WidthRetryCount = 0
+    let kc3WidthPending = false
 
     webContents.once('destroyed', () => {
       if (kc3QuestCapacityRefreshTimer) clearTimeout(kc3QuestCapacityRefreshTimer)
@@ -1757,19 +1761,69 @@ class Browser extends EventEmitter {
         requestTrigger,
         ...result,
       })
+
+      if (!configStore.get('window.view.autoFitGameOnStartup') || kc3WidthRefreshRunning) return
+      kc3WidthRefreshRunning = true
+      try {
+        const widthResult = await fitKc3DevToolsWidth({
+          devToolsWebContents: devtools,
+          extensionId: browser.currentKc3ExtensionId,
+        })
+        kccp.logger.log(logSource, 'display.game-kc3-layout', {
+          requestTrigger,
+          retryCount: kc3WidthRetryCount,
+          ...widthResult.layout,
+        })
+        if (widthResult.layout.applied) {
+          const tab = browser.windows
+            .flatMap((window) => window.tabs.tabList)
+            .find((candidate) => candidate.webContents === webContents)
+          if (tab?.visible && tab.gameResponsiveFitEnabled) {
+            if (kc3WidthPending) {
+              const windowFit = fitWindowForGameAndSidebar({
+                tab,
+                displayMetrics: browser.startupDisplayMetrics,
+                sidebarWidth: widthResult.layout.sidebarWidth,
+              })
+              kccp.logger.log(logSource, 'display.game-window-layout', windowFit)
+              kc3WidthPending = false
+            }
+            await fitGameTabToCurrentViewport({
+              tab,
+              logger: (eventName, data) => kccp.logger.log(logSource, eventName, data),
+            })
+          }
+          if (!kc3WidthPending) {
+            kc3WidthRetryCount = 0
+          } else if (tab?.visible && kc3WidthRetryCount < 30) {
+            kc3WidthRetryCount += 1
+            scheduleKc3QuestPanelCapacity('waiting-game-fit', 1000)
+          }
+        } else if (
+          widthResult.layout.reason === 'visible-theme-unavailable' &&
+          requestTrigger !== 'devtools-resized' &&
+          kc3WidthRetryCount < 30
+        ) {
+          kc3WidthRetryCount += 1
+          scheduleKc3QuestPanelCapacity('waiting-visible-theme', 1000)
+        }
+      } finally {
+        kc3WidthRefreshRunning = false
+      }
     }
 
-    const scheduleKc3QuestPanelCapacity = (requestTrigger) => {
+    const scheduleKc3QuestPanelCapacity = (requestTrigger, delayMs = 200) => {
+      if (webContents.isDestroyed()) return
       if (kc3QuestCapacityRefreshTimer) clearTimeout(kc3QuestCapacityRefreshTimer)
       kc3QuestCapacityRefreshTimer = setTimeout(() => {
         kc3QuestCapacityRefreshTimer = null
         void refreshKc3QuestPanelCapacity(requestTrigger).catch((error) => {
-          kccp.logger.error(logSource, 'Unable to refresh KC3 quest capacity.', {
+          kccp.logger.error(logSource, 'Unable to refresh KC3 panel layout.', {
             requestTrigger,
             error: error.message,
           })
         })
-      }, 200)
+      }, delayMs)
     }
 
     const prepareKc3DevToolsPanel = () => {
@@ -1791,6 +1845,8 @@ class Browser extends EventEmitter {
       void panelReady
         .then((result) => {
           if (result.found) {
+            kc3WidthPending = result.layout?.reason === 'visible-theme-unavailable'
+            kc3WidthRetryCount = 0
             kccp.logger.log(logSource, 'KanColle DevTools panel moved first and selected.')
             kccp.logger.log(logSource, 'display.game-kc3-layout', result.layout)
             kccp.logger.log(logSource, 'display.game-kc3-quest-capacity', result.questCapacity)

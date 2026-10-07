@@ -8,6 +8,24 @@ The Settings page displays this application version as `v<version>` in its lower
 is read from Electron's `app.getVersion()`, so it follows `packages/shell/package.json` without a
 second UI-specific version constant.
 
+## Version selection
+
+Choose the next version from the actual changes since the latest release tag, including the current
+working-tree changes. Assess their scope and effect on users rather than relying only on commit
+types, labels, or the number of changed files.
+
+- Small fixes, localized behavior adjustments, documentation, and routine maintenance increase
+  patch: `0.12.3` → `0.12.4`.
+- Substantial fixes that materially change core behavior or workflows, and new completed
+  capabilities, increase minor and reset patch to zero: `0.12.3` → `0.13.0`.
+- Major normally stays unchanged. Do not automatically increase it for breaking changes; describe
+  any compatibility impact and use minor unless the user explicitly requests a major release.
+
+For mixed changes, use the highest applicable level. State the chosen version and the concrete
+changes that justify it before preparing release metadata. An explicit user-specified version takes
+precedence. Reuse an existing working-tree version bump only when it matches this decision or the
+user's explicit version and is newer than the latest release tag. Never reuse an existing tag.
+
 ## Prepare a release
 
 Use one release commit for the app version and its user-facing documentation:
@@ -25,6 +43,9 @@ Use one release commit for the app version and its user-facing documentation:
    validation. The tag-triggered release workflow runs its tests and packaging checks before
    creating the GitHub Release. If the build is blocked by a running game or development process,
    leave it running and stop unless the user confirms validation and asks to proceed without it.
+   Never close, kill, or restart development apps, Electron/Forge processes, or game processes
+   to unblock packaging, even when a build error recommends closing them. Ask about proceeding
+   without the build rather than asking the user to close those processes.
 5. Commit with a Conventional Commit such as `chore(release): v0.12.0`.
 
 Changing or pushing the package version alone does not create a release. The release starts only
