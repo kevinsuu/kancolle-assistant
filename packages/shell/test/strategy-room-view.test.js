@@ -11,10 +11,8 @@ import { scn } from '../browser/recommendation/i18n/scn.js'
 import { tcn } from '../browser/recommendation/i18n/tcn.js'
 import {
   applyDailyImprovementCategoryFilter,
-  applyDefaultDailyImprovementFilter,
   collectDailyImprovementCategories,
   getDailyImprovementEquipmentType,
-  isDailyImprovementEquipmentAvailable,
 } from '../browser/recommendation/daily-improvement-ui.js'
 import {
   describeMasterShipMaterialTooltipMarkup,
@@ -3038,33 +3036,6 @@ test('expedition status safeguards exist in all supported languages', () => {
   })
 })
 
-test('daily improvement filter applies once per rendered KC3 toggle button', () => {
-  let clickCount = 0
-  const button = { click: () => clickCount++ }
-  const equipmentList = { querySelector: () => ({}) }
-  const root = {
-    querySelector: (selector) => (selector.includes('disabled_toggle') ? button : equipmentList),
-  }
-  const filteredButtons = new WeakSet()
-
-  assert.equal(applyDefaultDailyImprovementFilter(root, filteredButtons), true)
-  assert.equal(applyDefaultDailyImprovementFilter(root, filteredButtons), false)
-  assert.equal(clickCount, 1)
-})
-
-test('daily improvement filter waits for KC3 to render filterable equipment', () => {
-  let clickCount = 0
-  const root = {
-    querySelector: (selector) =>
-      selector.includes('disabled_toggle')
-        ? { click: () => clickCount++ }
-        : { querySelector: () => null },
-  }
-
-  assert.equal(applyDefaultDailyImprovementFilter(root), false)
-  assert.equal(clickCount, 0)
-})
-
 test('daily improvement category filter combines with KC3 row visibility classes', () => {
   const createEquipment = (type) => {
     const classes = new Set(['equipment', 'disabled'])
@@ -3098,9 +3069,8 @@ test('daily improvement category filter ignores rows without a numeric KC3 icon 
   assert.equal(getDailyImprovementEquipmentType(equipment), null)
 })
 
-test('daily improvement categories only include rows KC3 marks as improvable', () => {
-  const createEquipment = (type, unavailable = false) => ({
-    matches: () => unavailable,
+test('daily improvement categories include every category in the complete KC3 list', () => {
+  const createEquipment = (type) => ({
     querySelector: (selector) =>
       selector === '.eq_name'
         ? { dataset: { item_type3: type }, textContent: `Equipment ${type}` }
@@ -3108,13 +3078,16 @@ test('daily improvement categories only include rows KC3 marks as improvable', (
   })
   const categories = collectDailyImprovementCategories([
     createEquipment('1'),
-    createEquipment('5', true),
+    createEquipment('5'),
     createEquipment('1'),
-    createEquipment('8', true),
+    createEquipment('8'),
   ])
 
-  assert.equal(isDailyImprovementEquipmentAvailable(createEquipment('5', true)), false)
-  assert.deepEqual(categories, [{ type: '1', name: 'Equipment 1', icon: '/items/1.png', count: 2 }])
+  assert.deepEqual(categories, [
+    { type: '1', name: 'Equipment 1', icon: '/items/1.png', count: 2 },
+    { type: '5', name: 'Equipment 5', icon: '/items/5.png', count: 1 },
+    { type: '8', name: 'Equipment 8', icon: '/items/8.png', count: 1 },
+  ])
 })
 
 test('fleet strategy facts keep advisory air power visible in every language', () => {

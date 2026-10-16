@@ -5,7 +5,7 @@ import {
 import { injectBrowserAction } from 'electron-chrome-extensions/browser-action'
 import { injectIpc } from './preload-ipc.js'
 import { ipcRenderer } from 'electron'
-import { injectDefaultDailyImprovementFilter } from './browser/recommendation/daily-improvement-ui.js'
+import { injectDailyImprovementCategoryFilter } from './browser/recommendation/daily-improvement-ui.js'
 import { injectExpeditionGoalPlanner } from './browser/recommendation/expedition-goal-ui.js'
 import { injectMasterShipMaterialTooltips } from './browser/recommendation/master-ship-material-tooltip-ui.js'
 import { injectFleetRecommender } from './browser/recommendation/strategy-room-ui.js'
@@ -63,7 +63,7 @@ if (
       injectShipRecommendations(invoke)
       injectStrategyRoomRecentTabs()
       injectSortieBattleRanks()
-      injectDefaultDailyImprovementFilter()
+      injectDailyImprovementCategoryFilter()
       injectMasterShipMaterialTooltips({ reportDiagnostic: reportMasterShipTooltipDiagnostic })
     }, 0)
   }

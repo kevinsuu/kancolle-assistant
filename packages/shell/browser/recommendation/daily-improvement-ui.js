@@ -1,9 +1,3 @@
-const FILTERED_EQUIPMENT_SELECTOR = [
-  '.equipment.disabled',
-  '.equipment.equipped',
-  '.equipment.insufficient',
-].join(',')
-
 const CATEGORY_FILTER_ID = 'kca-daily-improvement-category-filter'
 const CATEGORY_FILTER_STYLE_ID = 'kca-daily-improvement-category-filter-styles'
 const CATEGORY_HIDDEN_CLASS = 'kca-equipment-category-hidden'
@@ -115,13 +109,9 @@ export const applyDailyImprovementCategoryFilter = (equipmentRows, activeType) =
   })
 }
 
-export const isDailyImprovementEquipmentAvailable = (equipment) =>
-  !equipment.matches?.(FILTERED_EQUIPMENT_SELECTOR)
-
 export const collectDailyImprovementCategories = (equipmentRows) => {
   const categories = new Map()
   Array.from(equipmentRows).forEach((equipment) => {
-    if (!isDailyImprovementEquipmentAvailable(equipment)) return
     const type = getDailyImprovementEquipmentType(equipment)
     if (type === null) return
     const name = equipment.querySelector('.eq_name')?.textContent?.trim() || `#${type}`
@@ -240,41 +230,23 @@ export const mountDailyImprovementCategoryFilter = (root = document) => {
   return true
 }
 
-export const applyDefaultDailyImprovementFilter = (
-  root = document,
-  filteredButtons = new WeakSet(),
-) => {
-  const button = root.querySelector('.tab_akashi #disabled_toggle')
-  const equipmentList = root.querySelector('.tab_akashi .equipment_list')
-  if (
-    !button ||
-    !equipmentList?.querySelector(FILTERED_EQUIPMENT_SELECTOR) ||
-    filteredButtons.has(button)
-  ) {
-    return false
-  }
-
-  filteredButtons.add(button)
-  button.click()
-  return true
-}
-
-export const injectDefaultDailyImprovementFilter = () => {
+export const injectDailyImprovementCategoryFilter = () => {
   const content = document.querySelector('#contentHtml')
   if (!content) return
 
-  const filteredButtons = new WeakSet()
   let scheduled = false
-  const scheduleFilter = () => {
+  const scheduleCategoryFilter = () => {
     if (scheduled) return
     scheduled = true
     window.setTimeout(() => {
       scheduled = false
-      applyDefaultDailyImprovementFilter(content, filteredButtons)
       mountDailyImprovementCategoryFilter(content.ownerDocument)
     }, 0)
   }
 
-  new MutationObserver(scheduleFilter).observe(content, { childList: true, subtree: true })
-  scheduleFilter()
+  new MutationObserver(scheduleCategoryFilter).observe(content, {
+    childList: true,
+    subtree: true,
+  })
+  scheduleCategoryFilter()
 }

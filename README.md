@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.2.1`    | `2026-10-07`   |
+| `v1.2.2`    | `2026-10-16`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,11 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.2.2 highlights (since v1.2.1)
+
+- KC3's Daily Improvements page now shows the full list for the selected day by default, and the
+  category filter includes equipment that is unavailable to the current account.
 
 ### v1.2.1 highlights (since v1.2.0)
 
@@ -46,10 +51,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - Settings now displays the application version from Electron metadata in a fixed lower-right
   badge.
 
-### v1.0.33 highlights (since v1.0.32)
-
-- KC3's Natsuiro KanColle panel now reserves eight accepted-quest rows. The panel, bottom status module, and background grow by exactly one row while unused DevTools space remains visible.
-
 ### Project-specific highlights
 
 Compared with the original project, this source adds or improves:
@@ -63,7 +64,7 @@ Compared with the original project, this source adds or improves:
 7. **[Resource Center and ledger summary](./docs/resource-ledger-summary.md)** — The new KC3 Strategy Room **資源中心** dashboard shows current resources, gains, consumption, net change, hourly activity (daily totals for the last 5 days), source breakdowns, and consumables for today, yesterday, the last 24 hours, or the last 5 days, with inventory trend curves.
 8. **[KC3 DevTools integration](./docs/kc3-devtools.md)** — The KC3 `KanColle` panel is moved forward and selected when game DevTools opens, reducing repeated manual navigation.
 9. **[Strategy Room pinned links](./docs/strategy-room-recent-tabs.md)** — Pin any available Strategy Room tabs in `常用連結` with no fixed count limit; new pins appear first, existing links are retained, and ordinary navigation keeps their order unchanged.
-10. **[Daily improvement filters](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page applies KC3's own improvable-equipment filter once by default and adds a horizontal filter containing only the equipment types currently available for improvement, while leaving the native toggle available for the complete list.
+10. **[Daily improvement filters](./docs/daily-improvement-filter.md)** — KC3's Daily Improvements page shows the full daily list by default and adds a horizontal filter containing every equipment type listed for that day; KC3's native toggle remains available to hide unavailable equipment.
 11. **[Master Ship remodel materials](./docs/master-ship-remodel-materials.md)** — Master Ship remodel tooltips list every special material with its icon, localized name, and required quantity.
 
 These added Strategy Room interfaces follow KC3's selected language and support English,
@@ -236,8 +237,8 @@ Map Recommendations suggests account-owned fleets and equipment for normal maps:
 - [x] Weighted expedition recommendations with fleet assignments
 - [x] KC3 resource-ledger summaries for fixed recent periods
 - [x] Pinned KC3 Strategy Room quick links with no fixed count limit and stable ordering
-- [x] KC3 Daily Improvements opens with the improvable-equipment filter enabled and offers a
-      filter containing only currently improvable equipment types
+- [x] KC3 Daily Improvements opens with the full daily list and offers a filter containing every
+      equipment type listed for that day
 - [x] Master Ship remodel requirements display every special material's icon, localized name, and quantity
 
 ### 🤞 Eventually
