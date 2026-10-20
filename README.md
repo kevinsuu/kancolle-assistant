@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.3.0`    | `2026-10-20`   |
+| `v1.3.1`    | `2026-10-20`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.3.1 highlights (since v1.3.0)
+
+- Refreshes automated view snapshots for the Strategy Room quest recommendation page.
 
 ### v1.3.0 highlights (since v1.2.2)
 
@@ -40,12 +44,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.2.0 highlights (since v1.1.0)
 
 - Normal-map sortie logs show recorded victory ranks on every battle node, including bosses, so quest victory requirements can be checked without expanding battle details.
-
-### v1.1.0 highlights (since v1.0.34)
-
-- Resource Center adds a Last 5 days view with daily activity totals and hourly inventory trends.
-- Game auto-fit now rechecks after returning to the game tab and tab layout changes, and waits for
-  a visible viewport before fitting.
 
 ### Project-specific highlights
 
