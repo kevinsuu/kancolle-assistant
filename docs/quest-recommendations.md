@@ -154,15 +154,18 @@ sortie scope. A reward, type, or chapter filter that removes a member shows the 
 individual cards, so the page never claims a partial group is still a shared-action plan.
 
 The default display order is nearest deadline first. The selector can instead order by farthest
-deadline, recommendation from high to low, or fewest quest steps; recommendation is the third
-option. Recommendation sorting follows the displayed tiers from Highest priority through
-Unavailable now, with nearest deadline as its tie-breaker. For a suggested combination, its best
-member determines the group's position under the selected mode, and its members follow that same
-order. Undated one-time and time-limited quests stay after dated repeatable quests in both deadline
-orders. A time-limited quest with a repeatable reset may show that reset, but still warns that its
-final event end is unknown. Step sorting treats a matching current reward as zero steps and
-otherwise uses the shortest displayed unlock distance to a matching successor; ties use the nearest
-deadline. These controls only
+deadline, recommendation from high to low, fewest quest steps, or map difficulty from easy to hard;
+recommendation is the third option. Map difficulty sorts by the number of distinct recognized map
+IDs first, then by chapter and map number from low to high. Sorties without a recognized map ID come
+after sorties with known map requirements. Non-sortie quests remain above sorties. Recommendation
+sorting follows the displayed tiers from Highest priority through
+Unavailable now, with nearest deadline as its tie-breaker. Suggested combinations use the best
+member's recommendation tier, nearest or farthest member deadline, fewest member steps, or the
+union of member map IDs for the selected sort; their members follow that same order. Undated one-time
+and time-limited quests stay after dated repeatable quests in both deadline orders. A time-limited
+quest with a repeatable reset may show that reset, but still warns that its final event end is
+unknown. Step sorting treats a matching current reward as zero steps and otherwise uses the shortest
+displayed unlock distance to a matching successor; ties use the nearest deadline. These controls only
 reorder the synchronized result in the renderer and do not trigger another KC3 read.
 
 The page saves the selected quest types, chapters, reward filters, and sort order in the Strategy

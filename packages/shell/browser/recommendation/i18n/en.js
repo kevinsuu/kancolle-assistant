@@ -91,6 +91,7 @@ export const en = {
   'quest.sort.deadlineAsc': 'Deadline near → far',
   'quest.sort.deadlineDesc': 'Deadline far → near',
   'quest.sort.stepsAsc': 'Quest steps few → many',
+  'quest.sort.difficultyAsc': 'Map difficulty easy → hard',
   'quest.weightSummary':
     'Valuable repeatable > valuable one-time > ordinary repeatable > ordinary one-time · includes locked successor value',
   'quest.preparing': 'Preparing KC3 quest data…',

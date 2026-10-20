@@ -90,6 +90,7 @@ export const tcn = {
   'quest.sort.deadlineAsc': '期限近 → 遠',
   'quest.sort.deadlineDesc': '期限遠 → 近',
   'quest.sort.stepsAsc': '任務步數少 → 多',
+  'quest.sort.difficultyAsc': '關卡難度 簡單 → 困難',
   'quest.weightSummary':
     '好獎勵重複任務 ＞ 好獎勵單次任務 ＞ 普通重複任務 ＞ 普通單次任務・包含未開放後續價值',
   'quest.preparing': '準備 KC3 任務資料…',

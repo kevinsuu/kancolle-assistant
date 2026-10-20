@@ -90,6 +90,7 @@ export const scn = {
   'quest.sort.deadlineAsc': '期限近 → 远',
   'quest.sort.deadlineDesc': '期限远 → 近',
   'quest.sort.stepsAsc': '任务步数少 → 多',
+  'quest.sort.difficultyAsc': '关卡难度 简单 → 困难',
   'quest.weightSummary':
     '好奖励重复任务 ＞ 好奖励单次任务 ＞ 普通重复任务 ＞ 普通单次任务・包含未开放后续价值',
   'quest.preparing': '准备 KC3 任务数据…',

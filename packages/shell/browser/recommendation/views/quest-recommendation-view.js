@@ -298,6 +298,7 @@ export const panelMarkup = (t) => `
           <option value="deadlineDesc">${t('quest.sort.deadlineDesc')}</option>
           <option value="priorityDesc">${t('quest.sort.priorityDesc')}</option>
           <option value="stepsAsc">${t('quest.sort.stepsAsc')}</option>
+          <option value="difficultyAsc">${t('quest.sort.difficultyAsc')}</option>
         </select>
         <span class="dqr-visible-count" aria-live="polite"></span>
       </label>

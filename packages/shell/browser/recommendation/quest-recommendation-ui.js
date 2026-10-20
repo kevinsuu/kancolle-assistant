@@ -174,7 +174,13 @@ export const questTypeFor = (quest) =>
           .toUpperCase()
       ] || 'other'
 
-export const QUEST_SORT_MODES = ['deadlineAsc', 'deadlineDesc', 'priorityDesc', 'stepsAsc']
+export const QUEST_SORT_MODES = [
+  'deadlineAsc',
+  'deadlineDesc',
+  'priorityDesc',
+  'stepsAsc',
+  'difficultyAsc',
+]
 export const QUEST_MAP_CHAPTER_KEYS = QUEST_CHAPTER_KEYS.filter((chapterKey) =>
   /^world[1-7]$/.test(chapterKey),
 )
@@ -427,6 +433,48 @@ const questMatchesChapterFilters = (quest, chapters) => {
   return chapterKeys.length === 0 || chapterKeys.some((chapterKey) => chapters.has(chapterKey))
 }
 
+const mapIdNumbers = (mapId) => {
+  const normalized = String(mapId ?? '')
+    .trim()
+    .replace(/[０-９]/g, (digit) => String(digit.charCodeAt(0) - 0xff10))
+    .replace(/[－–—−]/g, '-')
+  if (!/^[1-7](?:-\d+){1,2}$/.test(normalized)) return null
+  const numbers = normalized.split('-').map(Number)
+  return numbers.every(Number.isInteger) ? numbers : null
+}
+
+const compareMapIdNumbers = (left, right) => {
+  const sharedLength = Math.min(left.length, right.length)
+  for (let index = 0; index < sharedLength; index += 1) {
+    if (left[index] !== right[index]) return left[index] - right[index]
+  }
+  return left.length - right.length
+}
+
+const mapDifficultyIds = (quests) => {
+  const maps = new Map()
+  ;(quests || []).forEach((quest) => {
+    ;(Array.isArray(quest?.mapIds) ? quest.mapIds : []).forEach((mapId) => {
+      const numbers = mapIdNumbers(mapId)
+      if (numbers) maps.set(numbers.join('-'), numbers)
+    })
+  })
+  return [...maps.values()].sort(compareMapIdNumbers)
+}
+
+const compareMapDifficulty = (leftQuests, rightQuests) => {
+  const leftMaps = mapDifficultyIds(leftQuests)
+  const rightMaps = mapDifficultyIds(rightQuests)
+  if (leftMaps.length === 0 && rightMaps.length > 0) return 1
+  if (rightMaps.length === 0 && leftMaps.length > 0) return -1
+  if (leftMaps.length !== rightMaps.length) return leftMaps.length - rightMaps.length
+  for (let index = 0; index < leftMaps.length; index += 1) {
+    const comparison = compareMapIdNumbers(leftMaps[index], rightMaps[index])
+    if (comparison !== 0) return comparison
+  }
+  return 0
+}
+
 const normalizeScopedGroup = (group, quests, mapScope, preserveCombination) => {
   const isCombined =
     preserveCombination && group.kind === 'combined' && group.synergy && quests.length > 1
@@ -510,6 +558,8 @@ const compareQuests = (left, right, sortMode, rewardFilters) => {
     if (comparison === 0) {
       comparison = compareDeadline({ quests: [left] }, { quests: [right] })
     }
+  } else if (sortMode === 'difficultyAsc') {
+    comparison = compareMapDifficulty([left], [right])
   } else {
     comparison = compareDeadline(
       { quests: [left] },
@@ -579,6 +629,8 @@ export const filterAndSortQuestRecommendationGroups = (
       comparison = leftSteps - rightSteps
       if (!Number.isFinite(comparison)) comparison = 0
       if (comparison === 0) comparison = compareDeadline(left, right)
+    } else if (normalizedSortMode === 'difficultyAsc') {
+      comparison = compareMapDifficulty(left.quests, right.quests)
     } else {
       comparison = compareDeadline(
         left,
@@ -621,6 +673,21 @@ export const logQuestTypeFilterChange = (viewState, filtered, logger = globalThi
     selectedTypeCount: selectedTypes.length,
     visibleQuestCount,
     groupCount: filtered?.groups?.length || 0,
+    outcome: visibleQuestCount > 0 ? 'shown' : 'empty',
+    reasonCode: visibleQuestCount > 0 ? null : 'NO_VISIBLE_QUESTS',
+  }
+  logger?.[visibleQuestCount > 0 ? 'info' : 'warn']?.(FILTER_LOG_PREFIX, details)
+  return details
+}
+
+export const logQuestSortChange = (sortMode, filtered, durationMs, logger = globalThis.console) => {
+  const visibleQuestCount = Number(filtered?.visibleQuestCount || 0)
+  const details = {
+    event: 'quest-recommendation-sort-change',
+    sortMode: QUEST_SORT_MODES.includes(sortMode) ? sortMode : 'deadlineAsc',
+    visibleQuestCount,
+    groupCount: filtered?.groups?.length || 0,
+    durationMs: Math.max(0, Number(durationMs) || 0),
     outcome: visibleQuestCount > 0 ? 'shown' : 'empty',
     reasonCode: visibleQuestCount > 0 ? null : 'NO_VISIBLE_QUESTS',
   }
@@ -1438,11 +1505,15 @@ const mountPanel = (invoke) => {
   })
 
   sortSelect.addEventListener('change', () => {
+    const startedAt = Date.now()
     viewState.sortMode = QUEST_SORT_MODES.includes(sortSelect.value)
       ? sortSelect.value
       : 'deadlineAsc'
     persistViewState()
-    if (currentResult) renderCurrent()
+    if (currentResult) {
+      renderCurrent()
+      logQuestSortChange(viewState.sortMode, currentView, Date.now() - startedAt)
+    }
   })
   syncControls()
 

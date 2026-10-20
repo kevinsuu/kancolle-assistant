@@ -93,6 +93,7 @@ export const jp = {
   'quest.sort.deadlineAsc': '期限が近い → 遠い',
   'quest.sort.deadlineDesc': '期限が遠い → 近い',
   'quest.sort.stepsAsc': '任務段階が少ない → 多い',
+  'quest.sort.difficultyAsc': '海域難易度 易しい → 難しい',
   'quest.weightSummary':
     '高価値の周期 ＞ 高価値の単発 ＞ 通常の周期 ＞ 通常の単発・未開放後続の価値を含む',
   'quest.preparing': 'KC3任務データを準備中…',
