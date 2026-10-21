@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.3.2`    | `2026-10-21`   |
+| `v1.3.3`    | `2026-10-21`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.3.3 highlights (since v1.3.2)
+
+- Prevents Windows CI GPU process crashes from blocking extension tests.
 
 ### v1.3.2 highlights (since v1.3.1)
 
@@ -40,10 +44,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 - KC3's Daily Improvements page now shows the full list for the selected day by default, and the
   category filter includes equipment that is unavailable to the current account.
-
-### v1.2.1 highlights (since v1.2.0)
-
-- Fixes KC3 sidebar width measurement during delayed theme loading, keeping the initial width until a visible theme is ready and then completing window and game auto-fit.
 
 ### Project-specific highlights
 

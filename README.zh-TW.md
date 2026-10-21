@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.3.2`     | `2026-10-21`    |
+| `v1.3.3`     | `2026-10-21`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,10 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.3.3 更新重點（相較 v1.3.2）
+
+- 修正 Windows CI 的 GPU 程序崩潰，避免擴充功能測試因此中斷。
 
 ### v1.3.2 更新重點（相較 v1.3.1）
 
@@ -37,10 +41,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 ### v1.2.2 更新重點（相較 v1.2.1）
 
 - KC3 每日改修頁面預設顯示當日完整清單，類別篩選也涵蓋目前帳號不可改修的裝備。
-
-### v1.2.1 更新重點（相較 v1.2.0）
-
-- 修正 KC3 主題延遲載入時的側欄寬度誤判；主題可見前保留初始寬度，載入後再完成視窗與遊戲畫面自動配適。
 
 ### 本專案功能重點
 

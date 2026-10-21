@@ -91,7 +91,9 @@ workflow:
 
 1. verifies that the tag matches `packages/shell/package.json` and all four README files;
 2. installs the locked Yarn dependencies and checks out the KCCacheProxy submodule;
-3. builds the workspace dependencies and runs the recommendation and extension test suites;
+3. builds the workspace dependencies and runs the recommendation and extension test suites. The
+   Electron extension test runner disables hardware acceleration because hosted Windows runners
+   can fail to initialize the GPU process;
 4. uses Electron Forge to create the x64 Windows installer and portable ZIP;
 5. creates a GitHub Release whose categorized notes compare this tag with the previous release,
    then uploads the installer, ZIP, full Squirrel package, and `RELEASES` manifest.

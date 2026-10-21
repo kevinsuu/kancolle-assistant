@@ -101,7 +101,7 @@ export const useExtensionBrowser = (opts: {
   })
 
   afterEach(() => {
-    if (!w.isDestroyed()) {
+    if (w && !w.isDestroyed()) {
       if (w.webContents.isDevToolsOpened()) {
         w.webContents.closeDevTools()
       }

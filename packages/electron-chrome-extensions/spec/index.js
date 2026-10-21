@@ -38,6 +38,9 @@ process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true'
 
 const { app, protocol } = require('electron')
 
+// Hosted Windows runners can fail to initialize the GPU process during extension tests.
+app.disableHardwareAcceleration()
+
 v8.setFlagsFromString('--expose_gc')
 app.commandLine.appendSwitch('js-flags', '--expose_gc')
 app.commandLine.appendSwitch('enable-features', 'ElectronSerialChooser')
