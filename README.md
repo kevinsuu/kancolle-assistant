@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.3.1`    | `2026-10-20`   |
+| `v1.3.2`    | `2026-10-21`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -23,6 +23,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.3.2 highlights (since v1.3.1)
+
+- Includes dock-repair fuel and steel costs in Resource Center ledger totals.
 
 ### v1.3.1 highlights (since v1.3.0)
 
@@ -40,10 +44,6 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.2.1 highlights (since v1.2.0)
 
 - Fixes KC3 sidebar width measurement during delayed theme loading, keeping the initial width until a visible theme is ready and then completing window and game auto-fit.
-
-### v1.2.0 highlights (since v1.1.0)
-
-- Normal-map sortie logs show recorded victory ranks on every battle node, including bosses, so quest victory requirements can be checked without expanding battle details.
 
 ### Project-specific highlights
 

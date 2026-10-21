@@ -13,7 +13,7 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 
 | 應用程式版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.3.1`     | `2026-10-20`    |
+| `v1.3.2`     | `2026-10-21`    |
 
 - **下載版本：** 安裝程式與可攜式壓縮檔可從
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下載。
@@ -21,6 +21,10 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
   會保存每個 tag 之間自動產生的更新內容。
 - **目前累積能力：** [功能狀態](#功能狀態)分別列出目前支援、未來可能加入與不在規劃內的項目。
 - **功能技術細節：** 下方專案功能重點會連結至對應文件。
+
+### v1.3.2 更新重點（相較 v1.3.1）
+
+- 資源中心現在會將入渠修船消耗的燃料與鋼材計入收支。
 
 ### v1.3.1 更新重點（相較 v1.3.0）
 
@@ -37,10 +41,6 @@ Damecon 原專案以 Samuel Maddock 的 [electron-browser-shell](https://github.
 ### v1.2.1 更新重點（相較 v1.2.0）
 
 - 修正 KC3 主題延遲載入時的側欄寬度誤判；主題可見前保留初始寬度，載入後再完成視窗與遊戲畫面自動配適。
-
-### v1.2.0 更新重點（相較 v1.1.0）
-
-- 通常海域出擊紀錄在各戰鬥節點（含王點）顯示已記錄的結算等級，不必展開詳情即可核對任務勝利要求。
 
 ### 本專案功能重點
 

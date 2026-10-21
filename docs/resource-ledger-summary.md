@@ -1,7 +1,7 @@
 # Resource Center and Ledger Summary
 
 The integration keeps KC3Kai's existing **Resource History**, **Consumables**, and **Resources
-Ledger** pages intact. It adds two read-only views without modifying the downloaded KC3 extension:
+Ledger** pages intact. It adds two read-only views:
 
 - **Resource Center** is a dedicated Strategy Room dashboard placed before Resource History. It
   combines current holdings, separated acquisition and consumption, hourly activity,
@@ -78,10 +78,17 @@ Their **Refresh** buttons bypass this short cache and re-read the current accoun
 locally synchronized holdings. The displayed values can still only be as current as the latest game
 API update that KC3 has received and saved.
 
-The summary is only as complete as the KC3 ledger. Activity performed while KC3 was not recording,
-or an API action KC3 does not classify, cannot be recovered by KanColle Assistant. Current holdings
-come from `PlayerManager.hq.lastMaterial` and `PlayerManager.consumables` after KC3's local
-consumable state is loaded.
+Apart from the dock-repair supplement below, the summary is only as complete as the KC3 ledger.
+Activity performed while KC3 was not recording, or an API action KC3 does not classify, cannot be
+recovered by KanColle Assistant. Current holdings come from `PlayerManager.hq.lastMaterial` and
+`PlayerManager.consumables` after KC3's local consumable state is loaded.
+
+Before loading KC3, the app applies an idempotent patch to its local `Kcsapi.js` module so successful
+dock repairs also write their fuel and steel costs to `navaloverall`. KC3 already records the bucket
+used for instant repairs, so the added entry contains only fuel and steel. The patch is applied again
+after KC3 updates. Repairs made before the patch was applied cannot be reconstructed from hourly
+inventory snapshots; if a future KC3 update changes the repair handler, the app leaves KC3 loadable
+and logs that the patch was skipped or failed.
 
 ## Electron boundary
 

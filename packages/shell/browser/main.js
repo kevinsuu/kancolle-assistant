@@ -1,6 +1,7 @@
 import { registerAppShutdown } from './services/app-shutdown'
 import { installExtensionWindowResolver } from './services/extension-window-routing'
 import { applyProxySettings, readProxyDestination } from './services/proxy-settings'
+import { applyKC3ResourceLedgerPatch } from './services/kc3-resource-ledger-patch'
 import { isKc3StrategyRoomUrl, openManagedKc3StrategyRoom } from './services/strategy-room-routing'
 import path from 'path'
 import fsSync, { utimesSync } from 'fs'
@@ -2146,6 +2147,34 @@ class Browser extends EventEmitter {
 
     const kc3SrcPath = path.join(kc3Path, 'src')
     if (fsSync.existsSync(kc3SrcPath)) kc3Path = kc3SrcPath
+
+    const resourceLedgerPatchStartedAt = Date.now()
+    const resourceLedgerPatch = applyKC3ResourceLedgerPatch(kc3Path)
+    const resourceLedgerPatchDiagnostics = {
+      outcome: resourceLedgerPatch.outcome,
+      reasonCodes: resourceLedgerPatch.reason ? [resourceLedgerPatch.reason] : [],
+      elapsedMs: Date.now() - resourceLedgerPatchStartedAt,
+    }
+    if (resourceLedgerPatch.error) {
+      resourceLedgerPatchDiagnostics.message = String(
+        resourceLedgerPatch.error?.message || resourceLedgerPatch.error,
+      )
+        .replace(/\s+/g, ' ')
+        .replace(homePath, '~')
+        .slice(0, 160)
+    }
+    if (
+      resourceLedgerPatch.outcome === 'applied' ||
+      resourceLedgerPatch.outcome === 'already-applied'
+    ) {
+      kccp.logger.log(logSource, 'resource-ledger.kc3-repair-patch', resourceLedgerPatchDiagnostics)
+    } else {
+      kccp.logger.error(
+        logSource,
+        'Unable to apply KC3 dock-repair resource ledger patch.',
+        resourceLedgerPatchDiagnostics,
+      )
+    }
 
     let kc3
     try {
