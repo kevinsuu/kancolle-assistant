@@ -93,8 +93,9 @@ workflow:
 2. installs the locked Yarn dependencies and checks out the KCCacheProxy submodule;
 3. builds the workspace dependencies and runs the recommendation and extension test suites. The
    Electron extension test runner disables hardware acceleration and, on Windows, launches Electron
-   with `--disable-gpu --disable-gpu-sandbox` because hosted Windows runners can crash the
-   sandboxed GPU process and abort the whole test run;
+   with `--disable-gpu --disable-gpu-sandbox --disable-gpu-compositing --in-process-gpu` so
+   Chromium uses software rendering without a separate GPU process, because hosted Windows runners
+   crash that process and leave pages unable to load;
 4. uses Electron Forge to create the x64 Windows installer and portable ZIP;
 5. creates a GitHub Release whose categorized notes compare this tag with the previous release,
    then uploads the installer, ZIP, full Squirrel package, and `RELEASES` manifest.
