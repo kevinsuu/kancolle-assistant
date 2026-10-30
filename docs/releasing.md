@@ -86,7 +86,9 @@ variable `RELEASE_BRANCH` to that branch name. When it is absent, the release wo
 
 ## Automated Windows release
 
-Pushing a matching `v*` tag starts `.github/workflows/release.yml` on a Windows runner. The
+Pushing a matching `v*` tag starts `.github/workflows/release.yml` on a `windows-2022` runner. The
+runner is pinned because the Electron 25 extension tests stopped loading pages on the newer
+`windows-latest` image; change the pin only after the extension tests pass on the new image. The
 workflow:
 
 1. verifies that the tag matches `packages/shell/package.json` and all four README files;
