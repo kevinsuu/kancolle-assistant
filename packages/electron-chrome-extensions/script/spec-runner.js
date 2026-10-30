@@ -66,6 +66,13 @@ async function runMainProcessElectronTests() {
     runnerArgs.push('--no-sandbox')
   }
 
+  // Hosted Windows runners can crash the sandboxed GPU process with an access violation even when
+  // hardware acceleration is disabled, which aborts Electron with "GPU process isn't usable".
+  if (process.platform === 'win32') {
+    runnerArgs.push('--disable-gpu', '--disable-gpu-sandbox')
+  }
+  console.info(`Electron spec switches: ${runnerArgs.slice(1).join(' ') || '(none)'}`)
+
   const { status, signal } = childProcess.spawnSync(exe, runnerArgs, {
     cwd: path.resolve(__dirname, '..'),
     env,
