@@ -13,7 +13,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.4.1`    | `2026-10-30`   |
+| `v1.4.2`    | `2026-10-30`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -24,11 +24,7 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
 
-### v1.4.1 highlights (since v1.4.0)
-
-- Fixes the Windows CI extension tests that blocked the v1.4.0 release build.
-
-### v1.4.0 highlights (since v1.3.3)
+### v1.4.2 highlights (since v1.3.3)
 
 - Quest recommendations show guaranteed ranking-point (戦果) rewards as a badge and can sort quests by ranking points from high to low.
 
@@ -43,6 +39,10 @@ The original Damecon project is built on Samuel Maddock's [electron-browser-shel
 ### v1.3.1 highlights (since v1.3.0)
 
 - Refreshes automated view snapshots for the Strategy Room quest recommendation page.
+
+### v1.3.0 highlights (since v1.2.2)
+
+- Quest recommendations add easy-to-hard sorting by required map count and chapter/map order.
 
 ### Project-specific highlights
 

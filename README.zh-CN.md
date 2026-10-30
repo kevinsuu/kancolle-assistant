@@ -13,7 +13,7 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 
 | 应用程序版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.4.1`     | `2026-10-30`    |
+| `v1.4.2`     | `2026-10-30`    |
 
 - **下载版本：** 安装程序和便携式压缩包可从
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下载。
@@ -22,11 +22,7 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 - **当前累积能力：** [功能状态](#功能状态)分别列出当前支持、将来可能加入和不在计划内的项目。
 - **功能技术细节：** 下方项目功能重点会链接至对应文档。
 
-### v1.4.1 更新重点（相较 v1.4.0）
-
-- 修复导致 v1.4.0 发布构建失败的 Windows CI 扩展测试问题。
-
-### v1.4.0 更新重点（相较 v1.3.3）
+### v1.4.2 更新重点（相较 v1.3.3）
 
 - 任务推荐以标签显示必定获得的战果奖励，并可按战果由多至少排序。
 
@@ -41,6 +37,10 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 ### v1.3.1 更新重点（相较 v1.3.0）
 
 - 更新战略室任务推荐页面的多语言界面测试快照。
+
+### v1.3.0 更新重点（相较 v1.2.2）
+
+- 任务推荐新增由简至难排序，按所需海域数及章节／海域编号排列。
 
 ### 本项目功能重点
 
