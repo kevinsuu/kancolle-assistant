@@ -120,10 +120,12 @@ export const styles = `
   .dqr-resource-reward.ammo { --dqr-resource-color: #8b6b42; --dqr-resource-bg: #8b6b4214; }
   .dqr-resource-reward.steel { --dqr-resource-color: #6f8795; --dqr-resource-bg: #6f879514; }
   .dqr-resource-reward.bauxite { --dqr-resource-color: #c47e37; --dqr-resource-bg: #c47e3714; }
+  .dqr-resource-reward.rankingPoints { --dqr-resource-color: #5f6b73; --dqr-resource-bg: #fff; }
   body.dark .dqr-resource-reward.fuel { --dqr-resource-color: #70cf95; --dqr-resource-bg: #70cf9518; }
   body.dark .dqr-resource-reward.ammo { --dqr-resource-color: #d0a878; --dqr-resource-bg: #d0a87818; }
   body.dark .dqr-resource-reward.steel { --dqr-resource-color: #a3bac6; --dqr-resource-bg: #a3bac618; }
   body.dark .dqr-resource-reward.bauxite { --dqr-resource-color: #e3a25f; --dqr-resource-bg: #e3a25f18; }
+  body.dark .dqr-resource-reward.rankingPoints { --dqr-resource-color: #f2f2f2; --dqr-resource-bg: #ffffff18; }
   .dqr-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; }
   .dqr-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 1px 7px; border-radius: 11px; }
   .dqr-tag.period { background: #1675c1; color: #fff; }
@@ -299,6 +301,7 @@ export const panelMarkup = (t) => `
           <option value="priorityDesc">${t('quest.sort.priorityDesc')}</option>
           <option value="stepsAsc">${t('quest.sort.stepsAsc')}</option>
           <option value="difficultyAsc">${t('quest.sort.difficultyAsc')}</option>
+          <option value="rankingPointsDesc">${t('quest.sort.rankingPointsDesc')}</option>
         </select>
         <span class="dqr-visible-count" aria-live="polite"></span>
       </label>

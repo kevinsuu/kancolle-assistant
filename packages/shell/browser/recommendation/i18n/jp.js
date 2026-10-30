@@ -94,6 +94,7 @@ export const jp = {
   'quest.sort.deadlineDesc': '期限が遠い → 近い',
   'quest.sort.stepsAsc': '任務段階が少ない → 多い',
   'quest.sort.difficultyAsc': '海域難易度 易しい → 難しい',
+  'quest.sort.rankingPointsDesc': '戦果 多い → 少ない',
   'quest.weightSummary':
     '高価値の周期 ＞ 高価値の単発 ＞ 通常の周期 ＞ 通常の単発・未開放後続の価値を含む',
   'quest.preparing': 'KC3任務データを準備中…',
@@ -152,6 +153,7 @@ export const jp = {
   'quest.reward.blueprint': '改装設計図',
   'quest.reward.medal': '勲章',
   'quest.reward.actionReport': '戦闘詳報',
+  'quest.reward.rankingPoints': '戦果',
   'quest.reward.screws': '改修資材 ×{count}',
   'quest.reward.screwsGeneric': '改修資材',
   'quest.reward.developmentMaterials': '開発資材 ×{count}',

@@ -91,6 +91,7 @@ export const scn = {
   'quest.sort.deadlineDesc': '期限远 → 近',
   'quest.sort.stepsAsc': '任务步数少 → 多',
   'quest.sort.difficultyAsc': '关卡难度 简单 → 困难',
+  'quest.sort.rankingPointsDesc': '战果 多 → 少',
   'quest.weightSummary':
     '好奖励重复任务 ＞ 好奖励单次任务 ＞ 普通重复任务 ＞ 普通单次任务・包含未开放后续价值',
   'quest.preparing': '准备 KC3 任务数据…',
@@ -145,6 +146,7 @@ export const scn = {
   'quest.reward.blueprint': '改装设计图',
   'quest.reward.medal': '勋章',
   'quest.reward.actionReport': '战斗详报',
+  'quest.reward.rankingPoints': '战果',
   'quest.reward.screws': '改修资材 ×{count}',
   'quest.reward.screwsGeneric': '改修资材',
   'quest.reward.developmentMaterials': '开发资材 ×{count}',

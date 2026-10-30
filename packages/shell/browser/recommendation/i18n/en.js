@@ -92,6 +92,7 @@ export const en = {
   'quest.sort.deadlineDesc': 'Deadline far → near',
   'quest.sort.stepsAsc': 'Quest steps few → many',
   'quest.sort.difficultyAsc': 'Map difficulty easy → hard',
+  'quest.sort.rankingPointsDesc': 'Ranking points high → low',
   'quest.weightSummary':
     'Valuable repeatable > valuable one-time > ordinary repeatable > ordinary one-time · includes locked successor value',
   'quest.preparing': 'Preparing KC3 quest data…',
@@ -151,6 +152,7 @@ export const en = {
   'quest.reward.blueprint': 'Blueprint',
   'quest.reward.medal': 'Medal',
   'quest.reward.actionReport': 'Action Report',
+  'quest.reward.rankingPoints': 'Ranking',
   'quest.reward.screws': 'Improvement Materials ×{count}',
   'quest.reward.screwsGeneric': 'Improvement Materials',
   'quest.reward.developmentMaterials': 'Development Materials ×{count}',

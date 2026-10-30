@@ -53,12 +53,24 @@ const resourceRewardItems = (quest) =>
     })
     .filter(Boolean)
 
+const rankingPointRewardMarkup = (quest) => {
+  const count = Math.trunc(Number(quest?.rewardRankingPoints))
+  if (!Number.isFinite(count) || count <= 0) return ''
+  const label = `${t('quest.reward.rankingPoints')}: ${formatLocalizedNumber(count, locale)}`
+  return `<span class="dqr-resource-reward rankingPoints" title="${escapeHtml(
+    label,
+  )}" aria-label="${escapeHtml(label)}"><span aria-hidden="true">${escapeHtml(
+    t('quest.reward.rankingPoints'),
+  )}</span><strong>${escapeHtml(formatLocalizedNumber(count, locale))}</strong></span>`
+}
+
 const resourceRewardMarkup = (quest) => {
   const items = resourceRewardItems(quest)
-  if (items.length === 0) return ''
+  const rankingPointMarkup = rankingPointRewardMarkup(quest)
+  if (items.length === 0 && !rankingPointMarkup) return ''
   return `<div class="dqr-resource-rewards" aria-label="${escapeHtml(
     t('quest.resourceRewards'),
-  )}">${items
+  )}">${rankingPointMarkup}${items
     .map(
       (resource) =>
         `<span class="dqr-resource-reward ${escapeHtml(resource.key)}" title="${escapeHtml(
@@ -180,6 +192,7 @@ export const QUEST_SORT_MODES = [
   'priorityDesc',
   'stepsAsc',
   'difficultyAsc',
+  'rankingPointsDesc',
 ]
 export const QUEST_MAP_CHAPTER_KEYS = QUEST_CHAPTER_KEYS.filter((chapterKey) =>
   /^world[1-7]$/.test(chapterKey),
@@ -543,6 +556,13 @@ const compareDeadline = (left, right, direction = 'asc') => {
 const groupAdvicePriority = (group) =>
   Math.max(...(group.quests || []).map((quest) => ADVICE_TIER_PRIORITIES[adviceTier(quest)] || 0))
 
+const questRankingPoints = (quest) => {
+  const points = Number(quest?.rewardRankingPoints)
+  return Number.isFinite(points) && points > 0 ? points : 0
+}
+
+const groupRankingPoints = (group) => Math.max(0, ...(group.quests || []).map(questRankingPoints))
+
 const compareQuests = (left, right, sortMode, rewardFilters) => {
   let comparison = 0
   if (sortMode === 'priorityDesc') {
@@ -560,6 +580,11 @@ const compareQuests = (left, right, sortMode, rewardFilters) => {
     }
   } else if (sortMode === 'difficultyAsc') {
     comparison = compareMapDifficulty([left], [right])
+  } else if (sortMode === 'rankingPointsDesc') {
+    comparison = questRankingPoints(right) - questRankingPoints(left)
+    if (comparison === 0) {
+      comparison = compareDeadline({ quests: [left] }, { quests: [right] })
+    }
   } else {
     comparison = compareDeadline(
       { quests: [left] },
@@ -631,6 +656,9 @@ export const filterAndSortQuestRecommendationGroups = (
       if (comparison === 0) comparison = compareDeadline(left, right)
     } else if (normalizedSortMode === 'difficultyAsc') {
       comparison = compareMapDifficulty(left.quests, right.quests)
+    } else if (normalizedSortMode === 'rankingPointsDesc') {
+      comparison = groupRankingPoints(right) - groupRankingPoints(left)
+      if (comparison === 0) comparison = compareDeadline(left, right)
     } else {
       comparison = compareDeadline(
         left,

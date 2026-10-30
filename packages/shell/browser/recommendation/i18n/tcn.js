@@ -91,6 +91,7 @@ export const tcn = {
   'quest.sort.deadlineDesc': '期限遠 → 近',
   'quest.sort.stepsAsc': '任務步數少 → 多',
   'quest.sort.difficultyAsc': '關卡難度 簡單 → 困難',
+  'quest.sort.rankingPointsDesc': '戰果 多 → 少',
   'quest.weightSummary':
     '好獎勵重複任務 ＞ 好獎勵單次任務 ＞ 普通重複任務 ＞ 普通單次任務・包含未開放後續價值',
   'quest.preparing': '準備 KC3 任務資料…',
@@ -145,6 +146,7 @@ export const tcn = {
   'quest.reward.blueprint': '改裝設計圖',
   'quest.reward.medal': '勳章',
   'quest.reward.actionReport': '戰鬥詳報',
+  'quest.reward.rankingPoints': '戰果',
   'quest.reward.screws': '改修資材 ×{count}',
   'quest.reward.screwsGeneric': '改修資材',
   'quest.reward.developmentMaterials': '開發資材 ×{count}',

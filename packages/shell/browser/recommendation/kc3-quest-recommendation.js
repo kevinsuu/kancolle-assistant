@@ -190,6 +190,10 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
         : Array.isArray(storedResourceRewards[questId])
           ? storedResourceRewards[questId]
           : []
+    // KC3's Japanese memo lists guaranteed rewards before 選択報酬; a 戦果 inside the choice
+    // block is optional and is intentionally not shown as a guaranteed reward.
+    const guaranteedRewardText = String(japaneseMeta.memo || '').split('選択報酬')[0]
+    const rankingPointMatch = guaranteedRewardText.match(/戦果\\s*[+＋]\\s*(\\d+)/)
     return {
       id: questId,
       code: String(meta.code || questId).slice(0, 40),
@@ -219,6 +223,7 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
         steel: resourceValue(materialRewards[2]),
         bauxite: resourceValue(materialRewards[3]),
       },
+      rewardRankingPoints: rankingPointMatch ? resourceValue(rankingPointMatch[1]) : 0,
     }
   }
 
@@ -339,6 +344,9 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
       resourceRewardQuestCount: quests.filter(({ rewardResources }) =>
         Object.values(rewardResources || {}).some((value) => Number(value) > 0),
       ).length,
+      rankingPointRewardQuestCount: quests.filter(
+        ({ rewardRankingPoints }) => Number(rewardRankingPoints) > 0,
+      ).length,
       accountStatus: account.status,
       accountReasonCode,
       shipCount: account.shipMasterIds.length,
@@ -446,6 +454,7 @@ export const readKC3QuestRecommendations = async (
     successorGraphTruncated,
     successorQueueRemainingCount: Number(snapshot.diagnostics?.successorQueueRemainingCount || 0),
     resourceRewardQuestCount: Number(snapshot.diagnostics?.resourceRewardQuestCount || 0),
+    rankingPointRewardQuestCount: Number(snapshot.diagnostics?.rankingPointRewardQuestCount || 0),
     extraOperationStatuses: snapshot.extraOperationStatus,
     accountStatus: snapshot.diagnostics?.accountStatus || 'unknown',
     accountReasonCode: snapshot.diagnostics?.accountReasonCode || null,

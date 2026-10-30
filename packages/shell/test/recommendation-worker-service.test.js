@@ -308,6 +308,7 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
         successorGraphTruncated: false,
         successorQueueRemainingCount: 0,
         resourceRewardQuestCount: 0,
+        rankingPointRewardQuestCount: 0,
         extraOperationStatuses: { '1-5': 'available' },
         accountStatus: 'unknown',
         accountReasonCode: null,
@@ -764,6 +765,7 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
           680: {
             name: '対空兵装の整備拡充',
             desc: '「機銃」系装備x4を廃棄せよ！',
+            memo: '※クォータリー\n[獲]改修資材x4\n戦果+350\n選択報酬：\n　戦果+60、勲章x1',
           },
         }),
       }
@@ -795,6 +797,9 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
     bauxite: 10,
   })
   assert.equal(snapshot.diagnostics.resourceRewardQuestCount, 2)
+  assert.equal(snapshot.quests.find(({ id }) => id === 680).rewardRankingPoints, 350)
+  assert.equal(snapshot.quests.find(({ id }) => id === 681).rewardRankingPoints, 0)
+  assert.equal(snapshot.diagnostics.rankingPointRewardQuestCount, 1)
   assert.equal(snapshot.diagnostics.oneTimeOpenQuestCount, 1)
   assert.equal(snapshot.diagnostics.limitedOpenQuestCount, 1)
   assert.equal(japaneseRequests[0][0], '/data/lang/data/jp/quests.json')

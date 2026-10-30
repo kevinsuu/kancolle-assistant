@@ -121,6 +121,12 @@ may require one **Sync latest status** action to seed resource values from the g
 loads reuse the bounded task-ID resource cache. Locked successor quests do not invent resource
 values when KC3 has not supplied a live quest record.
 
+Guaranteed ranking-point (戦果) rewards appear before the resources as a neutral white badge with a
+localized label and number. The game API does not report ranking points, so the value is parsed
+from the `戦果+N` entry in KC3's Japanese quest memo before its `選択報酬` section; ranking points
+offered only as a selectable reward are not shown. Snapshot diagnostics include
+`rankingPointRewardQuestCount`.
+
 The controls above the list include a multi-select quest-type filter. **All** is the default and
 places no type restriction. In this normal view every quest is shown once, even when it can advance
 in several shared actions. Selecting a specific type switches the list to that type; further type
@@ -154,7 +160,8 @@ sortie scope. A reward, type, or chapter filter that removes a member shows the 
 individual cards, so the page never claims a partial group is still a shared-action plan.
 
 The default display order is nearest deadline first. The selector can instead order by farthest
-deadline, recommendation from high to low, fewest quest steps, or map difficulty from easy to hard;
+deadline, recommendation from high to low, fewest quest steps, map difficulty from easy to hard, or
+ranking points from high to low;
 recommendation is the third option. Map difficulty sorts by the number of distinct recognized map
 IDs first, then by chapter and map number from low to high. Sorties without a recognized map ID come
 after sorties with known map requirements. Non-sortie quests remain above sorties. Recommendation
@@ -165,7 +172,10 @@ union of member map IDs for the selected sort; their members follow that same or
 and time-limited quests stay after dated repeatable quests in both deadline orders. A time-limited
 quest with a repeatable reset may show that reset, but still warns that its final event end is
 unknown. Step sorting treats a matching current reward as zero steps and otherwise uses the shortest
-displayed unlock distance to a matching successor; ties use the nearest deadline. These controls only
+displayed unlock distance to a matching successor; ties use the nearest deadline. Ranking-point
+sorting orders guaranteed 戦果 rewards from high to low, places quests without one last, uses the
+nearest deadline as its tie-breaker, and ranks suggested combinations by their largest member
+reward. Non-sortie quests still stay above sorties. These controls only
 reorder the synchronized result in the renderer and do not trigger another KC3 read.
 
 The page saves the selected quest types, chapters, reward filters, and sort order in the Strategy

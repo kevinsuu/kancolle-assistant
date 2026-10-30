@@ -207,10 +207,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '3d96c48996294004316b0de8dfbe5f74e40b58dbc17a4028dce1b1621e23b3d3',
-      jp: 'e1f15e9616dc07e8bfd599edd3e3f693c93e7205311912b6c016adcc0aa20f2d',
-      scn: 'aed6567f4754fb884aeaa5c818141a6aaa210505dd039ecb5ecfd9899eee602e',
-      tcn: 'd1efa8f00303ed62d297dd923493250bba2f489292902f72936d97df1b85de9f',
+      en: '7114b84af649ab042c71b3a0ad08b2f4c8a3fbf2c7abba310239b33ab01f76cc',
+      jp: '4d2e2d96017aec89b011d7629db32909d8009d5cbfc1292375dc63a42a4b2f65',
+      scn: '42be003926df9d61d4475610c5018a2a25fa6965d8b77d7cd645c82995748b3a',
+      tcn: '6fe73fe905e62731068babf87b3eb327475e3428ba11d2b21f688255bd866042',
     },
   )
 })
@@ -716,6 +716,7 @@ test('quest recommendation cards show positive resource rewards with their icons
         status: 1,
         resetAt: now + 7 * 24 * 60 * 60 * 1000,
         rewardResources: { fuel: 300, ammo: 200, steel: 100, bauxite: 50 },
+        rewardRankingPoints: 80,
       },
     ],
     { now },
@@ -728,6 +729,7 @@ test('quest recommendation cards show positive resource rewards with their icons
   assert.match(markup, /steel\.png/)
   assert.match(markup, /bauxite\.png/)
   assert.match(markup, /300.*200.*100.*50/s)
+  assert.match(markup, /class="dqr-resource-reward rankingPoints"[^>]*>.*?<strong>80<\/strong>/s)
   assert.doesNotMatch(
     questRecommendationListMarkup(
       rankQuestRecommendations(
@@ -2393,6 +2395,26 @@ test('quest recommendation sorting follows displayed advice tiers and deadline t
   )
 })
 
+test('quest recommendation sorting orders ranking point rewards high to low', () => {
+  const quest = (id, rewardRankingPoints, resetAt) => ({ id, rewardRankingPoints, resetAt })
+  const groups = [
+    { id: 'none', kind: 'single', quests: [quest(1, 0, 1)] },
+    { id: 'low', kind: 'single', quests: [quest(2, 80, 5)] },
+    { id: 'high', kind: 'single', quests: [quest(3, 400, 9)] },
+    { id: 'low-near', kind: 'single', quests: [quest(4, 80, 2)] },
+  ]
+
+  const sorted = filterAndSortQuestRecommendationGroups(
+    { recommendations: groups.flatMap(({ quests }) => quests), groups },
+    { sortMode: 'rankingPointsDesc' },
+  )
+
+  assert.deepEqual(
+    sorted.groups.flatMap(({ quests }) => quests.map(({ id }) => id)),
+    [3, 4, 2, 1],
+  )
+})
+
 test('quest plans distinguish same-sortie, sequence, and unlock relationships', () => {
   const now = Date.UTC(2026, 8, 1, 0, 0, 0)
   const resetAt = now + 90 * 24 * 60 * 60 * 1000
@@ -2853,6 +2875,7 @@ test('quest recommendation labels exist in all supported languages', () => {
       'quest.sort.deadlineAsc',
       'quest.sort.deadlineDesc',
       'quest.sort.stepsAsc',
+      'quest.sort.rankingPointsDesc',
       'quest.syncLatest',
       'quest.syncingLatest',
       'quest.syncingStatus',
