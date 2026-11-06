@@ -6,8 +6,10 @@
 KanColle Assistant is a minimal, tabbed web browser for playing Kantai Collection, with integrated
 KC3Kai and KCCacheProxy support.
 
-This project is a modified fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser).<br>
-The original Damecon project is built on Samuel Maddock's [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
+This project is a modified fork of
+[planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), which is itself
+built on Samuel Maddock's
+[electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
 
 ## Release status
 
