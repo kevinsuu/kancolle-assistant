@@ -64,9 +64,24 @@ const synchronizedQuestScript = (quests) => {
     )
     window.__kancolleAssistantQuestResourceRewards = resourceRewards
     try {
+      // Merge so quests absent from this list (completed or not yet open) keep known values.
+      let cachedResourceRewards = {}
+      try {
+        const stored = JSON.parse(
+          window.localStorage?.getItem('${QUEST_RESOURCE_REWARDS_STORAGE_KEY}') || '{}',
+        )
+        if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+          cachedResourceRewards = stored
+        }
+      } catch {}
+      const mergedResourceRewards = Object.fromEntries(
+        Object.entries({ ...cachedResourceRewards, ...resourceRewards })
+          .filter(([questId, values]) => Number(questId) > 0 && Array.isArray(values))
+          .slice(-${MAX_SYNCHRONIZED_QUEST_COUNT}),
+      )
       window.localStorage?.setItem(
         '${QUEST_RESOURCE_REWARDS_STORAGE_KEY}',
-        JSON.stringify(resourceRewards),
+        JSON.stringify(mergedResourceRewards),
       )
     } catch {}
     window.KC3QuestManager.load()
@@ -179,6 +194,7 @@ const kc3QuestSnapshotScript = (unlockCorrections) => `(async () => {
     if (metadataTimer !== undefined) window.clearTimeout(metadataTimer)
   }
   const questTitleSourceByQuestId = new Map()
+  const resourceSourceByQuestId = new Map()
   let storedResourceRewards = {}
   try {
     const stored = JSON.parse(
@@ -242,13 +258,27 @@ const kc3QuestSnapshotScript = (unlockCorrections) => `(async () => {
       const number = Number(value)
       return Number.isFinite(number) ? Math.max(0, Math.trunc(number)) : 0
     }
-    const materialRewards = Array.isArray(raw.api_get_material)
-      ? raw.api_get_material
+    // KC3 persists each received quest's api_get_material as \`materials\`, so resources remain
+    // available on Strategy Room loads where \`raw()\` is absent and no manual sync has run yet.
+    const resourceSource = Array.isArray(raw.api_get_material)
+      ? 'gameApi'
       : Array.isArray(synchronizedResourceRewards[questId])
-        ? synchronizedResourceRewards[questId]
-        : Array.isArray(storedResourceRewards[questId])
-          ? storedResourceRewards[questId]
-          : []
+        ? 'liveSync'
+        : Array.isArray(quest.materials)
+          ? 'kc3Stored'
+          : Array.isArray(storedResourceRewards[questId])
+            ? 'localCache'
+            : 'none'
+    const materialRewards = {
+      gameApi: raw.api_get_material,
+      liveSync: synchronizedResourceRewards[questId],
+      kc3Stored: quest.materials,
+      localCache: storedResourceRewards[questId],
+      none: [],
+    }[resourceSource]
+    if (!locked && !resourceSourceByQuestId.has(questId)) {
+      resourceSourceByQuestId.set(questId, resourceSource)
+    }
     // KC3's Japanese memo lists guaranteed rewards before 選択報酬; a 戦果 inside the choice
     // block is optional and is intentionally not shown as a guaranteed reward.
     const guaranteedRewardText = String(japaneseMeta.memo || '').split('選択報酬')[0]
@@ -379,6 +409,17 @@ const kc3QuestSnapshotScript = (unlockCorrections) => `(async () => {
     const titleSource = questTitleSourceByQuestId.get(Number(id)) || 'localizedFallback'
     questTitleSourceCounts[titleSource] += 1
   })
+  const resourceRewardSourceCounts = {
+    gameApi: 0,
+    liveSync: 0,
+    kc3Stored: 0,
+    localCache: 0,
+    none: 0,
+  }
+  quests.forEach(({ id, locked }) => {
+    if (locked) return
+    resourceRewardSourceCounts[resourceSourceByQuestId.get(Number(id)) || 'none'] += 1
+  })
 
   const extraOperationStatus = {}
   ;[[1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5]].forEach(([world, map]) => {
@@ -452,6 +493,7 @@ const kc3QuestSnapshotScript = (unlockCorrections) => `(async () => {
       rankingPointRewardQuestCount: quests.filter(
         ({ rewardRankingPoints }) => Number(rewardRankingPoints) > 0,
       ).length,
+      resourceRewardSourceCounts,
       accountStatus: account.status,
       accountReasonCode,
       shipCount: account.shipMasterIds.length,
@@ -605,6 +647,7 @@ export const readKC3QuestRecommendations = async (
     successorQueueRemainingCount: Number(snapshot.diagnostics?.successorQueueRemainingCount || 0),
     resourceRewardQuestCount: Number(snapshot.diagnostics?.resourceRewardQuestCount || 0),
     rankingPointRewardQuestCount: Number(snapshot.diagnostics?.rankingPointRewardQuestCount || 0),
+    resourceRewardSourceCounts: snapshot.diagnostics?.resourceRewardSourceCounts || {},
     extraOperationStatuses: snapshot.extraOperationStatus,
     accountStatus: snapshot.diagnostics?.accountStatus || 'unknown',
     accountReasonCode: snapshot.diagnostics?.accountReasonCode || null,

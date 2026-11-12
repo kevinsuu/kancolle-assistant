@@ -319,6 +319,7 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
         successorQueueRemainingCount: 0,
         resourceRewardQuestCount: 0,
         rankingPointRewardQuestCount: 0,
+        resourceRewardSourceCounts: {},
         extraOperationStatuses: { '1-5': 'available' },
         accountStatus: 'unknown',
         accountReasonCode: null,
@@ -854,6 +855,113 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
       .reasonCodes,
     [],
   )
+})
+
+test('KC3 quest snapshot reads resources KC3 stored without a manual sync', async () => {
+  const now = Date.UTC(2026, 8, 1, 0, 0, 0)
+  const calculateNextReset = () => now + 24 * 60 * 60 * 1000
+  const repeatableTypes = Object.fromEntries(
+    ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
+      type,
+      { questIds: [], calculateNextReset },
+    ]),
+  )
+  const snapshot = await new Function(
+    'window',
+    `return ${SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS}`,
+  )({
+    performance: { now: () => 0 },
+    KC3QuestManager: {
+      list: {
+        // Loaded from KC3 storage: no raw(), but KC3 kept api_get_material as `materials`.
+        q703: { id: 703, status: 1, progress: 0, materials: [200, 200, 300, 100] },
+        // KC3 data wins over this extension's older cache.
+        q702: { id: 702, status: 1, progress: 0, materials: [0, 0, 0, 0] },
+        q704: { id: 704, status: 1, progress: 0 },
+        q705: { id: 705, status: 1, progress: 0 },
+      },
+      load: () => {},
+      repeatableTypes,
+    },
+    KC3Meta: {
+      repo: '/data/',
+      quest: (id) => ({ code: `G${id}`, name: `Quest ${id}`, desc: '', memo: '' }),
+    },
+    setTimeout,
+    clearTimeout,
+    localStorage: {
+      getItem: (key) =>
+        key === 'kancolle-assistant.quest-resource-rewards.v1'
+          ? JSON.stringify({ 702: [9, 9, 9, 9], 704: [10, 20, 30, 40] })
+          : null,
+    },
+    fetch: async () => ({ ok: true, json: async () => ({}) }),
+    KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
+  })
+
+  const resourcesOf = (questId) => snapshot.quests.find(({ id }) => id === questId).rewardResources
+  assert.deepEqual(resourcesOf(703), { fuel: 200, ammo: 200, steel: 300, bauxite: 100 })
+  assert.deepEqual(resourcesOf(702), { fuel: 0, ammo: 0, steel: 0, bauxite: 0 })
+  assert.deepEqual(resourcesOf(704), { fuel: 10, ammo: 20, steel: 30, bauxite: 40 })
+  assert.deepEqual(resourcesOf(705), { fuel: 0, ammo: 0, steel: 0, bauxite: 0 })
+  assert.equal(snapshot.diagnostics.resourceRewardQuestCount, 2)
+  assert.deepEqual(snapshot.diagnostics.resourceRewardSourceCounts, {
+    gameApi: 0,
+    liveSync: 0,
+    kc3Stored: 2,
+    localCache: 1,
+    none: 1,
+  })
+
+  const logs = []
+  await readKC3QuestRecommendations(
+    { executeJavaScript: async () => snapshot },
+    (eventName, data) => logs.push({ eventName, data }),
+  )
+  assert.deepEqual(
+    logs.find(({ eventName }) => eventName === 'quest-recommendation.snapshot-completed').data
+      .resourceRewardSourceCounts,
+    { gameApi: 0, liveSync: 0, kc3Stored: 2, localCache: 1, none: 1 },
+  )
+})
+
+test('quest sync merges resource rewards into the existing cache', () => {
+  const storage = new Map([
+    [
+      'kancolle-assistant.quest-resource-rewards.v1',
+      JSON.stringify({ 191: [1, 1, 1, 1], 292: [1944, 2019, 0, 0] }),
+    ],
+  ])
+  const manager = {
+    open: [],
+    active: [],
+    load: () => {},
+    definePage: () => {},
+    get: () => ({ status: 1 }),
+    isOpen: () => {},
+    isActive: () => {},
+    save: () => {},
+  }
+  const windowFixture = {
+    KC3QuestManager: manager,
+    localStorage: {
+      getItem: (key) => storage.get(key) ?? null,
+      setItem: (key, value) => storage.set(key, value),
+    },
+  }
+  new Function(
+    'window',
+    `return ${synchronizedQuestScript([
+      { api_no: 191, api_state: 1, api_get_material: [30, 20, 10, 5] },
+      { api_no: 703, api_state: 1, api_get_material: [200, 200, 300, 100] },
+    ])}`,
+  )(windowFixture)
+
+  assert.deepEqual(JSON.parse(storage.get('kancolle-assistant.quest-resource-rewards.v1')), {
+    191: [30, 20, 10, 5],
+    292: [1944, 2019, 0, 0],
+    703: [200, 200, 300, 100],
+  })
 })
 
 test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () => {

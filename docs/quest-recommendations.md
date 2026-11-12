@@ -138,10 +138,17 @@ quest ID act as later tie-breakers. One-time quests have no reset-time tie-break
 
 The top-right of a quest card also shows positive fuel, ammunition, steel, and bauxite rewards from
 the game's `api_get_material` values. Each resource uses KC3's existing resource icon and a
-localized number; zero-value resources are omitted. The first use after this feature is installed
-may require one **Sync latest status** action to seed resource values from the game API; later local
-loads reuse the bounded task-ID resource cache. Locked successor quests do not invent resource
-values when KC3 has not supplied a live quest record.
+localized number; zero-value resources are omitted. Values are read in this order: the live game
+API record, the current **Sync latest status** result, the `materials` value KC3 stores for every
+quest it has received from the game, and finally this app's quest-ID resource cache. Because KC3
+keeps `materials`, resources appear without a manual sync once the in-game quest list has been
+opened. Each sync merges its values into the cache instead of replacing it, so quests missing from
+the current list keep their known resources; the cache is bounded to 2,048 quests. Locked
+successor quests do not invent resource values when KC3 has not supplied a live quest record.
+
+`quest-recommendation.snapshot-completed` records `resourceRewardSourceCounts` for unlocked quests
+with the keys `gameApi`, `liveSync`, `kc3Stored`, `localCache`, and `none`; a high `none` count
+means neither KC3 nor a sync has provided resource values yet.
 
 Guaranteed ranking-point (戦果) rewards appear before the resources as a neutral white badge with a
 localized label and number. The game API does not report ranking points, so the value is parsed
