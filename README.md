@@ -15,7 +15,7 @@ built on Samuel Maddock's
 
 | App version | README updated |
 | ----------- | -------------- |
-| `v1.4.2`    | `2026-10-30`   |
+| `v1.5.0`    | `2026-11-12`   |
 
 - **Downloads:** Installers and portable archives are available from
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases).
@@ -25,6 +25,10 @@ built on Samuel Maddock's
 - **Cumulative capabilities:** [Feature status](#feature-status) shows what the current source
   supports, what may be added later, and what is out of scope.
 - **Technical details:** The project-specific highlights below link to the relevant documents.
+
+### v1.5.0 highlights (since v1.4.2)
+
+- Quest recommendations add quest search, one-click guide search, and a per-quest prerequisite/successor relation graph, using bundled prerequisite corrections to fill gaps in KC3 unlock data.
 
 ### v1.4.2 highlights (since v1.3.3)
 
@@ -41,10 +45,6 @@ built on Samuel Maddock's
 ### v1.3.1 highlights (since v1.3.0)
 
 - Refreshes automated view snapshots for the Strategy Room quest recommendation page.
-
-### v1.3.0 highlights (since v1.2.2)
-
-- Quest recommendations add easy-to-hard sorting by required map count and chapter/map order.
 
 ### Project-specific highlights
 
