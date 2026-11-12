@@ -13,7 +13,7 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 
 | 应用程序版本 | README 更新日期 |
 | ------------ | --------------- |
-| `v1.5.0`     | `2026-11-12`    |
+| `v1.5.1`     | `2026-11-12`    |
 
 - **下载版本：** 安装程序和便携式压缩包可从
   [GitHub Releases](https://github.com/kevinsuu/kancolle-assistant/releases)下载。
@@ -21,6 +21,10 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
   会保存每个 tag 之间自动生成的更新内容。
 - **当前累积能力：** [功能状态](#功能状态)分别列出当前支持、将来可能加入和不在计划内的项目。
 - **功能技术细节：** 下方项目功能重点会链接至对应文档。
+
+### v1.5.1 更新重点（相较 v1.5.0）
+
+- 修复任务推荐未同步时不显示资源奖励：改为读取 KC3 已保存的资源数值；同步时也不再清除当前列表外任务的资源缓存。
 
 ### v1.5.0 更新重点（相较 v1.4.2）
 
@@ -37,10 +41,6 @@ Damecon 原项目基于 Samuel Maddock 的 [electron-browser-shell](https://gith
 ### v1.3.2 更新重点（相较 v1.3.1）
 
 - 资源中心现在会将入渠修船消耗的燃料与钢材计入收支。
-
-### v1.3.1 更新重点（相较 v1.3.0）
-
-- 更新战略室任务推荐页面的多语言界面测试快照。
 
 ### 本项目功能重点
 
