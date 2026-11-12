@@ -92,6 +92,28 @@ though KC3 does not provide dependable final end timestamps; their cards explici
 final availability deadline is unknown. Locked time-limited successors remain excluded because an
 old catalog entry alone does not prove that a seasonal quest is currently available.
 
+### Prerequisite corrections
+
+KC3's `unlock` metadata often names only one prerequisite for a quest that requires several, and
+some quests have no listed prerequisite at all. The app bundles a prerequisite snapshot from
+[艦これ任務ナビゲーター](https://kancolle-quest-navigator.pages.dev/) in
+`packages/shell/browser/recommendation/data/quest-unlock-corrections.json`, stored in KC3's
+`unlock` shape (prerequisite ID to successor IDs). Every quest's successors are the **union** of
+KC3's `unlock` list and this snapshot, so the successor graph and downstream reward targets never
+lose a link that either source knows. Successor IDs that KC3 does not know yet are skipped, because
+they cannot be named, ranked, or reset correctly. The app never contacts that website at runtime.
+
+Regenerate the snapshot with `node ./scripts/update-quest-unlock-corrections.js`, then run
+`npx prettier --write` on the output file. The script logs `quest-unlock-corrections.updated` with
+mission, prerequisite, and edge counts, or `quest-unlock-corrections.failed` with a sanitized
+message, and refuses unknown schema versions.
+
+`quest-recommendation.snapshot-completed` records `unlockCorrectionStatus`,
+`unlockCorrectionSourceUpdatedAt`, `unlockCorrectionAddedEdgeCount`,
+`unlockCorrectionCorrectedQuestCount`, and `unlockCorrectionUnknownQuestCount`. Invalid bundled
+data disables the correction, keeps KC3's own `unlock` metadata, and adds the
+`QUEST_UNLOCK_CORRECTIONS_INVALID` reason code with a `degraded` outcome.
+
 KC3 calculates every reset from its own repeatable-quest rules: daily, weekly, monthly, quarterly,
 and the twelve month-specific yearly types from `yearlyJan` through `yearlyDec`. Yearly types retain
 their exact KC3 reset type for timestamp calculation and are displayed under one **Yearly** label.
@@ -243,6 +265,47 @@ The account-aware phase covers requirements that materially change the reference
 Bq13 and Bq6 remain visible with a missing-ship reason. Fq3 is conditional when affordable and
 unavailable when synchronized steel is below its cost. Bm2, Bq8, Z Operation Latter Part, and other
 curated high-cost objectives receive low-return or high-cost guidance from the reference plan.
+
+## Search, guide links, and relation graph
+
+- **Search** filters visible quests on every whitespace-separated term across the quest ID, code,
+  title, and requirement text, after Unicode NFKC normalization and case folding, so full-width
+  `ＢＷ１` matches `Bw1`. It combines with the type, chapter, and reward filters. The search text
+  is not saved; Markdown export uses the same search as the screen.
+- **Guide search** opens a Google search for `艦これ <code> <title> 攻略` in a new tab.
+- **Quest relation graph** (**任務關係圖**) is a collapsed section at the bottom of each card
+  whose quest has known prerequisites or successors; click it to open the diagram.
+  - Quests flow left to right: prerequisites on the left, successors on the right. Each node shows
+    the quest code and shortened Japanese title, and its color shows the state: selected,
+    completed, in progress, available, or not yet available (dashed outline). Hovering shows the
+    full title.
+  - The view has a fixed 1:1 scale; there is no zoom. When the graph is wider than the area, the
+    mouse wheel scrolls it left and right; otherwise the wheel scrolls the page as usual. Dragging
+    moves the view only along an axis where the graph is larger than the area, and never past the
+    graph's edges; a graph that fits cannot be moved. Click a node (or focus it and press Enter) to
+    re-center the diagram on that quest. **Reset view** returns to the card's quest.
+  - Only ancestors and descendants of the centered quest are drawn, up to 6 levels each way and 80
+    quests; a note appears when the chain is cut.
+  - Completed quests other than the centered one are collapsed by default: the node is shown, but
+    its earlier prerequisites (or later successors) are hidden and counted as `+N` on the node.
+    **Expand completed** shows the full chain; the setting lasts while the graph stays open.
+  - The diagram opens centered on the selected quest, or shows the whole graph centered when it
+    fits. It is laid out only when opened, with a longest-path layering, each quest pulled next to
+    its nearest successor, and a few barycenter sweeps to reduce crossings. No layout library or
+    continuous simulation runs.
+
+The KC3 snapshot provides the graph as `relationGraph`: every quest KC3 knows from the stored
+quest list or the prerequisite corrections, with its state from KC3's stored quest status, and
+edges from KC3 `unlock` metadata merged with the corrections. Time-limited quests appear only while
+open or active. The graph is display-only and never enters ranking input. It is bounded to 2,048
+quests and 8,192 edges and sanitized in the main process before it reaches the page.
+
+Diagnostics: `quest-recommendation.snapshot-completed` records `relationGraphNodeCount`,
+`relationGraphEdgeCount`, and `relationGraphTruncated`; a truncated graph adds the
+`QUEST_RELATION_GRAPH_TRUNCATED` reason code. Opening or re-centering a graph logs
+`[KancolleQuestRelationGraph] quest-relation-graph-render` with the quest and center IDs, node and
+edge counts, truncation, the completed-quest setting, the collapsed node count, and elapsed time,
+or `outcome: 'empty'` with `QUEST_NOT_IN_RELATION_GRAPH`.
 
 ## Planned quest relationships
 

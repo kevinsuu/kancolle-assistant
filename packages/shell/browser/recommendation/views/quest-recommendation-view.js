@@ -112,6 +112,55 @@ export const styles = `
   .dqr-quest-icon.oneTime { border-right-color: #8ca5b3; }
   .dqr-heading { min-width: 0; }
   .dqr-heading h2 { margin: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.4; }
+  .dqr-search-block { display: grid; grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 7px; padding-bottom: 7px; border-bottom: 1px solid #8883; }
+  .dqr-search { min-height: 29px; padding: 2px 8px; border: 1px solid #8885; border-radius: 3px; background: transparent; color: inherit; font: inherit; }
+  .dqr-search:focus-visible { outline: 2px solid #69c; outline-offset: 2px; }
+  body.dark .dqr-search { background: #161616; }
+  .dqr-quest-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px; }
+  .dqr-relations { padding: 5px 9px 7px; border-top: 1px solid var(--dqr-line); }
+  .dqr-relations > summary { color: var(--dqr-teal); cursor: pointer; font-weight: bold; }
+  .dqr-relations > summary:focus-visible { outline: 2px solid #69c; outline-offset: 2px; }
+  .dqr-graph-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; }
+  .dqr-graph-legend { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dqr-graph-legend-item { padding: 1px 7px; border: 1px solid var(--dqr-node-stroke); border-radius: 9px; background: var(--dqr-node-fill); color: var(--dqr-node-text); }
+  .dqr-graph-actions { display: flex; gap: 6px; }
+  .dqr-graph-completed { min-height: 24px; padding: 0 10px; border: 1px solid #8885; border-radius: 3px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+  .dqr-graph-completed[aria-pressed="true"] { border-color: #568da3; background: #568da322; }
+  .dqr-graph-completed:focus-visible { outline: 2px solid #69c; outline-offset: 2px; }
+  .dqr-graph-hidden { font-weight: bold; }
+  .dqr-graph-node.has-hidden rect { stroke-width: 2; }
+  .dqr-graph-reset { min-height: 24px; padding: 0 10px; border: 1px solid #8885; border-radius: 3px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+  .dqr-graph-reset:focus-visible { outline: 2px solid #69c; outline-offset: 2px; }
+  .dqr-graph-hint, .dqr-graph-truncated { margin: 4px 0; color: var(--dqr-muted); }
+  .dqr-graph-stage { height: 380px; overflow: hidden; border: 1px solid var(--dqr-line); border-radius: 4px; background: #f6f9fa; }
+  body.dark .dqr-graph-stage { background: #161616; }
+  .dqr-graph-canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
+  .dqr-graph-canvas.can-drag { cursor: grab; }
+  .dqr-graph-canvas.is-dragging { cursor: grabbing; }
+  .dqr-graph-edge { fill: none; stroke: #8a9aa2; stroke-width: 1.4; }
+  #dqr-graph-arrow path { fill: #8a9aa2; }
+  .dqr-graph-node { cursor: pointer; }
+  .dqr-graph-node rect { fill: var(--dqr-node-fill); stroke: var(--dqr-node-stroke); stroke-width: 1.5; }
+  .dqr-graph-node:focus-visible { outline: none; }
+  .dqr-graph-node:focus-visible rect, .dqr-graph-node:hover rect { stroke-width: 2.5; }
+  .dqr-graph-node text { fill: var(--dqr-node-text); font-size: 12px; pointer-events: none; }
+  .dqr-graph-code { font-weight: bold; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .dqr-graph-node.locked rect { stroke-dasharray: 4 3; }
+  .dqr-graph-node.center rect { stroke-width: 3; }
+  .dqr-graph-node.completed, .dqr-graph-legend-item.completed { --dqr-node-fill: #eceff1; --dqr-node-stroke: #9aa5ab; --dqr-node-text: #6b777d; }
+  .dqr-graph-node.open, .dqr-graph-legend-item.open { --dqr-node-fill: #e3f3f6; --dqr-node-stroke: #2b8091; --dqr-node-text: #1f5f6c; }
+  .dqr-graph-node.active, .dqr-graph-legend-item.active { --dqr-node-fill: #e6f4ea; --dqr-node-stroke: #39875d; --dqr-node-text: #24603f; }
+  .dqr-graph-node.locked, .dqr-graph-legend-item.locked { --dqr-node-fill: #fff; --dqr-node-stroke: #8a9aa2; --dqr-node-text: #4e5b61; }
+  .dqr-graph-node.center, .dqr-graph-legend-item.center { --dqr-node-stroke: #b78300; }
+  .dqr-graph-legend-item.center { --dqr-node-fill: #d6a40018; --dqr-node-text: #9b6d00; border-width: 2px; }
+  body.dark .dqr-graph-node.completed, body.dark .dqr-graph-legend-item.completed { --dqr-node-fill: #2a2d2f; --dqr-node-stroke: #5d676c; --dqr-node-text: #9ba7ad; }
+  body.dark .dqr-graph-node.open, body.dark .dqr-graph-legend-item.open { --dqr-node-fill: #12313a; --dqr-node-stroke: #62b7c5; --dqr-node-text: #9acbdd; }
+  body.dark .dqr-graph-node.active, body.dark .dqr-graph-legend-item.active { --dqr-node-fill: #14301f; --dqr-node-stroke: #70cf95; --dqr-node-text: #a6e3bd; }
+  body.dark .dqr-graph-node.locked, body.dark .dqr-graph-legend-item.locked { --dqr-node-fill: #1e1e1e; --dqr-node-stroke: #6f7b80; --dqr-node-text: #b9c2c6; }
+  body.dark .dqr-graph-node.center, body.dark .dqr-graph-legend-item.center { --dqr-node-stroke: #fc0; }
+  body.dark .dqr-graph-legend-item.center { --dqr-node-text: #fc0; }
+  .dqr-guide-link:focus-visible { outline: 2px solid #69c; outline-offset: 2px; }
+  .dqr-guide-link { color: var(--dqr-teal); }
   .dqr-resource-rewards { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; min-width: 0; }
   .dqr-resource-reward { display: inline-flex; align-items: center; gap: 2px; min-height: 22px; padding: 1px 4px; border: 1px solid var(--dqr-resource-color); border-radius: 4px; background: var(--dqr-resource-bg); color: var(--dqr-resource-color); font-weight: 700; line-height: 1; white-space: nowrap; }
   .dqr-resource-reward img { width: 18px; height: 18px; flex: 0 0 18px; object-fit: contain; }
@@ -244,6 +293,10 @@ export const panelMarkup = (t) => `
       </div>
     </section>
     <section class="page_panel bscolor4 dqr-controls" aria-label="${t('quest.controls')}">
+      <label class="dqr-search-block">
+        <span class="dqr-control-label">${t('quest.search.label')}</span>
+        <input class="dqr-search" type="search" maxlength="120" autocomplete="off" placeholder="${t('quest.search.placeholder')}">
+      </label>
       <div class="dqr-chapter-filter-block">
         <div class="dqr-chapter-filter-heading">
           <span class="dqr-control-label">${t('quest.chapterFilter.label')}</span>

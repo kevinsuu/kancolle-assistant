@@ -207,10 +207,10 @@ test('strategy room pure views preserve four-language output snapshots', () => {
   assert.deepEqual(
     Object.fromEntries(Object.keys(catalogs).map((language) => [language, viewSnapshot(language)])),
     {
-      en: '7114b84af649ab042c71b3a0ad08b2f4c8a3fbf2c7abba310239b33ab01f76cc',
-      jp: '4d2e2d96017aec89b011d7629db32909d8009d5cbfc1292375dc63a42a4b2f65',
-      scn: '42be003926df9d61d4475610c5018a2a25fa6965d8b77d7cd645c82995748b3a',
-      tcn: '6fe73fe905e62731068babf87b3eb327475e3428ba11d2b21f688255bd866042',
+      en: '996ba3c5d9f723b18ccc52b0e1c10661582c1b6eb1436b604df6914f1ec096c0',
+      jp: '1e42530dd22da9140f229318071f63e8d6cd145f09db762a2140ea867573d574',
+      scn: 'edf60c8ee5c8ced89a244dcb988b1ca834242b1c08d9891342cd0b240941e791',
+      tcn: 'a0b4739b3ecc8b45991f871ad3dda4ce01356eb928a475e265cc13fe6be41b40',
     },
   )
 })

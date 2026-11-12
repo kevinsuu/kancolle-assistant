@@ -18,6 +18,8 @@ import {
 } from '../browser/recommendation/kc3-bridge.js'
 import {
   KC3_QUEST_SNAPSHOT_SCRIPT,
+  kc3QuestSnapshotScript,
+  normalizeQuestUnlockCorrections,
   readKC3QuestRecommendations as readQuestRecommendationsWithWorker,
   synchronizedQuestScript,
 } from '../browser/recommendation/kc3-quest-recommendation.js'
@@ -33,6 +35,14 @@ import { scn } from '../browser/recommendation/i18n/scn.js'
 import { tcn } from '../browser/recommendation/i18n/tcn.js'
 
 import { rankQuestRecommendations } from '../browser/recommendation/quest-recommendation.js'
+
+// Title and metadata fixtures accept every quest ID, so they isolate themselves from the bundled
+// prerequisite corrections; correction behavior has its own fixtures below.
+const SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS = kc3QuestSnapshotScript({
+  status: 'available',
+  sourceUpdatedAt: null,
+  unlock: {},
+})
 
 // Domain fixtures inject their ranker; production must supply the worker lane.
 const readKC3QuestRecommendations = (target, logger, options = {}) =>
@@ -316,6 +326,14 @@ test('KC3 quest snapshot ranks every fixed reset period with bounded diagnostics
         japaneseQuestMetadataStatus: 'unknown',
         japaneseQuestMetadataMessage: null,
         questTitleSourceCounts: {},
+        relationGraphNodeCount: 0,
+        relationGraphEdgeCount: 0,
+        relationGraphTruncated: false,
+        unlockCorrectionStatus: 'unknown',
+        unlockCorrectionSourceUpdatedAt: null,
+        unlockCorrectionAddedEdgeCount: 0,
+        unlockCorrectionCorrectedQuestCount: 0,
+        unlockCorrectionUnknownQuestCount: 0,
         elapsedMs: 4,
         outcome: 'success',
         reasonCodes: [],
@@ -717,7 +735,10 @@ test('KC3 quest snapshot always prefers official Japanese quest titles', async (
     ]),
   )
   const japaneseRequests = []
-  const snapshot = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
+  const snapshot = await new Function(
+    'window',
+    `return ${SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS}`,
+  )({
     performance: { now: () => 0 },
     KC3QuestManager: {
       list: {
@@ -843,7 +864,10 @@ test('KC3 quest snapshot reports a bounded Japanese-title fallback', async () =>
       { questIds: [], calculateNextReset: () => now + 24 * 60 * 60 * 1000 },
     ]),
   )
-  const snapshot = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)({
+  const snapshot = await new Function(
+    'window',
+    `return ${SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS}`,
+  )({
     performance: { now: () => 0 },
     KC3QuestManager: {
       list: { q680: { id: 680, status: 1, progress: 0 } },
@@ -933,7 +957,9 @@ for (const stalledPhase of ['headers', 'body']) {
       },
       KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
     }
-    const pending = new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(fixture)
+    const pending = new Function('window', `return ${SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS}`)(
+      fixture,
+    )
     // A UI event can be processed while the resource request is pending.
     await new Promise(setImmediate)
     expire()
@@ -969,7 +995,10 @@ for (const stalledPhase of ['headers', 'body']) {
     rejectLate(new Error('late metadata failure'))
     await new Promise(setImmediate)
     fixture.fetch = async () => ({ ok: true, json: async () => ({ 680: { name: '日本語' } }) })
-    const retried = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(fixture)
+    const retried = await new Function(
+      'window',
+      `return ${SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS}`,
+    )(fixture)
     assert.equal(retried.quests[0].name, '日本語')
     assert.equal(retried.diagnostics.japaneseQuestMetadataStatus, 'available')
   })
@@ -1019,9 +1048,10 @@ test('KC3 quest snapshot degrades instead of failing when the successor graph is
     }),
     KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
   }
-  const snapshot = await new Function('window', `return ${KC3_QUEST_SNAPSHOT_SCRIPT}`)(
-    windowFixture,
-  )
+  const snapshot = await new Function(
+    'window',
+    `return ${SNAPSHOT_SCRIPT_WITHOUT_UNLOCK_CORRECTIONS}`,
+  )(windowFixture)
   const logs = []
   const result = await readKC3QuestRecommendations(
     { executeJavaScript: async () => snapshot },
@@ -3171,4 +3201,166 @@ test('quest IPC forwards snapshot to ranking worker and reports ranking failure 
   assert.equal(result.error.code, 'KC3_QUEST_RANKING_FAILED')
   assert.deepEqual(logs.at(-1).data.reasonCodes, ['KC3_QUEST_RANKING_FAILED'])
   assert.equal(rankingCalls, 2)
+})
+
+const unlockCorrectionWindow = ({ unlockById, knownQuestIds }) => {
+  const calculateNextReset = () => Date.now() + 24 * 60 * 60 * 1000
+  return {
+    performance: { now: () => 0 },
+    KC3QuestManager: {
+      list: { q101: { id: 101, status: 1, progress: 0 } },
+      load: () => {},
+      repeatableTypes: Object.fromEntries(
+        ['daily', 'weekly', 'monthly', 'quarterly', 'yearlyJan'].map((type) => [
+          type,
+          { questIds: [], calculateNextReset },
+        ]),
+      ),
+    },
+    KC3Meta: {
+      quest: (id) =>
+        knownQuestIds.includes(id)
+          ? { code: `A${id}`, name: `Quest ${id}`, desc: '', memo: '', unlock: unlockById[id] }
+          : false,
+    },
+    setTimeout,
+    clearTimeout,
+    localStorage: { getItem: () => null },
+    KC3SortieManager: { getCurrentMapData: () => ({ clear: 1 }) },
+  }
+}
+
+test('bundled quest unlock corrections normalize into a KC3 unlock map', () => {
+  const corrections = normalizeQuestUnlockCorrections(
+    // Mirrors the bundled snapshot shape; the real file is checked through the production script.
+    {
+      schemaVersion: 1,
+      source: { sourceUpdatedAt: '2026-10-15T00:00:00Z' },
+      unlock: {
+        104: [327, '348', 327, 104, -1],
+        bad: [1],
+        105: 'not-a-list',
+      },
+    },
+  )
+  assert.deepEqual(corrections, {
+    status: 'available',
+    sourceUpdatedAt: '2026-10-15T00:00:00Z',
+    unlock: { 104: [327, 348] },
+  })
+  assert.deepEqual(normalizeQuestUnlockCorrections({ schemaVersion: 2, unlock: {} }), {
+    status: 'invalid',
+    sourceUpdatedAt: null,
+    unlock: {},
+  })
+  assert.match(KC3_QUEST_SNAPSHOT_SCRIPT, /"status":"available"/)
+  assert.match(KC3_QUEST_SNAPSHOT_SCRIPT, /"104":\[[^\]]*327/)
+})
+
+test('KC3 quest snapshot merges prerequisite corrections with KC3 unlock metadata', async () => {
+  const script = kc3QuestSnapshotScript({
+    status: 'available',
+    sourceUpdatedAt: '2026-10-15T00:00:00Z',
+    unlock: { 101: [102, 103, 999], 103: [104] },
+  })
+  const snapshot = await new Function('window', `return ${script}`)(
+    unlockCorrectionWindow({
+      unlockById: { 101: [102] },
+      knownQuestIds: [101, 102, 103, 104],
+    }),
+  )
+
+  assert.deepEqual(snapshot.quests.find(({ id }) => id === 101).unlockIds, [102, 103])
+  assert.deepEqual(
+    snapshot.quests.map(({ id, locked }) => [id, locked]),
+    [
+      [101, false],
+      [102, true],
+      [103, true],
+      [104, true],
+    ],
+  )
+  assert.equal(snapshot.diagnostics.unlockCorrectionStatus, 'available')
+  assert.equal(snapshot.diagnostics.unlockCorrectionSourceUpdatedAt, '2026-10-15T00:00:00Z')
+  assert.equal(snapshot.diagnostics.unlockCorrectionAddedEdgeCount, 2)
+  assert.equal(snapshot.diagnostics.unlockCorrectionCorrectedQuestCount, 2)
+  assert.equal(snapshot.diagnostics.unlockCorrectionUnknownQuestCount, 1)
+})
+
+test('KC3 quest snapshot keeps KC3 unlock metadata when corrections are invalid', async () => {
+  const script = kc3QuestSnapshotScript(normalizeQuestUnlockCorrections(null))
+  const snapshot = await new Function('window', `return ${script}`)(
+    unlockCorrectionWindow({ unlockById: { 101: [102] }, knownQuestIds: [101, 102] }),
+  )
+  assert.deepEqual(snapshot.quests.find(({ id }) => id === 101).unlockIds, [102])
+  assert.equal(snapshot.diagnostics.unlockCorrectionStatus, 'invalid')
+  assert.equal(snapshot.diagnostics.unlockCorrectionAddedEdgeCount, 0)
+
+  const logs = []
+  await readKC3QuestRecommendations(
+    {
+      executeJavaScript: async () => ({
+        generatedAt: '2026-09-01T00:00:00.000Z',
+        quests: [],
+        extraOperationStatus: {},
+        diagnostics: {
+          unlockCorrectionStatus: 'invalid',
+          unlockCorrectionAddedEdgeCount: 0,
+        },
+      }),
+    },
+    (eventName, data) => logs.push({ eventName, data }),
+  )
+  const completed = logs.find(
+    ({ eventName }) => eventName === 'quest-recommendation.snapshot-completed',
+  )
+  assert.equal(completed.data.unlockCorrectionStatus, 'invalid')
+  assert.equal(completed.data.outcome, 'degraded')
+  assert.deepEqual(completed.data.reasonCodes, ['QUEST_UNLOCK_CORRECTIONS_INVALID'])
+})
+
+test('KC3 quest snapshot builds a catalog relation graph with completed prerequisites', async () => {
+  const script = kc3QuestSnapshotScript({
+    status: 'available',
+    sourceUpdatedAt: null,
+    unlock: { 100: [101], 101: [102, 103] },
+  })
+  const fixture = unlockCorrectionWindow({
+    unlockById: { 99: [100] },
+    knownQuestIds: [99, 100, 101, 102, 103],
+  })
+  fixture.KC3QuestManager.list = {
+    q99: { id: 99, status: 3, progress: 0 },
+    q100: { id: 100, status: 3, progress: 0 },
+    q101: { id: 101, status: 1, progress: 0 },
+  }
+  const meta = fixture.KC3Meta.quest
+  fixture.KC3Meta.quest = (id) => {
+    const value = meta(id)
+    return value && id === 103 ? { ...value, hash: 'limited' } : value
+  }
+  const snapshot = await new Function('window', `return ${script}`)(fixture)
+
+  assert.deepEqual(
+    snapshot.relationGraph.nodes.map(({ id, state }) => [id, state]),
+    [
+      [99, 'completed'],
+      [100, 'completed'],
+      [101, 'open'],
+      [102, 'locked'],
+    ],
+  )
+  assert.deepEqual(snapshot.relationGraph.edges, [
+    [99, 100],
+    [100, 101],
+    [101, 102],
+  ])
+  assert.equal(snapshot.diagnostics.relationGraphNodeCount, 4)
+  assert.equal(snapshot.diagnostics.relationGraphEdgeCount, 3)
+  assert.equal(snapshot.diagnostics.relationGraphTruncated, false)
+  // The relation graph is display-only; completed prerequisites never enter ranking input.
+  assert.deepEqual(
+    snapshot.quests.map(({ id }) => id),
+    [101, 102],
+  )
 })

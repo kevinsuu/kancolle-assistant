@@ -1,6 +1,12 @@
 import { loadQuestRecommendationResult } from './quest-recommendation-loader'
 import { createStrategyRoomI18n } from './i18n'
 import { QUEST_CHAPTER_KEYS } from './quest-recommendation'
+import { questGuideSearchUrl, questMatchesSearch } from './quest-recommendation-search'
+import {
+  mountQuestRelationGraph,
+  questHasRelations,
+  questRelationGraphPanelMarkup,
+} from './quest-relation-graph'
 import { LEDGER_RESOURCES } from './resource-metadata'
 import { escapeHtml, formatLocalizedDate, formatLocalizedNumber } from './strategy-room-format'
 import { panelMarkup, styles } from './views/quest-recommendation-view'
@@ -602,6 +608,7 @@ export const filterAndSortQuestRecommendationGroups = (
     rewardFilters = [],
     typeFilters = [],
     sortMode = 'deadlineAsc',
+    searchQuery = '',
   } = {},
 ) => {
   const filters = new Set(rewardFilters.filter((filter) => QUEST_REWARD_FILTERS.includes(filter)))
@@ -622,7 +629,8 @@ export const filterAndSortQuestRecommendationGroups = (
           (quest) =>
             questMatchesFilters(quest, filters) &&
             (types.size === 0 || matchesCombinedType || types.has(questTypeFor(quest))) &&
-            questMatchesChapterFilters(quest, chapters),
+            questMatchesChapterFilters(quest, chapters) &&
+            questMatchesSearch(quest, searchQuery),
         )
         return {
           ...group,
@@ -915,6 +923,7 @@ const questNodeMarkup = (
     visibleQuestIds,
     claimedSynergyIds,
     showAlternativeSynergies,
+    relationGraph = null,
   },
 ) => {
   const tier = adviceTier(quest)
@@ -944,6 +953,9 @@ const questNodeMarkup = (
         <div class="dqr-quest-icon ${period}">${escapeHtml(quest.code || quest.id)}</div>
         <div class="dqr-heading">
           <h2>${escapeHtml(quest.name || t('quest.unknownName'))}</h2>
+          <div class="dqr-quest-actions">
+            <a class="dqr-guide-link" href="${escapeHtml(questGuideSearchUrl(quest))}" target="_blank" rel="noreferrer">${escapeHtml(t('quest.guide.search'))}</a>
+          </div>
         </div>
         ${resourceRewardMarkup(quest)}
         <div class="dqr-tags">
@@ -982,6 +994,14 @@ const questNodeMarkup = (
           ${quest.limited ? `<div class="dqr-limited-deadline">${escapeHtml(t('quest.limitedDeadlineUnknown'))}</div>` : ''}
         </section>
       </div>
+      ${
+        questHasRelations(relationGraph, quest.id)
+          ? `<details class="dqr-relations" data-quest-relations="${escapeHtml(quest.id)}">
+              <summary>${escapeHtml(t('quest.relations.label'))}</summary>
+              <div class="dqr-relations-body"></div>
+            </details>`
+          : ''
+      }
     </article>
     ${alternativeSynergiesMarkup(alternativeSynergies)}
   </li>
@@ -1069,6 +1089,7 @@ export const questRecommendationListMarkup = (result) => {
         visibleQuestIds,
         claimedSynergyIds,
         showAlternativeSynergies,
+        relationGraph: result.relationGraph,
       }),
     )
     .join('')}</ol>`
@@ -1437,7 +1458,12 @@ const mountPanel = (invoke) => {
   const chapterFilterButtons = [...root.querySelectorAll('[data-quest-chapter]')]
   const filterButtons = [...rewardFilterButtons, ...typeFilterButtons, ...chapterFilterButtons]
   const sortSelect = root.querySelector('.dqr-sort')
-  const viewState = readQuestRecommendationSettings() || defaultQuestRecommendationSettings()
+  const searchInput = root.querySelector('.dqr-search')
+  // The search text is intentionally transient; only filters and sorting are persisted.
+  const viewState = {
+    ...(readQuestRecommendationSettings() || defaultQuestRecommendationSettings()),
+    searchQuery: '',
+  }
   sortSelect.value = viewState.sortMode
   let currentResult = null
   let currentView = null
@@ -1543,6 +1569,30 @@ const mountPanel = (invoke) => {
       logQuestSortChange(viewState.sortMode, currentView, Date.now() - startedAt)
     }
   })
+  // The relation graph is laid out only when a card's graph is opened. `toggle` does not bubble,
+  // so the listener runs in the capture phase.
+  root.querySelector('.dqr-output').addEventListener(
+    'toggle',
+    (event) => {
+      const details = event.target
+      if (!details?.matches?.('details.dqr-relations') || !details.open) return
+      const body = details.querySelector('.dqr-relations-body')
+      if (!body || body.childElementCount > 0 || !currentResult?.relationGraph) return
+      body.innerHTML = questRelationGraphPanelMarkup(t)
+      mountQuestRelationGraph({
+        panel: body,
+        graph: currentResult.relationGraph,
+        questId: Number(details.dataset.questRelations),
+        t,
+      })
+    },
+    true,
+  )
+
+  searchInput.addEventListener('input', () => {
+    viewState.searchQuery = searchInput.value.slice(0, 120)
+    if (currentResult) renderCurrent()
+  })
   syncControls()
 
   const load = async ({ forceSync = false } = {}) => {
@@ -1583,6 +1633,7 @@ const mountPanel = (invoke) => {
         typeFilters: [...viewState.typeFilters],
         rewardFilters: [...viewState.rewardFilters],
         sortMode: viewState.sortMode,
+        searchQuery: viewState.searchQuery,
       },
       exportedAt: new Date(),
     })

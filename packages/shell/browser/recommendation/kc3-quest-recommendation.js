@@ -1,13 +1,44 @@
+import questUnlockCorrections from './data/quest-unlock-corrections.json'
+
 const MAX_SYNCHRONIZED_QUEST_COUNT = 2_048
 const QUEST_RESOURCE_REWARDS_STORAGE_KEY = 'kancolle-assistant.quest-resource-rewards.v1'
+
+const escapeScriptLineTerminators = (source) =>
+  source.replace(/[\u2028\u2029]/g, (character) => (character === '\u2028' ? '\\u2028' : '\\u2029'))
+
+// Normalizes the bundled KanColle Quest Navigator prerequisite snapshot. KC3's `unlock` metadata
+// often lists only one prerequisite for quests that require several, so the snapshot merges both
+// sources as a union. Invalid data disables the correction instead of breaking recommendations.
+export const normalizeQuestUnlockCorrections = (data) => {
+  if (!data || data.schemaVersion !== 1 || !data.unlock || typeof data.unlock !== 'object') {
+    return { status: 'invalid', sourceUpdatedAt: null, unlock: {} }
+  }
+  const unlock = {}
+  Object.entries(data.unlock).forEach(([questId, successorIds]) => {
+    const id = Number(questId)
+    if (!Number.isInteger(id) || id <= 0 || !Array.isArray(successorIds)) return
+    const ids = [...new Set(successorIds.map(Number))].filter(
+      (successorId) => Number.isInteger(successorId) && successorId > 0 && successorId !== id,
+    )
+    if (ids.length > 0) unlock[id] = ids
+  })
+  return {
+    status: Object.keys(unlock).length > 0 ? 'available' : 'invalid',
+    sourceUpdatedAt:
+      typeof data.source?.sourceUpdatedAt === 'string'
+        ? data.source.sourceUpdatedAt.slice(0, 40)
+        : null,
+    unlock,
+  }
+}
+
+const QUEST_UNLOCK_CORRECTIONS = normalizeQuestUnlockCorrections(questUnlockCorrections)
 
 const synchronizedQuestScript = (quests) => {
   if (!Array.isArray(quests) || quests.length > MAX_SYNCHRONIZED_QUEST_COUNT) {
     throw new Error('KC3 synchronized quest list is invalid')
   }
-  const serializedQuests = JSON.stringify(quests).replace(/[\u2028\u2029]/g, (character) =>
-    character === '\u2028' ? '\\u2028' : '\\u2029',
-  )
+  const serializedQuests = escapeScriptLineTerminators(JSON.stringify(quests))
   return `(() => {
     if (!window.KC3QuestManager || typeof window.KC3QuestManager.definePage !== 'function') {
       throw new Error('KC3 quest managers are not ready')
@@ -59,13 +90,16 @@ const synchronizedQuestScript = (quests) => {
   })()`
 }
 
-const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
+const kc3QuestSnapshotScript = (unlockCorrections) => `(async () => {
   if (!window.KC3QuestManager || !window.KC3Meta) {
     throw new Error('KC3 quest managers are not ready')
   }
 
   const startedAt = window.performance.now()
   const now = Date.now()
+  const unlockCorrections = ${escapeScriptLineTerminators(JSON.stringify(unlockCorrections))}
+  const unlockCorrectionAddedEdges = new Map()
+  const unlockCorrectionUnknownQuestIds = new Set()
   window.KC3QuestManager.load()
   const storedQuestCount = Object.keys(window.KC3QuestManager.list || {}).length
   if (storedQuestCount === 0) {
@@ -156,6 +190,31 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
   } catch {}
   const synchronizedResourceRewards = window.__kancolleAssistantQuestResourceRewards || {}
 
+  const mergedUnlockIds = (questId, meta) => {
+    const kc3UnlockIds = Array.isArray(meta.unlock)
+      ? meta.unlock.map(Number).filter((id) => Number.isFinite(id) && id > 0)
+      : []
+    const kc3UnlockIdSet = new Set(kc3UnlockIds)
+    const unknownIds = []
+    const addedIds = (unlockCorrections.unlock[questId] || []).filter((id) => {
+      if (kc3UnlockIdSet.has(id)) return false
+      // Quests KC3 does not know yet cannot be named, ranked, or reset correctly.
+      if (!window.KC3Meta.quest(id)) {
+        unknownIds.push(id)
+        return false
+      }
+      return true
+    })
+    return { ids: [...new Set([...kc3UnlockIds, ...addedIds])], addedIds, unknownIds }
+  }
+
+  const unlockIdsFor = (questId, meta) => {
+    const { ids, addedIds, unknownIds } = mergedUnlockIds(questId, meta)
+    unknownIds.forEach((id) => unlockCorrectionUnknownQuestIds.add(id))
+    if (addedIds.length > 0) unlockCorrectionAddedEdges.set(questId, addedIds.length)
+    return ids
+  }
+
   const questSnapshot = (questId, quest = {}, locked = false) => {
     const resetPeriod = resetPeriodByQuestId[questId] || 'other'
     const repeatable = resetPeriod !== 'other'
@@ -211,9 +270,7 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
       period,
       resetPeriod,
       resetAt: resetAtByPeriod[resetPeriod] || null,
-      unlockIds: Array.isArray(meta.unlock)
-        ? [...new Set(meta.unlock.map(Number).filter((id) => Number.isFinite(id) && id > 0))]
-        : [],
+      unlockIds: unlockIdsFor(questId, meta),
       rewardConsumables: Array.isArray(meta.rewardConsumables)
         ? meta.rewardConsumables.slice(0, 4).map((value) => Number(value || 0))
         : [0, 0, 0, 0],
@@ -274,6 +331,49 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
   const successorGraphTruncated =
     successorQueue.length > 0 && graphQuestIds.size >= maximumPlanningQuestCount
   const successorQueueRemainingCount = successorQueue.length
+
+  // The relation graph covers the whole known catalog, including completed prerequisites, so the
+  // page can draw any quest's upstream and downstream chain. It is display-only data and never
+  // enters ranking. Time-limited quests appear only while they are open or active.
+  const maximumRelationGraphQuestCount = 2048
+  const relationGraphCandidateIds = new Set([
+    ...storedQuestsById.keys(),
+    ...Object.keys(unlockCorrections.unlock).map(Number),
+    ...Object.values(unlockCorrections.unlock).flat(),
+  ])
+  const relationGraphNodes = []
+  const relationGraphUnlockIds = new Map()
+  let relationGraphTruncated = false
+  ;[...relationGraphCandidateIds]
+    .filter((id) => Number.isInteger(id) && id > 0)
+    .sort((left, right) => left - right)
+    .forEach((id) => {
+      const meta = window.KC3Meta.quest(id)
+      if (!meta) return
+      const status = Number(storedQuestsById.get(id)?.status || 0)
+      const limited = meta.hash !== undefined && meta.hash !== null
+      if (limited && status !== 1 && status !== 2) return
+      if (relationGraphNodes.length >= maximumRelationGraphQuestCount) {
+        relationGraphTruncated = true
+        return
+      }
+      const japaneseMeta = japaneseQuests[id] || {}
+      relationGraphNodes.push({
+        id,
+        code: String(meta.code || id).slice(0, 40),
+        name: String(
+          window.__kancolleAssistantJapaneseQuestTitles?.[id] || japaneseMeta.name || meta.name || '',
+        ).slice(0, 120),
+        state: status === 3 ? 'completed' : status === 2 ? 'active' : status === 1 ? 'open' : 'locked',
+      })
+      relationGraphUnlockIds.set(id, mergedUnlockIds(id, meta).ids)
+    })
+  const relationGraphEdges = []
+  relationGraphUnlockIds.forEach((successorIds, id) => {
+    successorIds.forEach((successorId) => {
+      if (relationGraphUnlockIds.has(successorId)) relationGraphEdges.push([id, successorId])
+    })
+  })
   const questTitleSourceCounts = { gameApi: 0, japaneseMetadata: 0, localizedFallback: 0 }
   quests.forEach(({ id }) => {
     const titleSource = questTitleSourceByQuestId.get(Number(id)) || 'localizedFallback'
@@ -323,6 +423,11 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
         ? window.__kancolleAssistantQuestSynchronizedAt
         : null,
     quests,
+    relationGraph: {
+      nodes: relationGraphNodes,
+      edges: relationGraphEdges,
+      truncated: relationGraphTruncated,
+    },
     extraOperationStatus,
     account,
     diagnostics: {
@@ -354,10 +459,49 @@ const KC3_QUEST_SNAPSHOT_SCRIPT = `(async () => {
       japaneseQuestMetadataMessage,
       japaneseQuestMetadataReasonCode,
       questTitleSourceCounts,
+      relationGraphNodeCount: relationGraphNodes.length,
+      relationGraphEdgeCount: relationGraphEdges.length,
+      relationGraphTruncated,
+      unlockCorrectionStatus: unlockCorrections.status,
+      unlockCorrectionSourceUpdatedAt: unlockCorrections.sourceUpdatedAt,
+      unlockCorrectionAddedEdgeCount: [...unlockCorrectionAddedEdges.values()].reduce(
+        (count, value) => count + value,
+        0,
+      ),
+      unlockCorrectionCorrectedQuestCount: unlockCorrectionAddedEdges.size,
+      unlockCorrectionUnknownQuestCount: unlockCorrectionUnknownQuestIds.size,
       elapsedMs: Math.round(window.performance.now() - startedAt),
     },
   }
 })()`
+
+const KC3_QUEST_SNAPSHOT_SCRIPT = kc3QuestSnapshotScript(QUEST_UNLOCK_CORRECTIONS)
+
+const RELATION_GRAPH_STATES = new Set(['completed', 'active', 'open', 'locked'])
+const MAX_RELATION_GRAPH_NODE_COUNT = 2_048
+const MAX_RELATION_GRAPH_EDGE_COUNT = 8_192
+
+// Bounds and type-checks the display-only quest relation graph before it crosses IPC.
+export const normalizeQuestRelationGraph = (graph) => {
+  const nodes = (Array.isArray(graph?.nodes) ? graph.nodes : [])
+    .slice(0, MAX_RELATION_GRAPH_NODE_COUNT)
+    .filter((node) => Number.isInteger(node?.id) && node.id > 0)
+    .map((node) => ({
+      id: node.id,
+      code: String(node.code ?? node.id).slice(0, 40),
+      name: String(node.name ?? '').slice(0, 120),
+      state: RELATION_GRAPH_STATES.has(node.state) ? node.state : 'locked',
+    }))
+  const nodeIds = new Set(nodes.map(({ id }) => id))
+  const edges = (Array.isArray(graph?.edges) ? graph.edges : [])
+    .slice(0, MAX_RELATION_GRAPH_EDGE_COUNT)
+    .filter(
+      (edge) =>
+        Array.isArray(edge) && nodeIds.has(edge[0]) && nodeIds.has(edge[1]) && edge[0] !== edge[1],
+    )
+    .map(([from, to]) => [from, to])
+  return { nodes, edges, truncated: graph?.truncated === true }
+}
 
 const validateSnapshot = (snapshot) => {
   if (!snapshot || !Array.isArray(snapshot.quests)) {
@@ -432,6 +576,12 @@ export const readKC3QuestRecommendations = async (
       : []),
     ...(successorGraphTruncated ? ['KC3_QUEST_SUCCESSOR_GRAPH_TRUNCATED'] : []),
     ...(localizedTitleFallbackCount > 0 ? ['KC3_JAPANESE_QUEST_TITLE_UNAVAILABLE'] : []),
+    ...(snapshot.diagnostics?.relationGraphTruncated === true
+      ? ['QUEST_RELATION_GRAPH_TRUNCATED']
+      : []),
+    ...(snapshot.diagnostics?.unlockCorrectionStatus === 'invalid'
+      ? ['QUEST_UNLOCK_CORRECTIONS_INVALID']
+      : []),
   ]
   logger('quest-recommendation.snapshot-completed', {
     operation: 'read-kc3-open-quests',
@@ -462,6 +612,20 @@ export const readKC3QuestRecommendations = async (
     japaneseQuestMetadataStatus: snapshot.diagnostics?.japaneseQuestMetadataStatus || 'unknown',
     japaneseQuestMetadataMessage: snapshot.diagnostics?.japaneseQuestMetadataMessage || null,
     questTitleSourceCounts: snapshot.diagnostics?.questTitleSourceCounts || {},
+    relationGraphNodeCount: Number(snapshot.diagnostics?.relationGraphNodeCount || 0),
+    relationGraphEdgeCount: Number(snapshot.diagnostics?.relationGraphEdgeCount || 0),
+    relationGraphTruncated: snapshot.diagnostics?.relationGraphTruncated === true,
+    unlockCorrectionStatus: snapshot.diagnostics?.unlockCorrectionStatus || 'unknown',
+    unlockCorrectionSourceUpdatedAt: snapshot.diagnostics?.unlockCorrectionSourceUpdatedAt || null,
+    unlockCorrectionAddedEdgeCount: Number(
+      snapshot.diagnostics?.unlockCorrectionAddedEdgeCount || 0,
+    ),
+    unlockCorrectionCorrectedQuestCount: Number(
+      snapshot.diagnostics?.unlockCorrectionCorrectedQuestCount || 0,
+    ),
+    unlockCorrectionUnknownQuestCount: Number(
+      snapshot.diagnostics?.unlockCorrectionUnknownQuestCount || 0,
+    ),
     elapsedMs: Number(snapshot.diagnostics?.elapsedMs || 0),
     outcome: reasonCodes.length > 0 ? 'degraded' : 'success',
     reasonCodes,
@@ -507,6 +671,7 @@ export const readKC3QuestRecommendations = async (
   }
   return {
     ...ranked,
+    relationGraph: normalizeQuestRelationGraph(snapshot.relationGraph),
     activeQuestCount,
     questAcceptanceCapacity: 5,
     snapshotSource,
@@ -514,4 +679,4 @@ export const readKC3QuestRecommendations = async (
   }
 }
 
-export { KC3_QUEST_SNAPSHOT_SCRIPT, synchronizedQuestScript }
+export { KC3_QUEST_SNAPSHOT_SCRIPT, kc3QuestSnapshotScript, synchronizedQuestScript }
